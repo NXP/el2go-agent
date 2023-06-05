@@ -1,0 +1,23 @@
+Build and run
+=============
+1. Generate the projects (bin/generator/batch_v2):
+ruby all_rdrw612bga.rb -p "el2go_blob_test_ns,el2go_tfm_psa_ns_lib,el2go_blob_test_s" -t iar
+
+2. Build the projects in the following order:
+el2go_blob_test_s -> el2go_tfm_psa_ns_lib -> el2go_blob_test_ns
+
+3. Flash both el2go_blob_test_s and el2go_blob_test_ns to your board
+
+Create device specifiy blobs
+============================
+1. Checkout and configure the IOTHUB/iothub-device-link-commons repository
+
+2. Get the WRAPPING key (NXP_DIE_EL2GOIMPORT_KEK_SK), ENC key (NXP_DIE_EL2GOIMPORTTFM_KEK_SK) and MAC key (NXP_DIE_EL2GOIMPORT_AUTH_SK) for your board
+
+3. Run the following commands, filling in your keys as hex string:
+mvn test -Dtest=PSAKeyImportTest,PSAExternalKeyImportTest -Dmaven.test.redirectTestOutputToFile=true \
+-DargLine="-DwrappingKey=YOUR_WRAPPING_KEY -DencKey=YOUR_ENC_KEY -DmacKey=YOUR_MAC_KEY -DoutputCHeader=true"
+
+4. Put the generated blobs in the correct header files (You can simply overwrite the placeholder files):
+cat target/surefire-reports/com.nxp.iot.devicelink.psa.command.PSAKeyImportTest-output.txt > el2go_blob_test_internal.h
+cat target/surefire-reports/com.nxp.iot.devicelink.psa.command.PSAExternalKeyImportTest-output.txt > el2go_blob_test_external.h

@@ -1,0 +1,9 @@
+.idea
+tmp
+__pycache__
+output
+releases
+venv
+*.orig
+*.vim
+
