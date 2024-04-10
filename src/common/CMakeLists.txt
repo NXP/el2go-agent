@@ -1,4 +1,4 @@
-# Copyright 2019, 2021 NXP
+# Copyright 2019,2021,2023-2024 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -56,10 +56,17 @@ ELSE()
 ENDIF()
 
 IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS AND NOT NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+    IF(((SSS_HAVE_HOST_PCWINDOWS) OR (SSS_HAVE_HOST_PCLINUX64)) AND (SSS_HAVE_APPLET_NONE) AND (SSS_HAVE_MBEDTLS_ALT_PSA))
+        TARGET_LINK_LIBRARIES(
+            nxp_iot_agent_common
+            mbedtls_psa
+        )
+    ELSE()
     TARGET_LINK_LIBRARIES(
         nxp_iot_agent_common
         mbedtls
     )
+    ENDIF()
 ENDIF()
 
 IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
@@ -93,12 +100,16 @@ TARGET_COMPILE_DEFINITIONS(nxp_iot_agent_common PRIVATE PB_FIELD_32BIT)
 IF(SSS_HAVE_APPLET_SE05X_IOT)
     TARGET_LINK_LIBRARIES(
         nxp_iot_agent_common
-        smCom
-        SSS_APIs
         ex_common
     )
+    IF (NOT SSS_HAVE_MBEDTLS_ALT_PSA)
+        TARGET_LINK_LIBRARIES(
+            nxp_iot_agent_common
+        smCom
+        SSS_APIs
+    )
+    ENDIF()
 ENDIF()
-
 
 IF(SSS_HAVE_HOST_PCLINUX OR SSS_HAVE_HOST_IMXLINUX OR SSS_HAVE_HOST_LINUX_LIKE)
     INSTALL(TARGETS nxp_iot_agent_common DESTINATION lib)

@@ -1,11 +1,10 @@
 /*
- * Copyright 2020-2021 NXP
+ * Copyright 2020-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
  */
 
-#include <fsl_sscp_a71ch.h>
 #include <fsl_sss_api.h>
 #include <smCom.h>
 #include <stdint.h>
@@ -29,23 +28,9 @@
 #include <openssl/opensslv.h>
 #endif
 
-#if SSS_HAVE_SSCP
-#include <fsl_sss_sscp.h>
-#include <sm_types.h>
-#endif
-
 #if SSS_HAVE_APPLET_SE05X_IOT
 #include <fsl_sss_se05x_apis.h>
 #endif
-
-#if SSS_HAVE_A71XX
-#include <HLSEAPI.h>
-#include <fsl_sscp_a71ch.h>
-#endif
-#if SSS_HAVE_APPLET_A71CL || SSS_HAVE_SE050_L
-#include <a71cl_api.h>
-#include <fsl_sscp_a71cl.h>
-#endif /* SSS_HAVE_APPLET_A71CH / EAR */
 
 #if defined(__linux__) && defined(T1oI2C)
 #if SSS_HAVE_APPLET_SE05X_IOT
@@ -53,6 +38,7 @@
 #endif
 #endif
 
+#include "ex_sss_ports.h"
 #include <ex_sss_boot.h>
 #include "sm_apdu.h"
 
@@ -349,7 +335,7 @@ int main(int argc, const char *argv[])
 {
 	int ret;
 	sss_status_t status = kStatus_SSS_Fail;
-	const char *portName;
+	char *portName;
 
 	for (int i = 0; i < argc; i++) {
 		if ((strcmp(argv[i], "-h") == 0)
@@ -440,6 +426,17 @@ int main(int argc, const char *argv[])
 
 	goto cleanup;
 cleanup:
+#if defined(_MSC_VER)
+    if (portName) {
+        char* dummy_portName = NULL;
+        size_t dummy_sz = 0;
+        _dupenv_s(&dummy_portName, &dummy_sz, EX_SSS_BOOT_SSS_PORT);
+        if (NULL != dummy_portName) {
+            free(dummy_portName);
+            free(portName);
+        }
+    }
+#endif // _MSC_VER
 
 	ex_sss_session_close(&gex_sss_gen_cert);
 	if (kStatus_SSS_Success == status) {

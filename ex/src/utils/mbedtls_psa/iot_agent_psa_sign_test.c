@@ -1,5 +1,5 @@
 /* 
- * Copyright 2022 NXP
+ * Copyright 2022,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -33,14 +33,14 @@ uint8_t public_key[] =
   0x44, 0xC0, 0x31, 0xB7, 0xEE, 0x6A, 0xBA, 0xFA, 0x80, 0x03, 0x2D, 0x9B, 0xAD
 };
 
-uint8_t hash[] =
+static uint8_t hash[] =
 {
   0xA6, 0x67, 0x28, 0x26, 0x75, 0xF4, 0x87, 0x60, 0x21, 0xD3, 0x92, 0xAA, 0x65,
   0x92, 0xF3, 0x9D, 0xAB, 0xF7, 0x18, 0x74, 0x8C, 0x4B, 0x73, 0x85, 0x63, 0xCB,
   0x9D, 0x5D, 0xC8, 0xF2, 0x1F, 0x24
 };
 
-iot_agent_status_t iot_agent_verify_psa_import()
+iot_agent_status_t iot_agent_verify_psa_import(void)
 {
   
   iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
@@ -63,7 +63,7 @@ exit:
   return agent_status;
 }
 
-iot_agent_status_t iot_agent_verify_psa_export()
+iot_agent_status_t iot_agent_verify_psa_export(void)
 {
   uint8_t output_buffer[PSA_EXPORT_KEY_PAIR_MAX_SIZE];
   size_t data_length;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021, 2023 NXP
+ * Copyright 2021,2023-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -9,6 +9,11 @@
 #include "nxp_iot_agent_macros.h"
 #include "nxp_iot_agent_log.h"
 #include <string.h>
+
+#ifdef psa_import_key
+#undef psa_import_key
+#define psa_import_key psa_import_key
+#endif
 
 #define BUF_SIZE (1000)
 #define MAX_KEY_SIZE (65) // NIST-P256 public key is 65 bytes

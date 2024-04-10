@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -12,8 +12,13 @@
 extern "C" {
 #endif
 
+#ifdef __ZEPHYR__
+#include <stdio.h>
+#define LOG printf
+#else
 #include "fsl_debug_console.h"
-#include "board.h"
+#define LOG PRINTF
+#endif
 
 enum serial_color_t {
     DEFAULT = 0,
@@ -25,7 +30,7 @@ enum serial_color_t {
     CYAN    = 36
 };
 
-#define PRINTF_SET_COLOR(color) PRINTF("\33[%dm", color)
+#define LOG_SET_COLOR(color) LOG("\33[%dm", color)
 
 enum test_status_t {
     TEST_PASSED = 0,

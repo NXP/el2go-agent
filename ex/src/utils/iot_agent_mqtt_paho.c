@@ -1,4 +1,4 @@
-/* Copyright 2020-2021 NXP
+/* Copyright 2020-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -34,7 +34,12 @@
 #include <nxp_iot_agent_session.h>
 #include <network_openssl.h>
 #include <MQTTClient.h>
+
+#ifdef NXP_IOT_AGENT_USE_COREJSON
+#include "core_json.h"
+#else
 #include "jsmn.h"
+#endif
 
 #endif
 
@@ -97,7 +102,11 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 int azure_callback(void *context, char *topicName, int topicLen, MQTTClient_message *message);
 int network_openssl_engine_session_connect_mqtt();
 int network_openssl_engine_session_disconnect_mqtt();
+#ifdef NXP_IOT_AGENT_USE_COREJSON
+static iot_agent_status_t get_value_from_tag(char *js, size_t js_size, const char * key, size_t key_size, char * value, size_t max_value_size);
+#else
 iot_agent_status_t get_value_from_tag(char *js, const char * key, char * value);
+#endif
 iot_agent_status_t connect_and_publish_message(mqtt_connection_params_t* connection_params);
 iot_agent_status_t iot_agent_mqtt_connect_aws(const nxp_iot_ServiceDescriptor* service_descriptor, mqtt_connection_params_t* connection_params);
 iot_agent_status_t iot_agent_mqtt_register_azure(mqtt_connection_params_t* connection_params, mqtt_azure_params_t* azure_params);
@@ -116,12 +125,27 @@ iot_agent_status_t write_service_metadata(const nxp_iot_ServiceDescriptor* servi
 iot_agent_status_t write_service_configuration(const nxp_iot_ServiceDescriptor* service_descriptor,
     char *filename, char* certificate_filename, const char* keyref_filename, const char* server_cert_filename);
 
+#ifdef NXP_IOT_AGENT_USE_COREJSON
+static iot_agent_status_t get_value_from_tag(char *js, size_t js_size, const char * key, size_t key_size, char * value, size_t max_value_size) {
+	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+	char* value_ptr;
+	size_t value_size = 0U;
 
+	ASSERT_OR_EXIT_MSG(js != NULL, "The input pointer is NULL");
+	ASSERT_OR_EXIT_MSG(key != NULL, "The input pointer is NULL");
+	ASSERT_OR_EXIT_MSG(value != NULL, "The input pointer is NULL");
+	ASSERT_OR_EXIT_MSG(JSON_Search(js, js_size, key, key_size, &value_ptr, &value_size) == JSONSuccess, "Error in JSON string parsing");
+	ASSERT_OR_EXIT_MSG(value_size < max_value_size, "To less space allocated for the value buffer");
+	strncpy(value, value_ptr, value_size);
+exit:
+	return agent_status;
+}
+#else
 #define JSMN_TOKENS_SIZE 50U
 iot_agent_status_t get_value_from_tag(char *js, const char * key, char * value)
 {
     jsmn_parser p;
-    jsmntok_t tokens[JSMN_TOKENS_SIZE]; /* We expect no more than 50 JSON tokens */
+    jsmntok_t tokens[JSMN_TOKENS_SIZE] = {0}; /* We expect no more than 50 JSON tokens */
     jsmn_init(&p);
     int count = jsmn_parse(&p, js, strlen(js), tokens, JSMN_TOKENS_SIZE);
     for (int i = 1; i < count; i += 2)
@@ -138,6 +162,7 @@ iot_agent_status_t get_value_from_tag(char *js, const char * key, char * value)
     }
     return IOT_AGENT_FAILURE;
 }
+#endif
 
 void delivered(void *context, MQTTClient_deliveryToken dt)
 {
@@ -158,6 +183,11 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
     (void)(context);
     (void)(topicLen);
 
+	if ((message->payloadlen < 0) || (message->payloadlen > (INT32_MAX - 1)))
+	{
+		LOG_E("\nError in the payload length\n");
+		return 0;
+	}
     char *payload = malloc((size_t)message->payloadlen + 1U);
     if (payload == NULL)
     {
@@ -180,14 +210,20 @@ int azure_callback(void *context, char *topicName, int topicLen, MQTTClient_mess
 {
     (void)(context);
     (void)(topicLen);
-    char opid[256] = {0};
+    char opid[256 - sizeof(IOT_AGENT_MQTT_OPID_TOPIC_AZURE)] = {0};
     char status[64] = {0};
 
-    char *payload = malloc((size_t)message->payloadlen + 1U);
+	if ((message->payloadlen < 0) || (message->payloadlen > (INT32_MAX - 1))) {
+		return 0;
+	}
+	size_t payloadLength = (size_t)message->payloadlen + 1U;
+
+    char *payload = malloc(payloadLength);
     if (payload == NULL)
     {
         return 0;
     }
+
     memcpy(payload, message->payload, (size_t)message->payloadlen);
     payload[message->payloadlen] = '\0';
 
@@ -195,8 +231,13 @@ int azure_callback(void *context, char *topicName, int topicLen, MQTTClient_mess
     LOG_I("     topic: %s\n", topicName);
     LOG_I("   message: %s", payload);
 
+#ifdef NXP_IOT_AGENT_USE_COREJSON
+	get_value_from_tag(payload, payloadLength, "operationId", strlen("operationId"), opid, sizeof(opid));
+	get_value_from_tag(payload, payloadLength, "status", strlen("status"), status, sizeof(status));
+#else
     get_value_from_tag(payload, "operationId", opid);
     get_value_from_tag(payload, "status", status);
+#endif
 
     mqtt_azure_params_t* context_cb = (mqtt_azure_params_t*)context;
     LOG_I("reading opid from context: [%s]", context_cb->operationId);
@@ -204,17 +245,26 @@ int azure_callback(void *context, char *topicName, int topicLen, MQTTClient_mess
     if (strcmp(status, "assigning") == 0)
     {
         LOG_I("Device State is now ASSIGNING");
-        strcpy(context_cb->operationId, IOT_AGENT_MQTT_OPID_TOPIC_AZURE);
-        strcat(context_cb->operationId, opid);
+        strncpy(context_cb->operationId, IOT_AGENT_MQTT_OPID_TOPIC_AZURE, sizeof(IOT_AGENT_MQTT_OPID_TOPIC_AZURE));
+        strncat(context_cb->operationId, opid, sizeof(opid));
 
         context_cb->state = ASSIGNING;
     }
     else if (strcmp(status, "assigned") == 0)
     {
         LOG_I("Device State is now ASSIGNED");
+#ifdef NXP_IOT_AGENT_USE_COREJSON
+		char* registrationState = malloc(payloadLength);
 
+		memset(registrationState, '\0', payloadLength);
+		get_value_from_tag(payload, payloadLength, "registrationState", strlen("registrationState"), registrationState, payloadLength);
+		get_value_from_tag(registrationState, strlen(registrationState), "assignedHub", strlen("assignedHub"), context_cb->assignedHub, sizeof(context_cb->assignedHub));
+		get_value_from_tag(registrationState, strlen(registrationState), "deviceId", strlen("deviceId"), context_cb->deviceId, sizeof(context_cb->deviceId));
+		free(registrationState);
+#else
         get_value_from_tag(payload, "assignedHub", context_cb->assignedHub);
         get_value_from_tag(payload, "deviceId", context_cb->deviceId);
+#endif
 
         context_cb->state = ASSIGNED;
     }
@@ -247,7 +297,7 @@ iot_agent_status_t connect_and_publish_message(mqtt_connection_params_t* connect
     conn_opts.username = connection_params->username;
     conn_opts.password = NULL;
 
-    sslopts.enableServerCertAuth = 0;
+    sslopts.enableServerCertAuth = 1;
     sslopts.trustStore = connection_params->rootpath;
     sslopts.privateKey = connection_params->keypath;
     sslopts.keyStore = connection_params->devcert;
@@ -295,8 +345,8 @@ iot_agent_status_t iot_agent_mqtt_connect_aws(const nxp_iot_ServiceDescriptor* s
         return IOT_AGENT_FAILURE;
     }
 
-    strcpy(connection_params->username, IOT_AGENT_MQTT_USERNAME_AWS);
-    strcpy(connection_params->topic, IOT_AGENT_MQTT_TOPIC_AWS);
+    strncpy(connection_params->username, IOT_AGENT_MQTT_USERNAME_AWS, sizeof(IOT_AGENT_MQTT_USERNAME_AWS));
+    strncpy(connection_params->topic, IOT_AGENT_MQTT_TOPIC_AWS, sizeof(IOT_AGENT_MQTT_TOPIC_AWS));
     connection_params->clientid = service_descriptor->client_id;
     connection_params->payload = IOT_AGENT_MQTT_PAYLOAD;
 
@@ -355,7 +405,7 @@ iot_agent_status_t iot_agent_mqtt_register_azure(mqtt_connection_params_t* conne
     ASSERT_OR_EXIT_MSG(rc == MQTTCLIENT_SUCCESS, "MQTTClient_subscribe Failed, return code [%d]", rc);
 
     azure_params->state = NOT_ASSIGNED;
-    strcpy(azure_params->operationId, "testing");
+    strncpy(azure_params->operationId, "testing", sizeof("testing"));
     pubmsg.qos = 1;
 
     rc = MQTTClient_publishMessage(client, IOT_AGENT_MQTT_REGISTRATION_TOPIC_AZURE, &pubmsg, &token);
@@ -397,16 +447,18 @@ iot_agent_status_t iot_agent_mqtt_connect_azure(mqtt_connection_params_t* connec
         sizeof(connection_params->address),
         "ssl://%s:8883",
         azure_params->assignedHub);
+	ASSERT_OR_EXIT_MSG(m >= 0, "Error in the snprint execution");
     int n = snprintf(connection_params->username,
         sizeof(connection_params->username),
         "%s/%s/?api-version=2018-06-30",
         azure_params->assignedHub,
         azure_params->deviceId);
-
+	ASSERT_OR_EXIT_MSG(n >= 0, "Error in the snprint execution");
     int o = snprintf(connection_params->topic,
         sizeof(connection_params->topic),
         "devices/%s/messages/events/",
         azure_params->deviceId);
+	ASSERT_OR_EXIT_MSG(o >= 0, "Error in the snprint execution");
     if (m > (int)sizeof(connection_params->address) || n > (int)sizeof(connection_params->username) || o > (int)sizeof(connection_params->topic)) {
         LOG_E("Error, buffer for storing address/username was too small.\n");
         return IOT_AGENT_FAILURE;
@@ -416,6 +468,7 @@ iot_agent_status_t iot_agent_mqtt_connect_azure(mqtt_connection_params_t* connec
     connection_params->payload = IOT_AGENT_MQTT_PAYLOAD;
     IOT_AGENT_INFO("Connecting to Azure service: %s", azure_params->deviceId)
     agent_status = connect_and_publish_message(connection_params);
+exit:
     return agent_status;
 }
 
@@ -427,12 +480,14 @@ iot_agent_status_t iot_agent_mqtt_register_and_connect_azure(const nxp_iot_Servi
         sizeof(connection_params->address),
         "ssl://%s:8883",
         service_descriptor->azure_global_device_endpoint);
+	ASSERT_OR_EXIT_MSG(m >= 0, "Error in the snprint execution");
 
     int n = snprintf(connection_params->username,
         sizeof(connection_params->username),
         "%s/registrations/%s/api-version=2018-11-01&ClientVersion=1.4.0",
         service_descriptor->azure_id_scope,
         service_descriptor->azure_registration_id);
+	ASSERT_OR_EXIT_MSG(n >= 0, "Error in the snprint execution");
 
     if (m > (int)sizeof(connection_params->address) || n > (int)sizeof(connection_params->username)) {
         LOG_E("Error, buffer for storing hubname/username was too small.\n");
@@ -460,8 +515,8 @@ iot_agent_status_t iot_agent_mqtt_connect_custom(const nxp_iot_ServiceDescriptor
         LOG_E("Error, buffer for storing URL was too small.\n");
         return IOT_AGENT_FAILURE;
     }
-    strcpy(connection_params->username, IOT_AGENT_MQTT_USERNAME_CUSTOM);
-    strcpy(connection_params->topic, IOT_AGENT_MQTT_TOPIC_CUSTOM);
+    strncpy(connection_params->username, IOT_AGENT_MQTT_USERNAME_CUSTOM, sizeof(IOT_AGENT_MQTT_USERNAME_CUSTOM));
+    strncpy(connection_params->topic, IOT_AGENT_MQTT_TOPIC_CUSTOM, sizeof(IOT_AGENT_MQTT_TOPIC_CUSTOM));
     connection_params->clientid = (service_descriptor->client_id != NULL) ? service_descriptor->client_id : "";
     connection_params->payload = IOT_AGENT_MQTT_PAYLOAD;
 
@@ -535,9 +590,13 @@ void write_error_logs(const char* message)
 #if (!AX_EMBEDDED)
     FILE* fp = fopen("output\\errors.log", "a");
     if (fp != NULL) {
-        fprintf(fp, "Error: %s \n", message);
-        fclose(fp);
-    }
+		if (fprintf(fp, "Error: %s \n", message) < 0) {
+			IOT_AGENT_ERROR("Error in fprintf funxtion");
+		}
+		if (fclose(fp) != 0) {
+			IOT_AGENT_ERROR("Error in fclose funxtion");
+		}
+	}
 #endif
 }
 
@@ -554,7 +613,11 @@ void delete_old_service_files(const char* output_directory)
             {
                 continue;
             }
-            sprintf(filepath, "%s/%s", output_directory, file->d_name);
+
+			if (snprintf(filepath, sizeof(filepath), "%s/%s", output_directory, file->d_name) < 0) {
+				IOT_AGENT_ERROR("Error in the creation of the output directory");
+			}
+
             if (remove(filepath) != 0)
             {
                 closedir(dir);
@@ -590,7 +653,9 @@ void delete_old_service_files_folders(const char* output_directory)
             {
                 continue;
             }
-            sprintf(subdir, "%s/%s", output_directory, file->d_name);
+			if (snprintf(subdir, sizeof(subdir), "%s/%s", output_directory, file->d_name) < 0) {
+				IOT_AGENT_ERROR("Error in building the output string");
+			}
             delete_old_service_files(subdir);
         }
         delete_old_service_files(output_directory);
@@ -624,37 +689,39 @@ iot_agent_status_t write_service_configuration_aws(const nxp_iot_ServiceDescript
     fp = fopen(filename, "w");
     ASSERT_OR_EXIT_MSG(fp != NULL, "Error opening file");
 
-    fprintf(fp, "{\n");
-    fprintf(fp, "  \"endpoint\": \"%s\",\n", service_descriptor->hostname);
-    fprintf(fp, "  \"protocol\": \"%s\",\n", protocol);
-    fprintf(fp, "  \"port\": %d,\n", service_descriptor->port);
-    fprintf(fp, "  \"mqtt_port\": 8883,\n");
-    fprintf(fp, "  \"https_port\": 443,\n");
-    fprintf(fp, "  \"greengrass_discovery_port\": 8443,\n");
-    fprintf(fp, "  \"root_ca_relative_path\": \"%s\",\n", server_cert_filename);
-    fprintf(fp, "  \"device_certificate_relative_path\": \"%s\",\n", certificate_filename);
-    fprintf(fp, "  \"device_private_key_relative_path\": \"%s\",\n", keyref_filename);
-    fprintf(fp, "  \"tls_handshake_timeout_msecs\": 60000,\n");
-    fprintf(fp, "  \"tls_read_timeout_msecs\": 2000,\n");
-    fprintf(fp, "  \"tls_write_timeout_msecs\": 2000,\n");
-    fprintf(fp, "  \"aws_region\": \"\",\n");
-    fprintf(fp, "  \"aws_access_key_id\": \"\",\n");
-    fprintf(fp, "  \"aws_secret_access_key\": \"\",\n");
-    fprintf(fp, "  \"aws_session_token\": \"\",\n");
-    fprintf(fp, "  \"client_id\": \"%s\",\n", service_descriptor->client_id);
-    fprintf(fp, "  \"thing_name\": \"CppSDKTesting\",\n");
-    fprintf(fp, "  \"is_clean_session\": true,\n");
-    fprintf(fp, "  \"mqtt_command_timeout_msecs\": %d,\n", service_descriptor->timeout_ms);
-    fprintf(fp, "  \"keepalive_interval_secs\": 600,\n");
-    fprintf(fp, "  \"minimum_reconnect_interval_secs\": 1,\n");
-    fprintf(fp, "  \"maximum_reconnect_interval_secs\": 128,\n");
-    fprintf(fp, "  \"maximum_acks_to_wait_for\": 32,\n");
-    fprintf(fp, "  \"action_processing_rate_hz\": 5,\n");
-    fprintf(fp, "  \"maximum_outgoing_action_queue_length\": 32,\n");
-    fprintf(fp, "  \"discover_action_timeout_msecs\": 300000\n");
-    fprintf(fp, "}");
-    fclose(fp);
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "{\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"endpoint\": \"%s\",\n", service_descriptor->hostname) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"protocol\": \"%s\",\n", protocol) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"port\": %d,\n", service_descriptor->port) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"mqtt_port\": 8883,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"https_port\": 443,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"greengrass_discovery_port\": 8443,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"root_ca_relative_path\": \"%s\",\n", server_cert_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"device_certificate_relative_path\": \"%s\",\n", certificate_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"device_private_key_relative_path\": \"%s\",\n", keyref_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"tls_handshake_timeout_msecs\": 60000,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"tls_read_timeout_msecs\": 2000,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"tls_write_timeout_msecs\": 2000,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"aws_region\": \"\",\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"aws_access_key_id\": \"\",\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"aws_secret_access_key\": \"\",\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"aws_session_token\": \"\",\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"client_id\": \"%s\",\n", service_descriptor->client_id) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"thing_name\": \"CppSDKTesting\",\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"is_clean_session\": true,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"mqtt_command_timeout_msecs\": %d,\n", service_descriptor->timeout_ms) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"keepalive_interval_secs\": 600,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"minimum_reconnect_interval_secs\": 1,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"maximum_reconnect_interval_secs\": 128,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"maximum_acks_to_wait_for\": 32,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"action_processing_rate_hz\": 5,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"maximum_outgoing_action_queue_length\": 32,\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"discover_action_timeout_msecs\": 300000\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "}") >= 0, "Error in fprintf execution");
 exit:
+	if (fp != NULL) {
+		ASSERT_OR_EXIT_MSG(fclose(fp) == 0, "Error in fclose execution");
+	}
     return agent_status;
 }
 
@@ -670,17 +737,19 @@ iot_agent_status_t write_service_configuration_azure(const nxp_iot_ServiceDescri
 
     fp = fopen(filename, "w");
     ASSERT_OR_EXIT_MSG(fp != NULL, "Error opening file");
-    fprintf(fp, "{\n");
-    fprintf(fp, "  \"id_scope\": \"%s\",\n", service_descriptor->azure_id_scope);
-    fprintf(fp, "  \"global_device_endpoint\": \"%s\",\n", service_descriptor->azure_global_device_endpoint);
-    fprintf(fp, "  \"registration_id\": \"%s\",\n", service_descriptor->azure_registration_id);
-    fprintf(fp, "  \"devcert\": \"%s\",\n", certificate_filename);
-    fprintf(fp, "  \"keypath\": \"%s\",\n", keyref_filename);
-    fprintf(fp, "  \"rootpath\": \"%s\",\n", server_cert_filename);
-    fprintf(fp, "}");
-    fclose(fp);
-
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "{\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"id_scope\": \"%s\",\n", service_descriptor->azure_id_scope) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"global_device_endpoint\": \"%s\",\n", service_descriptor->azure_global_device_endpoint) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"registration_id\": \"%s\",\n", service_descriptor->azure_registration_id) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"devcert\": \"%s\",\n", certificate_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"keypath\": \"%s\",\n", keyref_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"rootpath\": \"%s\",\n", server_cert_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "}") >= 0, "Error in fprintf execution");
 exit:
+
+	if (fp != NULL) {
+		ASSERT_OR_EXIT_MSG(fclose(fp) == 0, "Error in fclose execution");
+	}
     return agent_status;
 }
 
@@ -700,20 +769,22 @@ iot_agent_status_t write_service_configuration_custom(const nxp_iot_ServiceDescr
 
     fp = fopen(filename, "w");
     ASSERT_OR_EXIT_MSG(fp != NULL, "Error opening file");
-    fprintf(fp, "{\n");
-    fprintf(fp, "  \"hostname\": \"%s\",\n", hostname);
-    fprintf(fp, "  \"username\": \"use-token-auth\",\n");
-    fprintf(fp, "  \"protocol\": \"%s\",\n", protocol);
-    fprintf(fp, "  \"port\": \"%d\",\n", service_descriptor->port);
-    fprintf(fp, "  \"devcert\": \"%s\",\n", certificate_filename);
-    fprintf(fp, "  \"keypath\": \"%s\",\n", keyref_filename);
-    fprintf(fp, "  \"payload\": \"HelloMessage\",\n");
-    fprintf(fp, "  \"topic\": \"iot-2/evt/status/fmt/string\",\n");
-    fprintf(fp, "  \"rootpath\": \"%s\",\n", server_cert_filename);
-    fprintf(fp, "}");
-    fclose(fp);
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "{\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"hostname\": \"%s\",\n", hostname) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"username\": \"use-token-auth\",\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"protocol\": \"%s\",\n", protocol) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"port\": \"%d\",\n", service_descriptor->port) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"devcert\": \"%s\",\n", certificate_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"keypath\": \"%s\",\n", keyref_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"payload\": \"HelloMessage\",\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"topic\": \"iot-2/evt/status/fmt/string\",\n") >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "  \"rootpath\": \"%s\",\n", server_cert_filename) >= 0, "Error in fprintf execution");
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "}") >= 0, "Error in fprintf execution");
 
 exit:
+	if (fp != NULL) {
+		ASSERT_OR_EXIT_MSG(fclose(fp) == 0, "Error in fclose execution");
+	}
     return agent_status;
 }
 
@@ -730,9 +801,11 @@ iot_agent_status_t write_service_metadata(const nxp_iot_ServiceDescriptor* servi
 
     fp = fopen(filename, "w");
     ASSERT_OR_EXIT_MSG(fp != NULL, "Error opening file");
-    fprintf(fp, "%s\n", metadata);
-    fclose(fp);
+	ASSERT_OR_EXIT_MSG(fprintf(fp, "%s\n", metadata) >= 0, "Error in fprintf execution");
 exit:
+	if (fp != NULL) {
+		ASSERT_OR_EXIT_MSG(fclose(fp) == 0, "Error in fclose execution");
+	}
     return agent_status;
 }
 
@@ -800,26 +873,26 @@ iot_agent_status_t iot_agent_verify_mqtt_connection_for_service(iot_agent_contex
 		ASSERT_OR_EXIT(mkdir_check == 0);
 	}
 
-	sprintf(service_dir, "%s%c%s%c", goutput_directory, path_separator, service_type_str, path_separator);
+	ASSERT_OR_EXIT_MSG(snprintf(service_dir, sizeof(service_dir), "%s%c%s%c", goutput_directory, path_separator, service_type_str, path_separator) >= 0, "Error in creating output folder string");
 	if (ACCESS(service_dir, R_OK) != 0)
 	{
 		mkdir_check = DO_MKDIR(service_dir);
 		ASSERT_OR_EXIT(mkdir_check == 0);
 	}
 
-	sprintf(config_filename, "%s" SERVICE_CONFIGURATION_PATTERN, service_dir, service_descriptor->identifier);
-	sprintf(metadata_filename, "%s" SERVICE_METADATA_PATTERN, service_dir, service_descriptor->identifier);
-	sprintf(keyref_filename, "%s" SERVICE_KEYREF_PATTERN, service_dir, service_descriptor->identifier);
-	sprintf(certificate_filename, "%s" SERVICE_CERTIFICATE_PATTERN, service_dir, service_descriptor->identifier);
-	sprintf(server_cert_filename, "%s" SERVICE_SERVER_CERT_PATTERN, service_dir, service_type_str, service_descriptor->identifier);
+	ASSERT_OR_EXIT_MSG(snprintf(config_filename, sizeof(config_filename), "%s" SERVICE_CONFIGURATION_PATTERN, service_dir, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(metadata_filename, sizeof(metadata_filename), "%s" SERVICE_METADATA_PATTERN, service_dir, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(keyref_filename, sizeof(keyref_filename), "%s" SERVICE_KEYREF_PATTERN, service_dir, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(certificate_filename, sizeof(certificate_filename), "%s" SERVICE_CERTIFICATE_PATTERN, service_dir, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(server_cert_filename, sizeof(server_cert_filename), "%s" SERVICE_SERVER_CERT_PATTERN, service_dir, service_type_str, service_descriptor->identifier) >= 0, "Error in creating filename string");
 
 	//create service files
 	char relative_certificate_filename[128];
 	char relative_keyref_filename[128];
 	char relative_server_cert_filename[128];
-	sprintf(relative_certificate_filename, SERVICE_CERTIFICATE_PATTERN, service_descriptor->identifier);
-	sprintf(relative_keyref_filename, SERVICE_KEYREF_PATTERN, service_descriptor->identifier);
-	sprintf(relative_server_cert_filename, SERVICE_SERVER_CERT_PATTERN, service_type_str, service_descriptor->identifier);
+	ASSERT_OR_EXIT_MSG(snprintf(relative_certificate_filename, sizeof(relative_certificate_filename), SERVICE_CERTIFICATE_PATTERN, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(relative_keyref_filename, sizeof(relative_keyref_filename), SERVICE_KEYREF_PATTERN, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(relative_server_cert_filename, sizeof(relative_server_cert_filename), SERVICE_SERVER_CERT_PATTERN, service_type_str, service_descriptor->identifier) >= 0, "Error in creating filename string");
 
 	if (IOT_AGENT_SUCCESS != write_service_configuration(service_descriptor, config_filename,
 		relative_certificate_filename, relative_keyref_filename, relative_server_cert_filename))
@@ -962,26 +1035,26 @@ iot_agent_status_t iot_agent_verify_mqtt_connection_cos_over_rtp(iot_agent_conte
 		ASSERT_OR_EXIT(mkdir_check == 0);
 	}
 
-	sprintf(service_dir, "%s%c%s%c", goutput_directory_rtp, path_separator, service_type_str, path_separator);
+	ASSERT_OR_EXIT_MSG(snprintf(service_dir, sizeof(service_dir), "%s%c%s%c", goutput_directory_rtp, path_separator, service_type_str, path_separator) >= 0, "Error in creating output folder string");
 	if (ACCESS(service_dir, R_OK) != 0)
 	{
 		mkdir_check = DO_MKDIR(service_dir);
 		ASSERT_OR_EXIT(mkdir_check == 0);
 	}
 
-	sprintf(config_filename, "%s" SERVICE_CONFIGURATION_PATTERN, service_dir, service_descriptor->identifier);
-	sprintf(metadata_filename, "%s" SERVICE_METADATA_PATTERN, service_dir, service_descriptor->identifier);
-	sprintf(keyref_filename, "%s" SERVICE_KEYREF_PATTERN, service_dir, service_descriptor->identifier);
-	sprintf(certificate_filename, "%s" SERVICE_CERTIFICATE_PATTERN, service_dir, service_descriptor->identifier);
-	sprintf(server_cert_filename, "%s" SERVICE_SERVER_CERT_PATTERN, service_dir, service_type_str, service_descriptor->identifier);
+	ASSERT_OR_EXIT_MSG(snprintf(config_filename, sizeof(config_filename), "%s" SERVICE_CONFIGURATION_PATTERN, service_dir, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(metadata_filename, sizeof(metadata_filename), "%s" SERVICE_METADATA_PATTERN, service_dir, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(keyref_filename, sizeof(keyref_filename), "%s" SERVICE_KEYREF_PATTERN, service_dir, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(certificate_filename, sizeof(certificate_filename), "%s" SERVICE_CERTIFICATE_PATTERN, service_dir, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(server_cert_filename, sizeof(server_cert_filename), "%s" SERVICE_SERVER_CERT_PATTERN, service_dir, service_type_str, service_descriptor->identifier) >= 0, "Error in creating filename string");
 
 	//create service files
 	char relative_certificate_filename[128];
 	char relative_keyref_filename[128];
 	char relative_server_cert_filename[128];
-	sprintf(relative_certificate_filename, SERVICE_CERTIFICATE_PATTERN, service_descriptor->identifier);
-	sprintf(relative_keyref_filename, SERVICE_KEYREF_PATTERN, service_descriptor->identifier);
-	sprintf(relative_server_cert_filename, SERVICE_SERVER_CERT_PATTERN, service_type_str, service_descriptor->identifier);
+	ASSERT_OR_EXIT_MSG(snprintf(relative_certificate_filename, sizeof(relative_certificate_filename), SERVICE_CERTIFICATE_PATTERN, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(relative_keyref_filename, sizeof(relative_keyref_filename), SERVICE_KEYREF_PATTERN, service_descriptor->identifier) >= 0, "Error in creating filename string");
+	ASSERT_OR_EXIT_MSG(snprintf(relative_server_cert_filename, sizeof(relative_server_cert_filename), SERVICE_SERVER_CERT_PATTERN, service_type_str, service_descriptor->identifier) >= 0, "Error in creating filename string");
 
 	if (IOT_AGENT_SUCCESS != write_service_configuration(service_descriptor, config_filename,
 		relative_certificate_filename, relative_keyref_filename, relative_server_cert_filename))

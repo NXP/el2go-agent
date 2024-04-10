@@ -1,8 +1,74 @@
-# Copyright 2019-2021 NXP
+# Copyright 2019-2021, 2024 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-cmake_minimum_required(VERSION 3.16)
+
+IF(CONFIG_MCUX_NXP_IOT_AGENT)
+
+add_subdirectory_ifdef(CONFIG_EL2GO_BLOB_TEST ex/src/apps/psa_examples/el2go_blob_test)
+
+add_subdirectory_ifdef(CONFIG_EL2GO_IMPORT_BLOB ex/src/apps/psa_examples/el2go_import_blob)
+
+if(CONFIG_EL2GO_AGENT_DEMO_WIFI)
+    target_compile_definitions(app PRIVATE
+        PB_FIELD_32BIT
+        EXTERNAL_CUSTOMER_BUILD_CONFIGURATION=1
+        AX_EMBEDDED=1
+        USE_RTOS=1
+        SSS_USE_FTR_FILE
+        NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1
+    )
+
+    target_sources(app PRIVATE
+        ex/src/iot_agent_demo.c
+    )
+
+    target_sources(app PRIVATE
+        ex/src/utils/iot_agent_claimcode_import.c
+        ex/src/utils/mbedtls_psa/iot_agent_psa_sign_test.c
+    )
+
+    target_sources(app PRIVATE
+        ex/src/network/iot_agent_network_zephyr_wifi.c
+        ex/src/utils/iot_agent_mqtt_zephyr.c
+        platform/mbedtls/net_zephyr.c
+        platform/mbedtls/network_mbedtls.c
+    )
+
+    FILE(GLOB main_sources src/*.c)
+    target_sources(app PRIVATE ${main_sources})
+    FILE(GLOB common_sources src/common/*.c)
+    target_sources(app PRIVATE ${common_sources})
+    FILE(GLOB protobuf_sources src/protobuf/*.c)
+    target_sources(app PRIVATE ${protobuf_sources})
+
+    zephyr_include_directories(inc)
+    zephyr_include_directories(ex/inc)
+    zephyr_include_directories(ex/inc/mbedtls_psa)
+    zephyr_include_directories(platform)
+    zephyr_include_directories(platform/mbedtls)
+    zephyr_include_directories(platform/tfm)
+    zephyr_include_directories(src/protobuf)
+endif()
+
+if(CONFIG_EL2GO_CLAIMCODE_APP)
+    target_compile_definitions(app PRIVATE
+        EXTERNAL_CUSTOMER_BUILD_CONFIGURATION=1
+        SSS_USE_FTR_FILE
+    )
+
+    target_sources(app PRIVATE
+        ex/src/apps/el2go_claimcode_encryption.c
+        ex/src/utils/iot_agent_claimcode_encrypt_els.c
+    )
+
+    zephyr_include_directories(inc)
+    zephyr_include_directories(ex/inc)
+endif()
+
+ELSE() # IF(CONFIG_MCUX_NXP_IOT_AGENT)
+
+cmake_minimum_required(VERSION 3.5)
 
 PROJECT(nxp_iot_agent LANGUAGES C)
 
@@ -135,10 +201,17 @@ ELSE()
 ENDIF()
 
 IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS AND NOT NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+    IF (SSS_HAVE_MBEDTLS_ALT_PSA)
+        TARGET_LINK_LIBRARIES(
+            nxp_iot_agent
+            mbedtls_psa
+        )
+    ELSE()
     TARGET_LINK_LIBRARIES(
     nxp_iot_agent
     mbedtls
     )
+    ENDIF()
 ENDIF()
 
 IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
@@ -240,15 +313,9 @@ IF("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
         /wd4267 # '=': conversion from 'size_t' to 'int', possible loss of data
     PUBLIC
         /wd4477 #  'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'size_t'
-    )
-    # 1900 matches VS2015
-    IF(${MSVC_VERSION} LESS_EQUAL 1900)
-    TARGET_COMPILE_OPTIONS(
-        ${PROJECT_NAME}
         PUBLIC
         /wd4127 # conditional expression is constant
     )
-    ENDIF()
 ENDIF()
 
 # TODO: Get rid of -Wno-format -Wno-format-security
@@ -264,3 +331,4 @@ IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     PRIVATE -Wno-incompatible-pointer-types
     )
 ENDIF()
+ENDIF() # IF(CONFIG_MCUX_NXP_IOT_AGENT)

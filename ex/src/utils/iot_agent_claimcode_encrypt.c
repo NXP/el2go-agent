@@ -1,4 +1,4 @@
-/* Copyright 2022-2023 NXP
+/* Copyright 2022-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -17,7 +17,7 @@
 #include "psa/crypto.h"
 #include "psa_crypto_its.h"
 
-#define AES_CBC_BLOCK_SIZE  		16
+#define AES_CBC_BLOCK_SIZE  		16U
 
 // These are defined key properties from the S50 on RW610. We need to use the same properties 
 // also on the simulator.
@@ -38,7 +38,7 @@ static iot_agent_status_t iot_agent_generate_claimcode_keypair(psa_key_id_t* key
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
 	psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
 	psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_CURVE_SECP_R1));
-    psa_set_key_bits(&attributes, 256);
+    psa_set_key_bits(&attributes, 256U);
 	psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_VOLATILE);
 	// psa_set_key_id(&attributes, key_id);
 
@@ -87,34 +87,34 @@ static iot_agent_status_t iot_agent_claimcode_ckdf(const uint8_t* input_key, siz
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
     int ret = 0;
-    uint32_t counter = 1;
+    uint32_t counter = 1U;
     mbedtls_cipher_context_t ctx;
     memset(&ctx, 0, sizeof(ctx));
 
+    uint8_t dd[32] = { 0U };
+
+    mbedtls_cipher_type_t mbedtls_cipher_type = MBEDTLS_CIPHER_AES_256_ECB;
+    const mbedtls_cipher_info_t *cipher_info = mbedtls_cipher_info_from_type(mbedtls_cipher_type);
 
     ASSERT_OR_EXIT_MSG(input_key != NULL, "input_key is NULL");
-    ASSERT_OR_EXIT_MSG(input_key_size == 32, "input key size is != 32");
+    ASSERT_OR_EXIT_MSG(input_key_size == 32U, "input key size is != 32");
     ASSERT_OR_EXIT_MSG(derivation_data != NULL, "derivation_data is NULL");
-    ASSERT_OR_EXIT_MSG(derivation_data_size == 12, "derivation_data size != 12");
+    ASSERT_OR_EXIT_MSG(derivation_data_size == 12U, "derivation_data size != 12");
     ASSERT_OR_EXIT_MSG(output != NULL, "output is NULL");
-    ASSERT_OR_EXIT_MSG(output_size == 32, "output_size != 32");
+    ASSERT_OR_EXIT_MSG(output_size == 32U, "output_size != 32");
 
-    *output_length = (1 + ((key_properties & CSSV2_KS0_KS0_KSIZE_MASK) >> CSSV2_KS0_KS0_KSIZE_SHIFT)) * AES_CBC_BLOCK_SIZE;
+    *output_length = (1U + ((key_properties & CSSV2_KS0_KS0_KSIZE_MASK) >> CSSV2_KS0_KS0_KSIZE_SHIFT)) * AES_CBC_BLOCK_SIZE;
 
     //KDF in counter mode implementation as described in Section 5.1
     //of NIST SP 800-108, Recommendation for Key Derivation Using Pseudorandom Functions
     // Derivation data[191:0](sic!) = software_derivation_data[95:0] || 64'h0 || requested_
     // properties[31:0 || length[31:0] || counter[31:0]
 
-    uint8_t dd[32] = { 0 };
     memcpy(&dd[0], derivation_data, derivation_data_size);
-    memset(&dd[12], 0, 8);
+    memset(&dd[12], 0, 8U);
     write_uint32_to_dd(&dd[20], key_properties);
-    write_uint32_to_dd(&dd[24], (*output_length) * 8); // expected in bits!
+    write_uint32_to_dd(&dd[24], (*output_length) * 8U); // expected in bits!
     write_uint32_to_dd(&dd[28], counter);
-
-    mbedtls_cipher_type_t mbedtls_cipher_type = MBEDTLS_CIPHER_AES_256_ECB;
-    const mbedtls_cipher_info_t *cipher_info = mbedtls_cipher_info_from_type(mbedtls_cipher_type);
 
     do {
     	mbedtls_cipher_init(&ctx);
@@ -122,7 +122,7 @@ static iot_agent_status_t iot_agent_claimcode_ckdf(const uint8_t* input_key, siz
     	ret = mbedtls_cipher_setup(&ctx, cipher_info);
         ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_cipher_setup failed: 0x%08x", ret);
 
-        ret = mbedtls_cipher_cmac_starts(&ctx, input_key, input_key_size * 8);
+        ret = mbedtls_cipher_cmac_starts(&ctx, input_key, input_key_size * 8U);
         ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_cipher_cmac_starts failed: 0x%08x", ret);
 
         ret = mbedtls_cipher_cmac_update(&ctx, dd, sizeof(dd));
@@ -156,20 +156,19 @@ static iot_agent_status_t iot_agent_derive_enc_key(psa_key_id_t private_key_id,
     // perform the CKDF using mbedtls primitives :-(.
 
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-	psa_status_t psa_status = PSA_SUCCESS;
-	psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_status_t psa_status = PSA_SUCCESS;
+    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+    uint8_t shared_secret[256] = { 0U };
+    size_t shared_secret_length = 0U;
+    uint8_t key[32] = { 0U };
+    size_t key_size = sizeof(key);
+    size_t key_length = 0U;
 
     ASSERT_OR_EXIT_MSG(derived_key_id != NULL, "derived_key_id is NULL");
 
-    uint8_t shared_secret[256] = { 0 };
-    size_t shared_secret_length = 0;
     agent_status = iot_agent_claimcode_ecdh(private_key_id, el2go_public_key, el2go_public_key_size, 
             shared_secret, sizeof(shared_secret), &shared_secret_length);
     AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_claimcode_ecdh failed: 0x%08x", agent_status);
-
-    uint8_t key[32] = { 0 };
-    size_t key_size = sizeof(key);
-    size_t key_length = 0;
 
     agent_status = iot_agent_claimcode_ckdf(shared_secret, shared_secret_length, 
             iot_agent_claimcode_derivation_data_enc, sizeof(iot_agent_claimcode_derivation_data_enc),
@@ -179,7 +178,7 @@ static iot_agent_status_t iot_agent_derive_enc_key(psa_key_id_t private_key_id,
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT);
 	psa_set_key_algorithm(&attributes, PSA_ALG_CBC_NO_PADDING);
 	psa_set_key_type(&attributes, PSA_KEY_TYPE_AES);
-    psa_set_key_bits(&attributes, key_length * 8);
+    psa_set_key_bits(&attributes, key_length * 8U);
 	psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_VOLATILE);
 
     psa_status = psa_import_key(&attributes, key, key_length, derived_key_id);
@@ -200,19 +199,18 @@ static iot_agent_status_t iot_agent_derive_mac_key(psa_key_id_t private_key_id,
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	psa_status_t psa_status = PSA_SUCCESS;
 	psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+	uint8_t shared_secret[256] = { 0U };
+	size_t shared_secret_length = 0U;
+	uint8_t key[32] = { 0U };
+	size_t key_size = sizeof(key);
+	size_t key_length = 0U;
 
     ASSERT_OR_EXIT_MSG(derived_key_id != NULL, "derived_key_id is NULL");
 
-    uint8_t shared_secret[256] = { 0 };
-    size_t shared_secret_length = 0;
     agent_status = iot_agent_claimcode_ecdh(private_key_id, el2go_public_key, el2go_public_key_size, 
         shared_secret, sizeof(shared_secret), &shared_secret_length);
     AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_claimcode_ecdh failed: 0x%08x", agent_status);
-
-    uint8_t key[32] = { 0 };
-    size_t key_size = sizeof(key);
-    size_t key_length = 0;
-
+	
     agent_status = iot_agent_claimcode_ckdf(shared_secret, shared_secret_length, 
             iot_agent_claimcode_derivation_data_mac, sizeof(iot_agent_claimcode_derivation_data_mac),
             key_properties_mac, key, key_size, &key_length);
@@ -228,7 +226,7 @@ static iot_agent_status_t iot_agent_derive_mac_key(psa_key_id_t private_key_id,
 	psa_set_key_algorithm(&attributes, PSA_ALG_CMAC);
     
 	psa_set_key_type(&attributes, PSA_KEY_TYPE_AES);
-    psa_set_key_bits(&attributes, key_length * 8);
+    psa_set_key_bits(&attributes, key_length * 8U);
     psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_VOLATILE);
 
     psa_status = psa_import_key(&attributes, key, key_length, derived_key_id);
@@ -242,21 +240,20 @@ static iot_agent_status_t iot_agent_encrypt_string(const char* str, psa_key_id_t
 {
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     psa_status_t psa_status = PSA_SUCCESS;
+	const psa_algorithm_t alg = PSA_ALG_CBC_NO_PADDING;
+	psa_cipher_operation_t operation = PSA_CIPHER_OPERATION_INIT;
 
     // This does not include the terminating 0x00 character. The terminating 0x00 is NOT part of the
     // plaintext!
     size_t len = strlen(str);
 
     // Apply 7816 padding:
-    uint8_t plaintext[512] = { 0 };
-    size_t plaintext_len = 0;
+    uint8_t plaintext[512] = { 0U };
+    size_t plaintext_len = 0U;
     memcpy(plaintext, str, len);
     agent_status = iot_agent_pad_iso7816d4(plaintext, sizeof(plaintext), len, 
             AES_CBC_BLOCK_SIZE, &plaintext_len);
     AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_pad_iso7816d4 failed: 0x%08x", agent_status)
-
-	const psa_algorithm_t alg = PSA_ALG_CBC_NO_PADDING;
-	psa_cipher_operation_t operation = PSA_CIPHER_OPERATION_INIT;
 
 	psa_status = psa_cipher_encrypt_setup(&operation, enc_key_id, alg);
 	PSA_SUCCESS_OR_EXIT_MSG("psa_cipher_decrypt_setup failed: 0x%08x", psa_status);
@@ -265,7 +262,7 @@ static iot_agent_status_t iot_agent_encrypt_string(const char* str, psa_key_id_t
 	PSA_SUCCESS_OR_EXIT_MSG("psa_cipher_set_iv failed: 0x%08x", psa_status);
 
     size_t block_len;
-    for (size_t offset = 0; offset < plaintext_len; offset += AES_CBC_BLOCK_SIZE) {
+    for (size_t offset = 0U; offset < plaintext_len; offset += AES_CBC_BLOCK_SIZE) {
 		psa_status = psa_cipher_update(&operation, plaintext + offset, AES_CBC_BLOCK_SIZE,
                 output + offset, output_size, &block_len);
 		PSA_SUCCESS_OR_EXIT_MSG("psa_cipher_update failed: 0x%08x", psa_status);
@@ -300,16 +297,16 @@ static iot_agent_status_t iot_agent_claimcode_calculate_cmac(mbedtls_svc_key_id_
 
 	psa_status_t psa_status = psa_export_key(key_id, &cmac_key[0], sizeof(cmac_key), &cmac_key_length);
 	PSA_SUCCESS_OR_EXIT_MSG("psa_export_key failed: 0x%08x", psa_status);
-	if (cmac_key_length == 0x10) {
+	if (cmac_key_length == 0x10U) {
 		cipher_info = mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_128_ECB);
-	} else if (cmac_key_length == 0x20) {
+	} else if (cmac_key_length == 0x20U) {
 		cipher_info = mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_256_ECB);
 	}
 	else {
 		EXIT_STATUS_MSG(IOT_AGENT_FAILURE, "Invalid key size: 0x%08x bytes", cmac_key_length);
 	}
 
-	ASSERT_OR_EXIT_MSG(mbedtls_cipher_cmac(cipher_info, cmac_key, cmac_key_length * 8,
+	ASSERT_OR_EXIT_MSG(mbedtls_cipher_cmac(cipher_info, cmac_key, cmac_key_length * 8U,
 		data, len, calculated_cmac) == 0, "Error in CMAC execution");
 exit:
 	return agent_status;
@@ -321,9 +318,16 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
 {
     psa_status_t psa_status = PSA_SUCCESS;
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-    psa_key_id_t keypair_key_id = 0;
-    psa_key_id_t enc_key_id = 0;
-    psa_key_id_t mac_key_id = 0;
+    psa_key_id_t keypair_key_id = 0U;
+    psa_key_id_t enc_key_id = 0U;
+    psa_key_id_t mac_key_id = 0U;
+	size_t remaining_space = 0U;
+	size_t uid_len = 0U;
+	size_t public_key_len = 0U;
+	size_t claimcode_enc_len = 0;
+	uint8_t* iv = NULL;
+	uint8_t* pos = claimcode_blob;
+	uint8_t* end = claimcode_blob + *claimcode_blob_len;
 
     psa_status = psa_crypto_init();
     PSA_SUCCESS_OR_EXIT_MSG("psa_crypto_init failed: 0x%08x", psa_status);
@@ -346,17 +350,13 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
     AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_derive_mac_key failed: 0x%08x", agent_status);
 
     // We have all the keys, prepare the claimcode blob.
-
-    uint8_t* pos = claimcode_blob;
-    uint8_t* end = claimcode_blob + *claimcode_blob_len;
-
     *pos++ = 0x41;
     pos++; // +1 for skipping one length byte.
-    size_t remaining_space = end - pos;
-    size_t uid_len = remaining_space;
+    remaining_space = end - pos;
+    uid_len = remaining_space;
     agent_status = iot_agent_utils_get_device_id(pos, &uid_len);
     AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_get_device_id failed: 0x%08x", agent_status);
-    ASSERT_OR_EXIT_MSG(uid_len < 0x80, "uid_len (0x%08x) is >= 0x80", uid_len);
+    ASSERT_OR_EXIT_MSG(uid_len < 0x80U, "uid_len (0x%08x) is >= 0x80", uid_len);
     pos--; // Go back to the length byte that was skipped before.
     *pos++ = uid_len & 0x7F;
     pos += uid_len;
@@ -364,10 +364,10 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
     *pos++ = 0x42;
     pos++; // +1 for skipping one length byte.
     remaining_space = end - pos;
-    size_t public_key_len = 0;
+
     psa_status = psa_export_public_key(keypair_key_id, pos, remaining_space, &public_key_len);
 	PSA_SUCCESS_OR_EXIT_MSG("psa_export_public_key failed: 0x%08x", psa_status);
-    ASSERT_OR_EXIT_MSG(public_key_len < 0x80, "public_key_len (0x%08x) is >= 0x80", public_key_len);
+    ASSERT_OR_EXIT_MSG(public_key_len < 0x80U, "public_key_len (0x%08x) is >= 0x80", public_key_len);
     pos--; // Go back to the length byte that was skipped before.
     *pos++ = public_key_len & 0x7F;
     pos += public_key_len;
@@ -388,7 +388,7 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
 
     *pos++ = 0x45;
     *pos++ = AES_CBC_BLOCK_SIZE;
-    uint8_t* iv = pos;
+    iv = pos;
     psa_status = psa_generate_random(iv, AES_CBC_BLOCK_SIZE);
 	PSA_SUCCESS_OR_EXIT_MSG("psa_generate_random failed: 0x%08x", psa_status);
     pos += AES_CBC_BLOCK_SIZE;
@@ -396,11 +396,10 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
     *pos++ = 0x46;
     pos++; // +1 for skipping one length byte.
     remaining_space = end - pos;
-    size_t claimcode_enc_len = 0;
     agent_status = iot_agent_encrypt_string(claimcode, enc_key_id, iv, pos, 
             remaining_space, &claimcode_enc_len);
     AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_encrypt_string failed: 0x%08x", agent_status);
-    ASSERT_OR_EXIT_MSG(claimcode_enc_len < 0x80, "claimcode_enc_len (0x%08x) is >= 0x80", claimcode_enc_len);
+    ASSERT_OR_EXIT_MSG(claimcode_enc_len < 0x80U, "claimcode_enc_len (0x%08x) is >= 0x80", claimcode_enc_len);
     pos--; // Go back to the length byte that was skipped before.
     *pos++ = claimcode_enc_len & 0x7F;
     pos += claimcode_enc_len;
@@ -424,11 +423,11 @@ iot_agent_status_t iot_agent_claimcode_encrypt_and_import(char *claimcode,
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     psa_status_t psa_status = PSA_SUCCESS;
 
-    uint8_t claimcode_blob[512] = {0};
+    uint8_t claimcode_blob[512] = {0U};
     size_t claimcode_blob_len = sizeof(claimcode_blob);
 
     // Check if object exists.
-    struct psa_storage_info_t storage_info = { 0 };
+    struct psa_storage_info_t storage_info = { 0U };
     psa_status = psa_its_get_info(CLAIMCODE_OBJ_ID, &storage_info);
     if (psa_status == PSA_SUCCESS) {
         psa_status = psa_its_remove(CLAIMCODE_OBJ_ID);

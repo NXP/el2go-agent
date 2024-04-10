@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 NXP
+ * Copyright 2018-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -107,15 +107,6 @@ ex_sss_cloud_ctx_t *pex_sss_demo_tls_ctx = &gex_sss_demo_tls_ctx;
 #endif
 #include <nxp_iot_agent_time.h>
 
-#if defined(USE_RTOS) && (USE_RTOS == 1)
-#if !SSS_HAVE_APPLET_SE051_UWB
-#include "iot_logging_task.h"
-#define LOGGING_TASK_PRIORITY   (tskIDLE_PRIORITY + 1)
-#define LOGGING_TASK_STACK_SIZE (300)
-#define LOGGING_QUEUE_LENGTH    (16)
-#endif // SSS_HAVE_APPLET_SE051_UWB
-#endif // USE_RTOS
-
 #ifdef FLOW_VERBOSE
 #define FPRINTF(s_, ...) printf((s_), ##__VA_ARGS__);
 #else
@@ -156,7 +147,7 @@ ex_sss_cloud_ctx_t *pex_sss_demo_tls_ctx = &gex_sss_demo_tls_ctx;
 #define RPC_RESPONSE_STATE_ERROR	1U
 
 
-#ifdef NXP_IOT_AGENT_HAVE_PSA
+#if NXP_IOT_AGENT_HAVE_PSA
 #define RPC_ARGUMENT_POS_PSA_OPERATION	1
 #define RPC_ARGUMENT_POS_PSA_OBJECT_ID	2
 #define RPC_ARGUMENT_POS_PSA_ALGORITHM	3
@@ -270,7 +261,6 @@ static iot_agent_status_t execute_write_pem_test(sss_key_store_t* sss_context, c
 	case kSSS_CipherType_EC_MONTGOMERY: /* Montgomery Key,   */
 	case kSSS_CipherType_EC_TWISTED_ED: /* twisted Edwards form elliptic curve public key */
 	case kSSS_CipherType_EC_BRAINPOOL: /* Brainpool form elliptic curve public key */
-	case kSSS_CipherType_EC_BARRETO_NAEHRIG: /* Barreto Naehrig curve */
 		agent_status = iot_agent_utils_write_key_ref_pem(sss_context, &obj, objid, filename);
 		AGENT_SUCCESS_OR_EXIT_MSG("Failed to create keyref file")
 			printf("Generated Key reference file for ObjectId 0x%x in %s \n", objid, filename);
@@ -1035,11 +1025,6 @@ static iot_agent_status_t createCurve(sss_se05x_session_t *pSession, uint32_t cu
 		status = Se05x_API_CreateCurve_secp256k1(&pSession->s_ctx, curve_id);
 		break;
 #endif
-#if SSS_HAVE_TPM_BN
-	case kSE05x_ECCurve_TPM_ECC_BN_P256:
-		status = Se05x_API_CreateCurve_tpm_bm_p256(&pSession->s_ctx, curve_id);
-		break;
-#endif
 	default:
 		break;
 	}
@@ -1217,7 +1202,7 @@ exit:
 #endif
 
 
-#ifdef NXP_IOT_AGENT_HAVE_PSA
+#if NXP_IOT_AGENT_HAVE_PSA
 typedef struct psa_api_context {
 	uint32_t object_id;
 	psa_algorithm_t algorithm;
@@ -1303,7 +1288,7 @@ static iot_agent_status_t execute_psa_hash_and_sign(psa_api_context_t* psa_api_c
 	psa_status = psa_hash_setup(&operation,
 		PSA_ALG_SIGN_GET_HASH(psa_api_context->algorithm));
 	PSA_SUCCESS_OR_EXIT_MSG("Error in hash setup");
-	
+
 	psa_status = psa_hash_update(&operation,
 		psa_api_context->input,
 		psa_api_context->input_length);
@@ -1625,6 +1610,11 @@ static void write_status_report_log(const nxp_iot_UpdateStatusReport* status_rep
 			}
 			buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), " ] }");
 		}
+
+		if (status_report->has_correlationId) {
+			buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), ", correlation_id: %s", status_report->correlationId);
+		}
+
 		buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), " }");
 
 	}
@@ -1847,7 +1837,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
         write_log(TEST_LOG_ID_PERFORMANCE, "{ entireTime: %ld, initTime: %ld, prepareTlsTime: %ld, networkConnectTime: %ld, processProvisionTime: %ld}",
-            iot_agent_time.total_time, iot_agent_time.init_time, iot_agent_time.prepare_tls_time, iot_agent_time.network_connect, iot_agent_time.process_provision_time);
+            iot_agent_time.total_time, iot_agent_time.init_time, iot_agent_time.prepare_tls_time, iot_agent_time.network_connect_time, iot_agent_time.process_provision_time);
 #endif
 		FPRINTF("Start Command received successfully\n");
 		build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
@@ -2002,7 +1992,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
 		break;
 #endif
-#ifdef NXP_IOT_AGENT_HAVE_PSA
+#if NXP_IOT_AGENT_HAVE_PSA
 	case RPC_REQUEST_CMD_EXECUTE_PSA_API:
 		IOT_AGENT_INFO("Execution of PSA API");
 		agent_status = parse_execute_psa_api(pRpcRequest, pRpcResponse);
@@ -2284,10 +2274,6 @@ int main(int argc, const char *argv[])
 	cli_arguments_t args;
     args.c = argc;
     args.v = argv;
-
-#if !SSS_HAVE_APPLET_SE051_UWB
-    xLoggingTaskInitialize(LOGGING_TASK_STACK_SIZE, LOGGING_TASK_PRIORITY, LOGGING_QUEUE_LENGTH);
-#endif
 
     if (xTaskCreate(&remote_runner_start_task,
         "remote_runner_start_session_task",

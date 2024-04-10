@@ -20,11 +20,17 @@
  *
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
-/* Copyright 2019-2022 NXP
+/* Copyright 2019-2022,2024 NXP
  */
 #if defined(USE_RTOS) && USE_RTOS == 1
 
 #define LWIP_SOCKET 1
+#if !(defined(__ICCARM__) || defined(__CC_ARM) || defined(__ARMCC_VERSION))
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/time.h>
+#define LWIP_TIMEVAL_PRIVATE 0
+#endif
 
 #include "../include/lwip/sockets.h"
 #include <lwip/netdb.h>
@@ -445,10 +451,10 @@ int mbedtls_net_recv_timeout( void *ctx, unsigned char *buf, size_t len,
     FD_ZERO( &read_fds );
     FD_SET( fd, &read_fds );
 
-    tv.tv_sec  = timeout / 1000;
-    tv.tv_usec = ( timeout % 1000 ) * 1000;
+    tv.tv_sec  = timeout / 1000U;
+    tv.tv_usec = ( timeout % 1000U ) * 1000U;
 
-    ret = select( fd + 1, &read_fds, NULL, NULL, timeout == 0 ? NULL : &tv );
+    ret = select( fd + 1, &read_fds, NULL, NULL, timeout == 0U ? NULL : &tv );
 
     /* Zero fds ready means we timed out */
     if( ret == 0 )

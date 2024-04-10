@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -9,8 +9,6 @@
 #include "iot_agent_claimcode_encrypt.h"
 
 #include "fsl_device_registers.h"
-#include "fsl_debug_console.h"
-#include "fsl_silicon_id.h"
 #include "nxp_iot_agent_status.h"
 #include "mcuxClEls_KeyManagement.h"
 #include "mcuxClEls_Rng.h"
@@ -23,6 +21,15 @@
 #include "stdbool.h"
 #include "string.h"
 
+#ifdef __ZEPHYR__
+#include <zephyr/drivers/hwinfo.h>
+#include <stdio.h>
+#define LOG printf
+#else
+#include <fsl_silicon_id.h>
+#include <fsl_debug_console.h>
+#define LOG PRINTF
+#endif
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -89,8 +96,8 @@ static const uint8_t ckdf_derivation_data_mac[12] = {
 };
 
 #define PLOG_DEBUG(...)
-#define PLOG_INFO(...)  PRINTF(__VA_ARGS__)
-#define PLOG_ERROR(...) PRINTF(__VA_ARGS__)
+#define PLOG_INFO(...)  LOG(__VA_ARGS__)
+#define PLOG_ERROR(...) LOG(__VA_ARGS__)
 
 static const char nibble_to_char[16] = {
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
@@ -113,7 +120,7 @@ static void printf_buffer(const char *name, const unsigned char *buffer, size_t 
         }
         line_buffer[len++] = '\n';
         line_buffer[len++] = '\0';
-        PRINTF("%s (0x%p): %s", name, pos, line_buffer);
+        LOG("%s (0x%p): %s", name, pos, line_buffer);
         remaining -= block_size;
     }
 }
@@ -126,7 +133,11 @@ static size_t ceil_to_aes_blocksize(size_t size)
 static iot_agent_status_t read_uid(uint8_t *uid)
 {
     uint32_t uid_len = UID_SIZE;
+#ifdef __ZEPHYR__
+    hwinfo_get_device_id(uid, uid_len);
+#else
     SILICONID_GetID(uid, &uid_len);
+#endif
     return IOT_AGENT_SUCCESS;
 }
 
@@ -308,7 +319,7 @@ static iot_agent_status_t generate_iv(uint8_t *iv)
     if ((MCUX_CSSL_FP_FUNCTION_CALLED(mcuxClCss_Rng_DrbgRequest_Async) != token) ||
         (MCUXCLCSS_STATUS_OK_WAIT != result))
     {
-        PLOG_ERROR("mcuxClCss_Rng_DrbgRequest_Async failed: 0x08x", result);
+        PLOG_ERROR("mcuxClCss_Rng_DrbgRequest_Async failed: 0x%08x\n", result);
         return IOT_AGENT_FAILURE;
     }
     MCUX_CSSL_FP_FUNCTION_CALL_END();

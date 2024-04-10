@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2022 NXP
+ * Copyright 2018-2022,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,7 +17,7 @@
 #endif
 
 // The TFM implementation comes with the NXP SDK which includes the app.h
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
+#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM && !defined(__ZEPHYR__)
 #include "app.h"
 #endif
 
@@ -27,11 +27,12 @@
 
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <fsl_sss_api.h>
+#include "ex_sss_ports.h"
 iot_agent_status_t iot_agent_session_connect(ex_sss_boot_ctx_t *pCtx)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	sss_status_t sss_status;
-	const char *portName;
+	char *portName;
 
     sss_status = ex_sss_boot_connectstring(0, NULL, &portName);
 	SSS_SUCCESS_OR_EXIT_MSG("ex_sss_boot_connectstring returned with 0x%04x", sss_status);
@@ -43,6 +44,18 @@ iot_agent_status_t iot_agent_session_connect(ex_sss_boot_ctx_t *pCtx)
 	SSS_SUCCESS_OR_EXIT_MSG("ex_sss_key_store_and_object_init returned with 0x%04x", sss_status);
 
 exit:
+#if defined(_MSC_VER)
+    if (portName) {
+        char* dummy_portName = NULL;
+        size_t dummy_sz = 0;
+        _dupenv_s(&dummy_portName, &dummy_sz, EX_SSS_BOOT_SSS_PORT);
+        if (NULL != dummy_portName) {
+            free(dummy_portName);
+            free(portName);
+        }
+    }
+#endif // _MSC_VER
+
 	return agent_status;
 }
 
@@ -58,7 +71,7 @@ void iot_agent_session_bm(void)
 #if NXP_IOT_AGENT_HAVE_SSS
   	// In case the SSS library exist, initialization is happening there
 	ex_sss_main_ksdk_bm();
-#else
+#elif !defined(__ZEPHYR__)
 	BOARD_InitHardware();
 	// otherwise use the SDK functions to initialize it
 #endif //NXP_IOT_AGENT_HAVE_SSS
@@ -99,7 +112,7 @@ void iot_agent_session_led_start(void)
 iot_agent_status_t iot_agent_session_init(int argc, const char *argv[], ex_sss_boot_ctx_t *pCtx)
 {
     sss_status_t sss_status;
-    const char *portName;
+    char *portName;
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
     memset(pCtx, 0, sizeof(ex_sss_boot_ctx_t));
@@ -126,6 +139,17 @@ iot_agent_status_t iot_agent_session_init(int argc, const char *argv[], ex_sss_b
     agent_status = IOT_AGENT_SUCCESS;
 
 exit:
+#if defined(_MSC_VER)
+    if (portName) {
+        char* dummy_portName = NULL;
+        size_t dummy_sz = 0;
+        _dupenv_s(&dummy_portName, &dummy_sz, EX_SSS_BOOT_SSS_PORT);
+        if (NULL != dummy_portName) {
+            free(dummy_portName);
+            free(portName);
+        }
+    }
+#endif // _MSC_VER
     return agent_status;
 }
 

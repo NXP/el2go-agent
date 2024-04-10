@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-/* Copyright 2021-2023 NXP
+/* Copyright 2021-2024 NXP
  */
 
 /* clang-format off */
@@ -39,6 +39,10 @@
 #ifndef MBEDTLS_PSA_CRYPTO_STORAGE_C
     #define MBEDTLS_PSA_CRYPTO_STORAGE_C
 #endif // MBEDTLS_PSA_CRYPTO_STORAGE_C
+
+#ifndef MBEDTLS_PK_HAVE_ECDSA
+    #define MBEDTLS_PK_HAVE_ECDSA
+#endif // MBEDTLS_PK_HAVE_ECDSA
 
 #define MBEDTLS_DEBUG_C
 

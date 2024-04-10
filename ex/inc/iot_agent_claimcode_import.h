@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -33,7 +33,7 @@ extern "C" {
  * @brief Import claimcode into TF_M internal trusted storage.
  * @return Success if import of claimcode is successful.
  */
-iot_agent_status_t iot_agent_claimcode_import();
+iot_agent_status_t iot_agent_claimcode_import(void);
 
 #ifdef __cplusplus
 } // extern "C"

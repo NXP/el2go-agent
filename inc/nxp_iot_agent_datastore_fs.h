@@ -1,5 +1,5 @@
-/* 
- * Copyright 2018-2022 NXP
+/*
+ * Copyright 2018-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -8,6 +8,7 @@
 #ifndef _NXP_IOT_AGENT_DATASTORE_FS_H_
 #define _NXP_IOT_AGENT_DATASTORE_FS_H_
 
+#if !(defined(__ICCARM__) || defined(__CC_ARM) || defined(__ARMCC_VERSION))
 #include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_datastore.h>
 
@@ -24,11 +25,13 @@
  * @{
  */
 
+#define FILE_POINTER_NUMBER 2U
+
 typedef struct iot_agent_datastore_fs_context_t {
 
 	/** @brief For atomic updates, the datastore holds two file pointers, one that is currently 
 	 * read from and a second one that is written to (as part of a transaction). */
-	FILE* fp[2];
+	FILE* fp[FILE_POINTER_NUMBER];
 
 	/** @brief The filename based on which the files for the datastore are determined. */
 	char* basename;
@@ -104,4 +107,5 @@ extern const iot_agent_datastore_interface_t iot_agent_datastore_fs_interface;
 *@}
 */ /* end of edgelock2go_agent_datastore_fs */
 #endif // !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
+#endif // !(defined(__ICCARM__) || defined(__CC_ARM) || defined(__ARMCC_VERSION))
 #endif // _NXP_IOT_AGENT_DATASTORE_FS_H_

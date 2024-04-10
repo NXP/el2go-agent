@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 NXP
+ * Copyright 2018-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -89,7 +89,7 @@ TEST(DatastoreFS, CorruptRequest)
 
 TEST(DatastoreFS, ReadTooMuch)
 {
-	uint8_t dummy_data[512];
+	uint8_t dummy_data[512] = {0};
 	write_and_commit_contents(&datastore, dummy_data, sizeof(dummy_data));
 	datastore_read_too_much(&datastore);
 }

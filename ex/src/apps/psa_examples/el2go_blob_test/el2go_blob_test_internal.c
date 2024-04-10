@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -8,7 +8,7 @@
 #include "el2go_blob_test.h"
 #include "el2go_blob_test_psa.h"
 #include "el2go_blob_test_internal.h"
-#include "mcuxClPsaDriver_Oracle_Macros.h"
+#include "mcuxClPsaDriver_Oracle_Interface_key_locations.h"
 
 /* AES */
 
@@ -106,28 +106,28 @@ static void el2go_blob_test_internal_1014(struct test_result_t *ret)
 
 static void el2go_blob_test_internal_1020(struct test_result_t *ret)
 {
-    psa_blob_sigmsg_test(
+    psa_blob_sigvermsg_test(
         PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1), 256, PSA_ALG_ECDSA(PSA_ALG_SHA_256),
         PSA_KEY_LOCATION_S50_BLOB_STORAGE, 0x3E000020,
-        INTERNAL_NISTP256_SIGMSG_ECDSASHA256, sizeof(INTERNAL_NISTP256_SIGMSG_ECDSASHA256), ret
+        INTERNAL_NISTP256_SIGVERMSG_ECDSASHA256, sizeof(INTERNAL_NISTP256_SIGVERMSG_ECDSASHA256), ret
     );
 }
 
 static void el2go_blob_test_internal_1021(struct test_result_t *ret)
 {
-    psa_blob_sighash_test(
+    psa_blob_sigverhash_test(
         PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1), 256, PSA_ALG_ECDSA(PSA_ALG_SHA_256),
         PSA_KEY_LOCATION_S50_BLOB_STORAGE, 0x3E000021,
-        INTERNAL_NISTP256_SIGHASH_ECDSASHA256, sizeof(INTERNAL_NISTP256_SIGHASH_ECDSASHA256), ret
+        INTERNAL_NISTP256_SIGVERHASH_ECDSASHA256, sizeof(INTERNAL_NISTP256_SIGVERHASH_ECDSASHA256), ret
     );
 }
 
 static void el2go_blob_test_internal_1022(struct test_result_t *ret)
 {
-    psa_blob_sighash_test(
+    psa_blob_sigverhash_test(
         PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1), 256, PSA_ALG_ECDSA_ANY,
         PSA_KEY_LOCATION_S50_BLOB_STORAGE, 0x3E000022,
-        INTERNAL_NISTP256_SIGHASH_ECDSAANY, sizeof(INTERNAL_NISTP256_SIGHASH_ECDSAANY), ret
+        INTERNAL_NISTP256_SIGVERHASH_ECDSAANY, sizeof(INTERNAL_NISTP256_SIGVERHASH_ECDSAANY), ret
     );
 }
 
@@ -177,11 +177,11 @@ static struct test_t blob_internal_tests[] = {
      "Internal AES256 MAC CMAC"},
 
     {&el2go_blob_test_internal_1020, "EL2GO_BLOB_TEST_INTERNAL_1020",
-     "Internal NISTP256 SIGMSG ECDSASHA256"},
+     "Internal NISTP256 SIGVERMSG ECDSASHA256"},
     {&el2go_blob_test_internal_1021, "EL2GO_BLOB_TEST_INTERNAL_1021",
-     "Internal NISTP256 SIGHASH ECDSASHA256"},
+     "Internal NISTP256 SIGVERHASH ECDSASHA256"},
     {&el2go_blob_test_internal_1022, "EL2GO_BLOB_TEST_INTERNAL_1022",
-     "Internal NISTP256 SIGHASH ECDSAANY"},
+     "Internal NISTP256 SIGVERHASH ECDSAANY"},
 
     {&el2go_blob_test_internal_1030, "EL2GO_BLOB_TEST_INTERNAL_1030",
      "Internal HMAC256 MAC HMACSHA256"},

@@ -1,5 +1,5 @@
 /* 
- * Copyright 2022 NXP
+ * Copyright 2022,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -25,11 +25,11 @@
  *        the signature will not be part of the agent demo application.
  * @return Success on signature creation
  */
-iot_agent_status_t iot_agent_verify_psa_import();
+iot_agent_status_t iot_agent_verify_psa_import(void);
 
 /**
  * @brief Exports the certificate. Import of binary data blob is done by agent,
  *        after establishinkg TLS connection to backend.
  * @return Success on signature creation
  */
-iot_agent_status_t iot_agent_verify_psa_export();
+iot_agent_status_t iot_agent_verify_psa_export(void);

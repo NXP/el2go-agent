@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 NXP
+ * Copyright 2019-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -40,12 +40,12 @@ static void print_usage()
     printf("\n");
 }
 
-static size_t validate_claimcode(char * src, char* dest)
+static size_t validate_claimcode(char * src, char* dest, size_t len)
 {
     size_t srcPtr = 0U;
     size_t destPtr = 0U;
 
-    while (src[srcPtr] != '\0')
+    while ((srcPtr < len) && (destPtr < len) && (src[srcPtr] != '\0'))
     {
         if (!(src[srcPtr] == ' ' || src[srcPtr] == '\r' || src[srcPtr] == '\n')) {
             dest[destPtr] = src[srcPtr];
@@ -53,7 +53,9 @@ static size_t validate_claimcode(char * src, char* dest)
         }
         srcPtr++;
     }
-    dest[destPtr] = '\0';
+    if (destPtr < len) {
+        dest[destPtr] = '\0';
+    }
     return destPtr;
 }
 
@@ -105,10 +107,10 @@ int main(int argc, const char *argv[])
     fp = fopen(file_name, "rb");
     ASSERT_OR_EXIT_MSG(fp != NULL, "Can not open the file [%s]", file_name);
 
-    fseek(fp, 0U, SEEK_END);
+    ASSERT_OR_EXIT_MSG(fseek(fp, 0U, SEEK_END) == 0, "Error in fseek function");
     claimcode_len = ftell(fp);
     ASSERT_OR_EXIT_MSG(claimcode_len > 0, "Empty file read");
-    fseek(fp, 0U, SEEK_SET);
+    ASSERT_OR_EXIT_MSG(fseek(fp, 0U, SEEK_SET) == 0, "Error in fseek function");
     claimcode_file = malloc((size_t)claimcode_len + 1U);
     ASSERT_OR_EXIT_MSG(claimcode_file != NULL, "malloc failed");
     ASSERT_OR_EXIT_MSG(fread(claimcode_file, 1U, (size_t)claimcode_len, fp) == (size_t)claimcode_len, "File read failed");
@@ -116,7 +118,7 @@ int main(int argc, const char *argv[])
 
     claimcode_valid = malloc((size_t)claimcode_len + 1U);
     ASSERT_OR_EXIT_MSG(claimcode_valid != NULL, "malloc failed");
-    claimcode_valid_len = validate_claimcode(claimcode_file, claimcode_valid);
+    claimcode_valid_len = validate_claimcode(claimcode_file, claimcode_valid, (size_t)claimcode_len + 1U);
     //printf("Claim Code from file:[%s]\n", claimcode_file);
     //printf("Injecting ClaimCode:[%s]\n", claimcode_valid);
 
@@ -126,7 +128,10 @@ int main(int argc, const char *argv[])
 exit:
     if (fp != NULL)
     {
-        fclose(fp);
+        if (fclose(fp) != 0)
+        {
+            IOT_AGENT_ERROR("Error in closing the file");
+        }
     }
     free(claimcode_file);
     free(claimcode_valid);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 NXP
+ * Copyright 2021-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,19 +19,19 @@
 #include "psa_crypto_wrapper.h"
 #include "psa/crypto.h"
 
-#define MAX_VALUE_SIZE		255
+#define MAX_VALUE_SIZE		255U
 
 // Lengths used in PSA commands
-#define PSA_CMD_LENGTH_KEY_ID				4
-#define PSA_CMD_LENGTH_PERMITTED_ALGORITHM	4
-#define PSA_CMD_LENGTH_KEY_USAGE_FLAGS		4
-#define PSA_CMD_LENGTH_KEY_TYPE				2
-#define PSA_CMD_LENGTH_KEY_BITS				4
-#define PSA_CMD_LENGTH_KEY_LIFETIME			4
-#define PSA_CMD_LENGTH_WRAPPING_KEY_ID		4
-#define PSA_CMD_LENGTH_WRAPPING_ALGORITHM	4
-#define PSA_CMD_LENGTH_MAC_KEY_ID			4
-#define PSA_CMD_LENGTH_MAGIC				11
+#define PSA_CMD_LENGTH_KEY_ID				4U
+#define PSA_CMD_LENGTH_PERMITTED_ALGORITHM	4U
+#define PSA_CMD_LENGTH_KEY_USAGE_FLAGS		4U
+#define PSA_CMD_LENGTH_KEY_TYPE				2U
+#define PSA_CMD_LENGTH_KEY_BITS				4U
+#define PSA_CMD_LENGTH_KEY_LIFETIME			4U
+#define PSA_CMD_LENGTH_WRAPPING_KEY_ID		4U
+#define PSA_CMD_LENGTH_WRAPPING_ALGORITHM	4U
+#define PSA_CMD_LENGTH_MAC_KEY_ID			4U
+#define PSA_CMD_LENGTH_MAGIC				11U
 
 // Tags used in PSA commands
 typedef enum psa_cmd_tag_s {
@@ -51,7 +51,7 @@ typedef enum psa_cmd_tag_s {
 	PSA_CMD_TAG_SIGNATURE = 0x5e
 }psa_cmd_tag_t;
 
-#define MAX_KEYINCMD_SIZE	2360 // RSA4096
+#define MAX_KEYINCMD_SIZE	2360U // RSA4096
 #define MAX_CMAC_INPUT_FIX_SIZE		12 + \
 	PSA_CMD_LENGTH_PERMITTED_ALGORITHM + \
 	PSA_CMD_LENGTH_KEY_USAGE_FLAGS + \
@@ -70,23 +70,20 @@ typedef enum psa_cmd_tag_s {
 #define S50_KEY_PROP_UHKDF	0x00010000
 
 // CMD Key In field size
-#define CMD_KEY_IN_S50_PROP_SIZE	4
-#define CMD_KEY_IN_ZEROES_SIZE		4
+#define CMD_KEY_IN_S50_PROP_SIZE	4U
+#define CMD_KEY_IN_ZEROES_SIZE		4U
 
 // Wrapping Algorithms
-#define WRAPPING_ALG_RFC3394		1
-#define WRAPPING_ALG_AES_CBC	    2
-#define WRAPPING_ALG_NONE			3
+#define WRAPPING_ALG_RFC3394		1U
+#define WRAPPING_ALG_AES_CBC	    2U
+#define WRAPPING_ALG_NONE			3U
 
 // AES CBC
-#define AES_CBC_BLOCK_SIZE  		16
+#define AES_CBC_BLOCK_SIZE  		16U
 
-// CMD Key In field offsets
-typedef enum cmd_in_offset_s {
-	CMD_IN_S50_PROP_OFFSET = 0,
-	CMD_IN_ZEROES_OFFSET = CMD_IN_S50_PROP_OFFSET + CMD_KEY_IN_S50_PROP_SIZE,
-	CMD_IN_KEY_OFFSET = CMD_IN_ZEROES_OFFSET + CMD_KEY_IN_ZEROES_SIZE,
-}cmd_in_offset_t;
+#define	CMD_IN_S50_PROP_OFFSET		0U
+#define	CMD_IN_ZEROES_OFFSET		(CMD_IN_S50_PROP_OFFSET + CMD_KEY_IN_S50_PROP_SIZE)
+#define	CMD_IN_KEY_OFFSET			(CMD_IN_ZEROES_OFFSET + CMD_KEY_IN_ZEROES_SIZE)
 
 // PSA command context
 typedef struct psa_cmd_s {
@@ -291,16 +288,16 @@ static iot_agent_status_t verify_cmd_cmac(mbedtls_svc_key_id_t key_id, const uin
 
 	psa_status_t psa_status = psa_export_key(key_id, &cmac_key[0], sizeof(cmac_key), &cmac_key_length);
 	PSA_SUCCESS_OR_EXIT_MSG("psa_export_key failed: 0x%08x", psa_status);
-	if (cmac_key_length == 0x10) {
+	if (cmac_key_length == 0x10U) {
 		cipher_info = mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_128_ECB);
-	} else if (cmac_key_length == 0x20) {
+	} else if (cmac_key_length == 0x20U) {
 		cipher_info = mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_256_ECB);
 	}
 	else {
 		EXIT_STATUS_MSG(IOT_AGENT_FAILURE, "Invalid key size: 0x%08x bytes", cmac_key_length);
 	}
 
-	ASSERT_OR_EXIT_MSG(mbedtls_cipher_cmac(cipher_info, cmac_key, cmac_key_length * 8,
+	ASSERT_OR_EXIT_MSG(mbedtls_cipher_cmac(cipher_info, cmac_key, cmac_key_length * 8U,
 		data, len - sizeof(calculated_cmac), calculated_cmac) == 0, "Error in CMAC execution");
 
 	ASSERT_OR_EXIT_MSG(memcmp(calculated_cmac, data + len - sizeof(calculated_cmac),
@@ -331,7 +328,7 @@ static iot_agent_status_t unwrap_key(psa_cmd_t* psa_cmd, uint8_t** client_key, s
 	PSA_SUCCESS_OR_EXIT_MSG("psa_export_key failed: 0x%08x", psa_status);
 
 	ASSERT_OR_EXIT_MSG(mbedtls_nist_kw_setkey(&unwrap_ctx, MBEDTLS_CIPHER_ID_AES, unwrapping_key,
-		unwrapping_key_length * 8, MBEDTLS_DECRYPT) == 0,
+		unwrapping_key_length * 8U, MBEDTLS_DECRYPT) == 0,
 		"Error in setting the unwrapping key");
 
 	ASSERT_OR_EXIT_MSG(mbedtls_nist_kw_unwrap(&unwrap_ctx, MBEDTLS_KW_MODE_KW, psa_cmd->keyincmd,
@@ -362,9 +359,9 @@ static  iot_agent_status_t psa_cipher_operation(psa_cipher_operation_t *operatio
 {
 	psa_status_t psa_status;
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-	size_t bytes_to_write = 0, bytes_written = 0, len = 0;
+	size_t bytes_to_write = 0U, bytes_written = 0U, len = 0U;
 
-	*output_len = 0;
+	*output_len = 0U;
 	while (bytes_written != input_size)
 	{
 		bytes_to_write = (input_size - bytes_written > part_size ?
@@ -402,7 +399,8 @@ static iot_agent_status_t decrypt_key(psa_cmd_t* psa_cmd, uint8_t** client_key, 
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	psa_status_t psa_status;
 	uint8_t *output = NULL;
-	size_t output_size = 0;
+	size_t output_size = 0U;
+	size_t out_size = 0U;
 
 	const psa_algorithm_t alg = PSA_ALG_CBC_NO_PADDING;
 	psa_cipher_operation_t operation = PSA_CIPHER_OPERATION_INIT;
@@ -415,7 +413,7 @@ static iot_agent_status_t decrypt_key(psa_cmd_t* psa_cmd, uint8_t** client_key, 
 	psa_status = psa_cipher_set_iv(&operation, iv, iv_size);
 	PSA_SUCCESS_OR_EXIT_MSG("psa_cipher_set_iv failed: 0x%08x", psa_status);
 
-	size_t out_size = psa_cmd->keyincmd_size;
+	out_size = psa_cmd->keyincmd_size;
 	output = malloc(out_size);
 
 	psa_status = psa_cipher_operation(&operation, psa_cmd->keyincmd, psa_cmd->keyincmd_size, AES_CBC_BLOCK_SIZE, output, out_size, &output_size);
@@ -472,6 +470,18 @@ psa_status_t psa_import_key_wrap(const psa_key_attributes_t *attributes,
 		if (unwrap_key(&psa_cmd, &client_key, &client_key_size) != IOT_AGENT_SUCCESS) {
 			IOT_AGENT_ERROR("Error in unwrapping key");
 			goto exit;
+		}
+
+		if (psa_get_key_id(&psa_cmd.attributes) == EL2GO_OEM_FW_DECRYPT_KEY) {
+			psa_set_key_lifetime(&psa_cmd.attributes, PSA_KEY_LIFETIME_VOLATILE);
+			psa_set_key_type(&psa_cmd.attributes, PSA_KEY_TYPE_AES);
+			if (psa_cmd.attributes.core.bits >= (CMD_IN_KEY_OFFSET * 8U)) {
+				psa_set_key_bits(&psa_cmd.attributes, psa_cmd.attributes.core.bits - (CMD_IN_KEY_OFFSET * 8U));
+			}
+			else {
+				IOT_AGENT_ERROR("Error in key_bits");
+				goto exit;
+			}
 		}
 	}
 	else if (psa_cmd.wrapping_algorithm == WRAPPING_ALG_AES_CBC) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 NXP
+ * Copyright 2018-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -112,9 +112,18 @@ int network_tcp_connect(const char *hostname, const int port, void* context)
     }
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = (unsigned short)AF_INET;
+	if (server->h_length < 0) {
+		IOT_AGENT_ERROR("ERROR in the length before casting it.");
+		return 1;
+	}
     bcopy((char *)server->h_addr,
          (char *)&serv_addr.sin_addr.s_addr,
          (size_t)server->h_length);
+	if ((port < 0) || (port > UINT16_MAX))
+	{
+		IOT_AGENT_ERROR("Error in the port value");
+		return 1;
+	}
     serv_addr.sin_port = htons((unsigned short)port);
     if (connect(*sockfd,(struct sockaddr *) &serv_addr, (socklen_t)sizeof(serv_addr)) < 0)
     {
@@ -201,7 +210,7 @@ exit:
 }
 
 
-void* network_new()
+void* network_new(void)
 {
 	openssl_network_context_t* network_ctx = (openssl_network_context_t*)NETWORK_malloc(sizeof(openssl_network_context_t));
 	if (network_ctx != NULL) {
@@ -341,6 +350,9 @@ int network_connect(void* opaque_ctx)
 
 #if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
 static X509_CRL* d2i_X509_CRL_buffer(const uint8_t* buffer, size_t sz) {
+	if (sz > INT32_MAX) {
+		IOT_AGENT_ERROR("Issue in casting the size variable");
+	}
 	BIO* bio = BIO_new_mem_buf(buffer, (int)sz);
 	if (bio == NULL) return NULL;
 	X509_CRL * crl = d2i_X509_CRL_bio(bio, NULL);
@@ -349,6 +361,9 @@ static X509_CRL* d2i_X509_CRL_buffer(const uint8_t* buffer, size_t sz) {
 }
 
 static X509* d2i_X509_buffer(const uint8_t* buffer, size_t sz) {
+	if (sz > INT32_MAX) {
+		IOT_AGENT_ERROR("Issue in casting the size variable");
+	}
 	BIO* bio = BIO_new_mem_buf(buffer, (int)sz);
 	if (bio == NULL) return NULL;
 	X509 * cert = d2i_X509_bio(bio, NULL);
@@ -409,6 +424,7 @@ int network_verify_server_certificate(void* opaque_ctx, uint8_t* trusted_bytes, 
 	truststore = X509_STORE_new();
 	NETWORK_ASSERT_OR_EXIT_MSG(truststore != NULL, "Error creating truststore.");
 
+	NETWORK_ASSERT_OR_EXIT_STATUS_MSG(trusted_size <= INT32_MAX, NETWORK_STATUS_FAIL, "Issue in casting of trusted size variable.");
 	trusted_cert_bio = BIO_new_mem_buf(trusted_bytes, trusted_size);
 	while (true) {
 		X509* trusted_cert = d2i_X509_bio(trusted_cert_bio, NULL);
@@ -444,7 +460,9 @@ int network_verify_server_certificate(void* opaque_ctx, uint8_t* trusted_bytes, 
 	X509_STORE_CTX_set0_param(verify_store, param);
 
 	openssl_status = X509_verify_cert(verify_store);
-	*error = X509_STORE_CTX_get_error(verify_store);
+	int x509_store_status = X509_STORE_CTX_get_error(verify_store);
+	NETWORK_ASSERT_OR_EXIT_STATUS_MSG(x509_store_status >= 0, NETWORK_STATUS_FAIL, "Error in execution of get error function,");
+	*error = x509_store_status;
 	NETWORK_ASSERT_OR_EXIT_MSG(openssl_status == 1, "Server cert verification with CRL failed. Openssl indicates error %d.", *error);
 
 exit:
@@ -518,6 +536,10 @@ int network_read(void* context, uint8_t* buffer, size_t len)
 {
     openssl_network_context_t* network_ctx = (openssl_network_context_t*) context;
     SSL* ssl = network_ctx->ssl;
+	if (len > INT32_MAX)
+	{
+		IOT_AGENT_ERROR("Error in checking the size of length variable");
+	}
     return SSL_read(ssl, buffer, len);
 }
 
@@ -525,6 +547,10 @@ int network_write(void* context, const uint8_t* buffer, size_t len)
 {
     openssl_network_context_t* network_ctx = (openssl_network_context_t*) context;
     SSL* ssl = network_ctx->ssl;
+	if (len > INT32_MAX)
+	{
+		IOT_AGENT_ERROR("Error in checking the size of length variable");
+	}
     return SSL_write(ssl, buffer, len);
 }
 

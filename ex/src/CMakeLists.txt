@@ -1,4 +1,4 @@
-# Copyright 2020-2021 NXP
+# Copyright 2020-2021,2023-2024 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -7,6 +7,10 @@
 
 IF(CMAKE_COMPILER_IS_GNUCC)
   ADD_DEFINITIONS("-Wno-unused-function -Wno-format -Wno-format-security")
+ENDIF()
+
+IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+    INCLUDE(${SIMW_TOP_DIR}/ext/core-json.cmake)
 ENDIF()
 
 ###################### nxp_iot_agent_demo
@@ -85,13 +89,12 @@ SET(HEADER_FILES
         APPEND
         iot_agent_demo_files
         utils/iot_agent_mqtt_paho.c
-        ${SIMW_TOP_DIR}/ext/amazon-freertos/libraries/3rdparty/jsmn/jsmn.c
     )
     TARGET_INCLUDE_DIRECTORIES(
         nxp_iot_agent
         PUBLIC
-        ${SIMW_TOP_DIR}/ext/amazon-freertos/libraries/3rdparty/jsmn
     )
+    add_definitions(-DNXP_IOT_AGENT_USE_COREJSON)
 ENDIF()
 
 IF(SSS_HAVE_HOST_FRDMK64F OR SSS_HAVE_HOST_EVKMIMXRT1060 OR SSS_HAVE_HOST_EVKMIMXRT1170)
@@ -102,6 +105,7 @@ IF(SSS_HAVE_HOST_FRDMK64F OR SSS_HAVE_HOST_EVKMIMXRT1060 OR SSS_HAVE_HOST_EVKMIM
         network/iot_agent_network_lwip.c
         utils/iot_agent_mqtt_freertos.c
     )
+    add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
 ENDIF()
 
 IF(SSS_HAVE_HOST_LPCXPRESSO55S)
@@ -112,6 +116,7 @@ IF(SSS_HAVE_HOST_LPCXPRESSO55S)
         network/iot_agent_network_lpc_mwm.c
         utils/iot_agent_mqtt_freertos.c
     )
+    add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
 ENDIF()
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${KSDK_STARTUP_FILE}
@@ -136,7 +141,14 @@ ELSE()
     ENDIF()
 ENDIF()
 
-IF(SSS_HAVE_APPLET_SE05X_IOT)
+IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+    TARGET_LINK_LIBRARIES(
+        ${PROJECT_NAME}
+        core_json
+    )
+ENDIF()
+
+IF(SSS_HAVE_APPLET_SE05X_IOT AND NOT SSS_HAVE_MBEDTLS_ALT_PSA)
 TARGET_LINK_LIBRARIES(
     ${PROJECT_NAME}
     SSS_APIs
@@ -147,6 +159,14 @@ TARGET_LINK_LIBRARIES(
     ${PROJECT_NAME}
     nxp_iot_agent
 )
+
+
+IF(((SSS_HAVE_HOST_PCWINDOWS) OR (SSS_HAVE_HOST_PCLINUX64)) AND (SSS_HAVE_APPLET_NONE) AND (SSS_HAVE_HOSTCRYPTO_MBEDTLS) AND (SSS_HAVE_MBEDTLS_ALT_PSA))
+    TARGET_LINK_LIBRARIES(
+        ${PROJECT_NAME}
+        mbedtls_psa
+    )
+ENDIF()
 
 CREATE_BINARY(${PROJECT_NAME})
 
@@ -297,10 +317,17 @@ IF(NXPInternal)
         ENDIF()
 
         IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS)
+            IF (SSS_HAVE_MBEDTLS_ALT_PSA)
+                TARGET_LINK_LIBRARIES(
+                    ${PROJECT_NAME}
+                    mbedtls_psa
+                )
+            ELSE()
             TARGET_LINK_LIBRARIES(
                 ${PROJECT_NAME}
                 mbedtls
             )
+            ENDIF()
         ENDIF()
 
         TARGET_LINK_LIBRARIES(
@@ -334,12 +361,10 @@ IF(NXPInternal)
         CREATE_BINARY(${PROJECT_NAME})
     ENDIF()
 
-
-
     ###################### remote_runner_server
 
     IF(((NOT((SSS_HAVE_HOST_LINUX_LIKE OR SSS_HAVE_HOST_PCWINDOWS) AND SSS_HAVE_HOSTCRYPTO_MBEDTLS))
-        AND (SSS_HAVE_APPLET_SE05X_A OR SSS_HAVE_APPLET_SE05X_B OR SSS_HAVE_APPLET_SE05X_C))
+        AND (SSS_HAVE_APPLET_SE05X_A OR SSS_HAVE_APPLET_SE05X_B OR SSS_HAVE_APPLET_SE05X_C OR SSS_HAVE_APPLET_SE050_E))
 	    OR ((SSS_HAVE_HOST_PCWINDOWS OR SSS_HAVE_HOST_PCLINUX) AND SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_APPLET_NONE))
 		PROJECT(remote_runner_server)
 
@@ -349,8 +374,8 @@ IF(NXPInternal)
 				iot_agent_remote_runner_files
 				apps/remote_runner_server.c
 				utils/iot_agent_mqtt_paho.c
-				${SIMW_TOP_DIR}/ext/amazon-freertos/libraries/3rdparty/jsmn/jsmn.c
 			)
+			add_definitions(-DNXP_IOT_AGENT_USE_COREJSON)
 		ENDIF()
 
 		IF(SSS_HAVE_HOST_PCLINUX OR SSS_HAVE_HOST_IMXLINUX)
@@ -365,6 +390,7 @@ IF(NXPInternal)
 				network/iot_agent_network_lwip.c
 				utils/iot_agent_mqtt_freertos.c
 			)
+			add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
 		ENDIF()
 
 		IF(SSS_HAVE_HOST_LPCXPRESSO55S)
@@ -376,6 +402,7 @@ IF(NXPInternal)
 				utils/iot_agent_mqtt_freertos.c
 				utils/serial_mwm_server.c
 			)
+			add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
 		ENDIF()
 
 		IF ((SSS_HAVE_HOST_PCWINDOWS OR SSS_HAVE_HOST_PCLINUX) AND SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_APPLET_NONE)
@@ -414,6 +441,13 @@ IF(NXPInternal)
 					paho-mqtt3cs-static
 				)
 			ENDIF()
+		ENDIF()
+
+		IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+			TARGET_LINK_LIBRARIES(
+				${PROJECT_NAME}
+				core_json
+			)
 		ENDIF()
 
 		IF (WIN32)
@@ -531,7 +565,7 @@ IF(NXPInternal)
         TARGET_LINK_LIBRARIES(
             ${PROJECT_NAME}
             nxp_iot_agent
-            mbedtls
+            mbedtls_psa
         )
 
 
@@ -558,7 +592,7 @@ IF(NXPInternal)
         )
         TARGET_LINK_LIBRARIES(
             ${PROJECT_NAME}
-            mbedtls
+            mbedtls_psa
         )
 
         CREATE_BINARY(${PROJECT_NAME})
@@ -584,7 +618,7 @@ IF(NXPInternal)
 		)
 		TARGET_LINK_LIBRARIES(
 			${PROJECT_NAME}
-			mbedtls
+			mbedtls_psa
 		)
 
 		CREATE_BINARY(${PROJECT_NAME})

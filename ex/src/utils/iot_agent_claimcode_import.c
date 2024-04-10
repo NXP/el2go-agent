@@ -1,10 +1,11 @@
-/* Copyright 2023 NXP
+/* Copyright 2023-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "nxp_iot_agent.h"
 #include "nxp_iot_agent_status.h"
+#include "iot_agent_claimcode_import.h"
 
 #if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
 #include "nxp_iot_agent_macros.h"
@@ -26,7 +27,7 @@ typedef struct _claimcode_info
     uint8_t blob[];
 } claimcode_info_t;
 
-iot_agent_status_t iot_agent_claimcode_import()
+iot_agent_status_t iot_agent_claimcode_import(void)
 {
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     psa_status_t psa_status         = PSA_SUCCESS;

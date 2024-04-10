@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 NXP
+ * Copyright 2020-2021,2023-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -50,15 +50,6 @@
 #include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
 #include <iot_agent_rtp_client.h>
-
-#if defined(USE_RTOS) && (USE_RTOS == 1)
-#if !SSS_HAVE_APPLET_SE051_UWB
-#include "iot_logging_task.h"
-#define LOGGING_TASK_PRIORITY   (tskIDLE_PRIORITY + 1)
-#define LOGGING_TASK_STACK_SIZE (200)
-#define LOGGING_QUEUE_LENGTH    (16)
-#endif // SSS_HAVE_APPLET_SE051_UWB
-#endif // USE_RTOS
 
 #define RTP_MAX_BUFFER_SIZE 892U
 static ex_sss_boot_ctx_t gex_sss_boot_ctx;
@@ -123,6 +114,13 @@ uint16_t htons(uint16_t const net) {
     return ((uint8_t)data[1] << 0)
         | ((uint8_t)data[0] << 8);
 }
+uint16_t ntohs(uint16_t const netshort ) {
+    uint8_t data[2] = {};
+    memcpy(&data, &netshort, sizeof(data));
+
+    return ((uint8_t)data[1] << 0)
+        | ((uint8_t)data[0] << 8);
+}
 uint32_t htonl(uint32_t const net) {
     uint8_t data[4] = {};
     memcpy(&data, &net, sizeof(data));
@@ -157,9 +155,22 @@ iot_agent_status_t initialize_client_connection(const char* hostname, const char
     hints.ai_socktype = SOCK_STREAM;
     rv = getaddrinfo(hostname, server_port, &hints, &servinfo);
     ASSERT_OR_EXIT_MSG(rv == 0, "getaddrinfo Failed");
+#if defined(_WIN32) || defined(_WIN64)
+    unsigned int socket_id = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+	if (socket_id > INT32_MAX) {
+		IOT_AGENT_ERROR("Error in opening socket\n");
+		if (closesocket(socket_id) != 0) {
+			IOT_AGENT_ERROR("Error while closing socket\n");
+		}
+		goto exit;
+	}
+	*pSocket_id = socket_id;
+#else
+	*pSocket_id = (int)socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+	ASSERT_OR_EXIT_MSG(*pSocket_id >= 0, "Error in opening socket\n");
+#endif
 
-    *pSocket_id = (int)socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
-    ASSERT_OR_EXIT_MSG(*pSocket_id >= 0, "Error in opening socket\n");
+	ASSERT_OR_EXIT_MSG(servinfo->ai_addrlen <= INT32_MAX, "Error in casting of address");
 
     //client establishes a connection with server
     if (connect(*pSocket_id, servinfo->ai_addr, servinfo->ai_addrlen) < 0)
@@ -224,7 +235,8 @@ iot_agent_status_t sendResponse(remote_provisioning_TLV_t* tlv, int socket_id)
     tlv->length = htons(len);
 
     int flags = 0;
-    if (send(socket_id, (char*)tlv, 4U, flags) != 4U)
+	ASSERT_OR_EXIT_MSG(socket_id >= 0, "Error in the socket id");
+    if (send(socket_id, (char*)tlv, 4U, flags) != 4)
     {
         EXIT_STATUS_MSG(IOT_AGENT_FAILURE, "Failure while sending Tag-Length");
     }
@@ -241,17 +253,17 @@ iot_agent_status_t network_reads(remote_provisioning_TLV_t* tlv, int socket_id)
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     uint16_t cmd;
     uint16_t len;
-    if (recv(socket_id, (char*)&cmd, sizeof(tlv->cmd), 0) != sizeof(tlv->cmd))
-    {
-        EXIT_STATUS_MSG(IOT_AGENT_FAILURE, "Failure while receiving Tag");
-    }
-    tlv->cmd = htons(cmd);
+	ASSERT_OR_EXIT_MSG(socket_id >= 0, "Error in the socket id");
 
-    if (recv(socket_id, (char*)&len, sizeof(tlv->length), 0) != sizeof(tlv->length))
-    {
-        EXIT_STATUS_MSG(IOT_AGENT_FAILURE, "Failure while receiving Length");
-    }
-    tlv->length = htons(len);
+	int recv_length = recv(socket_id, (char*)&cmd, sizeof(tlv->cmd), 0);
+	ASSERT_OR_EXIT_MSG((recv_length >= 0) && (recv_length == sizeof(tlv->cmd)), "Failure while receiving Tag");
+
+    tlv->cmd = ntohs(cmd);
+
+	recv_length = recv(socket_id, (char*)&len, sizeof(tlv->length), 0);
+	ASSERT_OR_EXIT_MSG((recv_length >= 0) && (recv_length == sizeof(tlv->length)), "Failure while receiving Length");
+
+    tlv->length = ntohs(len);
 
     if (tlv->length == 0)
     {
@@ -276,10 +288,14 @@ iot_agent_status_t send_apdu(remote_provisioning_TLV_t* apdu, remote_provisionin
 
     sss_se05x_session_t *pSession = (sss_se05x_session_t *)&(boot_context->session);
     size_t len = RTP_MAX_BUFFER_SIZE;
-    if (SW_OK != DoAPDUTxRx(&pSession->s_ctx, apdu->payload, (size_t)apdu->length, response->payload, &len))
+    if (SW_OK != DoAPDUTxRx(&(pSession->s_ctx), apdu->payload, (size_t)apdu->length, response->payload, &len))
     {
         IOT_AGENT_ERROR("Error while sending TAG_APDU_CMD");
     }
+	if (len >= UINT16_MAX) {
+		IOT_AGENT_ERROR("Len is to big to be casted to uint16_t");
+		return IOT_AGENT_FAILURE;
+	}
     response->length = (uint16_t)len;
     return agent_status;
 }
@@ -414,10 +430,6 @@ int remote_provisioning_init_rtos(void *args)
 {
 
     iot_agent_session_bm();
-
-#if !SSS_HAVE_APPLET_SE051_UWB
-    xLoggingTaskInitialize(LOGGING_TASK_STACK_SIZE, LOGGING_TASK_PRIORITY, LOGGING_QUEUE_LENGTH);
-#endif
 
     if (xTaskCreate(&remote_provisioning_start_task,
         "remote_runner_start_session_task",

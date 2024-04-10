@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -35,17 +35,15 @@ static const uint8_t INTERNAL_AES256_AEAD_GCM[] = {0};
 
 static const uint8_t INTERNAL_AES256_MAC_CMAC[] = {0};
 
-static const uint8_t INTERNAL_NISTP256_SIGMSG_ECDSASHA256[] = {0};
+static const uint8_t INTERNAL_NISTP256_SIGVERMSG_ECDSASHA256[] = {0};
 
-static const uint8_t INTERNAL_NISTP256_SIGHASH_ECDSASHA256[] = {0};
+static const uint8_t INTERNAL_NISTP256_SIGVERHASH_ECDSASHA256[] = {0};
 
-static const uint8_t INTERNAL_NISTP256_SIGHASH_ECDSAANY[] = {0};
+static const uint8_t INTERNAL_NISTP256_SIGVERHASH_ECDSAANY[] = {0};
 
 static const uint8_t INTERNAL_HMAC256_MAC_HMACSHA256[] = {0};
 
 static const uint8_t INTERNAL_HMAC256_KDF_HKDFSHA256[] = {0};
-
-static const uint8_t INTERNAL_OEM_KDF_S50CKDF[] = {0};
 
 #ifdef __cplusplus
 }

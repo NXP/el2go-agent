@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 NXP
+ * Copyright 2018-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -10,6 +10,7 @@
 
 #include "nxp_iot_agent_status.h"
 #include "nxp_iot_agent_log.h"
+#include "nxp_iot_agent_common.h"
 
 #ifdef __cplusplus
 extern "C" {

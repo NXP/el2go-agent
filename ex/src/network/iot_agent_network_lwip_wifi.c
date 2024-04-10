@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 NXP
+ * Copyright 2018-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -43,7 +43,7 @@ static void LinkStatusChangeCallback(bool linkState)
  */
 iot_agent_status_t network_init(void)
 {
-    uint32_t result = 0;
+    wpl_ret_t result = WPLRET_SUCCESS;
 
     /* Initialize Wi-Fi board */
     IOT_AGENT_INFO("Initializing Wi-Fi connection... \r\n");

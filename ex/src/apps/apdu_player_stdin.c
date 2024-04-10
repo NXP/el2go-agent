@@ -1,11 +1,10 @@
 /*
- * Copyright 2020-2021 NXP
+ * Copyright 2020-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
  */
 
-#include <fsl_sscp_a71ch.h>
 #include <fsl_sss_api.h>
 #include <smCom.h>
 #include <stdint.h>
@@ -29,23 +28,9 @@
 #include <openssl/opensslv.h>
 #endif
 
-#if SSS_HAVE_SSCP
-#include <fsl_sss_sscp.h>
-#include <sm_types.h>
-#endif
-
 #if SSS_HAVE_APPLET_SE05X_IOT
 #include <fsl_sss_se05x_apis.h>
 #endif
-
-#if SSS_HAVE_A71XX
-#include <HLSEAPI.h>
-#include <fsl_sscp_a71ch.h>
-#endif
-#if SSS_HAVE_APPLET_A71CL || SSS_HAVE_APPLET_SE05X_L
-#include <a71cl_api.h>
-#include <fsl_sscp_a71cl.h>
-#endif /* SSS_HAVE_APPLET_A71CH / EAR */
 
 #include <ex_sss_boot.h>
 #include "sm_apdu.h"
@@ -60,6 +45,10 @@ static ex_sss_boot_ctx_t gex_sss_gen_cert;
 #define EX_SSS_BOOT_DO_ERASE 0
 #define EX_SSS_BOOT_EXPOSE_ARGC_ARGV 1
 
+/* ************************************************************************** */
+/* Include "main()" with the platform specific startup code for Plug & Trust  */
+/* MW examples which will call ex_sss_entry()                                 */
+/* ************************************************************************** */
 #include <ex_sss_main_inc.h>
 
 #define COMMAND_PREFIX "/send "
