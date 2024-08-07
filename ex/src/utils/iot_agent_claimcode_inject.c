@@ -52,7 +52,7 @@ iot_agent_status_t iot_agent_claimcode_inject(ex_sss_boot_ctx_t *pCtx, char *cla
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     sss_status_t sss_status;
     sss_object_t obj;
-    uint32_t edgelock2go_auth_id;
+
     //Create Policies
     const sss_policy_u default_user = {
         .type = KPolicy_File,
@@ -75,7 +75,7 @@ iot_agent_status_t iot_agent_claimcode_inject(ex_sss_boot_ctx_t *pCtx, char *cla
 
     sss_policy_u edgelock2go_user_common = {
         .type = KPolicy_Common,
-        .auth_obj_id = 0U,
+        .auth_obj_id = EDGELOCK2GO_USER_ID,
         .policy = {
             .common = {
                 .can_Delete = 1U,
@@ -84,7 +84,7 @@ iot_agent_status_t iot_agent_claimcode_inject(ex_sss_boot_ctx_t *pCtx, char *cla
     };
     sss_policy_u edgelock2go_user = {
         .type = KPolicy_File,
-        .auth_obj_id = 0U,
+        .auth_obj_id = EDGELOCK2GO_USER_ID,
         .policy = {
             .file = {
                 .can_Read = 1U,
@@ -101,24 +101,13 @@ iot_agent_status_t iot_agent_claimcode_inject(ex_sss_boot_ctx_t *pCtx, char *cla
     sss_status = sss_key_object_init(&obj, &pCtx->ks);
     SSS_SUCCESS_OR_EXIT_MSG("sss_key_object_init failed with 0x%04x", sss_status);
 
-    //Get correct edgelock2go authentication keyID
+    // Update policy with the demo ID only if is present on the secure element
     if (CheckIfKeyIdExists(&obj, EDGELOCK2GO_USER_ID_DEMO, &((sss_se05x_session_t *)(&pCtx->session))->s_ctx))
     {
-        edgelock2go_auth_id = EDGELOCK2GO_USER_ID_DEMO;
+    	//update policy with correct authentication id
+    	edgelock2go_user_common.auth_obj_id = EDGELOCK2GO_USER_ID_DEMO;
+    	edgelock2go_user.auth_obj_id = EDGELOCK2GO_USER_ID_DEMO;
     }
-    else if (CheckIfKeyIdExists(&obj, EDGELOCK2GO_USER_ID, &((sss_se05x_session_t *)(&pCtx->session))->s_ctx))
-    {
-        edgelock2go_auth_id = EDGELOCK2GO_USER_ID;
-    }
-    else
-    {
-        IOT_AGENT_ERROR("FAST_SCP_KEY_edgelock2go missing\n");
-        return IOT_AGENT_FAILURE;
-    }
-
-    //update policy with correct authentication id
-    edgelock2go_user_common.auth_obj_id = edgelock2go_auth_id;
-    edgelock2go_user.auth_obj_id = edgelock2go_auth_id;
 
     if (CheckIfKeyIdExists(&obj, CLAIMCODE_OBJ_ID, &((sss_se05x_session_t *)(&pCtx->session))->s_ctx))
     {

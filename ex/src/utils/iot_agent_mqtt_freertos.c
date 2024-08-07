@@ -1300,7 +1300,11 @@ static iot_agent_status_t azurePubMqttMessage(const nxp_iot_ServiceDescriptor* s
 #if (NXP_IOT_AGENT_HAVE_PSA == 0)
 static void iot_agent_convert_id_to_label(char* label, size_t label_size, uint32_t id) {
     memset(label, 0, label_size);
-    snprintf(label, label_size, "sss:%08lx", id);
+    uint32_t sss_keyId = (uint32_t)((((id >> (8 * 0)) & 0x000000FF) << (8 * 3)) |
+                            (((id >> (8 * 1)) & 0x000000FF) << (8 * 2)) |
+                            (((id >> (8 * 2)) & 0x000000FF) << (8 * 1)) |
+                            (((id >> (8 * 3)) & 0x000000FF) << (8 * 0)));
+    snprintf(label, label_size, "sss:%08lx", sss_keyId);
 }
 #endif // NXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT
 #endif // (NXP_IOT_AGENT_HAVE_PSA == 0)

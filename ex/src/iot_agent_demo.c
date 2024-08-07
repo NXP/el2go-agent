@@ -91,8 +91,12 @@ const size_t iot_agent_claimcode_el2go_pub_key_size = sizeof(iot_agent_claimcode
 
 #include <iot_agent_network.h>
 
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM && !defined(NXP_IOT_AGENT_ENABLE_LITE)
+#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
+#ifdef NXP_IOT_AGENT_ENABLE_LITE
+extern void config_mbedtls_threading_alt(void);
+#else
 extern uint32_t tfm_ns_interface_init(void);
+#endif
 #endif
 
 #if NXP_IOT_AGENT_HAVE_SSS
@@ -129,7 +133,7 @@ iot_agent_status_t iot_agent_print_uid (sss_se05x_session_t* pSession);
 iot_agent_status_t iot_agent_print_uid();
 #endif
 
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_COS_OVER_RTP_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 
 #define COMMON_NAME_MAX_SIZE 256
 const PB_BYTES_ARRAY_T(AWS_ROOT_SERVER_CERT_SIZE) aws_root_server_cert =
@@ -154,6 +158,8 @@ typedef struct cli_arguments
     const char **v;
 } cli_arguments_t;
 
+cli_arguments_t args;
+
 #ifdef __ZEPHYR__
 void agent_start_task(void *args, void*, void*)
 #else
@@ -168,8 +174,12 @@ void agent_start_task(void *args)
 
     iot_agent_session_boot_rtos_task();
 
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM && !defined(NXP_IOT_AGENT_ENABLE_LITE)
+#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
+#ifdef NXP_IOT_AGENT_ENABLE_LITE
+	config_mbedtls_threading_alt();
+#else
     tfm_ns_interface_init();
+#endif
 #endif
 
     agent_status = network_init();
@@ -228,7 +238,6 @@ int main(int argc, const char *argv[])
 
 	iot_agent_session_bm();
 
-	cli_arguments_t args;
     args.c = argc;
     args.v = argv;
 
@@ -566,7 +575,7 @@ exit:
 #endif
 
 
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_COS_OVER_RTP_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 void iot_agent_fill_service_char_array(char** dest, char *src, size_t len)
 {
 	char* ptr = malloc(len);
@@ -764,7 +773,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
     //Intializations of local variables
     size_t number_of_services = 0U;
 	nxp_iot_UpdateStatusReport status_report = nxp_iot_UpdateStatusReport_init_default;
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_COS_OVER_RTP_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 	nxp_iot_ServiceDescriptor aws_service_descriptor = nxp_iot_ServiceDescriptor_init_default;
 	nxp_iot_ServiceDescriptor azure_service_descriptor = nxp_iot_ServiceDescriptor_init_default;
 #endif
@@ -861,13 +870,13 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 #endif
 	AGENT_SUCCESS_OR_EXIT();
 
-	// If the contents of the datastore for the connectin to the EdgeLock 2O datastore
-	// are not valid (e.g. on the first boot), fill the datastore with contents
-	// from the settings contained in nxp_iot_agent_demo_config.h
-	if (!iot_agent_service_is_configuration_data_valid(&edgelock2go_datastore)) {
-		iot_agent_utils_write_edgelock2go_datastore(&keystore, &edgelock2go_datastore,
-			EDGELOCK2GO_HOSTNAME, EDGELOCK2GO_PORT, iot_agent_trusted_root_ca_certificates, NULL);
-	}
+	// Configure the datastore using the EdgeLock 2GO hostname and port from one of the inputs:
+	// - Command line arguments
+	// - Environment variables
+	// - Existing valid datastore file
+	// - Macro defines
+	agent_status = iot_agent_utils_configure_edgelock2go_datastore(&keystore, &edgelock2go_datastore, argc, argv);
+	AGENT_SUCCESS_OR_EXIT();
 
 	// For connecting to the EdgeLock 2GO cloud service, we also need to register the
 	// datastore that contains the information on how to connect there.
@@ -935,11 +944,11 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 #endif //NXP_IOT_AGENT_HAVE_SSS
 	// doc: trigger MQTT connection - end
     // doc: trigger MQTT connection RTP - start
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_COS_OVER_RTP_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 	// example code for MQTT conneciton when provisioning services as RTP objects
 	iot_agent_cleanup_mqtt_config_files_cos_over_rtp();
 	AGENT_SUCCESS_OR_EXIT();
-	// use this code for AWS services
+#if AWS_ENABLE
 	// modify the connection parameters to allow connection to your AWS account
 	agent_status = iot_agent_get_mqtt_service_descriptor_for_aws(&iot_agent_context, &aws_service_descriptor);
 	AGENT_SUCCESS_OR_EXIT();
@@ -947,12 +956,13 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 	// use case add additional call to the funcion iot_agent_verify_mqtt_connection_cos_over_rtp
 	agent_status = iot_agent_verify_mqtt_connection_cos_over_rtp(&iot_agent_context, &aws_service_descriptor);
 	AGENT_SUCCESS_OR_EXIT();
-
-	// use this code for Azure services
+#endif
+#if AZURE_ENABLE
 	agent_status = iot_agent_get_service_descriptor_for_azure(&iot_agent_context, &azure_service_descriptor);
 	AGENT_SUCCESS_OR_EXIT();
 	agent_status = iot_agent_verify_mqtt_connection_cos_over_rtp(&iot_agent_context, &azure_service_descriptor);
 	AGENT_SUCCESS_OR_EXIT();
+#endif
 #endif
 	// doc: trigger MQTT connection RTP - end
 
@@ -966,7 +976,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
         AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_verify_psa_export failed: 0x%08x", agent_status);
 #endif // NXP_IOT_AGENT_HAVE_PSA && (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 exit:
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_COS_OVER_RTP_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 	iot_agent_free_mqtt_service_descriptor(&aws_service_descriptor);
 	iot_agent_free_mqtt_service_descriptor(&azure_service_descriptor);
 #endif

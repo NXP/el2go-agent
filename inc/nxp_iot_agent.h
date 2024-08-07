@@ -227,7 +227,7 @@ iot_agent_status_t iot_agent_update_device_configuration(iot_agent_context_t * a
  * @retval IOT_AGENT_FAILURE Upon failure
  */
 iot_agent_status_t iot_agent_update_device_configuration_from_constants(
-	iot_agent_context_t* agent_context, uint32_t client_key_object_id, uint32_t client_cert_object_id,
+	iot_agent_context_t* agent_context,
 	nxp_iot_UpdateStatusReport* status_report);
 
 

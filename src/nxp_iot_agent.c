@@ -537,8 +537,7 @@ exit:
 
 
 iot_agent_status_t iot_agent_update_device_configuration_from_constants(
-	iot_agent_context_t* agent_context, uint32_t client_key_object_id, uint32_t client_cert_object_id,
-	nxp_iot_UpdateStatusReport* status_report)
+	iot_agent_context_t* agent_context, nxp_iot_UpdateStatusReport* status_report)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
@@ -548,22 +547,55 @@ iot_agent_status_t iot_agent_update_device_configuration_from_constants(
 	// be - in fact it must not be - released.
 	nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
 
+#if NXP_IOT_AGENT_HAVE_PSA
+	PB_BYTES_ARRAY_T(1024) client_certificate_buffer = { 0 };
+#endif
+
+	iot_agent_keystore_t* keystore = NULL;
+	uint32_t client_key_object_id = 0U;
+	uint32_t client_cert_object_id = 0U;
+
+	agent_status = iot_agent_get_keystore_by_id(agent_context, EDGELOCK2GO_KEYSTORE_ID, &keystore);
+	AGENT_SUCCESS_OR_EXIT_MSG("Unable to get keystore for connection to EdgeLock 2GO.");
+
+	agent_status = iot_agent_keystore_open_session(keystore);
+	AGENT_SUCCESS_OR_EXIT_MSG("Failed to re-connect to Secure Element.")
+
+	agent_status = iot_agent_utils_get_edgelock2go_key_id(keystore, &client_key_object_id);
+	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_get_edgelock2go_key_id failed: 0x%08x", agent_status);
+
 	service_descriptor.has_client_key_sss_ref = true;
 	service_descriptor.client_key_sss_ref.has_type = true;
-	service_descriptor.client_key_sss_ref.type = nxp_iot_EndpointType_KS_SSS_SE05X;
+	ASSERT_OR_EXIT_MSG(keystore->type <= _nxp_iot_EndpointType_MAX, "Error in keystore type");
+	service_descriptor.client_key_sss_ref.type = (nxp_iot_EndpointType)keystore->type;
 	service_descriptor.client_key_sss_ref.has_endpoint_id = true;
 	service_descriptor.client_key_sss_ref.endpoint_id = EDGELOCK2GO_KEYSTORE_ID;
 	service_descriptor.client_key_sss_ref.has_object_id = true;
 	service_descriptor.client_key_sss_ref.object_id = client_key_object_id;
 
+	agent_status = iot_agent_utils_get_edgelock2go_certificate_id(keystore, &client_cert_object_id);
+	if (agent_status == IOT_AGENT_SUCCESS) {
+	  
 	service_descriptor.has_client_certificate_sss_ref = true;
 	service_descriptor.client_certificate_sss_ref.has_type = true;
-	service_descriptor.client_certificate_sss_ref.type = nxp_iot_EndpointType_KS_SSS_SE05X;
+	ASSERT_OR_EXIT_MSG(keystore->type <= _nxp_iot_EndpointType_MAX, "Error in keystore type");
+	service_descriptor.client_certificate_sss_ref.type = (nxp_iot_EndpointType)keystore->type;
 	service_descriptor.client_certificate_sss_ref.has_endpoint_id = true;
 	service_descriptor.client_certificate_sss_ref.endpoint_id = EDGELOCK2GO_KEYSTORE_ID;
+	service_descriptor.client_certificate_sss_ref.type = nxp_iot_EndpointType_KS_SSS_SE05X;
 	service_descriptor.client_certificate_sss_ref.has_object_id = true;
 	service_descriptor.client_certificate_sss_ref.object_id = client_cert_object_id;
-
+	}
+#if NXP_IOT_AGENT_HAVE_PSA
+	else {
+		  size_t certificate_buffer_size = sizeof(client_certificate_buffer.bytes);
+		  agent_status = iot_agent_utils_create_self_signed_edgelock2go_certificate(keystore,
+				  client_certificate_buffer.bytes, &certificate_buffer_size);
+		  AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_create_self_signed_edgelock2go_certificate failed: 0x%08x", agent_status);
+		  client_certificate_buffer.size = certificate_buffer_size;
+		  service_descriptor.client_certificate = (pb_bytes_array_t*) &client_certificate_buffer;
+	}
+#endif
 #if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
 	// Put the server certificates into the service descriptor.
 	service_descriptor.server_certificate = (pb_bytes_array_t*) iot_agent_trusted_root_ca_certificates;
@@ -599,25 +631,9 @@ iot_agent_status_t iot_agent_update_device_configuration(iot_agent_context_t *ag
 		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_update_device_configuration_from_datastore failed with 0x%08x", agent_status);
 	}
 	else {
-		iot_agent_keystore_t* keystore = NULL;
-		uint32_t client_key_object_id = 0U;
-		uint32_t client_cert_object_id = 0U;
-
-		agent_status = iot_agent_get_keystore_by_id(agent_context, EDGELOCK2GO_KEYSTORE_ID, &keystore);
-		AGENT_SUCCESS_OR_EXIT_MSG("Unable to get keystore for connection to EdgeLock 2GO.");
-
-		agent_status = iot_agent_keystore_open_session(keystore);
-		AGENT_SUCCESS_OR_EXIT_MSG("Failed to re-connect to Secure Element.")
-
-			agent_status = iot_agent_utils_get_edgelock2go_key_id(keystore, &client_key_object_id);
-		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_get_edgelock2go_key_id failed: 0x%08x", agent_status);
-
-		agent_status = iot_agent_utils_get_edgelock2go_certificate_id(keystore, &client_key_object_id);
-		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_get_edgelock2go_certificate_id failed: 0x%08x", agent_status);
-
 		// There is no valid datastore, we fall back to compile-time constants for the
 		// information that otherwise is in the datastore.
-		agent_status = iot_agent_update_device_configuration_from_constants(agent_context, client_key_object_id, client_cert_object_id, status_report);
+		agent_status = iot_agent_update_device_configuration_from_constants(agent_context, status_report);
 		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_update_device_configuration_from_constants failed with 0x%08x", agent_status);
 	}
 exit:

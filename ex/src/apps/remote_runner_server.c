@@ -1621,6 +1621,57 @@ static void write_status_report_log(const nxp_iot_UpdateStatusReport* status_rep
 	write_log(TEST_LOG_ID_STATUS_REPORT, "%s", buffer);
 }
 
+static iot_agent_status_t write_edgelock2go_datastore_from_env(iot_agent_keystore_t *keystore,
+	iot_agent_datastore_t* datastore)
+{
+    iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+    const char *hostname = EDGELOCK2GO_HOSTNAME;
+    char *hostname_local = NULL;
+    uint32_t port = EDGELOCK2GO_PORT;
+	char* edgelock2go_hostname_env = NULL;
+	char* edgelock2go_port_env = NULL;
+
+	ASSERT_OR_EXIT_MSG(keystore != NULL, "keystore is NULL.");
+	ASSERT_OR_EXIT_MSG(datastore != NULL, "datastore is NULL.");
+
+#if defined(_WIN32) || defined(_WIN64)
+	size_t edgelock2go_hostname_env_size = 0U;
+	ASSERT_OR_EXIT_MSG(_dupenv_s(&edgelock2go_hostname_env, &edgelock2go_hostname_env_size, "IOT_AGENT_TEST_EDGELOCK2GO_HOSTNAME") == 0, "Error in getting environmental variable");
+#else
+	edgelock2go_hostname_env = getenv("IOT_AGENT_TEST_EDGELOCK2GO_HOSTNAME");
+#endif
+    if (edgelock2go_hostname_env != NULL) {
+        size_t len = strlen(edgelock2go_hostname_env);
+        hostname_local = malloc(len + 1U);
+        ASSERT_OR_EXIT(hostname_local!=NULL);
+        memcpy(hostname_local, edgelock2go_hostname_env, len + 1U);
+        hostname = hostname_local;
+    }
+
+#if defined(_WIN32) || defined(_WIN64)
+	size_t edgelock2go_port_env_size = 0U;
+	ASSERT_OR_EXIT_MSG(_dupenv_s(&edgelock2go_port_env, &edgelock2go_port_env_size, "IOT_AGENT_TEST_EDGELOCK2GO_PORT") == 0, "Error in getting environmental variable");
+#else
+	edgelock2go_port_env = getenv("IOT_AGENT_TEST_EDGELOCK2GO_PORT");
+#endif
+	if (edgelock2go_port_env != NULL) {
+		int int_port = atoi(edgelock2go_port_env);
+		ASSERT_OR_EXIT_MSG(int_port >= 0, "Port is negative value.");
+		port = (uint32_t)int_port;
+	}
+
+    agent_status = iot_agent_utils_write_edgelock2go_datastore(keystore, datastore, hostname, port,
+		iot_agent_trusted_root_ca_certificates, NULL);
+    AGENT_SUCCESS_OR_EXIT();
+
+exit:
+#if defined(_WIN32) || defined(_WIN64)
+	free(edgelock2go_hostname_env);
+	free(edgelock2go_port_env);
+#endif
+    free(hostname_local);
+    return agent_status;
+}
 
 // This function executes the initialization of the Agent
 static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_agent_context,
@@ -1676,7 +1727,7 @@ static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_
 		&iot_agent_service_is_configuration_data_valid);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore initialization\n");
 #endif
-	agent_status = iot_agent_utils_write_edgelock2go_datastore_from_env(keystore, edgelock2go_datastore);
+	agent_status = write_edgelock2go_datastore_from_env(keystore, edgelock2go_datastore);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore writing from env\n");
 
 	agent_status = iot_agent_set_edgelock2go_datastore(pst_iot_agent_context, edgelock2go_datastore);

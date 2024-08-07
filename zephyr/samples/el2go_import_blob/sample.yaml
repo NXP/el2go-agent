@@ -1,0 +1,16 @@
+sample:
+  name: EL2GO Import Blob
+  description: The EdgeLock 2GO import blob sample demonstrates how to import and optionally use offline provisioned blobs from flash
+tests:
+  sample.nxp_iot_agent.el2go_import_blob:
+    tags:
+      - el2go
+      - trusted-firmware-m
+    platform_allow:
+      - rd_rw612_bga/rw612/ns
+      - frdm_rw612/rw612/ns
+    harness: console
+    harness_config:
+      type: one_line
+      regex:
+        - "([0-9]+) blob\\(s\\) imported from flash successfully"

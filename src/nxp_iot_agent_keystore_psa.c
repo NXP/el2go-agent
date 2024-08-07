@@ -149,12 +149,12 @@ bool iot_agent_keystore_psa_handle_request(pb_istream_t *istream,
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_id_t imported_id = 0U;
 #endif
-#if defined(MBEDTLS_PSA_CRYPTO_STORAGE_C) || NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
+
     psa_storage_uid_t uid = 0U;
     struct psa_storage_info_t storage_info = { 0 };
     size_t chunk_size = 0U;
     size_t read_length = 0U;
-#endif
+
     result = message_type != NULL;
     RESULT_TRUE_OR_EXIT_MSG("message_type is NULL");
 
@@ -240,7 +240,6 @@ bool iot_agent_keystore_psa_handle_request(pb_istream_t *istream,
             response.message.psa.which_response = nxp_iot_PsaResponse_read_object_tag;
 
             HAS_FIELD_OR_EXIT(request.command.read_object.has_identifier);
-#if defined(MBEDTLS_PSA_CRYPTO_STORAGE_C) || NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
             uid = request.command.read_object.identifier;
             psa_status = psa_its_get_info(uid, &storage_info);
             if (psa_status != PSA_SUCCESS) {
@@ -269,20 +268,11 @@ bool iot_agent_keystore_psa_handle_request(pb_istream_t *istream,
 
             response.message.psa.response.read_object.has_status = true;
             response.message.psa.response.read_object.status = (nxp_iot_StatusCode) psa_status;
-#else
-            response.message.psa.response.read_object.has_status = true;
-            response.message.psa.response.read_object.status = (nxp_iot_StatusCode) PSA_ERROR_DOES_NOT_EXIST;
-            response.message.psa.response.read_object.data = (pb_bytes_array_t*)& empty_data;
-#endif
             break;
 
         case nxp_iot_PsaRequest_remove_object_tag:
             HAS_FIELD_OR_EXIT(request.command.read_object.has_identifier);
-#if defined(MBEDTLS_PSA_CRYPTO_STORAGE_C) || NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
             psa_status = psa_its_remove(request.command.read_object.identifier);
-#else
-            psa_status = PSA_ERROR_NOT_SUPPORTED;
-#endif
             response.which_message = nxp_iot_ResponsePayload_psa_tag;
             response.message.psa.which_response = nxp_iot_PsaResponse_remove_object_tag;
             response.message.psa.response.remove_object.has_status = true;

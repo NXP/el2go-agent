@@ -56,13 +56,13 @@ static void net_mgmt_event_handler(struct net_mgmt_event_callback *callback, uin
         case NET_EVENT_IPV4_ADDR_ADD:
             for (int i = 0; i < NET_IF_MAX_IPV4_ADDR; i++)
             {
-                if (interface->config.ip.ipv4->unicast[i].addr_type != NET_ADDR_DHCP)
+                if (interface->config.ip.ipv4->unicast[i].ipv4.addr_type != NET_ADDR_DHCP)
                 {
                     continue;
                 }
 
                 char address_buffer[NET_IPV4_ADDR_LEN];
-                net_addr_ntop(AF_INET, &interface->config.ip.ipv4->unicast[i].address.in_addr, address_buffer, sizeof(address_buffer));
+                net_addr_ntop(AF_INET, &interface->config.ip.ipv4->unicast[i].ipv4.address.in_addr, address_buffer, sizeof(address_buffer));
 
                 char gw_buffer[NET_IPV4_ADDR_LEN];
                 net_addr_ntop(AF_INET, &interface->config.ip.ipv4->gw, gw_buffer, sizeof(gw_buffer));
@@ -80,7 +80,10 @@ static void net_mgmt_event_handler(struct net_mgmt_event_callback *callback, uin
 
 iot_agent_status_t network_init(void)
 {
-    struct net_if *interface = net_if_get_first_wifi();
+    // FIXME: Need to wait on Wi-FI driver, but waiting until IF is up does not work
+    k_sleep(K_SECONDS(2));
+
+    struct net_if *interface = net_if_get_wifi_sta();
 
     net_mgmt_init_event_callback(&wifi_callback, net_mgmt_event_handler, NET_EVENT_WIFI_CONNECT_RESULT);
     net_mgmt_add_event_callback(&wifi_callback);
@@ -94,7 +97,7 @@ iot_agent_status_t network_init(void)
     params.ssid_length = strlen(AP_SSID);
     params.psk = AP_PASSWORD;
     params.psk_length = strlen(AP_PASSWORD);
-    params.band = WIFI_FREQ_BAND_MAX;
+    params.band = WIFI_FREQ_BAND_UNKNOWN;
     params.channel = WIFI_CHANNEL_ANY;
     params.security = WIFI_SECURITY_TYPE_PSK;
     params.mfp = WIFI_MFP_OPTIONAL;

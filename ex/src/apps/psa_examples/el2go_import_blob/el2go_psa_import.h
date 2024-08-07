@@ -10,11 +10,14 @@
 #ifndef _EL2GO_PSA_IMPORT_H_
 #define _EL2GO_PSA_IMPORT_H_
 
+#ifndef BLOB_AREA 
 #define BLOB_AREA       0x084B0000U
-#define BLOB_AREA_SIZE  0x2000U
+#endif
 
-#include "psa/crypto_types.h"
-#include "psa/crypto_values.h"
+#ifndef BLOB_AREA_SIZE
+#define BLOB_AREA_SIZE  0x2000U
+#endif
+
 #include "psa/crypto.h"
 
 #ifdef __ZEPHYR__

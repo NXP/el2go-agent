@@ -6,6 +6,9 @@
  */
 
 #include <iot_agent_claimcode_encrypt.h>
+#ifndef __ZEPHYR__
+#include <nxp_iot_agent_flash_config.h>
+#endif
 
 #include <fsl_device_registers.h>
 #include <fsl_romapi_iap.h>
@@ -56,69 +59,6 @@ __attribute__ ((aligned(4))) static const uint8_t iot_agent_claimcode_ecdh_pub_k
 // An indicator to be able to make a fast and easy decision whether there is
 // a claimcode blob at a particular address in Flash
 static const uint8_t claimcode_blob_indicator[4] = {'E', '2', 'G', 'C'};
-
-const flexspi_nor_config_t flexspi_config_claim_code = {
-    .memConfig =
-        {
-            .tag                 = FC_BLOCK_TAG,
-            .version             = FC_BLOCK_VERSION,
-            .readSampleClkSrc    = 1,
-            .csHoldTime          = 3,
-            .csSetupTime         = 3,
-            .deviceModeCfgEnable = 1,
-            .deviceModeSeq       = {.seqNum = 1, .seqId = 2},
-            .deviceModeArg       = 0xC740,
-            .configCmdEnable     = 0,
-            .deviceType          = 0x1,
-            .sflashPadType       = kSerialFlash_4Pads,
-            .serialClkFreq       = 7,
-            .sflashA1Size        = 0x4000000U,
-            .sflashA2Size        = 0,
-            .sflashB1Size        = 0,
-            .sflashB2Size        = 0,
-            .lookupTable =
-                {
-                    /* Read */
-                    [0] = FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0xEC, FC_RADDR_SDR, FC_FLEXSPI_4PAD, 0x20),
-                    [1] = FC_FLEXSPI_LUT_SEQ(FC_DUMMY_SDR, FC_FLEXSPI_4PAD, 0x0A, FC_READ_SDR, FC_FLEXSPI_4PAD, 0x04),
-
-                    /* Read Status */
-                    [4 * 1 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x05, FC_READ_SDR, FC_FLEXSPI_1PAD, 0x04),
-
-                    /* Write Status */
-                    [4 * 2 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x01, FC_WRITE_SDR, FC_FLEXSPI_1PAD, 0x02),
-
-                    /* Write Enable */
-                    [4 * 3 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x06, FC_STOP_EXE, FC_FLEXSPI_1PAD, 0x00),
-
-                    /* Sector erase */
-                    [4 * 5 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x21, FC_RADDR_SDR, FC_FLEXSPI_1PAD, 0x20),
-
-                    /* Block erase */
-                    [4 * 8 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x5C, FC_RADDR_SDR, FC_FLEXSPI_1PAD, 0x20),
-
-                    /* Page program */
-                    [4 * 9 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x12, FC_RADDR_SDR, FC_FLEXSPI_1PAD, 0x20),
-                    [4 * 9 + 1] =
-                        FC_FLEXSPI_LUT_SEQ(FC_WRITE_SDR, FC_FLEXSPI_1PAD, 0x00, FC_STOP_EXE, FC_FLEXSPI_1PAD, 0x00),
-
-                    /* chip erase */
-                    [4 * 11 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x60, FC_STOP_EXE, FC_FLEXSPI_1PAD, 0x00),
-                },
-        },
-    .pageSize           = 0x100,
-    .sectorSize         = 0x1000,
-    .ipcmdSerialClkFreq = 0,
-    .blockSize          = 0x8000,
-    .flashStateCtx      = 0xFFFFFFFF,
-};
 
 typedef struct _flexspi_cache_status
 {
@@ -203,14 +143,14 @@ static iot_agent_status_t write_claimcode_blob_to_flash(uint32_t address,
     }
 
     flexspi_nor_config_t flashConfig = {0};
-
+#ifndef __ZEPHYR__
     if (!SYSTEM_IS_XIP_FLEXSPI())
     {
         // In case of RAM execution we found out a limitation in case the Flash configuration
         // is loaded throught the flexspi_nor_get_config; in case of SW reset, only the RW61x chip
         // reset (but not the Flash), causing the function giving back the default Flash setting
         // used by the boot ROM for initial FCB read. For this reason the Flash config is stored in the
-        // application variable flexspi_config_claim_code
+        // application variable flexspi_config_agent
 
         /**********************************************************************************************************************
          * API: flexspi_nor_set_clock_source
@@ -229,9 +169,10 @@ static iot_agent_status_t write_claimcode_blob_to_flash(uint32_t address,
         uint32_t flexspi_sampleClkMode = 0x0;
         flexspi_clock_config(FLEXSPI_INSTANCE, flexspi_freqOption, flexspi_sampleClkMode);	  
 
-        flashConfig = *((flexspi_nor_config_t *)&flexspi_config_claim_code);
+        flashConfig = flexspi_config_agent;
     }
     else
+#endif // __ZEPHYR__
     {
         flashConfig = *((flexspi_nor_config_t *)FCB_ADDRESS);
     }

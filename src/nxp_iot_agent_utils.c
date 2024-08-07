@@ -1117,57 +1117,174 @@ exit:
 	free(buffer);
 	return agent_status;
 }
-
-iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore_from_env(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore)
+#if !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
+static iot_agent_status_t iot_agent_utils_update_edgelock2go_datastore(iot_agent_keystore_t *keystore,
+	iot_agent_datastore_t* datastore, const char* hostname, uint32_t port)
 {
-    iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-    const char *hostname = EDGELOCK2GO_HOSTNAME;
-    char *hostname_local = NULL;
-    uint32_t port = EDGELOCK2GO_PORT;
-	char* edgelock2go_hostname_env = NULL;
-	char* edgelock2go_port_env = NULL;
+	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+	nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
 
-	ASSERT_OR_EXIT_MSG(keystore != NULL, "keystore is NULL.");
-	ASSERT_OR_EXIT_MSG(datastore != NULL, "datastore is NULL.");
+	ASSERT_OR_EXIT_MSG(hostname != NULL, "Hostname pointer is NULL");
+	ASSERT_OR_EXIT_MSG(keystore != NULL, "Port pointer is NULL");
+	ASSERT_OR_EXIT_MSG(datastore != NULL, "Port pointer is NULL");
 
-#if defined(_WIN32) || defined(_WIN64)
-	size_t edgelock2go_hostname_env_size = 0U;
-	ASSERT_OR_EXIT_MSG(_dupenv_s(&edgelock2go_hostname_env, &edgelock2go_hostname_env_size, "IOT_AGENT_TEST_EDGELOCK2GO_HOSTNAME") == 0, "Error in getting environmental variable");
-#else
-	edgelock2go_hostname_env = getenv("IOT_AGENT_TEST_EDGELOCK2GO_HOSTNAME");
-#endif
-    if (edgelock2go_hostname_env != NULL) {
-        size_t len = strlen(edgelock2go_hostname_env);
-        hostname_local = malloc(len + 1U);
-        ASSERT_OR_EXIT(hostname_local!=NULL);
-        memcpy(hostname_local, edgelock2go_hostname_env, len + 1U);
-        hostname = hostname_local;
-    }
+	// the update of the datastore will not happen if there is a valid store indcluding same hostname and port
+	if (iot_agent_service_is_configuration_data_valid(datastore)) {
 
-#if defined(_WIN32) || defined(_WIN64)
-	size_t edgelock2go_port_env_size = 0U;
-	ASSERT_OR_EXIT_MSG(_dupenv_s(&edgelock2go_port_env, &edgelock2go_port_env_size, "IOT_AGENT_TEST_EDGELOCK2GO_PORT") == 0, "Error in getting environmental variable");
-#else
-	edgelock2go_port_env = getenv("IOT_AGENT_TEST_EDGELOCK2GO_PORT");
-#endif
-	if (edgelock2go_port_env != NULL) {
-		int int_port = atoi(edgelock2go_port_env);
-		ASSERT_OR_EXIT_MSG(int_port >= 0, "Port is negative value.");
-		port = (uint32_t)int_port;
+		size_t number_of_services = iot_agent_service_get_number_of_services(datastore);
+		size_t offset = 0U;
+		for (size_t i = 0U; i < number_of_services; i++)
+		{
+			agent_status = iot_agent_service_get_service_offset_by_index(datastore, i, &offset, &service_descriptor);
+			AGENT_SUCCESS_OR_EXIT();
+
+			// We are only interested in service descriptors that are to be used for connecting
+			// to EdgeLock 2GO cloud service.
+			if (service_descriptor.has_service_type && (service_descriptor.service_type == nxp_iot_ServiceType_EL2GOSERVICE)) {
+				continue;
+			}
+
+			if (strcmp(service_descriptor.hostname, hostname) == 0) {
+				IOT_AGENT_TRACE("EdgeLock 2GO hostname and port match, update of datastore not required");
+				if ((service_descriptor.has_port) && (service_descriptor.port == port)) {
+					agent_status = IOT_AGENT_SUCCESS;
+					goto exit;
+				}
+			}
+		}
 	}
 
-    agent_status = iot_agent_utils_write_edgelock2go_datastore(keystore, datastore, hostname, port,
-		iot_agent_trusted_root_ca_certificates, NULL);
-    AGENT_SUCCESS_OR_EXIT();
+	IOT_AGENT_TRACE("Update of the EdgeLock 2GO datastore with hostname and port: %s:%d", hostname, port);
+	agent_status = iot_agent_utils_write_edgelock2go_datastore(keystore, datastore,
+		hostname, port, iot_agent_trusted_root_ca_certificates, NULL);
 
 exit:
+	return agent_status;
+}
+
+static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_cmdline(iot_agent_keystore_t *keystore,
+	iot_agent_datastore_t* datastore, int argc, const char *argv[]) {
+	iot_agent_status_t agent_status = IOT_AGENT_FAILURE;
+	int ret = 0;
+	char* edgelock2go_hostname = NULL;
+	char* edgelock2go_port_str = NULL;
+
+	ASSERT_OR_EXIT_MSG(keystore != NULL, "Port pointer is NULL");
+	ASSERT_OR_EXIT_MSG(datastore != NULL, "Port pointer is NULL");
+
+	// There should be at least 2 not null parameters
+	if (argc > 2                  /* Alteast 1 cli argument */
+		&& argv != NULL           /* argv not null */
+		) {
+
+		for (int i = 1; i < argc; i++) {
+			if (argv[i] != NULL) {
+				ret = strncmp("EDGELOCK2GO_HOSTNAME=", argv[i], sizeof("EDGELOCK2GO_HOSTNAME=") - 1U);
+				if (ret == 0) {
+					edgelock2go_hostname = (char*)(argv[i] + sizeof("EDGELOCK2GO_HOSTNAME=") - 1U);
+					ASSERT_OR_EXIT_MSG(strlen(edgelock2go_hostname) > 0U, "Hostname argument is empty");
+				}
+
+				ret = strncmp("EDGELOCK2GO_PORT=", argv[i], sizeof("EDGELOCK2GO_PORT=") - 1U);
+				if (ret == 0) {
+					edgelock2go_port_str = (char*)(argv[i] + sizeof("EDGELOCK2GO_PORT=") - 1U);
+				}
+
+				if ((edgelock2go_hostname != NULL) && (edgelock2go_port_str != NULL)) {
+					int int_port = atoi(edgelock2go_port_str);
+					ASSERT_OR_EXIT_MSG(int_port >= 0, "Port is negative value.");
+					agent_status = iot_agent_utils_update_edgelock2go_datastore(keystore, datastore,
+						edgelock2go_hostname, (uint32_t)int_port);
+					goto exit;
+				}
+			}
+		}
+	}
+exit:
+	return agent_status;
+}
+
+static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_env(iot_agent_keystore_t *keystore,
+	iot_agent_datastore_t* datastore) {
+	iot_agent_status_t agent_status = IOT_AGENT_FAILURE;
+	char* edgelock2go_hostname = NULL;
+	size_t len = 0U;
+	int int_port = 0;
 #if defined(_WIN32) || defined(_WIN64)
-	free(edgelock2go_hostname_env);
-	free(edgelock2go_port_env);
+	char* edgelock2go_hostname_str = NULL;
+	char* edgelock2go_port_str = NULL;
+	size_t edgelock2go_hostname_env_size = 0U;
+	size_t edgelock2go_port_env_size = 0U;
+#else
+	const char* edgelock2go_hostname_str = NULL;
+	const char* edgelock2go_port_str = NULL;
 #endif
-    free(hostname_local);
-    return agent_status;
+
+	ASSERT_OR_EXIT_MSG(keystore != NULL, "Port pointer is NULL");
+	ASSERT_OR_EXIT_MSG(datastore != NULL, "Port pointer is NULL");
+
+
+#if defined(_WIN32) || defined(_WIN64)
+	ASSERT_OR_EXIT_MSG(_dupenv_s(&edgelock2go_hostname_str, &edgelock2go_hostname_env_size, "EDGELOCK2GO_HOSTNAME") == 0, "Error in getting environmental variable");
+#else
+	edgelock2go_hostname_str = getenv("EDGELOCK2GO_HOSTNAME");
+#endif
+
+	ASSERT_OR_EXIT(edgelock2go_hostname_str != NULL);
+
+	len = strlen(edgelock2go_hostname_str);
+	edgelock2go_hostname = malloc(len + 1U);
+	ASSERT_OR_EXIT(edgelock2go_hostname != NULL);
+	memcpy(edgelock2go_hostname, edgelock2go_hostname_str, len + 1U);
+
+#if defined(_WIN32) || defined(_WIN64)
+	ASSERT_OR_EXIT_MSG(_dupenv_s(&edgelock2go_port_str, &edgelock2go_port_env_size, "EDGELOCK2GO_PORT") == 0, "Error in getting environmental variable");
+#else
+	edgelock2go_port_str = getenv("EDGELOCK2GO_PORT");
+#endif
+
+	ASSERT_OR_EXIT(edgelock2go_port_str != NULL);
+
+	int_port = atoi(edgelock2go_port_str);
+	ASSERT_OR_EXIT_MSG(int_port >= 0, "Port is negative value.");
+	agent_status = iot_agent_utils_update_edgelock2go_datastore(keystore, datastore,
+		edgelock2go_hostname, (uint32_t)int_port);
+
+exit:
+	free(edgelock2go_hostname);
+	return agent_status;
+}
+#endif //!(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
+
+iot_agent_status_t iot_agent_utils_configure_edgelock2go_datastore(iot_agent_keystore_t *keystore,
+	iot_agent_datastore_t* datastore, int argc, const char *argv[]) {
+	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+
+	ASSERT_OR_EXIT_MSG(keystore != NULL, "Port pointer is NULL");
+	ASSERT_OR_EXIT_MSG(datastore != NULL, "Port pointer is NULL");
+
+#if !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
+	// in FreeRTOS and Zephyr the setting through command line or environment vairable is not supported
+	if (iot_agent_utils_get_el2go_hostname_and_port_from_cmdline(keystore, datastore, argc, argv) == IOT_AGENT_SUCCESS) {
+		IOT_AGENT_TRACE("EL2GO hostname set from command line");
+		goto exit;
+	}
+
+	if (iot_agent_utils_get_el2go_hostname_and_port_from_env(keystore, datastore) == IOT_AGENT_SUCCESS) {
+		IOT_AGENT_TRACE("EL2GO hostname set from environment variable");
+		goto exit;
+	}
+#endif //!(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
+
+	// in this phase check if the configuration data is valid, and fill it with macro defined variables
+	if (!iot_agent_service_is_configuration_data_valid(datastore)) {
+		IOT_AGENT_TRACE("Invalid EL2GO datastore file, use hostname and port from macros");
+		iot_agent_utils_write_edgelock2go_datastore(keystore, datastore,
+			EDGELOCK2GO_HOSTNAME, EDGELOCK2GO_PORT, iot_agent_trusted_root_ca_certificates, NULL);
+	}
+
+exit:
+	return agent_status;
 }
 
 #if !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
@@ -1274,68 +1391,7 @@ exit:
 
 #include "flash_config.h"
 #include <fsl_cache.h>
-const flexspi_nor_config_t flexspi_config_agent_lite = {
-    .memConfig =
-        {
-            .tag                 = FC_BLOCK_TAG,
-            .version             = FC_BLOCK_VERSION,
-            .readSampleClkSrc    = 1,
-            .csHoldTime          = 3,
-            .csSetupTime         = 3,
-            .deviceModeCfgEnable = 1,
-            .deviceModeSeq       = {.seqNum = 1, .seqId = 2},
-            .deviceModeArg       = 0xC740,
-            .configCmdEnable     = 0,
-            .deviceType          = 0x1,
-            .sflashPadType       = kSerialFlash_4Pads,
-            .serialClkFreq       = 7,
-            .sflashA1Size        = 0x4000000U,
-            .sflashA2Size        = 0,
-            .sflashB1Size        = 0,
-            .sflashB2Size        = 0,
-            .lookupTable =
-                {
-                    /* Read */
-                    [0] = FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0xEC, FC_RADDR_SDR, FC_FLEXSPI_4PAD, 0x20),
-                    [1] = FC_FLEXSPI_LUT_SEQ(FC_DUMMY_SDR, FC_FLEXSPI_4PAD, 0x0A, FC_READ_SDR, FC_FLEXSPI_4PAD, 0x04),
-
-                    /* Read Status */
-                    [4 * 1 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x05, FC_READ_SDR, FC_FLEXSPI_1PAD, 0x04),
-
-                    /* Write Status */
-                    [4 * 2 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x01, FC_WRITE_SDR, FC_FLEXSPI_1PAD, 0x02),
-
-                    /* Write Enable */
-                    [4 * 3 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x06, FC_STOP_EXE, FC_FLEXSPI_1PAD, 0x00),
-
-                    /* Sector erase */
-                    [4 * 5 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x21, FC_RADDR_SDR, FC_FLEXSPI_1PAD, 0x20),
-
-                    /* Block erase */
-                    [4 * 8 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x5C, FC_RADDR_SDR, FC_FLEXSPI_1PAD, 0x20),
-
-                    /* Page program */
-                    [4 * 9 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x12, FC_RADDR_SDR, FC_FLEXSPI_1PAD, 0x20),
-                    [4 * 9 + 1] =
-                        FC_FLEXSPI_LUT_SEQ(FC_WRITE_SDR, FC_FLEXSPI_1PAD, 0x00, FC_STOP_EXE, FC_FLEXSPI_1PAD, 0x00),
-
-                    /* chip erase */
-                    [4 * 11 + 0] =
-                        FC_FLEXSPI_LUT_SEQ(FC_CMD_SDR, FC_FLEXSPI_1PAD, 0x60, FC_STOP_EXE, FC_FLEXSPI_1PAD, 0x00),
-                },
-        },
-    .pageSize           = 0x100,
-    .sectorSize         = 0x1000,
-    .ipcmdSerialClkFreq = 0,
-    .blockSize          = 0x8000,
-    .flashStateCtx      = 0xFFFFFFFF,
-};
+#include <nxp_iot_agent_flash_config.h>
 
 typedef struct _flexspi_cache_status
 {
@@ -1425,7 +1481,7 @@ iot_agent_status_t iot_agent_utils_write_to_flash(const uint8_t *area, size_t ar
         // is loaded throught the flexspi_nor_get_config; in case of SW reset, only the RW61x chip
         // reset (but not the Flash), causing the function giving back the default Flash setting
         // used by the boot ROM for initial FCB read. For this reason the Flash config is stored in the
-        // application variable flexspi_config_claim_code
+        // application variable flexspi_config_agent
 
         /**********************************************************************************************************************
          * API: flexspi_nor_set_clock_source
@@ -1444,7 +1500,7 @@ iot_agent_status_t iot_agent_utils_write_to_flash(const uint8_t *area, size_t ar
         uint32_t flexspi_sampleClkMode = 0x0;
         flexspi_clock_config(FLEXSPI_INSTANCE, flexspi_freqOption, flexspi_sampleClkMode);	  
 
-        flashConfig = *((flexspi_nor_config_t *)&flexspi_config_agent_lite);
+        flashConfig = flexspi_config_agent;
     }
     else
     {
@@ -1491,7 +1547,7 @@ iot_agent_status_t iot_agent_utils_erase_from_flash(const uint8_t *area, size_t 
         // is loaded throught the flexspi_nor_get_config; in case of SW reset, only the RW61x chip
         // reset (but not the Flash), causing the function giving back the default Flash setting
         // used by the boot ROM for initial FCB read. For this reason the Flash config is stored in the
-        // application variable flexspi_config_claim_code
+        // application variable flexspi_config_agent
 
         /**********************************************************************************************************************
          * API: flexspi_nor_set_clock_source
@@ -1510,7 +1566,7 @@ iot_agent_status_t iot_agent_utils_erase_from_flash(const uint8_t *area, size_t 
         uint32_t flexspi_sampleClkMode = 0x0;
         flexspi_clock_config(FLEXSPI_INSTANCE, flexspi_freqOption, flexspi_sampleClkMode);	  
 
-        flashConfig = *((flexspi_nor_config_t *)&flexspi_config_agent_lite);
+        flashConfig = flexspi_config_agent;
     }
     else
     {

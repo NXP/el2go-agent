@@ -265,28 +265,23 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
 	iot_agent_datastore_t* datastore, const char* hostname, uint32_t port,
 	const pb_bytes_array_t* trusted_root_ca_certificates, const pb_bytes_array_t* client_certificate);
 
-
 /** @brief Assemble a service descriptor for the connection to EdgeLock 2GO cloud service
  * and write it to a datastore.
  *
- * Per default this function takes the hostname and port from the defines
- *   - EDGELOCK2GO_HOSTNAME and
- *   - EDGELOCK2GO_PORT
+ * The function gets the EDGELOCK2GO_HOSTNAME and EDGELOCK2GO_PORT from different inputs
+ * respecting the following priority order:
+ * - Command line arguments
+ * - Environment variables
+ * - Existing valid datastore file
+ * - Macro defines
  *
- * For testing purposes, it is possible to set-up the connection parameters
- * to the EdgeLock 2GO cloud service from externally by passing in information
- * via environment variables.
- *
- * The following env variables are considered:
- *   - IOT_AGENT_TEST_EDGELOCK2GO_HOSTNAME
- *   - IOT_AGENT_TEST_EDGELOCK2GO_PORT
- *
+ * Both hostname and port must be provided on the input that the function is configure it from there
+ * 
  * It is assumed that credentials (either ECC or RSA) for client certificate
  * authentication are stored in \p keystore.
  */
-iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore_from_env(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore);
-
+iot_agent_status_t iot_agent_utils_configure_edgelock2go_datastore(iot_agent_keystore_t *keystore,
+	iot_agent_datastore_t* datastore, int argc, const char *argv[]);
 
 /**
 * Checks existence of a file. If required it forces creation of file.

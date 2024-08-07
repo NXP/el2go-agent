@@ -1,0 +1,44 @@
+# Copyright 2018-2021 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+## cmake parameters
+
+### windows, mbedTLS with SSS + JRCP_V2
+### windows, mbedTLS with SSS + VCOM
+### windows, openssl with SSS + JRCP_V2
+### windows, openssl with SSS + VCOM
+### windows, mbedTLS with PSA
+
+### linux, mbedTLS with SSS + JRCP_V2
+### linux, mbedTLS with SSS + I2C (i.mx)
+### linux, mbedTLS with PSA
+
+### frdmk64, mbedTLS with SSS + I2C
+### lpc, mbedTLS with SSS + I2C
+
+
+
+
+## Compilation of AWS demo code
+
+When compiling a binary in windows against an openssl
+with OPENSSL_LOAD_CONF, linking of crypt32.lib is required.
+A missing crypt32.lib will result in unresolved symbols:
+    libeay32.lib(e_capi.obj) : __imp__CertOpenStore@20
+    libeay32.lib(e_capi.obj) : __imp__CertCloseStore@8
+    libeay32.lib(e_capi.obj) : __imp__CertEnumCertificatesInStore@8
+    libeay32.lib(e_capi.obj) : __imp__CertFindCertificateInStore@24
+    libeay32.lib(e_capi.obj) : __imp__CertDuplicateCertificateContext@4
+    libeay32.lib(e_capi.obj) : __imp__CertFreeCertificateContext@4
+    libeay32.lib(e_capi.obj) : __imp__CertGetCertificateContextProperty@16
+
+
+When attempting to run with an engine, specify the environment variable
+OPENSSL_CONF for loading the config file which contains the path to
+the engine.
+ATTENTION: On Windows, the path to the engine must use escaped backslashes
+as directory separator:
+dynamic_path = c:\\LocalData\\data\\iot\\mcu\\sim-recheckout\\build\\www\\bin\\Debug\\sss_engine.dll
+

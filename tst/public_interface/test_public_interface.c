@@ -1,5 +1,5 @@
 /*
-* Copyright 2018-2021 NXP
+* Copyright 2018-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
 */
@@ -185,7 +185,7 @@ TEST(PublicInterface, DoUpdateConfigFromConstants)
 	//iot_agent_keystore_t keystore = { 0 };
 	iot_agent_status_t agent_status = IOT_AGENT_FAILURE;
 
-	agent_status = iot_agent_update_device_configuration_from_constants(&iot_agent_context, 0, 0, NULL);
+	agent_status = iot_agent_update_device_configuration_from_constants(&iot_agent_context, NULL);
 	TEST_ASSERT_EQUAL_INT(IOT_AGENT_FAILURE, agent_status);
 }
 

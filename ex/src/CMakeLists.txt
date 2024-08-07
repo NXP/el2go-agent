@@ -338,29 +338,6 @@ IF(NXPInternal)
         CREATE_BINARY(${PROJECT_NAME})
     ENDIF()
 
-    ###################### nxp_iot_agent_e2e
-
-    IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
-        PROJECT(nxp_iot_agent_e2e)
-
-        IF(SSS_HAVE_HOST_WIN10IOT OR SSS_HAVE_HOST_PCWINDOWS)
-            INCLUDE_DIRECTORIES(../../ext/)
-        ENDIF()
-
-        ADD_EXECUTABLE(${PROJECT_NAME}
-            apps/iot_agent_e2e.c
-        )
-
-        TARGET_LINK_LIBRARIES(
-            ${PROJECT_NAME}
-            SSS_APIs
-            nxp_iot_agent
-        )
-
-        EXPOSE_SE05X_AUTH_STRATEGY()
-        CREATE_BINARY(${PROJECT_NAME})
-    ENDIF()
-
     ###################### remote_runner_server
 
     IF(((NOT((SSS_HAVE_HOST_LINUX_LIKE OR SSS_HAVE_HOST_PCWINDOWS) AND SSS_HAVE_HOSTCRYPTO_MBEDTLS))

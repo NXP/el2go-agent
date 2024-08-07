@@ -13,8 +13,8 @@
 
 #include <string.h>
 
+#include <sys/select.h>
 #include <unistd.h>
-#include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -30,7 +30,6 @@
  */
 static int net_prepare(void)
 {
-    signal(SIGPIPE, SIG_IGN);
     return 0;
 }
 
