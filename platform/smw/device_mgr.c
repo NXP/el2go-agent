@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * Copyright 2023 NXP
+ * Copyright 2023-2024 NXP
  */
 
 #include <smw_device.h>
@@ -16,7 +16,7 @@ int read_device_uuid(uint8_t *buffer, size_t *len)
 	enum smw_status_code status;
 	struct smw_device_uuid_args args = { 0 };
 
-	args.subsystem_name = "ELE";
+	args.subsystem_name = SMW_SUBSYSTEM_NAME_ELE;
 	args.uuid_length = *len;
 	args.uuid = buffer;
 

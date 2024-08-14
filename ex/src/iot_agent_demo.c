@@ -285,40 +285,9 @@ int main(int argc, const char *argv[])
 #include <errno.h>
 #include <smw_osal.h>
 
-static const struct se_info se_iot_info = { 0x454C324F, 0x494F5441,
-                                            1000 }; // EL2GO, IOT
-#define IOT_SMW_KEY_DB "/var/tmp/key_db_smw_el2go_iot.dat"
-
-#define IOT_SMW_CONFIG_FILE "/usr/share/smw/tests/config/psa_config.txt"
-
 iot_agent_status_t initialize_psa_ext_lib(void)
 {
     int res;
-
-    /* Configure the ELE Subsystem */
-    res = smw_osal_set_subsystem_info("ELE", (struct se_info *)&se_iot_info,
-                                      sizeof(se_iot_info));
-    if (res != SMW_STATUS_OK) {
-			IOT_AGENT_ERROR("SMW ELE initialization failed %d", res);
-			return IOT_AGENT_FAILURE;
-    }
-
-    /* Open/Create the SMW key database */
-    res = smw_osal_open_key_db(IOT_SMW_KEY_DB, strlen(IOT_SMW_KEY_DB) + 1);
-    if (res != SMW_STATUS_OK)
-			IOT_AGENT_ERROR("SMW Open/Create Key database failed %d", res);
-
-    /* Setup the SMW configuration library file */
-    if (!getenv("SMW_CONFIG_FILE")) {
-      if (setenv("SMW_CONFIG_FILE", IOT_SMW_CONFIG_FILE, 1)) {
-				if (__errno_location()) {
-					IOT_AGENT_ERROR("Set environment error %s", strerror(errno));
-	    	} else {
-					IOT_AGENT_ERROR("Set environment error");
-				}
-				return IOT_AGENT_FAILURE;
-			}
-    }
 
     res = smw_osal_lib_init();
     if (res != SMW_STATUS_OK) {
