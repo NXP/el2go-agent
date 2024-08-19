@@ -14,8 +14,10 @@ extern "C" {
 
 #include "el2go_psa_import.h"
 
+#ifndef VALIDATE_PSA_IMPORT_OPERATION
 #define VALIDATE_PSA_IMPORT_OPERATION 0
-  
+#endif
+
 #if VALIDATE_PSA_IMPORT_OPERATION
 
 #define AES_KEY_ID              0x00003000

@@ -11,8 +11,7 @@
 #include "app.h"
 #endif
 
-#if VALIDATE_PSA_IMPORT_OPERATION
-
+#if defined(VALIDATE_PSA_IMPORT_OPERATION) && VALIDATE_PSA_IMPORT_OPERATION
 void aes_enc_test(psa_key_type_t key_type, size_t key_id, const psa_algorithm_t key_alg)
 {
 
@@ -103,7 +102,7 @@ int main(void)
 
     LOG("\r\n%zx blob(s) imported from flash successfully\r\n", blobs_imported);
       
-#if VALIDATE_PSA_IMPORT_OPERATION
+#if defined(VALIDATE_PSA_IMPORT_OPERATION) && VALIDATE_PSA_IMPORT_OPERATION 
     LOG("\r\nValidate imported blobs\r\n");
     
     aes_enc_test(PSA_KEY_TYPE_AES, AES_KEY_ID, PSA_ALG_ECB_NO_PADDING);

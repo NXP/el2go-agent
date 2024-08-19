@@ -1,0 +1,10 @@
+# Copyright 2024 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+source "Kconfig.zephyr"
+
+config VALIDATE_PSA_IMPORT_OPERATION
+    int "Validate imported blob"
+    default 0
+    help
+        Validate imported blob fetched from flash.

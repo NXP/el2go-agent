@@ -14,6 +14,7 @@ extern "C" {
 
 #ifdef __ZEPHYR__
 #include <stdio.h>
+#include <stdint.h>
 #define LOG printf
 #else
 #include "fsl_debug_console.h"
