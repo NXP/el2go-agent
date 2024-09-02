@@ -21,6 +21,7 @@
 
 #ifdef __ZEPHYR__
 #include <stdio.h>
+#include <zephyr/kernel.h>
 #define LOG printf
 #else
 #include "fsl_debug_console.h"
@@ -83,7 +84,7 @@ static void enable_cache(flexspi_cache_status_t cacheStatus)
 
 static status_t program_memory(api_core_context_t *context, uint32_t address, uint32_t length, const void *data)
 {
-    __disable_irq(); 
+    __disable_irq();
 
     flexspi_cache_status_t cacheStatus;
     disable_cache(&cacheStatus);
@@ -99,9 +100,9 @@ static status_t erase_memory(api_core_context_t *context, uint32_t address, uint
 {
     __disable_irq();
     flexspi_cache_status_t cacheStatus;
-    disable_cache(&cacheStatus); 
+    disable_cache(&cacheStatus);
 
-    status_t status = iap_mem_erase(context, address, sector_size, kMemoryID_FlexspiNor); 
+    status_t status = iap_mem_erase(context, address, sector_size, kMemoryID_FlexspiNor);
 
     enable_cache(cacheStatus);
     __enable_irq();
@@ -113,9 +114,9 @@ static status_t flush_memory(api_core_context_t *context)
 {
     __disable_irq();
     flexspi_cache_status_t cacheStatus;
-    disable_cache(&cacheStatus); 
+    disable_cache(&cacheStatus);
 
-    status_t status = iap_mem_flush(context); 
+    status_t status = iap_mem_flush(context);
 
     enable_cache(cacheStatus);
     __enable_irq();
@@ -167,7 +168,7 @@ static iot_agent_status_t write_claimcode_blob_to_flash(uint32_t address,
          *********************************************************************************************************************/
         uint32_t flexspi_freqOption    = 0x1;
         uint32_t flexspi_sampleClkMode = 0x0;
-        flexspi_clock_config(FLEXSPI_INSTANCE, flexspi_freqOption, flexspi_sampleClkMode);	  
+        flexspi_clock_config(FLEXSPI_INSTANCE, flexspi_freqOption, flexspi_sampleClkMode);
 
         flashConfig = flexspi_config_agent;
     }
@@ -261,9 +262,12 @@ int main(void)
             ;
     }
 
-    LOG("claimcode information written to flash at address 0x%08x", CLAIM_CODE_INFO_ADDRESS);
+    LOG("\r\nclaimcode information written to flash at address 0x%08x\r\n", CLAIM_CODE_INFO_ADDRESS);
 
     while (1)
     {
+#ifdef __ZEPHYR__
+        k_sleep(K_FOREVER);
+#endif
     }
 }
