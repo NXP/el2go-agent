@@ -31,6 +31,15 @@
 #define closesocket(a) close(a)
 #endif
 
+static void warn_crt_crl_period(uint32_t verify_result)
+{
+	if ((verify_result == X509_V_ERR_CRL_HAS_EXPIRED) || (verify_result == X509_V_ERR_CRL_NOT_YET_VALID) ||
+		(verify_result == X509_V_ERR_CERT_HAS_EXPIRED) || (verify_result == X509_V_ERR_CERT_NOT_YET_VALID))
+	{
+		IOT_AGENT_WARN("The certificate and/or CRL are outside of their validity period, which may be caused by the boards time being out of sync. \
+						Please make sure that the time is correctly set.");
+	}
+}
 
 #ifdef _WIN32
 
@@ -340,7 +349,9 @@ int network_connect(void* opaque_ctx)
 	// Try to SSL-connect here, returns 1 for success
 	if (SSL_connect(ssl) != 1)
 	{
-		IOT_AGENT_ERROR("SSL_connect failed, verify result (see man openssl verify): 0x%08x", SSL_get_verify_result(ssl));
+		uint32_t verify_result = SSL_get_verify_result(ssl);
+		warn_crt_crl_period(verify_result);
+		IOT_AGENT_ERROR("SSL_connect failed, verify result (see man openssl verify): 0x%08x", verify_result);
 		print_openssl_errors("SSL_connect");
 		return 1;
 	}
@@ -463,6 +474,7 @@ int network_verify_server_certificate(void* opaque_ctx, uint8_t* trusted_bytes, 
 	int x509_store_status = X509_STORE_CTX_get_error(verify_store);
 	NETWORK_ASSERT_OR_EXIT_STATUS_MSG(x509_store_status >= 0, NETWORK_STATUS_FAIL, "Error in execution of get error function,");
 	*error = x509_store_status;
+	warn_crt_crl_period(*error);
 	NETWORK_ASSERT_OR_EXIT_MSG(openssl_status == 1, "Server cert verification with CRL failed. Openssl indicates error %d.", *error);
 
 exit:

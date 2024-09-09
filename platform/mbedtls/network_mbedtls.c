@@ -22,6 +22,16 @@
 #define NETWORK_free free
 #endif
 
+static void warn_crt_crl_period(uint32_t verify_result)
+{
+	if ((verify_result & MBEDTLS_X509_BADCRL_EXPIRED) || (verify_result & MBEDTLS_X509_BADCRL_FUTURE) ||
+		(verify_result & MBEDTLS_X509_BADCERT_EXPIRED) || (verify_result & MBEDTLS_X509_BADCERT_FUTURE))
+	{
+		IOT_AGENT_WARN("The certificate and/or CRL are outside of their validity period, which may be caused by the boards time being out of sync. \
+						Please make sure that the time is correctly set.");
+	}
+}
+
 static const mbedtls_ecp_group_id supported_curves [] = {MBEDTLS_ECP_DP_SECP192R1,
 		MBEDTLS_ECP_DP_SECP224R1,
 		MBEDTLS_ECP_DP_SECP256R1,
@@ -221,8 +231,9 @@ int network_connect(void* opaque_ctx)
 			&& ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
 
 			if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
-				IOT_AGENT_ERROR("mbedtls_ssl_handshake failed with 0x%08x, verify results: 0x%08x", ret,
-						mbedtls_ssl_get_verify_result(&(network_context->ssl)));
+				uint32_t verify_result = mbedtls_ssl_get_verify_result(&(network_context->ssl));
+				warn_crt_crl_period(verify_result);
+				IOT_AGENT_ERROR("mbedtls_ssl_handshake failed with 0x%08x, verify results: 0x%08x", ret, verify_result);
 			}
 
 			if (ret == MBEDTLS_ERR_SSL_BAD_INPUT_DATA) {
@@ -285,7 +296,8 @@ int network_verify_server_certificate(void* context, uint8_t* trusted_bytes, siz
 #endif //defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x03010000)
 
     if (*error != 0U) {
-		IOT_AGENT_ERROR("Server cert verification with CRL failed. mbedTLS indicates error %u.", *error)
+		warn_crt_crl_period(*error);
+		IOT_AGENT_ERROR("Server cert verification with CRL failed. mbedTLS indicates error %u.", *error);
         network_status = MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
         goto exit;
     }
