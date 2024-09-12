@@ -30,7 +30,7 @@ Prepare the Tests
 
 1.  Obtain a RTP JSON file from EdgeLock 2GO containing the desired blobs for your board.
 
-    ATTENTION: Make sure the lifecycle (and RKTH, if provisioned) of your blobs match the one of the board.
+    ATTENTION: Make sure the lifecycle and RKTH of your blobs match the one of the board.
 
 2.  Run the file trough the preprocessor:
     :zephyr_file:`modules/lib/nxp_iot_agent/tst/el2go_blob_test/scripts/el2go_blob_test_pre.py` [RTP_JSON_PATH]

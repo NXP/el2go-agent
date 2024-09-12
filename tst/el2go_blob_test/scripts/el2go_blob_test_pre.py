@@ -10,34 +10,27 @@ import uttlv
 import datetime
 import pathlib
 
-# TODO: Request Blobs from EL2GO ENV with LC,UUID,RKTH,NC12 & wait for generation
-
-# TODO: Fetch JSON with all possible blob combinations from server when available
-
 parser = argparse.ArgumentParser(description='Converts EL2GO RTP JSON for the el2go_blob_test framework')
 
 parser.add_argument('rtp_json_path', type=pathlib.Path, help='Path to a JSON file containing RTP objects')
 parser.add_argument('--object_type', type=str, choices=['psa', 'apdu'], default="psa", help='The type of the RTP objects')
-parser.add_argument('--storage_mode', type=str, choices=['inline', 'filesystem'], default="inline", help='The way in which the blobs should be stored and referenced')
+parser.add_argument('--storage_mode', type=str, choices=['inline', 'memory', 'filesystem'], default="inline", help='The way in which the blobs should be stored and referenced')
+parser.add_argument('--blob_address', type=lambda x: int(x, 0), help='The starting address in memory where the blobs are stored on device')
 
 args = parser.parse_args()
 
 if not args.rtp_json_path.is_file():
     parser.error("No file found at rtp_json_path")
 
-if args.object_type != "psa" or args.storage_mode != "inline":
-    parser.error("Currently only PSA RTP objects in inline mode are supported")
+if args.storage_mode == "memory" and not args.blob_address:
+    parser.error("blob_address needs to be specified when using storage_mode memory")
+
+if args.object_type != "psa" or (args.storage_mode != "inline" and args.storage_mode != "memory"):
+    parser.error("Currently only PSA RTP objects in inline or memory mode are supported")
 
 work_dir_path = pathlib.Path(os.path.abspath(os.path.dirname(__file__)))
 inc_path = work_dir_path.parent.joinpath("inc")
 el2go_blob_test_generic_header_path = inc_path.joinpath("el2go_blob_test_suite_generic.h")
-
-test_vector_file = open(args.rtp_json_path)
-test_vectors = json.load(test_vector_file)
-
-data_arrays = []
-test_entries = []
-device = test_vectors[0]
 
 def get_usage(usage):
     match usage:
@@ -95,20 +88,42 @@ def data_to_c_array(name, data):
 
 def get_description(internal, obj_class, obj_type, bits, usage, algorithm):
     obj_type = obj_type.replace("_", "")
-    return f"{'Internal' if internal else 'External'} {obj_class} {obj_type if len(obj_type) else str(int(bits / 8)) + 'B'} {get_usage(usage)} {get_algorithm(algorithm)}"
+    return f"{'Internal' if internal else 'External'} {obj_class} {obj_type} {get_usage(usage)} {get_algorithm(algorithm)}"
 
-def get_test_entry(index, name, description):
+def get_test_entry_memory(index, description, address, size):
+    return f"    {{NULL, \"EL2GO_BLOB_TEST_GENERIC_{index:04d}\", \"{description}\", (uint8_t *){hex(address)}, {size}}},"
+
+def get_test_entry(index, description, name):
     return f"    {{NULL, \"EL2GO_BLOB_TEST_GENERIC_{index:04d}\", \"{description}\", {name}, sizeof({name})}},"
 
-for index, provisioning in enumerate(device['rtpProvisionings'], start=1):
+with open(args.rtp_json_path) as rtp_json_file:
+    rtp_json = json.load(rtp_json_file)
+
+device = rtp_json[0]
+
+previous_count = len(device['rtpProvisionings'])
+device['rtpProvisionings'] = list(filter(lambda prov: prov['state'] == "GENERATION_COMPLETED", device['rtpProvisionings']))
+diff_count = previous_count - len(device['rtpProvisionings'])
+if diff_count:
+    print(f"Ignoring {diff_count} blobs that failed to generate")
+
+previous_count = len(device['rtpProvisionings'])
+device['rtpProvisionings'] = list(filter(lambda prov: prov['secureObject']['type'] != "OEM_FW_AUTH_KEY_HASH", device['rtpProvisionings']))
+device['rtpProvisionings'] = list(filter(lambda prov: prov['secureObject']['type'] != "OEM_FW_DECRYPT_KEY", device['rtpProvisionings']))
+diff_count = previous_count - len(device['rtpProvisionings'])
+if diff_count:
+    print(f"Ignoring OEM_FW_AUTH_KEY_HASH and/or OEM_FW_DECRYPT_KEY, which cannot be handled by PSA")
+
+data_arrays = []
+test_entries = []
+
+if args.storage_mode == "memory":
+    current_blob_address = args.blob_address
+    data_arrays.append(f"// Blobs are stored in memory starting at {hex(current_blob_address)}")
+
+for provisioning in device['rtpProvisionings']:
     base64_string = provisioning['apdus']['createApdu']['apdu']
     blob = base64.b64decode(base64_string)
-
-    obj_class = provisioning['secureObject']['type']
-    obj_type = ""
-    if 'algorithm' in provisioning['secureObject']:
-        obj_type = provisioning['secureObject']['algorithm']
-    name = f"{obj_class}_{obj_type + '_' if len(obj_type) else ''}{provisioning['secureObject']['id']}_{provisioning['provisioningId']}"
 
     blob_tlv = uttlv.TLV()
     blob_tlv.parse_array(blob)
@@ -118,11 +133,24 @@ for index, provisioning in enumerate(device['rtpProvisionings'], start=1):
     usage = int.from_bytes(blob_tlv[0x43], "big")
     algorithm = int.from_bytes(blob_tlv[0x42], "big")
 
-    data_arrays.append(data_to_c_array(name, blob))
-    description = get_description(internal, obj_class, obj_type, bits, usage, algorithm)
-    test_entries.append(get_test_entry(index, name, description))
+    obj_class = provisioning['secureObject']['type']
+    if 'algorithm' in provisioning['secureObject']:
+        obj_type = provisioning['secureObject']['algorithm']
+    elif 'algorithmType' in provisioning['secureObject']:
+        obj_type = provisioning['secureObject']['algorithmType'] + str(int(bits))
+    else:
+        obj_type = str(int(bits / 8)) + 'B'
 
-    
+    name = f"{obj_class}_{obj_type}_{provisioning['secureObject']['id']}_{provisioning['provisioningId']}"
+    description = get_description(internal, obj_class, obj_type, bits, usage, algorithm)
+
+    if args.storage_mode == "memory":
+        test_entries.append(get_test_entry_memory(len(test_entries) + 1, description, current_blob_address, len(blob)))
+        current_blob_address += len(blob)
+    else:
+        data_arrays.append(data_to_c_array(name, blob))
+        test_entries.append(get_test_entry(len(test_entries) + 1, description, name))
+
 el2go_blob_test_generic_header=f"""/*
  * Copyright {datetime.date.today().year} NXP
  *

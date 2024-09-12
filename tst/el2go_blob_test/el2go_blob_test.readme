@@ -1,21 +1,48 @@
 Configuration options
 =====================
 CONFIG_USE_LEGACY_TESTS: If defined, (only) the legacy test suites (Internal, External) will be run. [Default: OFF]
-CONFIG_RUN_VERIFIED_ONLY: If defined, only variations that are expected to pass on RW61x will be run (Note: If you input unsupported blobs, the testcase will still run and fail) [Default: ON]
+CONFIG_RUN_VERIFIED_ONLY: If defined, only variations that are expected to pass on S50 based devices will be run (Note: If you input unsupported blobs, the testcase will still run and fail) [Default: ON]
 CONFIG_LARGE_BLOBS_ENABLED: If defined, testcases with large blobs > 2783B will be run (Requires TF-M changes to pass) [Default: OFF]
 
-Create device specifiy blobs [EL2GO, Generic tests]
-===================================================
+Prerequisites
+=============
+- Edgelock 2GO account
+- MCUXpresso SDK or Zephyr
+- Provisioned RD-RW612-BGA, FRDM-RW612, MCX-N5XX-EVK or MCX-N9XX-EVK board
+- Python >= 3.10 with packages from scripts/requirements.txt
+
+Create device specific blobs [EL2GO, Generic tests, RW61x]
+==========================================================
 1. Obtain a RTP JSON file from EL2GO containing the desired blobs for your board
 
 2. Run the file trough the preprocessor:
 scripts/el2go_blob_test_pre.py [RTP_JSON_PATH]
 
-NOTE: Python >= 3.10 with packages from scripts/requirements.txt required
+Create device specific blobs [EL2GO, Generic tests, N10]
+========================================================
+1. Obtain a RTP JSON file from EL2GO containing the desired blobs for your board
 
-Create device specifiy blobs [Devicelink Commons, Legacy tests]
-===============================================================
-NOTE: This method only works for RW61x A1 RD boards with raw key material available (NXP Provisioned).
+2. Connect your board and rewrap all the blobs in the RTP JSON file:
+scripts/el2go_blob_rewrap.py [RTP_JSON_PATH] [PROVISIONING_FW_PATH] [COM_PORT] [REWRAPPED_RTP_JSON_OUT_PATH]
+
+3. Run the rewrapped RTP JSON file trough the preprocessor:
+scripts/el2go_blob_test_pre.py [REWRAPPED_RTP_JSON_OUT_PATH]
+
+Create device specific blobs [EL2GO, Generic tests, N10 (memory)]
+=================================================================
+NOTE: This method only works for a maximum of 16 blobs, not exceeding 16KB in total.
+
+1. Create a device group in EL2GO containing the desired blobs for your board
+
+2. Provision the blobs to your board via the el2go-host app from SPSDK (additional_data_address: 0x1C0000):
+el2go-host provision-device -p [COM_PORT] --config [CONFIG_PATH] --workspace [WORKSPACE_PATH]
+
+3. Run the RTP JSON file downloaded by el2go-host trough the preprocessor, specifying the memory location method:
+scripts/el2go_blob_test_pre.py [WORKSPACE_PATH]/provisionings.json --storage_mode memory --blob_address 0x1C0000
+
+Create device specific blobs [Devicelink Commons, Legacy tests, RW61x]
+======================================================================
+NOTE: This method only works for A1 RD boards with raw key material available in "NXP Provisioned" lifecycle.
 
 1. Checkout and configure the IOTHUB/iothub-device-link-commons repository
 
@@ -34,7 +61,7 @@ cat target/surefire-reports/com.nxp.iot.devicelink.psa.command.PSAExternalKeyImp
 Build and run [MCUXpresso SDK]
 ==============================
 1. Generate the projects:
-west sdkgen -b frdmrw612,rdrw612bga -p el2go_blob_test_s,el2go_blob_test_ns
+west sdkgen -b frdmrw612,rdrw612bga,mcxn5xxevk,mcxn9xxevk -p el2go_blob_test_s,el2go_blob_test_ns
 
 2. Build the projects in the following order:
 el2go_blob_test_s -> el2go_blob_test_ns
@@ -44,7 +71,7 @@ el2go_blob_test_s -> el2go_blob_test_ns
 Build and run [Zephyr]
 ======================
 1. Build the project:
-west build -b [frdm_rw612_ns|rd_rw612_bga_ns] [PATH_TO_THIS_DIRECTORY]
+west build -b [frdm_rw612/rw612/ns|rd_rw612_bga/rw612/ns] [PATH_TO_THIS_DIRECTORY]/../../zephyr/tests/el2go_blob_test
 
 2. Flash both tfm_s and the zephyr app to your board
 
@@ -55,6 +82,12 @@ scripts/el2go_blob_test_post.py [CONSOLE_OUTPUT_PATH] [JUNIT_OUT_PATH]
 
 Notes on RW61x blobs
 ====================
-- Make sure the lifecycle (and RKTH, if provisioned) of your blobs match the one of the board
+- Make sure the lifecycle and OEM Auth Key Hash of your blobs match the one provisioned to the board
 - If using A1 RD boards, you need to change the key_properties of NXP_DIE_EL2GOIMPORT_KEK_SK, NXP_DIE_EL2GOIMPORTTFM_KEK_SK and NXP_DIE_EL2GOIMPORT_AUTH_SK in mcuxClPsaDriver_Oracle.c from 0x4XXXXXXXU to 0x8XXXXXXXU
-- If using A2 RD or FRDM boards with lifecycle OEM Open/Closed, secure boot needs to be enabled for blob importing to work
+- If using A2 RD or FRDM boards with lifecycle "OEM Open" or "OEM Closed", secure boot needs to be enabled for blob importing to work
+
+Notes on N10 blobs
+==================
+- Your board needs to be provisioned with an OEM Auth Key Hash and an OEM FW Decryption Key in "OEM Open" lifecycle
+- All test blobs MUST be generated with "OEM Open" lifecycle, otherwise the provisioning FW closes the device
+- Make sure the OEM Auth Key Hash of your blobs match the one provisioned to the board
