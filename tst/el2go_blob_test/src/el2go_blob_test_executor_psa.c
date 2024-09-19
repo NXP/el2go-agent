@@ -15,31 +15,6 @@
 #include <zephyr/kernel.h>
 #endif
 
-#ifdef CONFIG_LARGE_BLOBS_ENABLED
-#define SKIP_LARGE_BLOBS 0
-#else
-#define SKIP_LARGE_BLOBS 1
-#endif
-
-#define CHECK_BLOB(...)                                                           \
-    if (blob_size == 1)                                                           \
-    {                                                                             \
-        TEST_SKIP("Placeholder blob");                                            \
-        return;                                                                   \
-    }                                                                             \
-    else if (SKIP_LARGE_BLOBS && key_bits > 2783U * 8U)                           \
-    {                                                                             \
-        TEST_SKIP("Key in blob larger than 2783 bytes");                          \
-        return;                                                                   \
-    }                                                                             \
-    else if ((key_type == PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_K1) ||    \
-              key_type == PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_K1)) && \
-             (key_bits == 224 || key_bits == 225))                                \
-    {                                                                             \
-        TEST_SKIP("secp224k1 is broken in mbedtls PSA");                          \
-        return;                                                                   \
-    }
-
 // Constants
 
 // https://arm-software.github.io/psa-api/crypto/1.1/api/ops/sign.html#c.PSA_ALG_RSA_PKCS1V15_SIGN_RAW
@@ -173,18 +148,36 @@ static psa_algorithm_t get_usage_key_alg(psa_algorithm_t key_alg,
     return PSA_ALG_NONE;
 }
 
-// Cipher functions
+// Init functions
 
-void psa_blob_cipher_test(psa_key_type_t key_type,
-                          size_t key_bits,
-                          const psa_algorithm_t key_alg,
-                          psa_key_location_t key_location,
-                          size_t key_id,
-                          const uint8_t *blob,
-                          size_t blob_size,
-                          struct test_result_t *result)
+static void psa_blob_test_initialize(psa_key_attributes_t attributes,
+                                     const uint8_t *blob,
+                                     size_t blob_size,
+                                     psa_key_id_t *id,
+                                     struct test_result_t *result)
 {
-    CHECK_BLOB();
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+
+    if (blob_size == 1)                                                           
+    {                                                                             
+        TEST_SKIP("Placeholder blob");                                            
+        return;                                                                   
+    }
+#ifndef CONFIG_LARGE_BLOBS_ENABLED              
+    else if (key_bits > 2783U * 8U)                           
+    {                                                                             
+        TEST_SKIP("Key in blob larger than 2783 bytes");                          
+        return;                                                                   
+    }                 
+#endif                                                            
+    else if ((key_type == PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_K1) ||    
+              key_type == PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_K1)) && 
+             (key_bits == 224 || key_bits == 225))                                
+    {                                                                             
+        TEST_SKIP("secp224k1 is broken in mbedtls PSA");                          
+        return;                                                                   
+    }
 
     psa_status_t psa_status;
     psa_status = psa_crypto_init();
@@ -194,22 +187,32 @@ void psa_blob_cipher_test(psa_key_type_t key_type,
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
+    psa_status      = psa_import_key(&attributes, blob, blob_size, id);
     if (psa_status != PSA_SUCCESS)
     {
         TEST_FAIL_PSA("psa_import_key");
         return;
     }
+}
+
+// Cipher functions
+
+void psa_blob_cipher_test(psa_key_attributes_t attributes,
+                          const uint8_t *blob,
+                          size_t blob_size,
+                          struct test_result_t *result)
+{
+    psa_status_t psa_status;
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
+    {
+        return;
+    }
+
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *ciphertext          = NULL;
     uint8_t *decrypted_plaintext = NULL;
@@ -255,41 +258,22 @@ cleanup:
     }
 }
 
-void psa_blob_encrypt_test(psa_key_type_t key_type,
-                           size_t key_bits,
-                           const psa_algorithm_t key_alg,
-                           psa_key_location_t key_location,
-                           size_t key_id,
+void psa_blob_encrypt_test(psa_key_attributes_t attributes,
                            const uint8_t *blob,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *ciphertext = NULL;
 
@@ -315,48 +299,30 @@ cleanup:
     }
 }
 
-void psa_blob_decrypt_test(psa_key_type_t key_type,
-                           size_t key_bits,
-                           const psa_algorithm_t key_alg,
-                           psa_key_location_t key_location,
-                           size_t key_id,
+void psa_blob_decrypt_test(psa_key_attributes_t attributes,
                            const uint8_t *blob,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DECRYPT);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *plaintext = NULL;
 
     const uint8_t ciphertext[] = {0xd4, 0xd7, 0x61, 0x4e, 0x93, 0xb6, 0xe1, 0x8a, 0x5f, 0xe8, 0x06,
                                   0x30, 0x98, 0xfe, 0x41, 0x90, 0xe0, 0x3c, 0xec, 0x2d, 0x51, 0xd7,
                                   0x1d, 0x34, 0x8d, 0xbf, 0x6d, 0xa3, 0x00, 0xe8, 0xfc, 0x61};
-    size_t plaintext_size      = sizeof(ciphertext);
+    size_t ciphertext_length   = sizeof(ciphertext);
+    size_t plaintext_size      = PSA_CIPHER_DECRYPT_OUTPUT_SIZE(key_type, key_alg, ciphertext_length);
     plaintext                  = malloc(plaintext_size);
     size_t plaintext_length    = 0;
     psa_status =
@@ -379,41 +345,22 @@ cleanup:
 
 // AEAD functions
 
-void psa_blob_aead_test(psa_key_type_t key_type,
-                        size_t key_bits,
-                        const psa_algorithm_t key_alg,
-                        psa_key_location_t key_location,
-                        size_t key_id,
+void psa_blob_aead_test(psa_key_attributes_t attributes,
                         const uint8_t *blob,
                         size_t blob_size,
                         struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *nonce               = NULL;
     uint8_t *ciphertext          = NULL;
@@ -470,41 +417,22 @@ cleanup:
     }
 }
 
-void psa_blob_aead_encrypt_test(psa_key_type_t key_type,
-                                size_t key_bits,
-                                const psa_algorithm_t key_alg,
-                                psa_key_location_t key_location,
-                                size_t key_id,
+void psa_blob_aead_encrypt_test(psa_key_attributes_t attributes,
                                 const uint8_t *blob,
                                 size_t blob_size,
                                 struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *nonce      = NULL;
     uint8_t *ciphertext = NULL;
@@ -541,41 +469,22 @@ cleanup:
     }
 }
 
-void psa_blob_aead_decrypt_test(psa_key_type_t key_type,
-                                size_t key_bits,
-                                const psa_algorithm_t key_alg,
-                                psa_key_location_t key_location,
-                                size_t key_id,
+void psa_blob_aead_decrypt_test(psa_key_attributes_t attributes,
                                 const uint8_t *blob,
                                 size_t blob_size,
                                 struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DECRYPT);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *nonce               = NULL;
     uint8_t *decrypted_plaintext = NULL;
@@ -622,41 +531,23 @@ cleanup:
 
 // MAC functions
 
-void psa_blob_mac_test(psa_key_type_t key_type,
-                       size_t key_bits,
-                       const psa_algorithm_t key_alg,
-                       psa_key_location_t key_location,
-                       size_t key_id,
+void psa_blob_mac_test(psa_key_attributes_t attributes,
                        const uint8_t *blob,
                        size_t blob_size,
                        struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_VERIFY_MESSAGE);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *mac = NULL;
 
@@ -688,41 +579,23 @@ cleanup:
     }
 }
 
-void psa_blob_mac_compute_test(psa_key_type_t key_type,
-                               size_t key_bits,
-                               const psa_algorithm_t key_alg,
-                               psa_key_location_t key_location,
-                               size_t key_id,
+void psa_blob_mac_compute_test(psa_key_attributes_t attributes,
                                const uint8_t *blob,
                                size_t blob_size,
                                struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_MESSAGE);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *mac = NULL;
 
@@ -747,41 +620,23 @@ cleanup:
     }
 }
 
-void psa_blob_mac_verify_test(psa_key_type_t key_type,
-                              size_t key_bits,
-                              const psa_algorithm_t key_alg,
-                              psa_key_location_t key_location,
-                              size_t key_id,
+void psa_blob_mac_verify_test(psa_key_attributes_t attributes,
                               const uint8_t *blob,
                               size_t blob_size,
                               struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_VERIFY_MESSAGE);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     uint8_t *mac = NULL;
 
@@ -819,7 +674,7 @@ cleanup:
 static psa_status_t psa_blob_sig_ver_msg(psa_key_type_t key_type,
                                          size_t key_bits,
                                          const psa_algorithm_t key_alg,
-                                         size_t id,
+                                         psa_key_id_t id,
                                          bool execute_sign,
                                          bool execute_verify,
                                          enum indentation_t indentation,
@@ -874,7 +729,7 @@ static void psa_blob_sig_ver_msg_variations(psa_key_type_t key_type,
                                             size_t key_bits,
                                             const psa_algorithm_t key_alg,
                                             psa_key_location_t key_location,
-                                            size_t id,
+                                            psa_key_id_t id,
                                             bool execute_sign,
                                             bool execute_verify,
                                             struct test_result_t *result)
@@ -888,7 +743,7 @@ static void psa_blob_sig_ver_msg_variations(psa_key_type_t key_type,
             continue;
         }
         LOG_SET_COLOR(DEFAULT);
-        LOG("%*s> Executing variation %s\r\n", TEST, "", get_hash_name(hash_alg));
+        LOG("%*s> Executing variation MSG_%s\r\n", TEST, "", get_hash_name(hash_alg));
 
 #ifdef __ZEPHYR__
         int64_t start_time = k_uptime_get();
@@ -933,41 +788,24 @@ static void psa_blob_sig_ver_msg_variations(psa_key_type_t key_type,
     }
 }
 
-void psa_blob_sigvermsg_test(psa_key_type_t key_type,
-                             size_t key_bits,
-                             const psa_algorithm_t key_alg,
-                             psa_key_location_t key_location,
-                             size_t key_id,
+void psa_blob_sigvermsg_test(psa_key_attributes_t attributes,
                              const uint8_t *blob,
                              size_t blob_size,
                              struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_VERIFY_MESSAGE);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
+    psa_key_location_t key_location = PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(&attributes));
 
     psa_algorithm_t hash_alg = PSA_ALG_GET_HASH(key_alg);
 
@@ -998,41 +836,24 @@ cleanup:
     }
 }
 
-void psa_blob_sigmsg_test(psa_key_type_t key_type,
-                          size_t key_bits,
-                          const psa_algorithm_t key_alg,
-                          psa_key_location_t key_location,
-                          size_t key_id,
+void psa_blob_sigmsg_test(psa_key_attributes_t attributes,
                           const uint8_t *blob,
                           size_t blob_size,
                           struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_MESSAGE);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
+    psa_key_location_t key_location = PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(&attributes));
 
     psa_algorithm_t hash_alg = PSA_ALG_GET_HASH(key_alg);
 
@@ -1063,41 +884,24 @@ cleanup:
     }
 }
 
-void psa_blob_vermsg_test(psa_key_type_t key_type,
-                          size_t key_bits,
-                          const psa_algorithm_t key_alg,
-                          psa_key_location_t key_location,
-                          size_t key_id,
+void psa_blob_vermsg_test(psa_key_attributes_t attributes,
                           const uint8_t *blob,
                           size_t blob_size,
                           struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_VERIFY_MESSAGE);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
+    psa_key_location_t key_location = PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(&attributes));
 
     psa_algorithm_t hash_alg = PSA_ALG_GET_HASH(key_alg);
 
@@ -1133,7 +937,7 @@ cleanup:
 static psa_status_t psa_blob_sig_ver_hash(psa_key_type_t key_type,
                                           size_t key_bits,
                                           const psa_algorithm_t key_alg,
-                                          size_t id,
+                                          psa_key_id_t id,
                                           psa_algorithm_t hash_alg,
                                           bool execute_sign,
                                           bool execute_verify,
@@ -1232,7 +1036,7 @@ static void psa_blob_sig_ver_hash_variations(psa_key_type_t key_type,
                                              size_t key_bits,
                                              const psa_algorithm_t key_alg,
                                              psa_key_location_t key_location,
-                                             size_t id,
+                                             psa_key_id_t id,
                                              bool execute_sign,
                                              bool execute_verify,
                                              struct test_result_t *result)
@@ -1246,7 +1050,7 @@ static void psa_blob_sig_ver_hash_variations(psa_key_type_t key_type,
             continue;
         }
         LOG_SET_COLOR(DEFAULT);
-        LOG("%*s> Executing variation %s\r\n", TEST, "", get_hash_name(hash_alg));
+        LOG("%*s> Executing variation HASH_%s\r\n", TEST, "", get_hash_name(hash_alg));
 
 #ifdef __ZEPHYR__
         int64_t start_time = k_uptime_get();
@@ -1291,41 +1095,24 @@ static void psa_blob_sig_ver_hash_variations(psa_key_type_t key_type,
     }
 }
 
-void psa_blob_sigverhash_test(psa_key_type_t key_type,
-                              size_t key_bits,
-                              const psa_algorithm_t key_alg,
-                              psa_key_location_t key_location,
-                              size_t key_id,
+void psa_blob_sigverhash_test(psa_key_attributes_t attributes,
                               const uint8_t *blob,
                               size_t blob_size,
                               struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
+    psa_key_location_t key_location = PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(&attributes));
 
     psa_algorithm_t hash_alg = PSA_ALG_GET_HASH(key_alg);
 
@@ -1356,41 +1143,24 @@ cleanup:
     }
 }
 
-void psa_blob_sighash_test(psa_key_type_t key_type,
-                           size_t key_bits,
-                           const psa_algorithm_t key_alg,
-                           psa_key_location_t key_location,
-                           size_t key_id,
+void psa_blob_sighash_test(psa_key_attributes_t attributes,
                            const uint8_t *blob,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
+    psa_key_location_t key_location = PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(&attributes));
 
     psa_algorithm_t hash_alg = PSA_ALG_GET_HASH(key_alg);
 
@@ -1421,41 +1191,24 @@ cleanup:
     }
 }
 
-void psa_blob_verhash_test(psa_key_type_t key_type,
-                           size_t key_bits,
-                           const psa_algorithm_t key_alg,
-                           psa_key_location_t key_location,
-                           size_t key_id,
+void psa_blob_verhash_test(psa_key_attributes_t attributes,
                            const uint8_t *blob,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_VERIFY_HASH);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
+    psa_key_location_t key_location = PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(&attributes));
 
     psa_algorithm_t hash_alg = PSA_ALG_GET_HASH(key_alg);
 
@@ -1488,44 +1241,22 @@ cleanup:
 
 // Export functions
 
-void psa_blob_export_test(psa_key_type_t key_type,
-                          size_t key_bits,
-                          const psa_algorithm_t key_alg,
-                          psa_key_location_t key_location,
-                          size_t key_id,
+void psa_blob_export_test(psa_key_attributes_t attributes,
                           const uint8_t *blob,
                           size_t blob_size,
                           struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    if (!PSA_KEY_TYPE_IS_PUBLIC_KEY(key_type))
-    {
-        psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_EXPORT);
-    }
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
 
     uint8_t *exported_key        = NULL;
     uint8_t *exported_public_key = NULL;
@@ -1583,41 +1314,21 @@ cleanup:
 
 // KDF functions
 
-void psa_blob_kdf_test(psa_key_type_t key_type,
-                       size_t key_bits,
-                       const psa_algorithm_t key_alg,
-                       psa_key_location_t key_location,
-                       size_t key_id,
+void psa_blob_kdf_test(psa_key_attributes_t attributes,
                        const uint8_t *blob,
                        size_t blob_size,
                        struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
 
     psa_key_derivation_operation_t operation;
     operation = psa_key_derivation_operation_init();
@@ -1668,41 +1379,24 @@ cleanup:
 
 // Key agreement functions
 
-void psa_blob_keyexch_test(psa_key_type_t key_type,
-                           size_t key_bits,
-                           const psa_algorithm_t key_alg,
-                           psa_key_location_t key_location,
-                           size_t key_id,
+void psa_blob_keyexch_test(psa_key_attributes_t attributes,
                            const uint8_t *blob,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
+    
 
     uint8_t *peer_key            = NULL;
     uint8_t *public_key          = NULL;
@@ -1711,7 +1405,7 @@ void psa_blob_keyexch_test(psa_key_type_t key_type,
 
     psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT,
                                                                                      PSA_KEY_LOCATION_LOCAL_STORAGE));
-    psa_set_key_id(&attributes, key_id + 1);
+    psa_set_key_id(&attributes, id + 1);
 
     psa_key_id_t peer_id = 0U;
     psa_status           = psa_generate_key(&attributes, &peer_id);
@@ -1800,42 +1494,24 @@ cleanup:
 
 // Crypt functions
 
-void psa_blob_crypt_test(psa_key_type_t key_type,
-                         size_t key_bits,
-                         const psa_algorithm_t key_alg,
-                         psa_key_location_t key_location,
-                         size_t key_id,
+void psa_blob_crypt_test(psa_key_attributes_t attributes,
                          const uint8_t *blob,
                          size_t blob_size,
                          struct test_result_t *result)
 {
-    CHECK_BLOB();
-
     psa_status_t psa_status;
-    psa_status = psa_crypto_init();
-    if (psa_status != PSA_SUCCESS)
+
+    psa_key_id_t id = 0;
+    psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
+    if (result->status != TEST_PASSED)
     {
-        TEST_FAIL_PSA("psa_crypto_init");
         return;
     }
 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
-    psa_set_key_algorithm(&attributes, key_alg);
-    psa_set_key_type(&attributes, key_type);
-    psa_set_key_lifetime(&attributes,
-                         PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT, key_location));
-    psa_set_key_bits(&attributes, key_bits);
-    psa_set_key_id(&attributes, key_id);
-
-    psa_key_id_t id = 0U;
-    psa_status      = psa_import_key(&attributes, blob, blob_size, &id);
-    if (psa_status != PSA_SUCCESS)
-    {
-        TEST_FAIL_PSA("psa_import_key");
-        return;
-    }
-
+    psa_key_type_t key_type = psa_get_key_type(&attributes);
+    size_t key_bits = psa_get_key_bits(&attributes);
+    psa_algorithm_t key_alg = psa_get_key_algorithm(&attributes);
+    
     uint8_t *ciphertext          = NULL;
     uint8_t *decrypted_plaintext = NULL;
 

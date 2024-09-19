@@ -12,9 +12,7 @@ target_sources(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tst/el2go_blob_test/src/el2go_blob_test_executor_psa.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tst/el2go_blob_test/src/el2go_blob_test_parser_psa.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tst/el2go_blob_test/src/el2go_blob_test_reader_inline.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tst/el2go_blob_test/src/el2go_blob_test_suite_external.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tst/el2go_blob_test/src/el2go_blob_test_suite_generic.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tst/el2go_blob_test/src/el2go_blob_test_suite_internal.c
 )
 
 zephyr_include_directories(

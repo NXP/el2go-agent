@@ -9,6 +9,7 @@ import base64
 import uttlv
 import datetime
 import pathlib
+import numpy
 
 parser = argparse.ArgumentParser(description='Converts EL2GO RTP JSON for the el2go_blob_test framework')
 
@@ -16,6 +17,7 @@ parser.add_argument('rtp_json_path', type=pathlib.Path, help='Path to a JSON fil
 parser.add_argument('--object_type', type=str, choices=['psa', 'apdu'], default="psa", help='The type of the RTP objects')
 parser.add_argument('--storage_mode', type=str, choices=['inline', 'memory', 'filesystem'], default="inline", help='The way in which the blobs should be stored and referenced')
 parser.add_argument('--blob_address', type=lambda x: int(x, 0), help='The starting address in memory where the blobs are stored on device')
+parser.add_argument('--partition', type=str, default="1/1", help='The way the RTP objects should be split (current part/total parts)')
 
 args = parser.parse_args()
 
@@ -28,25 +30,46 @@ if args.storage_mode == "memory" and not args.blob_address:
 if args.object_type != "psa" or (args.storage_mode != "inline" and args.storage_mode != "memory"):
     parser.error("Currently only PSA RTP objects in inline or memory mode are supported")
 
+partitions = args.partition.split("/")
+if len(partitions) != 2 or not partitions[0].isdigit() or not partitions[1].isdigit() \
+   or int(partitions[0]) == 0 or int(partitions[1]) == 0 or int(partitions[0]) > int(partitions[1]):
+    parser.error("Invalid partition format")
+
 work_dir_path = pathlib.Path(os.path.abspath(os.path.dirname(__file__)))
 inc_path = work_dir_path.parent.joinpath("inc")
 el2go_blob_test_generic_header_path = inc_path.joinpath("el2go_blob_test_suite_generic.h")
 
 def get_usage(usage):
-    match usage:
-        case 0x00000000: return "NONE"
-        case 0x00000001: return "EXPORT"
-        case 0x00000100: return "ENCRYPT"
-        case 0x00000200: return "DECRYPT"
-        case 0x00000300: return "CRYPT"
-        case 0x00000400: return "SIGMSG"
-        case 0x00000800: return "VERMSG"
-        case 0x00000C00: return "SIGVERMSG"
-        case 0x00001000: return "SIGHASH"
-        case 0x00002000: return "VERHASH"
-        case 0x00003000: return "SIGVERHASH"
-        case 0x00004000: return "DERIVE"
-        case _: return "UNKNOWN"
+    flags = []
+    if usage == 0x00000000:
+        flags.append("NONE")
+    else:
+        if usage & 0x00000001:
+            flags.append("EXPORT")
+        if usage & 0x00000100 and usage & 0x00000200:
+            flags.append("CRYPT")
+        elif usage & 0x00000100:
+            flags.append("ENCRYPT")
+        elif usage & 0x00000200:
+            flags.append("DECRYPT")
+        if  usage & 0x00000400 and usage & 0x00000800:
+            flags.append("SIGVERMSG")
+        elif usage & 0x00000400:
+            flags.append("SIGMSG")
+        elif usage & 0x00000800:
+            flags.append("VERMSG")
+        if usage & 0x00001000 and usage & 0x00002000:
+            flags.append("SIGVERHASH")
+        elif usage & 0x00001000:
+            flags.append("SIGHASH")
+        elif usage & 0x00002000:
+            flags.append("VERHASH")
+        if usage & 0x00004000:
+            flags.append("DERIVE")
+    if len(flags):
+        return "+".join(flags)
+    else:
+        return "UNKNOWN"
 
 def get_hash(hash):
     match hash:
@@ -86,15 +109,15 @@ def get_algorithm(algorithm):
 def data_to_c_array(name, data):
     return f"static const uint8_t {name}[] = {{{', '.join([hex(byte) for byte in data])}}};"
 
-def get_description(internal, obj_class, obj_type, bits, usage, algorithm):
+def get_description(internal, obj_class, obj_type, usage, algorithm):
     obj_type = obj_type.replace("_", "")
     return f"{'Internal' if internal else 'External'} {obj_class} {obj_type} {get_usage(usage)} {get_algorithm(algorithm)}"
 
 def get_test_entry_memory(index, description, address, size):
-    return f"    {{NULL, \"EL2GO_BLOB_TEST_GENERIC_{index:04d}\", \"{description}\", (uint8_t *){hex(address)}, {size}}},"
+    return f"    {{NULL, \"EL2GO_BLOB_TEST_GENERIC_{index}\", \"{description}\", (uint8_t *){hex(address)}, {size}}},"
 
 def get_test_entry(index, description, name):
-    return f"    {{NULL, \"EL2GO_BLOB_TEST_GENERIC_{index:04d}\", \"{description}\", {name}, sizeof({name})}},"
+    return f"    {{NULL, \"EL2GO_BLOB_TEST_GENERIC_{index}\", \"{description}\", {name}, sizeof({name})}},"
 
 with open(args.rtp_json_path) as rtp_json_file:
     rtp_json = json.load(rtp_json_file)
@@ -107,12 +130,10 @@ diff_count = previous_count - len(device['rtpProvisionings'])
 if diff_count:
     print(f"Ignoring {diff_count} blobs that failed to generate")
 
-previous_count = len(device['rtpProvisionings'])
-device['rtpProvisionings'] = list(filter(lambda prov: prov['secureObject']['type'] != "OEM_FW_AUTH_KEY_HASH", device['rtpProvisionings']))
-device['rtpProvisionings'] = list(filter(lambda prov: prov['secureObject']['type'] != "OEM_FW_DECRYPT_KEY", device['rtpProvisionings']))
-diff_count = previous_count - len(device['rtpProvisionings'])
-if diff_count:
-    print(f"Ignoring OEM_FW_AUTH_KEY_HASH and/or OEM_FW_DECRYPT_KEY, which cannot be handled by PSA")
+if int(partitions[1]) > 1:
+    print(f"Splitting into {int(partitions[1])} parts ({args.partition})")
+    provisioning_parts = numpy.array_split(device['rtpProvisionings'], int(partitions[1]))
+    device['rtpProvisionings'] = provisioning_parts[int(partitions[0]) - 1]
 
 data_arrays = []
 test_entries = []
@@ -141,15 +162,23 @@ for provisioning in device['rtpProvisionings']:
     else:
         obj_type = str(int(bits / 8)) + 'B'
 
-    name = f"{obj_class}_{obj_type}_{provisioning['secureObject']['id']}_{provisioning['provisioningId']}"
-    description = get_description(internal, obj_class, obj_type, bits, usage, algorithm)
+    if obj_type == "OEM_FW_AUTH_KEY_HASH" or obj_type == "OEM_FW_DECRYPT_KEY":
+        print(f"Ignoring {obj_type} (not PSA compliant)")
+        continue
+    elif obj_class == "BINARY_FILE" and usage == 0x00 and algorithm == 0x00:
+        print(f"Ignoring OTP/IFR BINARY_FILE (not PSA compliant)")
+        continue
+
+    number = provisioning['secureObject']['objectId']
+    name = f"{obj_class}_{obj_type}_{provisioning['secureObject']['objectId']}_{provisioning['secureObject']['id']}"
+    description = get_description(internal, obj_class, obj_type, usage, algorithm)
 
     if args.storage_mode == "memory":
-        test_entries.append(get_test_entry_memory(len(test_entries) + 1, description, current_blob_address, len(blob)))
+        test_entries.append(get_test_entry_memory(number, description, current_blob_address, len(blob)))
         current_blob_address += len(blob)
     else:
         data_arrays.append(data_to_c_array(name, blob))
-        test_entries.append(get_test_entry(len(test_entries) + 1, description, name))
+        test_entries.append(get_test_entry(number, description, name))
 
 el2go_blob_test_generic_header=f"""/*
  * Copyright {datetime.date.today().year} NXP
@@ -169,10 +198,10 @@ extern \"C\" {{
 
 // Generated for UUID {device['deviceId']}
 
-{chr(10).join(data_arrays)}
+{chr(10).join(sorted(data_arrays))}
 
 static struct test_t blob_generic_tests[] = {{
-{chr(10).join(test_entries)}
+{chr(10).join(sorted(test_entries))}
 }};
 
 #ifdef __cplusplus

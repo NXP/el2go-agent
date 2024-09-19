@@ -3,9 +3,6 @@
 
 source "Kconfig.zephyr"
 
-config USE_LEGACY_TESTS
-    bool "(Only) run the legacy test suites (Internal, External)"
-
 config RUN_VERIFIED_ONLY
     default y
     bool "Only run testcases that are expected to pass"

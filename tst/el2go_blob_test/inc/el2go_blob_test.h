@@ -88,12 +88,7 @@ struct test_suite_t
     uint32_t elapsed_time;
 };
 
-#ifdef CONFIG_USE_LEGACY_TESTS
-void testsuite_blob_internal(struct test_suite_t *test_suite);
-void testsuite_blob_external(struct test_suite_t *test_suite);
-#else
 void testsuite_blob_generic(struct test_suite_t *test_suite);
-#endif
 
 #ifdef __cplusplus
 }

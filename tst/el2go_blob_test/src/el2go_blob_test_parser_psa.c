@@ -15,6 +15,13 @@
 #define PSA_CMD_TAG_KEY_BITS            0x45
 #define PSA_CMD_TAG_KEY_LIFETIME        0x46
 
+#define RETURN_OR_CLEAR_FLAG(usage_flag) \
+    if (result->status != TEST_PASSED)   \
+    {                                    \
+        return;                          \
+    }                                    \
+    key_usage &= ~(usage_flag);
+
 static uint32_t get_uint32_val(const uint8_t *input)
 {
     uint32_t output = 0U;
@@ -180,123 +187,136 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
         return;
     }
 
-    psa_key_type_t key_type         = psa_get_key_type(&attributes);
-    size_t key_bits                 = psa_get_key_bits(&attributes);
-    psa_key_usage_t key_usage       = psa_get_key_usage_flags(&attributes);
-    psa_algorithm_t key_algorithm   = psa_get_key_algorithm(&attributes);
-    psa_key_location_t key_location = PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(&attributes));
-    psa_key_id_t key_id             = psa_get_key_id(&attributes);
+    psa_key_usage_t key_usage     = psa_get_key_usage_flags(&attributes);
+    psa_algorithm_t key_algorithm = psa_get_key_algorithm(&attributes);
 
-    switch (key_usage)
+    // PSA_KEY_USAGE_NONE
+    if (key_usage == 0)
     {
-        case PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT:
-            if (PSA_ALG_IS_AEAD(key_algorithm))
-            {
-                psa_blob_aead_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length, result);
-            }
-            else if (PSA_ALG_IS_ASYMMETRIC_ENCRYPTION(key_algorithm))
-            {
-                psa_blob_crypt_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length, result);
-            }
-            else
-            {
-                psa_blob_cipher_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                     result);
-            }
-            break;
-        case PSA_KEY_USAGE_ENCRYPT:
-            if (PSA_ALG_IS_AEAD(key_algorithm))
-            {
-                psa_blob_aead_encrypt_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                           result);
-            }
-            else
-            {
-                psa_blob_encrypt_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                      result);
-            }
-            break;
-        case PSA_KEY_USAGE_DECRYPT:
-            if (PSA_ALG_IS_AEAD(key_algorithm))
-            {
-                psa_blob_aead_decrypt_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                           result);
-            }
-            else
-            {
-                psa_blob_decrypt_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                      result);
-            }
-            break;
-        case PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_VERIFY_MESSAGE:
-            if (PSA_ALG_IS_MAC(key_algorithm))
-            {
-                psa_blob_mac_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length, result);
-            }
-            else
-            {
-                psa_blob_sigvermsg_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                        result);
-            }
-            break;
-        case PSA_KEY_USAGE_SIGN_MESSAGE:
-            if (PSA_ALG_IS_MAC(key_algorithm))
-            {
-                psa_blob_mac_compute_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                          result);
-            }
-            else
-            {
-                psa_blob_sigmsg_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                     result);
-            }
-            break;
-        case PSA_KEY_USAGE_VERIFY_MESSAGE:
-            if (PSA_ALG_IS_MAC(key_algorithm))
-            {
-                psa_blob_mac_verify_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                         result);
-            }
-            else
-            {
-                psa_blob_vermsg_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                     result);
-            }
-            break;
-        case PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH:
-        // Message is always added automatically when allowing Hash
-        case PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_VERIFY_HASH |
-            PSA_KEY_USAGE_VERIFY_MESSAGE:
-            psa_blob_sigverhash_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                     result);
-            break;
-        case PSA_KEY_USAGE_SIGN_HASH:
-        // Message is always added automatically when allowing Hash
-        case PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_SIGN_MESSAGE:
-            psa_blob_sighash_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length, result);
-            break;
-        case PSA_KEY_USAGE_VERIFY_HASH:
-        // Message is always added automatically when allowing Hash
-        case PSA_KEY_USAGE_VERIFY_HASH | PSA_KEY_USAGE_VERIFY_MESSAGE:
-            psa_blob_verhash_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length, result);
-            break;
-        case PSA_KEY_USAGE_DERIVE:
-            if (PSA_ALG_IS_KEY_AGREEMENT(key_algorithm))
-            {
-                psa_blob_keyexch_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length,
-                                      result);
-            }
-            else
-            {
-                psa_blob_kdf_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length, result);
-            }
-            break;
-        case PSA_KEY_USAGE_EXPORT:
-        case 0: // PSA_KEY_USAGE_NONE
-            psa_blob_export_test(key_type, key_bits, key_algorithm, key_location, key_id, blob, blob_length, result);
-            break;
-        default:
-            TEST_SKIP("Unsupported key usage");
-            return;
+        psa_blob_export_test(attributes, blob, blob_length, result);
+        return;
+    }
+
+    if (key_usage & PSA_KEY_USAGE_EXPORT)
+    {
+        psa_blob_export_test(attributes, blob, blob_length, result);
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_EXPORT);
+    }
+    if (key_usage & PSA_KEY_USAGE_ENCRYPT && key_usage & PSA_KEY_USAGE_DECRYPT)
+    {
+        if (PSA_ALG_IS_AEAD(key_algorithm))
+        {
+            psa_blob_aead_test(attributes, blob, blob_length, result);
+        }
+        else if (PSA_ALG_IS_ASYMMETRIC_ENCRYPTION(key_algorithm))
+        {
+            psa_blob_crypt_test(attributes, blob, blob_length, result);
+        }
+        else
+        {
+            psa_blob_cipher_test(attributes, blob, blob_length, result);
+        }
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
+    }
+    if (key_usage & PSA_KEY_USAGE_ENCRYPT)
+    {
+        if (PSA_ALG_IS_AEAD(key_algorithm))
+        {
+            psa_blob_aead_encrypt_test(attributes, blob, blob_length, result);
+        }
+        else if (PSA_ALG_IS_ASYMMETRIC_ENCRYPTION(key_algorithm))
+        {
+            // TODO: Standalone asymetric encryption
+        }
+        else
+        {
+            psa_blob_encrypt_test(attributes, blob, blob_length, result);
+        }
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_ENCRYPT);
+    }
+    if (key_usage & PSA_KEY_USAGE_DECRYPT)
+    {
+        if (PSA_ALG_IS_AEAD(key_algorithm))
+        {
+            psa_blob_aead_decrypt_test(attributes, blob, blob_length, result);
+        }
+        else if (PSA_ALG_IS_ASYMMETRIC_ENCRYPTION(key_algorithm))
+        {
+            // TODO: Standalone asymetric decryption
+        }
+        else
+        {
+            psa_blob_decrypt_test(attributes, blob, blob_length,result);
+        }
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_DECRYPT);
+    }
+    if (key_usage & PSA_KEY_USAGE_SIGN_MESSAGE && key_usage & PSA_KEY_USAGE_VERIFY_MESSAGE)
+    {
+        if (PSA_ALG_IS_MAC(key_algorithm))
+        {
+            psa_blob_mac_test(attributes, blob, blob_length, result);
+        }
+        else if(key_algorithm != PSA_ALG_ECDSA_ANY)
+        {
+            psa_blob_sigvermsg_test(attributes, blob, blob_length, result);
+        }
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_VERIFY_MESSAGE);
+    }
+    if (key_usage & PSA_KEY_USAGE_SIGN_MESSAGE)
+    {
+        if (PSA_ALG_IS_MAC(key_algorithm))
+        {
+            psa_blob_mac_compute_test(attributes, blob, blob_length, result);
+        }
+        else if(key_algorithm != PSA_ALG_ECDSA_ANY)
+        {
+            psa_blob_sigmsg_test(attributes, blob, blob_length, result);
+        }
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_SIGN_MESSAGE);
+    }
+    if (key_usage & PSA_KEY_USAGE_VERIFY_MESSAGE)
+    {
+        if (PSA_ALG_IS_MAC(key_algorithm))
+        {
+            psa_blob_mac_verify_test(attributes, blob, blob_length, result);
+        }
+        else if(key_algorithm != PSA_ALG_ECDSA_ANY)
+        {
+            psa_blob_vermsg_test(attributes, blob, blob_length, result);
+        }
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_VERIFY_MESSAGE);
+    }
+    if (key_usage & PSA_KEY_USAGE_SIGN_HASH && key_usage & PSA_KEY_USAGE_VERIFY_HASH)
+    {
+        psa_blob_sigverhash_test(attributes, blob, blob_length, result);
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH);
+    }
+    if (key_usage & PSA_KEY_USAGE_SIGN_HASH)
+    {
+        psa_blob_sighash_test(attributes, blob, blob_length, result);
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_SIGN_HASH);
+    }
+    if (key_usage & PSA_KEY_USAGE_VERIFY_HASH)
+    {
+        psa_blob_verhash_test(attributes, blob, blob_length, result);
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_VERIFY_HASH);
+    }
+    if (key_usage & PSA_KEY_USAGE_DERIVE)
+    {
+        if (PSA_ALG_IS_KEY_AGREEMENT(key_algorithm))
+        {
+            psa_blob_keyexch_test(attributes, blob, blob_length, result);
+        }
+        else
+        {
+            psa_blob_kdf_test(attributes, blob, blob_length, result);
+        }
+        RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_DERIVE);
+    }
+
+    if (key_usage != 0)
+    {
+        TEST_SKIP("Blob contains unknown key usage");
+        return;
     }
 }

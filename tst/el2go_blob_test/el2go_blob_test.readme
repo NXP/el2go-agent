@@ -1,6 +1,5 @@
 Configuration options
 =====================
-CONFIG_USE_LEGACY_TESTS: If defined, (only) the legacy test suites (Internal, External) will be run. [Default: OFF]
 CONFIG_RUN_VERIFIED_ONLY: If defined, only variations that are expected to pass on S50 based devices will be run (Note: If you input unsupported blobs, the testcase will still run and fail) [Default: ON]
 CONFIG_LARGE_BLOBS_ENABLED: If defined, testcases with large blobs > 2783B will be run (Requires TF-M changes to pass) [Default: OFF]
 
@@ -40,24 +39,6 @@ el2go-host provision-device -p [COM_PORT] --config [CONFIG_PATH] --workspace [WO
 3. Run the RTP JSON file downloaded by el2go-host trough the preprocessor, specifying the memory location method:
 scripts/el2go_blob_test_pre.py [WORKSPACE_PATH]/provisionings.json --storage_mode memory --blob_address 0x1C0000
 
-Create device specific blobs [Devicelink Commons, Legacy tests, RW61x]
-======================================================================
-NOTE: This method only works for A1 RD boards with raw key material available in "NXP Provisioned" lifecycle.
-
-1. Checkout and configure the IOTHUB/iothub-device-link-commons repository
-
-2. Get the WRAPPING key (NXP_DIE_EL2GOIMPORT_KEK_SK), ENC key (NXP_DIE_EL2GOIMPORTTFM_KEK_SK) and MAC key (NXP_DIE_EL2GOIMPORT_AUTH_SK) for your board
-
-3. Run the following commands, filling in your keys as hex string:
-mvn test -Dtest=PSAKeyImportTest,PSAExternalKeyImportTest -Dmaven.test.redirectTestOutputToFile=true \
--DargLine="-DwrappingKey=[YOUR_WRAPPING_KEY] -DencKey=[YOUR_ENC_KEY] -DmacKey=[YOUR_MAC_KEY] -DoutputCHeader=true"
-
-4. Put the generated blobs in the correct header files:
-cat target/surefire-reports/com.nxp.iot.devicelink.psa.command.PSAKeyImportTest-output.txt > [PATH_TO_THIS_DIRECTORY]/inc/el2go_blob_test_suite_internal.h
-cat target/surefire-reports/com.nxp.iot.devicelink.psa.command.PSAExternalKeyImportTest-output.txt > [PATH_TO_THIS_DIRECTORY]/inc/el2go_blob_test_suite_external.h
-
-5. Define the CONFIG_USE_LEGACY_TESTS macro in el2go_blob_test_ns
-
 Build and run [MCUXpresso SDK]
 ==============================
 1. Generate the projects:
@@ -83,8 +64,7 @@ scripts/el2go_blob_test_post.py [CONSOLE_OUTPUT_PATH] [JUNIT_OUT_PATH]
 Notes on RW61x blobs
 ====================
 - Make sure the lifecycle and OEM Auth Key Hash of your blobs match the one provisioned to the board
-- If using A1 RD boards, you need to change the key_properties of NXP_DIE_EL2GOIMPORT_KEK_SK, NXP_DIE_EL2GOIMPORTTFM_KEK_SK and NXP_DIE_EL2GOIMPORT_AUTH_SK in mcuxClPsaDriver_Oracle.c from 0x4XXXXXXXU to 0x8XXXXXXXU
-- If using A2 RD or FRDM boards with lifecycle "OEM Open" or "OEM Closed", secure boot needs to be enabled for blob importing to work
+- Secure boot needs to be enabled on your board for blob importing to work
 
 Notes on N10 blobs
 ==================

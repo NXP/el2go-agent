@@ -17,12 +17,7 @@
 #endif
 
 static struct test_suite_t test_suites[] = {
-#ifdef CONFIG_USE_LEGACY_TESTS
-    {&testsuite_blob_internal, 0, 0, 0},
-    {&testsuite_blob_external, 0, 0, 0},
-#else
     {&testsuite_blob_generic, 0, 0, 0},
-#endif
     {0, 0, 0, 0}};
 
 #ifndef __ZEPHYR__
