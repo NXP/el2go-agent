@@ -51,6 +51,7 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf/pb_common.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf/pb_decode.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf/pb_encode.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf/Proxy.pb.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf/PSA.pb.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf/RPC.pb.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf/ServiceDescriptor.pb.c

@@ -22,7 +22,7 @@
  */
 
 /*
- * Modifications copyright (C) 2021 NXP
+ * Modifications copyright (C) 2021,2024 NXP
  */
 
 /* pb_common.h: Common support functions for pb_encode.c and pb_decode.c.

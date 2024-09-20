@@ -22,7 +22,7 @@
  */
 
 /*
- * Modifications copyright (C) 2021 NXP
+ * Modifications copyright (C) 2021,2024 NXP
  */
 
 /* Common parts of the nanopb library. Most of these are quite low-level
@@ -78,7 +78,7 @@
 
 /* Version of the nanopb library. Just in case you want to check it in
  * your own program. */
-#define NANOPB_VERSION nanopb-0.3.9.4
+#define NANOPB_VERSION nanopb-0.3.9.8
 
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
@@ -222,7 +222,7 @@ typedef uint_least8_t pb_type_t;
 #define PB_HTYPE_MASK     0x30
 
 /**** Field allocation types ****/
-
+ 
 #define PB_ATYPE_STATIC   0x00
 #define PB_ATYPE_POINTER  0x80
 #define PB_ATYPE_CALLBACK 0x40
@@ -270,7 +270,7 @@ struct pb_field_s {
     pb_ssize_t size_offset; /* Offset of array size or has-boolean, relative to data */
     pb_size_t data_size; /* Data size in bytes for a single item */
     pb_size_t array_size; /* Maximum number of entries in array */
-
+    
     /* Field definitions for submessage
      * OR default value for all other non-array, non-callback types
      * If null, then field will zeroed. */
@@ -336,8 +336,8 @@ struct pb_callback_s {
         bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
         bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
     } funcs;
-#endif
-
+#endif    
+    
     /* Free arg for use by callback */
     void *arg;
 };
@@ -367,7 +367,7 @@ struct pb_extension_type_s {
      */
     bool (*decode)(pb_istream_t *stream, pb_extension_t *extension,
                    uint32_t tag, pb_wire_type_t wire_type);
-
+    
     /* Called once after all regular fields have been encoded.
      * If you have something to write, do so and return true.
      * If you do not have anything to write, just return true.
@@ -375,7 +375,7 @@ struct pb_extension_type_s {
      * Set to NULL for default handler.
      */
     bool (*encode)(pb_ostream_t *stream, const pb_extension_t *extension);
-
+    
     /* Free field for use by the callback. */
     const void *arg;
 };
@@ -384,11 +384,11 @@ struct pb_extension_s {
     /* Type describing the extension field. Usually you'll initialize
      * this to a pointer to the automatically generated structure. */
     const pb_extension_type_t *type;
-
+    
     /* Destination for the decoded data. This must match the datatype
      * of the extension field. */
     void *dest;
-
+    
     /* Pointer to the next extension handler, or NULL.
      * If this extension does not match a field, the next handler is
      * automatically called. */
@@ -495,7 +495,7 @@ struct pb_extension_s {
 #define PB_SINGULAR_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
     fd, 0, pb_membersize(st, m), 0, ptr}
-
+    
 #define PB_REPEATED_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_REPEATED | ltype, \
     fd, 0, pb_membersize(st, m), 0, ptr}

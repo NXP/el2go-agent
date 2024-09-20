@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------------*/
-/* Copyright 2018-2021 NXP                                                    */
+/* Copyright 2018-2021,2023 NXP                                               */
 /*                                                                            */
 /* SPDX-License-Identifier: Apache-2.0                                        */
 /*                                                                            */
@@ -185,6 +185,9 @@ message AgentClaimStatus {
         /* The claim code on the secure subsystem has an invalid format and failed validation. */
         ERR_CLAIM_CODE_FORMAT = 0x19;
 
+        /* The claim code could not be deleted. */
+        ERR_CLAIM_CODE_DELETE = 0x1A;
+
         /* One ore more claim code errors happened. More details can be found
          * in the details messages. */
         ERR_CLAIM_FAILED = 0x40;
@@ -194,7 +197,6 @@ message AgentClaimStatus {
 
         /* A timeout happened on the EdgeLock 2GO cloud service. */
         ERR_TIMEOUT = 0x51;
-
     }
 
     message DetailedClaimStatus {
@@ -418,4 +420,3 @@ message AgentCrlRequest {
 message AgentCrlResponse {
     optional fixed32 error = 1;
 }
-

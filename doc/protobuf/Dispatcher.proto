@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------------*/
-/* Copyright 2018-2021 NXP                                                    */
+/* Copyright 2018-2023 NXP                                                    */
 /*                                                                            */
 /* SPDX-License-Identifier: Apache-2.0                                        */
 /*                                                                            */
@@ -19,6 +19,7 @@ import "Datastore.proto";
 import "RPC.proto";
 import "Hostcmd.proto";
 import "PSA.proto";
+import "Proxy.proto";
 
 /*
  * Attention when changing messages on this level. In order to be able to fit data to communication
@@ -61,6 +62,11 @@ message RequestPayload {
      *
      * Used only by EdgeLock 2GO agent. */
     PsaRequest psa = 60;
+
+    /* Contains requests for the Proxy hello message 
+     *
+     * Used only by EdgeLock 2GO agent. */
+    HelloProxyRequest helloProxy = 70;
   }
 }
 /* doc:request-response-payload:end */
@@ -73,6 +79,7 @@ message ResponsePayload {
     DatastoreResponse datastore = 30;
     RpcResponse rpc = 40;
     PsaResponse psa = 60;
+    HelloProxyResponse helloProxy = 70;
   }
 }
 
