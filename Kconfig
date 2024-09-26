@@ -1,0 +1,50 @@
+menu "nxp_iot_agent"
+    config MCUX_COMPONENT_middleware.nxp_iot_agent.lwip_enet
+        bool "Component middleware.nxp_iot_agent.lwip_enet"
+    config MCUX_COMPONENT_middleware.nxp_iot_agent.lwip_wifi
+        bool "Component middleware.nxp_iot_agent.lwip_wifi"
+
+    config MCUX_COMPONENT_middleware.nxp_iot_agent.sss
+        bool "Component middleware.nxp_iot_agent.sss"
+        depends on MCUX_HW_BOARD_evkmimxrt1060 || MCUX_HW_BOARD_evkmimxrt1170 || MCUX_HW_BOARD_evkbmimxrt1060 || MCUX_HW_BOARD_evkbmimxrt1170
+        select MCUX_COMPONENT_middleware.se_hostlib.commonSe050CloudDemos
+        select MCUX_COMPONENT_middleware.se_hostlib.tstutils
+    config MCUX_COMPONENT_middleware.nxp_iot_agent.psa
+        bool "Component middleware.nxp_iot_agent.psa"
+        depends on MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612
+    config MCUX_COMPONENT_middleware.nxp_iot_agent
+        bool "Component middleware.nxp_iot_agent"
+        depends on MCUX_HW_BOARD_evkmimxrt1060 || MCUX_HW_BOARD_evkmimxrt1170 || MCUX_HW_BOARD_evkbmimxrt1060 || MCUX_HW_BOARD_evkbmimxrt1170 || MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612
+        select MCUX_COMPONENT_middleware.nxp_iot_agent.sss if MCUX_HW_BOARD_evkmimxrt1060 || MCUX_HW_BOARD_evkmimxrt1170 || MCUX_HW_BOARD_evkbmimxrt1060 || MCUX_HW_BOARD_evkbmimxrt1170
+        select MCUX_COMPONENT_middleware.nxp_iot_agent.psa if MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612
+    if MCUX_COMPONENT_middleware.nxp_iot_agent
+        choice
+            prompt "Network backend"
+            config MCUX_DEPENDENCY_COMPONENT_middleware.nxp_iot_agent.network_backend.lwip_enet
+                bool "lwip_enet"
+                select MCUX_COMPONENT_middleware.nxp_iot_agent.lwip_enet
+            config MCUX_DEPENDENCY_COMPONENT_middleware.nxp_iot_agent.network_backend.lwip_wifi
+                bool "lwip_wifi"
+                select MCUX_COMPONENT_middleware.nxp_iot_agent.lwip_wifi
+        endchoice
+    endif
+
+    config MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt
+        bool "Component middleware.nxp_iot_agent.mqtt"
+        depends on MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612 || MCUX_HW_BOARD_mcxn5xxevk || MCUX_HW_BOARD_mcxn9xxevk
+    if MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt
+        choice
+            prompt "Network backend"
+            config MCUX_DEPENDENCY_COMPONENT_middleware.nxp_iot_agent.mqtt.network_backend.lwip_enet
+                bool "lwip_enet"
+                select MCUX_COMPONENT_middleware.nxp_iot_agent.lwip_enet
+            config MCUX_DEPENDENCY_COMPONENT_middleware.nxp_iot_agent.mqtt.network_backend.lwip_wifi
+                bool "lwip_wifi"
+                select MCUX_COMPONENT_middleware.nxp_iot_agent.lwip_wifi
+        endchoice
+    endif
+
+    config MCUX_COMPONENT_middleware.nxp_iot_agent.claimcode
+        bool "Component middleware.nxp_iot_agent.claimcode"
+        depends on MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612
+endmenu
