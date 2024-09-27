@@ -14,6 +14,7 @@
 #endif
 
 #include <iot_agent_demo_config.h>
+#include "iot_agent_osal.h"
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 #include <nxp_iot_agent_keystore_psa.h>
@@ -78,14 +79,8 @@ const size_t iot_agent_claimcode_el2go_pub_key_size = sizeof(iot_agent_claimcode
 
 #if AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
 #ifdef __ZEPHYR__
-#include <zephyr/kernel.h>
 #include <iot_agent_mqtt_zephyr.h>
 #else
-#ifndef INC_FREERTOS_H /* Header guard of FreeRTOS */
-#include "FreeRTOS.h"
-#include "FreeRTOSConfig.h"
-#endif /* INC_FREERTOS_H */
-#include "task.h"
 #include <iot_agent_mqtt_freertos.h>
 #endif
 
@@ -98,21 +93,10 @@ extern void config_mbedtls_threading_alt(void);
 extern uint32_t tfm_ns_interface_init(void);
 #endif
 #endif
-
-#if NXP_IOT_AGENT_HAVE_SSS
-static ex_sss_cloud_ctx_t gex_sss_demo_tls_ctx;
-ex_sss_cloud_ctx_t *pex_sss_demo_tls_ctx = &gex_sss_demo_tls_ctx;
-#endif
-
 #endif
 
 #include <iot_agent_demo_config.h>
 
-#ifdef __ZEPHYR__
-#define EX_SSS_BOOT_RTOS_STACK_SIZE (1024*32)
-#else
-#define EX_SSS_BOOT_RTOS_STACK_SIZE (1024*8)
-#endif
 #define MAX_UID_DECIMAL_STRING_SIZE 44U
 
 const char * gszEdgeLock2GoDatastoreFilename = "edgelock2go_datastore.bin";
@@ -142,143 +126,15 @@ const PB_BYTES_ARRAY_T(AZURE_ROOT_SERVER_CERT_SIZE) azure_root_server_cert =
 { AZURE_ROOT_SERVER_CERT_SIZE, AZURE_ROOT_SERVER_CERT };
 #endif
 
+
 #if NXP_IOT_AGENT_HAVE_SSS
 static ex_sss_boot_ctx_t gex_sss_demo_boot_ctx;
-ex_sss_boot_ctx_t* pex_sss_demo_boot_ctx = &gex_sss_demo_boot_ctx;
-iot_agent_status_t agent_start(int argc, const char* argv[], ex_sss_boot_ctx_t* pCtx);
-#else
+#endif
 iot_agent_status_t agent_start(int argc, const char* argv[]);
-#endif
 
-#if AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
+int main(int argc, const char *argv[]) {
 
-typedef struct cli_arguments
-{
-    int    c;
-    const char **v;
-} cli_arguments_t;
-
-cli_arguments_t args;
-
-#ifdef __ZEPHYR__
-void agent_start_task(void *args, void*, void*)
-#else
-void agent_start_task(void *args)
-#endif
-{
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    axTimeMeasurement_t iot_agent_demo_boot_time = { 0 };
-    initMeasurement(&iot_agent_demo_boot_time);
-#endif
-    iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-
-    iot_agent_session_boot_rtos_task();
-
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
-#ifdef NXP_IOT_AGENT_ENABLE_LITE
-	config_mbedtls_threading_alt();
-#else
-    tfm_ns_interface_init();
-#endif
-#endif
-
-    agent_status = network_init();
-    AGENT_SUCCESS_OR_EXIT_MSG("Network initialization failed");
-
-#ifdef __ZEPHYR__
-    const k_timeout_t delay = K_SECONDS(2);
-#else
-    const TickType_t xDelay = 2 * 1000 / portTICK_PERIOD_MS;
-#endif
-
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    concludeMeasurement(&iot_agent_demo_boot_time);
-    IOT_AGENT_INFO("Performance timing: DEVICE_INIT_TIME : %lums", getMeasurement(&iot_agent_demo_boot_time));
-#endif
-
-    for (;;)
-    {
-        iot_agent_session_led_start();
-
-        cli_arguments_t* a = args;
-
-#if NXP_IOT_AGENT_HAVE_SSS
-		agent_status = agent_start(a->c, a->v, &gex_sss_demo_boot_ctx);
-#else
-		agent_status = agent_start(a->c, a->v);
-#endif
-
-        if (agent_status == IOT_AGENT_SUCCESS)
-        {
-            iot_agent_session_led_success();
-        }
-        else
-        {
-            iot_agent_session_led_failure();
-        }
-
-#ifdef __ZEPHYR__
-        k_sleep(delay);
-#else
-        vTaskDelay(xDelay);
-#endif
-    }
-exit:
-    return;
-}
-
-#endif
-
-#ifdef __ZEPHYR__
-K_THREAD_STACK_DEFINE(agent_thread_stack_area, EX_SSS_BOOT_RTOS_STACK_SIZE);
-#endif
-int main(int argc, const char *argv[])
-{
-#if AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
-
-	iot_agent_session_bm();
-
-    args.c = argc;
-    args.v = argv;
-
-#ifdef __ZEPHYR__
-	static struct k_thread agent_thread_data;
-
-	k_tid_t agent_thread_id = k_thread_create(&agent_thread_data,
-		agent_thread_stack_area,
-		K_THREAD_STACK_SIZEOF(agent_thread_stack_area),
-		agent_start_task,
-		(void *)&args, NULL, NULL,
-		0, 0, K_FOREVER
-	);
-
-	k_thread_name_set(agent_thread_id, "agent_start_session_task");
-
-	k_thread_start(agent_thread_id);
-#else
-    if (xTaskCreate(&agent_start_task,
-        "agent_start_session_task",
-        EX_SSS_BOOT_RTOS_STACK_SIZE,
-        (void *)&args,
-        (tskIDLE_PRIORITY),
-        NULL) != pdPASS) {
-        IOT_AGENT_INFO("Task creation failed!.\r\n");
-        while (1)
-            ;
-    }
-
-    /* Run RTOS */
-    vTaskStartScheduler();
-#endif
-
-    return 1;
-#else
-#if NXP_IOT_AGENT_HAVE_SSS
-	return agent_start(argc, argv, &gex_sss_demo_boot_ctx);
-#else
-	return agent_start(argc, argv);
-#endif
-#endif
+	return iot_agent_osal_start_task(agent_start, argc, argv);
 }
 
 #if NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
@@ -712,11 +568,7 @@ exit:
 // doc: configure service descriptor - end
 #endif
 
-#if NXP_IOT_AGENT_HAVE_SSS
-iot_agent_status_t agent_start(int argc, const char *argv[], ex_sss_boot_ctx_t *pCtx)
-#else
 iot_agent_status_t agent_start(int argc, const char* argv[])
-#endif
 {
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
     axTimeMeasurement_t iot_agent_demo_time = {0};
@@ -751,7 +603,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 
 #if NXP_IOT_AGENT_HAVE_SSS
 	// Initialize and open a session to the secure element.
-	agent_status = iot_agent_session_init(argc, argv, pCtx);
+	agent_status = iot_agent_session_init(argc, argv, &gex_sss_demo_boot_ctx);
     AGENT_SUCCESS_OR_EXIT();
 #endif
 
@@ -767,7 +619,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
     initMeasurement(&iot_agent_claimcode_inject_time);
 #endif
 #if NXP_IOT_AGENT_HAVE_SSS
-	agent_status = iot_agent_claimcode_inject(pCtx, IOT_AGENT_CLAIMCODE_STRING, strlen(IOT_AGENT_CLAIMCODE_STRING));
+	agent_status = iot_agent_claimcode_inject(&gex_sss_demo_boot_ctx, IOT_AGENT_CLAIMCODE_STRING, strlen(IOT_AGENT_CLAIMCODE_STRING));
 	AGENT_SUCCESS_OR_EXIT_MSG("Injecting claimcode failed");
 #elif NXP_IOT_AGENT_HAVE_PSA
 #if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
@@ -795,7 +647,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 
 	// print the uid of the device
 #if NXP_IOT_AGENT_HAVE_SSS
-	agent_status = iot_agent_print_uid((sss_se05x_session_t*)&pCtx->session);
+	agent_status = iot_agent_print_uid((sss_se05x_session_t*)&gex_sss_demo_boot_ctx.session);
 #else
 	agent_status = iot_agent_print_uid();
 #endif
@@ -804,7 +656,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
     /************* Register keystore*************/
 
 #if NXP_IOT_AGENT_HAVE_SSS
-	agent_status = iot_agent_keystore_sss_se05x_init(&keystore, EDGELOCK2GO_KEYSTORE_ID, pCtx, true);
+	agent_status = iot_agent_keystore_sss_se05x_init(&keystore, EDGELOCK2GO_KEYSTORE_ID, &gex_sss_demo_boot_ctx, true);
 	AGENT_SUCCESS_OR_EXIT();
 
 	agent_status = iot_agent_register_keystore(&iot_agent_context, &keystore);

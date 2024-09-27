@@ -22,55 +22,11 @@ IF(SSS_HAVE_HOST_WIN10IOT OR SSS_HAVE_HOST_PCWINDOWS)
     INCLUDE_DIRECTORIES(../../ext/)
 ENDIF()
 
-IF(SSS_HAVE_HOST_WIN10IOT)
-
-SET(HEADER_FILES
-    ../../ext/dirent_win32.h
-    ../inc/iot_agent_demo_config.h
-    ../inc/iot_agent_claimcode_inject.h
-    )
-
-SET(SOURCE_FILES
-    iot_agent_demo.c
-    )
-
-SET(ASSET_FILES
-    ${PROJECT_NAME}_uwp/SmallLogo.png
-    ${PROJECT_NAME}_uwp/SmallLogo44x44.png
-    ${PROJECT_NAME}_uwp/SplashScreen.png
-    ${PROJECT_NAME}_uwp/StoreLogo.png
-    ${PROJECT_NAME}_uwp/Logo.png
-    )
-
-SET(CONTENT_FILES
-    ${PROJECT_NAME}_uwp/package.appxManifest
-    )
-
-SET(RESOURCE_FILES
-  ${CONTENT_FILES} ${ASSET_FILES}
-  ${PROJECT_NAME}_uwp/Windows_TemporaryKey.pfx)
-
-SET_PROPERTY(SOURCE ${CONTENT_FILES} PROPERTY VS_DEPLOYMENT_CONTENT 1)
-SET_PROPERTY(SOURCE ${ASSET_FILES} PROPERTY VS_DEPLOYMENT_CONTENT 1)
-SET_PROPERTY(SOURCE ${ASSET_FILES} PROPERTY VS_DEPLOYMENT_LOCATION "Assets")
-
-SOURCE_GROUP("Source Files" FILES ${SOURCE_FILES})
-SOURCE_GROUP("Header Files" FILES ${HEADER_FILES})
-SOURCE_GROUP("Resource Files" FILES ${RESOURCE_FILES})
-
-ADD_EXECUTABLE(${PROJECT_NAME} ${KSDK_STARTUP_FILE} WIN32
-    ${SOURCE_FILES}
-    ${HEADER_FILES}
-    ${RESOURCE_FILES}
-)
-
-SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES LINK_FLAGS /SUBSYSTEM:CONSOLE)
-
-ELSE()
 FILE(
     GLOB
     iot_agent_demo_files
     ../inc/iot_agent_demo_config.h
+    ../inc/iot_agent_osal.h
     utils/iot_agent_claimcode_inject.c
     utils/iot_agent_claimcode_encrypt.c
     iot_agent_demo.c
@@ -119,11 +75,20 @@ IF(SSS_HAVE_HOST_LPCXPRESSO55S)
     add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
 ENDIF()
 
+# Register the corresponding OSAL files
+IF(SSS_HAVE_HOST_PCWINDOWS)
+  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/iot_agent_osal_win.c)
+ELSEIF((SSS_HAVE_HOST_PCLINUX) OR (SSS_HAVE_HOST_IMXLINUX))
+  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/iot_agent_osal_linux.c)
+ELSEIF((SSS_HAVE_HOST_EVKMIMXRT1060) OR (SSS_HAVE_HOST_EVKMIMXRT1170)
+  OR (SSS_HAVE_HOST_FRDMK64F) OR (SSS_HAVE_HOST_LPCXPRESSO55S))
+  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/iot_agent_osal_freertos.c)
+ENDIF()
+
 ADD_EXECUTABLE(${PROJECT_NAME} ${KSDK_STARTUP_FILE}
     ${iot_agent_demo_files}
     ${iot_agent_demo_port_files}
 )
-ENDIF()
 
 IF(BUILD_SHARED_LIBS)
     IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
