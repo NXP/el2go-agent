@@ -44,7 +44,7 @@ endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
     mcux_add_macro(
-        CC "PB_FIELD_32BIT EXTERNAL_CUSTOMER_BUILD_CONFIGURATION=1"
+        CC "PB_FIELD_32BIT"
     )
     mcux_add_source(
         SOURCES inc/*.h
@@ -98,9 +98,6 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt)
 endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.claimcode)
-    mcux_add_macro(
-        CC "EXTERNAL_CUSTOMER_BUILD_CONFIGURATION=1"
-    )
     mcux_add_source(
         SOURCES inc/*.h
                 ex/inc/iot_agent_claimcode_encrypt.h
