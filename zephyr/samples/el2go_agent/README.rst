@@ -51,16 +51,36 @@ Prepare the Demo
     in :zephyr_file:`modules/lib/nxp_iot_agent/inc/nxp_iot_agent_config.h`
     ``#define EDGELOCK2GO_HOSTNAME``
 
+    This value can optionally also be set in the prj.conf like this:
+    ``CONFIG_EDGELOCK2GO_HOSTNAME="YOUR_HOSTNAME"``
+    If it's set in the prj.conf, then it will override the value of define
+    in :zephyr_file:`modules/lib/nxp_iot_agent/inc/nxp_iot_agent_config.h`.
+    Furthermore, this value can be set as environment variables, but the value in prj.conf has
+    most precedence. Set as environment variable using same name CONFIG_EDGELOCK2GO_HOSTNAME.
+
 2.  Provide the Wi-Fi access point credentials:
 
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/network/iot_agent_network_zephyr_wifi.c`
     ``#define AP_SSID``
     ``#define AP_PASSWORD``
+    
+    These values can optionally also be set in the prj.conf like this:
+    ``CONFIG_AP_SSID="YOUR_SSID"``
+    ``CONFIG_AP_PASSWORD="YOUR_PASSWORD"``
+    If these are set in the prj.conf, then it will override the value of defines
+    in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/network/iot_agent_network_zephyr_wifi.c`.
+    Furthermore, these values can be set as environment variables, but the values in prj.conf have
+    most precedence. Set as environment variable using same names CONFIG_AP_SSID and CONFIG_AP_PASSWORD.
 
 3.  [Optional] In case you want to use the "Claiming" registration method, enable the corresponding macro:
 
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/inc/iot_agent_demo_config.h`
     ``#define IOT_AGENT_CLAIMCODE_INJECT_ENABLE 1``
+
+    This value can optionally also be set in the prj.conf like this:
+    ``CONFIG_IOT_AGENT_CLAIMCODE_INJECT_ENABLE=y``
+    If it's set in the prj.conf, then it will override the value of define
+    in :zephyr_file:`modules/lib/nxp_iot_agent/ex/inc/iot_agent_demo_config.h`.
 
     The flash address where the claim code will be written to is set to 0x084A000 by default.
     The location can be changed by altering the following variable (make sure to keep it aligned with
@@ -78,6 +98,13 @@ Prepare the Demo
     In the same file, the following macros should be set to the object ID as defined at EdgeLock 2GO service:
     ``#define $SERVER$_SERVICE_KEY_PAIR_ID``
     ``#define $SERVER$_SERVICE_DEVICE_CERT_ID``
+
+    These values can optionally also be set in the prj.conf like this:
+    ``CONFIG_IOT_AGENT_MQTT_ENABLE=y``
+    ``CONFIG_$SERVER$_SERVICE_KEY_PAIR_ID=0x081000``
+    ``CONFIG_$SERVER$_SERVICE_DEVICE_CERT_ID=0x080100``
+    If these are set in the prj.conf, then it will override the value of defines
+    in :zephyr_file:`modules/lib/nxp_iot_agent/ex/inc/iot_agent_demo_config.h`.
 
     The settings of other macros are server dependent and their meaning can be found in the AWS/Azure documentation.
     By default, the demo is executing a connection to both clouds when IOT_AGENT_MQTT_ENABLE is enabled;

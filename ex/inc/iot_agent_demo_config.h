@@ -66,7 +66,9 @@ extern "C" {
 /**
  * Flag to enable or disable claimcode injection/encryption.
  */
+#ifndef IOT_AGENT_CLAIMCODE_INJECT_ENABLE
 #define IOT_AGENT_CLAIMCODE_INJECT_ENABLE 0
+#endif
 
 /**
  * This is the plain claimcode that gets encrypted and written to Flash. The
@@ -96,8 +98,13 @@ extern "C" {
 #define AWS_ENABLE 1U
 
 // CHANGE THIS : fill with key pair and device certificate object IDs as defined on EL2GO when generating them
+#ifndef AWS_SERVICE_KEY_PAIR_ID
 #define AWS_SERVICE_KEY_PAIR_ID    0x83000101U
+#endif
+
+#ifndef AWS_SERVICE_DEVICE_CERT_ID
 #define AWS_SERVICE_DEVICE_CERT_ID 0x83000102U
+#endif
 
 // CHANGE THIS: the AWS hostname to which the device will connect
 #define AWS_HOSTNAME "aw9969rp3sm22-ats.iot.eu-central-1.amazonaws.com"
@@ -115,8 +122,13 @@ extern "C" {
 #define AZURE_ENABLE 1U
 
 // CHANGE THIS : fill with key pair and device certificate object IDs as defined on EL2GO when generating them
+#ifndef AZURE_SERVICE_KEY_PAIR_ID
 #define AZURE_SERVICE_KEY_PAIR_ID    0x83000211U
+#endif
+
+#ifndef AZURE_SERVICE_DEVICE_CERT_ID
 #define AZURE_SERVICE_DEVICE_CERT_ID 0x83000212U
+#endif
 
 // CHANGE THIS : set the ID scope and the global endpoint as defined in the Azure DPS account
 #define AZURE_ID_SCOPE               "0ne004510C6"
