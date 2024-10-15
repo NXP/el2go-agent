@@ -63,6 +63,11 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf
         )
+
+        target_sources(app PRIVATE
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm/nxp_iot_agent_platform_tfm.c
+        )
+
     elseif(CONFIG_EL2GO_MQTT_LIBRARY_SOURCES)
         target_sources(app PRIVATE
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls/net_zephyr.c

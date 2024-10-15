@@ -91,12 +91,19 @@ IF(SSS_HAVE_HOST_LPCXPRESSO55S)
     SET(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ${NXP_IOT_AGENT_PORT_FILES})
 ENDIF()
 
-IF(SSS_HAVE_MBEDTLS_ALT_PSA AND NOT NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
-    # TODO: remove this once the unwrapping is part of mbedtls.
-    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ex/src/utils/mbedtls_psa/psa_crypto_wrapper.c)
+IF(SSS_HAVE_HOSTCRYPTO_OPENSSL OR (SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_MBEDTLS_ALT_SSS))
+    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/se05x/nxp_iot_agent_platform_se05x.c)
+ENDIF()
+
+IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_MBEDTLS_ALT_PSA)
+    IF(NOT NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+        set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/tfm/nxp_iot_agent_platform_tfm.c)
+        set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ex/src/utils/mbedtls_psa/psa_crypto_wrapper.c)
+    ENDIF()
 ENDIF()
 
 IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/smw/nxp_iot_agent_platform_smw.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/smw/device_mgr.c)
 ENDIF()
 
