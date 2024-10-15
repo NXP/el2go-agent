@@ -26,10 +26,9 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_config.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_datastore_plain.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_datastore.c
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_keystore_psa.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa/nxp_iot_agent_keystore_psa.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_keystore.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_service.c
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_session.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_time.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_utils_protobuf_socket.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_utils.c
@@ -62,6 +61,7 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa
         )
 
         target_sources(app PRIVATE
