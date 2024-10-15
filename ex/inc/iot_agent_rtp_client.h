@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 NXP
+ * Copyright 2020-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -54,7 +54,6 @@ typedef struct rtos_arguments
 */
 
 #if defined(USE_RTOS) && (USE_RTOS == 1)
-int remote_provisioning_init_rtos(void *args);
 
 #if defined(LPC_WIFI)
 int send(int s, char *buf, int len, int flags);

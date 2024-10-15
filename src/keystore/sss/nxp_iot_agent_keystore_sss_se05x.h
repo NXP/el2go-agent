@@ -12,8 +12,6 @@
 #include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_keystore.h>
 
-#if NXP_IOT_AGENT_HAVE_SSS
-
 #include <fsl_sss_se05x_apis.h>
 #include <ex_sss_boot.h>
 
@@ -34,7 +32,6 @@ typedef struct iot_agent_keystore_sss_se05x_context_t
 	bool session_open;
 } iot_agent_keystore_sss_se05x_context_t;
 
-
 /** @brief Initialize a se05x keystore.
  *
  * The init function does allocate memory for the context. To free it, use
@@ -54,7 +51,6 @@ typedef struct iot_agent_keystore_sss_se05x_context_t
  */
 iot_agent_status_t iot_agent_keystore_sss_se05x_init(iot_agent_keystore_t* keystore,
 	uint32_t identifier, ex_sss_boot_ctx_t* boot_context, bool is_session_open);
-
 
 iot_agent_status_t iot_agent_keystore_sss_se05x_destroy(void *context);
 
@@ -85,7 +81,5 @@ extern const iot_agent_keystore_interface_t iot_agent_keystore_sss_se05x_interfa
 /*!
 *@}
 */ /* end of edgelock2go_agent_keystore_se05x */
-
-#endif // #if NXP_IOT_AGENT_HAVE_SSS
 
 #endif // _NXP_IOT_AGENT_KEYSTORE_SSS_SE05X_H_

@@ -6,6 +6,7 @@
  */
 
 #include <nxp_iot_agent_keystore.h>
+#include <nxp_iot_agent_macros.h>
 
 iot_agent_status_t iot_agent_keystore_free(iot_agent_keystore_t* keystore)
 {

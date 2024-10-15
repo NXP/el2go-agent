@@ -1,11 +1,14 @@
 /*
- * Copyright 2020-2021 NXP
+ * Copyright 2020-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
  */
 #ifndef _NXP_IOT_AGENT_ENDPOINT_H_
 #define _NXP_IOT_AGENT_ENDPOINT_H_
+
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {

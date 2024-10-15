@@ -4,29 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <inttypes.h>
-
-#if !(defined(__ICCARM__) || defined(__CC_ARM) || defined(__ARMCC_VERSION))
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
-
 #include <iot_agent_demo_config.h>
-#include "iot_agent_osal.h"
+#include <iot_agent_osal.h>
 #include <nxp_iot_agent.h>
-#include <nxp_iot_agent_keystore_sss_se05x.h>
-#include <nxp_iot_agent_keystore_psa.h>
+#include <nxp_iot_agent_common.h>
+#include <nxp_iot_agent_keystore.h>
 #include <nxp_iot_agent_datastore_fs.h>
 #include <nxp_iot_agent_datastore_plain.h>
 #include <nxp_iot_agent_utils.h>
-#include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
 #include <nxp_iot_agent_time.h>
 
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <se05x_APDU.h>
+#include <ex_sss_boot.h>
+#include <nxp_iot_agent_keystore_sss_se05x.h>
 #endif
 
 #if IOT_AGENT_CLAIMCODE_INJECT_ENABLE
@@ -126,41 +118,12 @@ const PB_BYTES_ARRAY_T(AZURE_ROOT_SERVER_CERT_SIZE) azure_root_server_cert =
 { AZURE_ROOT_SERVER_CERT_SIZE, AZURE_ROOT_SERVER_CERT };
 #endif
 
-
-#if NXP_IOT_AGENT_HAVE_SSS
-static ex_sss_boot_ctx_t gex_sss_demo_boot_ctx;
-#endif
 iot_agent_status_t agent_start(int argc, const char* argv[]);
 
 int main(int argc, const char *argv[]) {
 
 	return iot_agent_osal_start_task(agent_start, argc, argv);
 }
-
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
-#include <errno.h>
-#include <smw_osal.h>
-
-iot_agent_status_t initialize_psa_ext_lib(void)
-{
-    int res;
-
-    res = smw_osal_lib_init();
-    if (res != SMW_STATUS_OK) {
-        IOT_AGENT_ERROR("SMW library initialization failed %d", res);
-    } else {
-        res = IOT_AGENT_SUCCESS;
-    }
-
-    return IOT_AGENT_SUCCESS;
-}
-
-#else
-iot_agent_status_t initialize_psa_ext_lib(void)
-{
-    return IOT_AGENT_SUCCESS;
-}
-#endif
 
 const char* update_status_report_description(nxp_iot_UpdateStatusReport_UpdateStatus status) {
 	switch (status) {
@@ -577,6 +540,9 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     iot_agent_context_t iot_agent_context = { 0 };
 
+	// Context including platform specific information
+    iot_agent_platform_context_t iot_agent_platform_context = { 0 };
+
 	// The datastore holding data to connect to EdgeLock 2GO cloud service.
 	// This right now is left empty. This implies that the agent will fall
 	// back to the configuration defined at compile time
@@ -601,17 +567,9 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 
     IOT_AGENT_INFO("Start");
 
-#if NXP_IOT_AGENT_HAVE_SSS
-	// Initialize and open a session to the secure element.
-	agent_status = iot_agent_session_init(argc, argv, &gex_sss_demo_boot_ctx);
+    agent_status = iot_agent_platform_init(argc, argv, &iot_agent_platform_context);
     AGENT_SUCCESS_OR_EXIT();
-#endif
 
-#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
-    _putenv("OPENSSL_CONF=openssl_conf_v102.cnf");
-    _putenv("JRCP_SERVER_SOCKET=127.0.0.1:8050");
-
-#endif
 #if IOT_AGENT_CLAIMCODE_INJECT_ENABLE
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
 	long claimcode_inject_time = 0;
@@ -619,8 +577,8 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
     initMeasurement(&iot_agent_claimcode_inject_time);
 #endif
 #if NXP_IOT_AGENT_HAVE_SSS
-	agent_status = iot_agent_claimcode_inject(&gex_sss_demo_boot_ctx, IOT_AGENT_CLAIMCODE_STRING, strlen(IOT_AGENT_CLAIMCODE_STRING));
-	AGENT_SUCCESS_OR_EXIT_MSG("Injecting claimcode failed");
+    agent_status = iot_agent_claimcode_inject((ex_sss_boot_ctx_t *)iot_agent_platform_context.ctx, IOT_AGENT_CLAIMCODE_STRING, strlen(IOT_AGENT_CLAIMCODE_STRING));
+    AGENT_SUCCESS_OR_EXIT_MSG("Injecting claimcode failed");
 #elif NXP_IOT_AGENT_HAVE_PSA
 #if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
     agent_status = iot_agent_claimcode_import();
@@ -638,40 +596,25 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 #endif  //IOT_AGENT_TIME_MEASUREMENT_ENABLE
 #endif  //IOT_AGENT_CLAIMCODE_INJECT_ENABLE
 
-    // doc: initialization of contexts - start
-    agent_status = iot_agent_init(&iot_agent_context);
-    AGENT_SUCCESS_OR_EXIT();
-
-		agent_status = initialize_psa_ext_lib();
-    AGENT_SUCCESS_OR_EXIT();
-
 	// print the uid of the device
 #if NXP_IOT_AGENT_HAVE_SSS
-	agent_status = iot_agent_print_uid((sss_se05x_session_t*)&gex_sss_demo_boot_ctx.session);
+	agent_status = iot_agent_print_uid((sss_se05x_session_t*)&((ex_sss_boot_ctx_t *)(iot_agent_platform_context.ctx))->session);
 #else
 	agent_status = iot_agent_print_uid();
 #endif
 	AGENT_SUCCESS_OR_EXIT();
 
+    // doc: initialization of contexts - start
+    agent_status = iot_agent_init(&iot_agent_context);
+    AGENT_SUCCESS_OR_EXIT();
+
     /************* Register keystore*************/
 
-#if NXP_IOT_AGENT_HAVE_SSS
-	agent_status = iot_agent_keystore_sss_se05x_init(&keystore, EDGELOCK2GO_KEYSTORE_ID, &gex_sss_demo_boot_ctx, true);
-	AGENT_SUCCESS_OR_EXIT();
+    agent_status = iot_agent_keystore_init(&keystore, EDGELOCK2GO_KEYSTORE_ID, &iot_agent_platform_context);
+    AGENT_SUCCESS_OR_EXIT();
 
 	agent_status = iot_agent_register_keystore(&iot_agent_context, &keystore);
-    AGENT_SUCCESS_OR_EXIT();
-#endif
-
-#if NXP_IOT_AGENT_HAVE_PSA
-
-    agent_status = iot_agent_keystore_psa_init(&keystore, EDGELOCK2GO_KEYSTORE_ID);
 	AGENT_SUCCESS_OR_EXIT();
-
-
-	agent_status = iot_agent_register_keystore(&iot_agent_context, &keystore);
-    AGENT_SUCCESS_OR_EXIT();
-#endif
 
     /************* Register datastore*************/
 

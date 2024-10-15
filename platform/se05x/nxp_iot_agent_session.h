@@ -1,5 +1,5 @@
 /* 
- * Copyright 2018-2023 NXP
+ * Copyright 2018-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -13,14 +13,10 @@
 #include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_utils.h>
 
-#if NXP_IOT_AGENT_HAVE_SSS
-
 #include <fsl_sss_api.h>
 #include <nxLog_App.h>
 #include <ex_sss_boot.h>
 #include <sm_types.h>
-
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,21 +32,6 @@ extern "C" {
  * @{
  */
 
-#if AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
-
-void iot_agent_session_bm(void);
-
-void iot_agent_session_boot_rtos_task(void);
-
-void iot_agent_session_led_success(void);
-
-void iot_agent_session_led_failure(void);
-
-void iot_agent_session_led_start(void);
-
-#endif
-
-#if NXP_IOT_AGENT_HAVE_SSS
 /**
  * Create an open a session with secure element
  *
@@ -86,7 +67,5 @@ void iot_agent_session_disconnect(ex_sss_boot_ctx_t * pSeBootCtx);
   /*!
   *@}
   */ /* end of edgelock2go_agent_session */
-
-#endif // NXP_IOT_AGENT_HAVE_SSS
 
 #endif // #ifndef _NXP_IOT_AGENT_SESSION_H_

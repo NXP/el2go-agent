@@ -6,28 +6,11 @@
  */
 
 #include <nxp_iot_agent_session.h>
-
-#if defined(FRDM_KW41Z) || defined(FRDM_K64F) || defined(IMX_RT) || \
-    defined(LPC_55x)
-#define HAVE_KSDK
-#endif
-
-#ifdef HAVE_KSDK
-#include "ex_sss_main_inc_ksdk.h"
-#endif
-
-// The TFM implementation comes with the NXP SDK which includes the app.h
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM && !defined(__ZEPHYR__)
-#include "app.h"
-#endif
-
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_service.h>
 #include <nxp_iot_agent_macros.h>
-
-#if NXP_IOT_AGENT_HAVE_SSS
 #include <fsl_sss_api.h>
-#include "ex_sss_ports.h"
+
 iot_agent_status_t iot_agent_session_connect(ex_sss_boot_ctx_t *pCtx)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
@@ -62,53 +45,7 @@ exit:
 void iot_agent_session_disconnect(ex_sss_boot_ctx_t *pCtx) {
     ex_sss_session_close(pCtx);
 }
-#endif //NXP_IOT_AGENT_HAVE_SSS
 
-#if AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
-void iot_agent_session_bm(void)
-{
-	// Initialization of the specific board
-#if NXP_IOT_AGENT_HAVE_SSS
-  	// In case the SSS library exist, initialization is happening there
-	ex_sss_main_ksdk_bm();
-#elif !defined(__ZEPHYR__)
-	BOARD_InitHardware();
-	// otherwise use the SDK functions to initialize it
-#endif //NXP_IOT_AGENT_HAVE_SSS
-}
-
-void iot_agent_session_boot_rtos_task(void)
-{
-#if NXP_IOT_AGENT_HAVE_SSS
-    ex_sss_main_ksdk_boot_rtos_task();
-#endif
-}
-
-void iot_agent_session_led_success(void)
-{
-#ifdef FRDM_K64F
-    ex_sss_main_ksdk_success();
-#endif //FRDM_K64F
-}
-
-void iot_agent_session_led_failure(void)
-{
-#ifdef FRDM_K64F
-    ex_sss_main_ksdk_failure();
-#endif //FRDM_K64F
-}
-
-void iot_agent_session_led_start(void)
-{
-#ifdef FRDM_K64F
-    LED_BLUE_ON();
-    LED_RED_OFF();
-    LED_GREEN_OFF();
-#endif //FRDM_K64F
-}
-#endif //AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
-
-#if NXP_IOT_AGENT_HAVE_SSS
 iot_agent_status_t iot_agent_session_init(int argc, const char *argv[], ex_sss_boot_ctx_t *pCtx)
 {
     sss_status_t sss_status;
@@ -153,4 +90,3 @@ exit:
     return agent_status;
 }
 
-#endif //NXP_IOT_AGENT_HAVE_SSS

@@ -7,9 +7,6 @@
 
 #include "nxp_iot_agent_keystore_psa.h"
 
-#if SSS_HAVE_MBEDTLS_ALT_PSA
-
-#include "nxp_iot_agent_session.h"
 #include "nxp_iot_agent_macros.h"
 #include "nxp_iot_agent_dispatcher.h"
 #include "nxp_iot_agent_time.h"
@@ -52,6 +49,13 @@ const iot_agent_keystore_interface_t iot_agent_keystore_psa_interface =
 		&iot_agent_keystore_psa_handle_request,
 	}
 };
+
+
+iot_agent_status_t iot_agent_keystore_init(iot_agent_keystore_t* keystore,
+	uint32_t identifier, iot_agent_platform_context_t* platform_context)
+{
+	return iot_agent_keystore_psa_init(keystore, identifier);
+}
 
 iot_agent_status_t iot_agent_keystore_psa_init(iot_agent_keystore_t* keystore,
 	uint32_t identifier)
@@ -295,5 +299,3 @@ exit:
     pb_release(nxp_iot_PsaResponse_fields, &response);
 	return result;
 }
-
-#endif // SSS_HAVE_MBEDTLS_ALT_PSA

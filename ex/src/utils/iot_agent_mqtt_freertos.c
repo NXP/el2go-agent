@@ -11,6 +11,7 @@
 
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <fsl_sss_api.h>
+#include <nxp_iot_agent_keystore_sss_se05x.h>
 #endif
 
 #include "core_mqtt_serializer.h"
@@ -43,7 +44,6 @@
 
 
 #if NXP_IOT_AGENT_HAVE_SSS
-#include <fsl_sss_api.h>
 static iot_agent_status_t associateKeyPair(mbedtls_pk_context *pk, sss_object_t* service_private_key,
         iot_agent_keystore_t* keystore, uint32_t key_id);
 
@@ -53,6 +53,7 @@ static iot_agent_status_t write_cert_to_keystore(iot_agent_keystore_t* keystore,
 static iot_agent_status_t pubSub(iot_agent_context_t* iot_agent_context,
 		const nxp_iot_ServiceDescriptor* service_descriptor);
 extern ex_sss_cloud_ctx_t *pex_sss_demo_tls_ctx;
+extern ex_sss_boot_ctx_t *pex_sss_demo_boot_ctx;
 #endif
 
 static iot_agent_status_t awsPubMqttMessage(const nxp_iot_ServiceDescriptor* service_descriptor);
@@ -178,11 +179,18 @@ static iot_agent_status_t pubSubCosOverRtp(iot_agent_context_t* iot_agent_contex
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
+
 #ifdef NXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT
+#if NXP_IOT_AGENT_HAVE_SSS
+	iot_agent_keystore_t* keystore = NULL;
+	uint32_t keystore_id = service_descriptor->client_key_sss_ref.endpoint_id;
+	agent_status = iot_agent_get_keystore_by_id(iot_agent_context, keystore_id, &keystore);
+	AGENT_SUCCESS_OR_EXIT();
+	pex_sss_demo_boot_ctx = ((iot_agent_keystore_sss_se05x_context_t*)keystore->context)->boot_context;
+#endif
 	key_id = (uint32_t) (service_descriptor->client_key_sss_ref.object_id);
 	cert_id = (uint32_t) (service_descriptor->client_certificate_sss_ref.object_id);
 #else
-
 	iot_agent_keystore_t* keystore = NULL;
 
 	uint32_t key_id = (uint32_t) (service_descriptor->client_key_sss_ref.object_id);
@@ -198,7 +206,7 @@ static iot_agent_status_t pubSubCosOverRtp(iot_agent_context_t* iot_agent_contex
 	agent_status = associateKeyPair(&pk, keystore, key_id);
 	AGENT_SUCCESS_OR_EXIT();
 
-	pex_sss_demo_tls_ctx->client_cert_index = cert_id;
+	pex_sss_demo_boot_ctx->client_cert_index = cert_id;
 #endif
 #if NXP_IOT_AGENT_HAVE_PSA
 	psa_iot_tls_context.keyId = key_id;
@@ -288,10 +296,14 @@ iot_agent_status_t write_cert_to_keystore(iot_agent_keystore_t* keystore,
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	sss_status_t sss_status = kStatus_SSS_Success;
 	sss_object_t service_cert = { 0 };
+	sss_key_store_t* sss_keystore = NULL;
 
 	pex_sss_demo_tls_ctx->client_cert_index = cert_id;
 
-    sss_status = sss_key_object_init(&service_cert, keystore->sss_context);
+	agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_keystore);
+	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);
+
+    sss_status = sss_key_object_init(&service_cert, sss_keystore);
     SSS_SUCCESS_OR_EXIT_MSG("sss_key_object_init for keyPair failed with 0x%08x", sss_status)
 
     size_t cert_size = service_descriptor->client_certificate->size;
@@ -306,11 +318,11 @@ iot_agent_status_t write_cert_to_keystore(iot_agent_keystore_t* keystore,
     }
     else
     {
-    	sss_status = sss_key_store_erase_key(keystore->sss_context, &service_cert);
+    	sss_status = sss_key_store_erase_key(sss_keystore, &service_cert);
     	SSS_SUCCESS_OR_EXIT_MSG("sss_key_store_erase_key failed with 0x%08x.", sss_status);
     }
 
-    sss_status = sss_key_store_set_key(keystore->sss_context, &service_cert, cert_data, cert_size,
+    sss_status = sss_key_store_set_key(sss_keystore, &service_cert, cert_data, cert_size,
     		cert_size * 8, NULL, 0);
 	SSS_SUCCESS_OR_EXIT_MSG("sss_key_store_set_key failed with 0x%08x.", sss_status);
 exit:
@@ -322,11 +334,15 @@ iot_agent_status_t associateKeyPair(mbedtls_pk_context *pk, sss_object_t* servic
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	sss_status_t sss_status = kStatus_SSS_Success;
+	sss_key_store_t* sss_keystore = NULL;
 	int ret;
 
     pex_sss_demo_tls_ctx->client_keyPair_index = key_id;
 
-    sss_status = sss_key_object_init(service_private_key, keystore->sss_context);
+    agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_keystore);
+	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);
+
+    sss_status = sss_key_object_init(service_private_key, sss_keystore);
 	SSS_SUCCESS_OR_EXIT_MSG("sss_key_object_init failed with 0x%08x.", sss_status);
 
     sss_status = sss_key_object_get_handle(service_private_key, key_id);
@@ -1300,11 +1316,7 @@ static iot_agent_status_t azurePubMqttMessage(const nxp_iot_ServiceDescriptor* s
 #if (NXP_IOT_AGENT_HAVE_PSA == 0)
 static void iot_agent_convert_id_to_label(char* label, size_t label_size, uint32_t id) {
     memset(label, 0, label_size);
-    uint32_t sss_keyId = (uint32_t)((((id >> (8 * 0)) & 0x000000FF) << (8 * 3)) |
-                            (((id >> (8 * 1)) & 0x000000FF) << (8 * 2)) |
-                            (((id >> (8 * 2)) & 0x000000FF) << (8 * 1)) |
-                            (((id >> (8 * 3)) & 0x000000FF) << (8 * 0)));
-    snprintf(label, label_size, "sss:%08lx", sss_keyId);
+    snprintf(label, label_size, "sss:%08lx", id);
 }
 #endif // NXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT
 #endif // (NXP_IOT_AGENT_HAVE_PSA == 0)

@@ -48,12 +48,14 @@
 #endif
 
 #include <nxp_iot_agent_utils.h>
-#include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
 #include <nxp_iot_agent_datastore.h>
 #include <nxp_iot_agent_endpoint.h>
 #include <nxp_iot_agent_time.h>
+#if NXP_IOT_AGENT_HAVE_SSS
 #include <nxp_iot_agent_keystore_sss_se05x.h>
+#include <nxp_iot_agent_session.h>
+#endif
 
 #define IOT_AGENT_VERSION_MAJOR (1U)
 #define IOT_AGENT_VERSION_MINOR (0U)

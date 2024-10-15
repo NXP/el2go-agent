@@ -176,9 +176,24 @@ ENDIF()
 IF(SSS_HAVE_APPLET_SE05X_IOT)
     PROJECT(remote_provisioning_client)
 
-   ADD_EXECUTABLE(${PROJECT_NAME}
+    FILE(
+        GLOB
+        iot_agent_remote_prov_client_files
         apps/remote_provisioning_client.c
     )
+
+    IF((SSS_HAVE_HOST_EVKMIMXRT1060) OR (SSS_HAVE_HOST_EVKMIMXRT1170)
+        OR (SSS_HAVE_HOST_FRDMK64F) OR (SSS_HAVE_HOST_LPCXPRESSO55S))
+        LIST(APPEND iot_agent_remote_prov_client_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/freertos/iot_agent_osal_freertos.c)
+        LIST(APPEND iot_agent_remote_prov_client_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/freertos/iot_agent_osal_freertos.h)
+    ENDIF()
+
+    ADD_EXECUTABLE(${PROJECT_NAME} ${iot_agent_remote_prov_client_files})
+
+   IF((SSS_HAVE_HOST_EVKMIMXRT1060) OR (SSS_HAVE_HOST_EVKMIMXRT1170)
+      OR (SSS_HAVE_HOST_FRDMK64F) OR (SSS_HAVE_HOST_LPCXPRESSO55S))
+      TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/osal/freertos/)
+    ENDIF()
 
     TARGET_LINK_LIBRARIES(
         ${PROJECT_NAME}
@@ -186,7 +201,7 @@ IF(SSS_HAVE_APPLET_SE05X_IOT)
         rtp_client
         nxp_iot_agent
     )
-
+    
     CREATE_BINARY(${PROJECT_NAME})
 ENDIF()
 
@@ -337,6 +352,8 @@ IF(NXPInternal)
 				apps/remote_runner_server.c
 				network/iot_agent_network_lwip.c
 				utils/iot_agent_mqtt_freertos.c
+				osal/freertos/iot_agent_osal_freertos.c
+				osal/freertos/iot_agent_osal_freertos.h
 			)
 			add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
 		ENDIF()
@@ -349,6 +366,8 @@ IF(NXPInternal)
 				network/iot_agent_network_lpc_mwm.c
 				utils/iot_agent_mqtt_freertos.c
 				utils/serial_mwm_server.c
+				osal/freertos/iot_agent_osal_freertos.c
+				osal/freertos/iot_agent_osal_freertos.h
 			)
 			add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
 		ENDIF()
@@ -420,6 +439,11 @@ IF(NXPInternal)
 			${PROJECT_NAME}
 			PRIVATE PB_FIELD_32BIT
 		)
+
+		IF((SSS_HAVE_HOST_EVKMIMXRT1060) OR (SSS_HAVE_HOST_EVKMIMXRT1170)
+			OR (SSS_HAVE_HOST_FRDMK64F) OR (SSS_HAVE_HOST_LPCXPRESSO55S))
+			TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/osal/freertos/)
+		ENDIF()
 
 		CREATE_BINARY(${PROJECT_NAME})
 	ENDIF()

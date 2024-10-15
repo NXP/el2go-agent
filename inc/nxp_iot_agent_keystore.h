@@ -10,11 +10,9 @@
 #ifndef _NXP_IOT_AGENT_KEYSTORE_H_
 #define _NXP_IOT_AGENT_KEYSTORE_H_
 
-#include <nxp_iot_agent_common.h>
+#include <nxp_iot_agent_status.h>
 #include <nxp_iot_agent_endpoint.h>
-#if NXP_IOT_AGENT_HAVE_SSS
-#include <fsl_sss_api.h>
-#endif
+#include <nxp_iot_agent_platform.h>
 
 /*!@defgroup edgelock2go_agent_keystore EdgeLock 2GO agent keystore functionality.
  * @ingroup edgelock2go_agent
@@ -27,12 +25,6 @@
  * @addtogroup edgelock2go_agent_keystore
  * @{
  */
-
-
-typedef struct pb_istream_s pb_istream_t;
-typedef struct pb_ostream_s pb_ostream_t;
-typedef struct pb_field_s pb_field_t;
-
 
 typedef iot_agent_status_t(*iot_agent_keystore_destroyer_t)(
 	void* context);
@@ -64,12 +56,21 @@ typedef struct iot_agent_keystore_t
 	iot_agent_keystore_interface_t iface;
 	uint32_t type;
 	uint32_t identifier;
-#if NXP_IOT_AGENT_HAVE_SSS
-	sss_key_store_t* sss_context;
-#endif
 	void* context;
 } iot_agent_keystore_t;
 
+
+/** @brief Initialize an Agent keystore.
+ *
+ * The Agent keystore; internally executes all the necessary operations which
+ * allows the specific keystore to be initializes as for example openining a SE5x session
+ * with the secure element if necessary
+ *
+ * If the function does not return IOT_AGENT_SUCCESS, it can be assumed that
+ * no memory was allocated. The datastore is unusable.
+ */
+iot_agent_status_t iot_agent_keystore_init(iot_agent_keystore_t* keystore,
+	uint32_t identifier, iot_agent_platform_context_t* platform_context);
 
 /** @brief Destroy the keystore.
  *

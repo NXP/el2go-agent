@@ -5,13 +5,12 @@
  *
  */
 
+#include <nxp_iot_agent_keystore.h>
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 #include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
 #include <nxp_iot_agent_dispatcher.h>
 #include <nxp_iot_agent_time.h>
-
-#if NXP_IOT_AGENT_HAVE_SSS
 
 #include <nxp_iot_agent_utils_protobuf.h>
 
@@ -30,7 +29,6 @@
 #define IOT_AGENT_KEYSTORE_SSS_SE05x_VERSION (((IOT_AGENT_KEYSTORE_SSS_SE05x_VERSION_MAJOR * 256U) \
 		+ IOT_AGENT_KEYSTORE_SSS_SE05x_VERSION_MINOR) * 256U + IOT_AGENT_KEYSTORE_SSS_SE05x_VERSION_PATCH)
 
-
 const iot_agent_keystore_interface_t iot_agent_keystore_sss_se05x_interface =
 {
 	&iot_agent_keystore_sss_se05x_destroy,
@@ -42,6 +40,17 @@ const iot_agent_keystore_interface_t iot_agent_keystore_sss_se05x_interface =
 	}
 };
 
+iot_agent_status_t iot_agent_keystore_init(iot_agent_keystore_t* keystore,
+	uint32_t identifier, iot_agent_platform_context_t* platform_context)
+{
+	return iot_agent_keystore_sss_se05x_init(keystore, identifier, (ex_sss_boot_ctx_t*)platform_context->ctx, true);
+}
+
+//iot_agent_status_t iot_agent_keystore_init(iot_agent_keystore_t* keystore,
+//	uint32_t identifier, iot_agent_platform_context_t* platform_context)
+//{
+//	return iot_agent_keystore_sss_se05x_init(keystore, identifier, (ex_sss_boot_ctx_t*)platform_context->ctx, true);
+//}
 
 iot_agent_status_t iot_agent_keystore_sss_se05x_init(iot_agent_keystore_t* keystore,
 	uint32_t identifier, ex_sss_boot_ctx_t* boot_context, bool is_session_open)
@@ -220,6 +229,3 @@ iot_agent_status_t iot_agent_keystore_sss_se05x_get_sss_key_store(iot_agent_keys
 exit:
 	return agent_status;
 }
-
-
-#endif // NXP_IOT_AGENT_HAVE_SSS

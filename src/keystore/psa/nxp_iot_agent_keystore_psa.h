@@ -12,8 +12,6 @@
 #include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_keystore.h>
 
-#if SSS_HAVE_MBEDTLS_ALT_PSA
-
  /*! @defgroup edgelock2go_agent_keystore_psa related keystore functionality
  * @ingroup edgelock2go_agent_keystore
  *
@@ -29,7 +27,6 @@ typedef struct iot_agent_keystore_psa_context_t
 	uint32_t dummy;
 } iot_agent_keystore_psa_context_t;
 
-
 /** @brief Initialize a psa keystore.
  *
  * The init function does allocate memory for the context. To free it, use
@@ -40,7 +37,6 @@ typedef struct iot_agent_keystore_psa_context_t
  */
 iot_agent_status_t iot_agent_keystore_psa_init(iot_agent_keystore_t* keystore,
 	uint32_t identifier);
-
 
 iot_agent_status_t iot_agent_keystore_psa_destroy(void *context);
 
@@ -69,7 +65,5 @@ extern const iot_agent_keystore_interface_t iot_agent_keystore_psa_interface;
 /*!
 *@}
 */ /* end of edgelock2go_agent_keystore_psa */
-
-#endif // SSS_HAVE_MBEDTLS_ALT_PSA
 
 #endif // _NXP_IOT_AGENT_KEYSTORE_PSA_H_

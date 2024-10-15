@@ -5,15 +5,12 @@
  *
  */
 // Includes for all the builds
-#include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <inttypes.h>
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_utils.h>
-#include <nxp_iot_agent_session.h>
-#include <nxp_iot_agent_keystore_sss_se05x.h>
-#include <nxp_iot_agent_keystore_psa.h>
+#include <nxp_iot_agent_keystore.h>
 #include <nxp_iot_agent_datastore_fs.h>
 #include <nxp_iot_agent_datastore_plain.h>
 #include <nxp_iot_agent_macros.h>
@@ -29,13 +26,17 @@
 #include "pb_decode.h"
 
 #if SSS_HAVE_APPLET_SE05X_IOT
+#include <nxp_iot_agent_keystore_sss_se05x.h>
+#include <nxp_iot_agent_session.h>
 #include <fsl_sss_se05x_apis.h>
 #include <se05x_APDU_apis.h>
 #include <se05x_ecc_curves.h>
 #include <smCom.h>
 #include "sm_apdu.h"
+#include <ex_sss_boot.h>
 #endif
 #if NXP_IOT_AGENT_HAVE_PSA
+#include <nxp_iot_agent_keystore_psa.h>
 #include "psa_init_utils.h"
 #include <psa/crypto.h>
 #endif
@@ -77,8 +78,7 @@
 #include "serial_mwm_server.h"
 #endif
 #include <iot_agent_network.h>
-static ex_sss_cloud_ctx_t gex_sss_demo_tls_ctx;
-ex_sss_cloud_ctx_t *pex_sss_demo_tls_ctx = &gex_sss_demo_tls_ctx;
+#include <iot_agent_osal_freertos.h>
 #endif
 
 #if SSS_HAVE_HOSTCRYPTO_MBEDTLS
@@ -189,13 +189,9 @@ ex_sss_cloud_ctx_t *pex_sss_demo_tls_ctx = &gex_sss_demo_tls_ctx;
 #if NXP_IOT_AGENT_HAVE_SSS
 // global variables declaration
 static ex_sss_boot_ctx_t gex_sss_boot_ctx;
-// Note, while this variable is not used here, code in simw-top/sss/plugin/pkcs11/aws_pkcs11_pal.c depends on that
-// being available.
-ex_sss_boot_ctx_t *pex_sss_demo_boot_ctx = &gex_sss_boot_ctx;
-iot_agent_status_t remote_runner_start(int argc, const char *argv[], ex_sss_boot_ctx_t *pCtx);
-#else
+#endif
+
 iot_agent_status_t remote_runner_start(int argc, const char *argv[]);
-#endif //NXP_IOT_AGENT_HAVE_SSS
 
 const char * gszEdgeLock2GoDatastoreFilename = "edgelock2go_datastore.bin";
 const char * gszDatastoreFilename = "datastore.bin";
@@ -877,7 +873,7 @@ static iot_agent_status_t execute_factory_reset(ex_sss_boot_ctx_t *pCtx)
 
 	sw_status = Se05x_API_CheckObjectExists(pSe05xSession, kSE05x_AppletResID_FACTORY_RESET, &objExists);
 	if (sw_status == SM_OK && objExists == kSE05x_Result_SUCCESS) {
-		LOG_W("kSE05x_AppletResID_FACTORY_RESET Object already exists");
+		IOT_AGENT_WARN("kSE05x_AppletResID_FACTORY_RESET Object already exists");
 	}
 	else if (sw_status == SM_OK && objExists == kSE05x_Result_FAILURE) {
 		sw_status = Se05x_API_WriteUserID(pSe05xSession,
@@ -2296,19 +2292,19 @@ void remote_runner_start_task(void *args)
 
     for (;;)
     {
-        iot_agent_session_led_start();
+		iot_agent_freertos_led_start();
 
         cli_arguments_t* a = args;
-        agent_status = remote_runner_start(a->c, a->v, &gex_sss_boot_ctx);
+        agent_status = remote_runner_start(a->c, a->v);
 
-        if (agent_status == IOT_AGENT_SUCCESS)
-        {
-            iot_agent_session_led_success();
-        }
-        else
-        {
-            iot_agent_session_led_failure();
-        }
+		if (agent_status == IOT_AGENT_SUCCESS)
+		{
+			iot_agent_freertos_led_success();
+		}
+		else
+		{
+			iot_agent_freertos_led_failure();
+		}
 
         vTaskDelay(xDelay);
     }
@@ -2320,7 +2316,7 @@ int main(int argc, const char *argv[])
 {
 #if AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
 
-	iot_agent_session_bm();
+	iot_agent_freertos_bm();
 
 	cli_arguments_t args;
     args.c = argc;
@@ -2342,27 +2338,18 @@ int main(int argc, const char *argv[])
 
     return 1;
 #else
-#if NXP_IOT_AGENT_HAVE_SSS
-    return remote_runner_start(argc, argv, &gex_sss_boot_ctx);
-#else
 	return remote_runner_start(argc, argv);
-#endif //NXP_IOT_AGENT_HAVE_SSS
 #endif
 }
 
 // The Remote Runner Server is able to receive commands from a Remote Runner client and
 // control the NXP Iot Agent Demo application
-#if NXP_IOT_AGENT_HAVE_SSS
-iot_agent_status_t remote_runner_start(int argc, const char *argv[], ex_sss_boot_ctx_t *pCtx)
-{
-#else
 iot_agent_status_t remote_runner_start(int argc, const char *argv[])
 {
-#endif //NXP_IOT_AGENT_HAVE_SSS
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
 #if NXP_IOT_AGENT_HAVE_SSS
-    agent_status = iot_agent_session_init(argc, argv, pCtx);
+    agent_status = iot_agent_session_init(argc, argv, &gex_sss_boot_ctx);
 	if (agent_status != IOT_AGENT_SUCCESS)
 	{
 		IOT_AGENT_ERROR("Critical error: restart the Remote Runner\n");

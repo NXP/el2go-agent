@@ -1,4 +1,4 @@
-/* Copyright 2020-2021 NXP
+/* Copyright 2020-2021,2024 NXP
 *
 * SPDX-License-Identifier: Apache-2.0
 */
@@ -14,23 +14,17 @@
 #endif
 
 #include <nxp_iot_agent.h>
-#include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
 #include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_datastore_fs.h>
-#include <nxp_iot_agent_keystore_sss_se05x.h>
-#include <nxp_iot_agent_keystore_psa.h>
+#include <nxp_iot_agent_keystore.h>
+#include <nxp_iot_agent_platform.h>
 
 #if SSS_HAVE_HOSTCRYPTO_OPENSSL
 #include <openssl/pem.h>
 #elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
 #include <mbedtls/x509_crt.h>
 #endif
-
-#if NXP_IOT_AGENT_HAVE_SSS
-static ex_sss_boot_ctx_t gex_sss_boot_ctx;
-#endif
-
 
 const char * gszEdgeLock2GoDatastoreFilename = "edgelock2go_datastore.bin";
 
@@ -39,7 +33,7 @@ static void print_usage()
 {
 	printf("Fill a datastore_fs with one service descriptor assembled from commandline parameters:\n");
 	printf("usage: \n");
-#if IOT_AGENT_HAVE_SSS
+#if NXP_IOT_AGENT_HAVE_SSS
 	printf("       nxp_iot_agent_fill_datastore [HOST] [PORT] [CA_FILE] [FILE KEYSTORE_ID] [SSS_CONNECTSTRING]\n");
 #else
 	printf("       nxp_iot_agent_fill_datastore [HOST] [PORT] [CA_FILE] [FILE KEYSTORE_ID]\n");
@@ -62,7 +56,7 @@ static void print_usage()
 	printf("    KEYSTORE_ID: The keystore id as it is registered in the agent.\n");
 	printf("        If omitted, 0x%08xx is used.\n", EDGELOCK2GO_KEYSTORE_ID);
 	printf("\n");
-#if IOT_AGENT_HAVE_SSS
+#if NXP_IOT_AGENT_HAVE_SSS
 	printf("    SSS_CONNECTSTRING: The string to connect to the SSS keystore (JRCP_HOSTNAME, JRCP_PORT \n");
 	printf("        or VCOM number). The tool will try to find the objectid for key and\n");
 	printf("        client certificate on the SSS keystore (ECC preferred, else RSA).\n");
@@ -177,6 +171,7 @@ int main(int argc, const char *argv[])
 	const char* client_cert_file = NULL;
 	const char* datastore_file = gszEdgeLock2GoDatastoreFilename;
 	uint32_t keystore_id = EDGELOCK2GO_KEYSTORE_ID;
+	iot_agent_platform_context_t platform_context = { 0 };
 
 	pb_bytes_array_t* root_certificates = NULL;
 	const pb_bytes_array_t* root_certificates_ref = iot_agent_trusted_root_ca_certificates;
@@ -217,13 +212,16 @@ int main(int argc, const char *argv[])
 
 #if NXP_IOT_AGENT_HAVE_SSS
 	if (strcmp("-", argv[7]) != 0) {
-		agent_status = iot_agent_session_init(argc, argv, &gex_sss_boot_ctx);
+		agent_status = iot_agent_platform_init(argc, argv, &platform_context);
 		AGENT_SUCCESS_OR_EXIT();
 	}
 	else {
-		agent_status = iot_agent_session_init(0, NULL, &gex_sss_boot_ctx);
+		agent_status = iot_agent_platform_init(0, NULL, &platform_context);
 		AGENT_SUCCESS_OR_EXIT();
-}
+	}
+#else
+	agent_status = iot_agent_platform_init(0, NULL, &platform_context);
+	AGENT_SUCCESS_OR_EXIT();
 #endif
 
 	printf("hostname:         %s\n", hostname);
@@ -237,13 +235,8 @@ int main(int argc, const char *argv[])
 	agent_status = iot_agent_datastore_fs_init(&datastore, 0U, datastore_file, &iot_agent_service_is_configuration_data_valid);
 	AGENT_SUCCESS_OR_EXIT();
 
-#if SSS_HAVE_MBEDTLS_ALT_SSS
-	agent_status = iot_agent_keystore_sss_se05x_init(&keystore, keystore_id, &gex_sss_boot_ctx, true);
+	agent_status = iot_agent_keystore_init(&keystore, keystore_id, &platform_context);
 	AGENT_SUCCESS_OR_EXIT();
-#elif SSS_HAVE_MBEDTLS_ALT_PSA
-	agent_status = iot_agent_keystore_psa_init(&keystore, keystore_id);
-	AGENT_SUCCESS_OR_EXIT();
-#endif
 
 	if (ca_file != NULL) {
 		agent_status = iot_agent_read_certificates(ca_file, &root_certificates);
