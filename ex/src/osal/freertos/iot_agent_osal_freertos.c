@@ -15,8 +15,25 @@
 #include "nxp_iot_agent_log.h"
 #include "nxp_iot_agent_status.h"
 #include "nxp_iot_agent_macros.h"
-#include "nxp_iot_agent_session.h"
 #include "nxp_iot_agent_time.h"
+
+#if NXP_IOT_AGENT_HAVE_SSS
+#include <nxLog_App.h>
+#endif
+
+#if defined(FRDM_KW41Z) || defined(FRDM_K64F) || defined(IMX_RT) || \
+    defined(LPC_55x)
+#define HAVE_KSDK
+#endif
+
+#ifdef HAVE_KSDK
+#include "ex_sss_main_inc_ksdk.h"
+#endif
+
+// The TFM implementation comes with the NXP SDK which includes the app.h
+#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM && !defined(__ZEPHYR__)
+#include "app.h"
+#endif
 
 #define EX_SSS_BOOT_RTOS_STACK_SIZE (1024*8)
 
@@ -38,6 +55,45 @@ typedef struct agent_start_task_ags
 
 agent_start_task_args_t agent_start_args;
 
+void iot_agent_freertos_bm(void)
+{
+#if NXP_IOT_AGENT_HAVE_SSS
+	ex_sss_main_ksdk_bm();
+#else
+	BOARD_InitHardware();
+#endif
+}
+
+void iot_agent_freertos_boot_rtos_task(void)
+{
+#if NXP_IOT_AGENT_HAVE_SSS
+    ex_sss_main_ksdk_boot_rtos_task();
+#endif
+}
+
+void iot_agent_freertos_led_success(void)
+{
+#ifdef FRDM_K64F
+    ex_sss_main_ksdk_success();
+#endif
+}
+
+void iot_agent_freertos_led_failure(void)
+{
+#ifdef FRDM_K64F
+    ex_sss_main_ksdk_failure();
+#endif
+}
+
+void iot_agent_freertos_led_start(void)
+{
+#ifdef FRDM_K64F
+    LED_BLUE_ON();
+    LED_RED_OFF();
+    LED_GREEN_OFF();
+#endif
+}
+
 static void agent_start_task_in_loop(void *args) {
 
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
@@ -47,7 +103,7 @@ static void agent_start_task_in_loop(void *args) {
 	initMeasurement(&iot_agent_demo_boot_time);
 #endif
 
-	iot_agent_session_boot_rtos_task();
+	iot_agent_freertos_boot_rtos_task();
 
 #if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
 #ifdef NXP_IOT_AGENT_ENABLE_LITE
@@ -69,7 +125,7 @@ static void agent_start_task_in_loop(void *args) {
 
 	for (;;)
 	{
-		iot_agent_session_led_start();
+		iot_agent_freertos_led_start();
 
 		agent_start_task_args_t* a = args;
 
@@ -77,11 +133,11 @@ static void agent_start_task_in_loop(void *args) {
 
 		if (agent_status == IOT_AGENT_SUCCESS)
 		{
-			iot_agent_session_led_success();
+			iot_agent_freertos_led_success();
 		}
 		else
 		{
-			iot_agent_session_led_failure();
+			iot_agent_freertos_led_failure();
 		}
 
 		vTaskDelay(xDelay);
@@ -94,7 +150,8 @@ exit:
 
 iot_agent_status_t iot_agent_osal_start_task(agent_start_task_t agent_start_task, int argc, const char* argv[])
 {
-	iot_agent_session_bm();
+	iot_agent_freertos_bm();
+
 	agent_start_args.agent_start_task = agent_start_task;
 	agent_start_args.c = argc;
 	agent_start_args.v = argv;

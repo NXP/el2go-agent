@@ -13,7 +13,7 @@ target_sources(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/ex/src/utils/iot_agent_claimcode_import.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/ex/src/utils/iot_agent_mqtt_zephyr.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/ex/src/utils/mbedtls_psa/iot_agent_psa_sign_test.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/ex/src/osal/iot_agent_osal_zephyr.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/ex/src/osal/zephyr/iot_agent_osal_zephyr.c
 )
 
 zephyr_include_directories(

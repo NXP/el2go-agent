@@ -77,18 +77,24 @@ ENDIF()
 
 # Register the corresponding OSAL files
 IF(SSS_HAVE_HOST_PCWINDOWS)
-  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/iot_agent_osal_win.c)
-ELSEIF((SSS_HAVE_HOST_PCLINUX) OR (SSS_HAVE_HOST_IMXLINUX))
-  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/iot_agent_osal_linux.c)
+  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/win/iot_agent_osal_win.c)
+ELSEIF((SSS_HAVE_HOST_PCLINUX) OR (SSS_HAVE_HOST_IMXLINUX) OR (NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW))
+  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/linux/iot_agent_osal_linux.c)
 ELSEIF((SSS_HAVE_HOST_EVKMIMXRT1060) OR (SSS_HAVE_HOST_EVKMIMXRT1170)
   OR (SSS_HAVE_HOST_FRDMK64F) OR (SSS_HAVE_HOST_LPCXPRESSO55S))
-  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/iot_agent_osal_freertos.c)
+  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/freertos/iot_agent_osal_freertos.c)
+  LIST(APPEND iot_agent_demo_files ${CMAKE_CURRENT_SOURCE_DIR}/osal/freertos/iot_agent_osal_freertos.h)
 ENDIF()
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${KSDK_STARTUP_FILE}
     ${iot_agent_demo_files}
     ${iot_agent_demo_port_files}
 )
+
+IF((SSS_HAVE_HOST_EVKMIMXRT1060) OR (SSS_HAVE_HOST_EVKMIMXRT1170)
+  OR (SSS_HAVE_HOST_FRDMK64F) OR (SSS_HAVE_HOST_LPCXPRESSO55S))
+  TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/osal/)
+ENDIF()
 
 IF(BUILD_SHARED_LIBS)
     IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)

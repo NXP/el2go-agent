@@ -11,7 +11,6 @@
 #include "nxp_iot_agent_log.h"
 #include "nxp_iot_agent_status.h"
 #include "nxp_iot_agent_macros.h"
-#include "nxp_iot_agent_session.h"
 #include "nxp_iot_agent_time.h"
 
 #define EX_SSS_BOOT_RTOS_STACK_SIZE (1024*32)
@@ -45,8 +44,6 @@ static void agent_start_task_in_loop(void *args, void*, void*){
     initMeasurement(&iot_agent_demo_boot_time);
 #endif
 
-    iot_agent_session_boot_rtos_task();
-
 #if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
 #ifdef NXP_IOT_AGENT_ENABLE_LITE
 	config_mbedtls_threading_alt();
@@ -67,20 +64,9 @@ static void agent_start_task_in_loop(void *args, void*, void*){
 
 	for (;;)
 	{
-		iot_agent_session_led_start();
-
 		agent_start_task_args_t* a = args;
 
 		agent_status = a->agent_start_task(a->c, a->v);
-
-		if (agent_status == IOT_AGENT_SUCCESS)
-		{
-			iot_agent_session_led_success();
-		}
-		else
-		{
-			iot_agent_session_led_failure();
-		}
 
 		k_sleep(delay);
 
@@ -92,7 +78,7 @@ exit:
 
 iot_agent_status_t iot_agent_osal_start_task(agent_start_task_t agent_start_task, int argc, const char* argv[])
 {
-	iot_agent_session_bm();
+	
 	agent_start_args.agent_start_task = agent_start_task;
 	agent_start_args.c = argc;
 	agent_start_args.v = argv;
