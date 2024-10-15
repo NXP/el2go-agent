@@ -17,8 +17,8 @@ if(CONFIG_EL2GO_COMMON)
 
     if(CONFIG_EL2GO_AGENT_LIBRARY_SOURCES)
         target_sources(app PRIVATE
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/mbedtls/net_zephyr.c
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/mbedtls/network_mbedtls.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls/net_zephyr.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls/network_mbedtls.c
         )
 
         target_sources(app PRIVATE
@@ -58,15 +58,15 @@ if(CONFIG_EL2GO_COMMON)
         )
 
         target_include_directories(app PRIVATE
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/mbedtls
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf
         )
     elseif(CONFIG_EL2GO_MQTT_LIBRARY_SOURCES)
         target_sources(app PRIVATE
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/mbedtls/net_zephyr.c
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/mbedtls/network_mbedtls.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls/net_zephyr.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls/network_mbedtls.c
         )
 
         target_sources(app PRIVATE
@@ -76,8 +76,8 @@ if(CONFIG_EL2GO_COMMON)
         )
 
         target_include_directories(app PRIVATE
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/mbedtls
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf
         )
     endif()

@@ -52,9 +52,9 @@ IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
     FILE(
     GLOB
         NXP_IOT_AGENT_OPENSSL_FILES
-        platform/openssl/*.h
-        platform/openssl/*.h.in
-        platform/openssl/*.c
+        net_crypto/openssl/*.h
+        net_crypto/openssl/*.h.in
+        net_crypto/openssl/*.c
     )
 
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ${NXP_IOT_AGENT_OPENSSL_FILES})
@@ -64,8 +64,8 @@ IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS)
     FILE(
     GLOB
         NXP_IOT_AGENT_MBEDTLS_FILES
-        platform/mbedtls/network_mbedtls.h
-        platform/mbedtls/network_mbedtls.c
+        net_crypto/mbedtls/network_mbedtls.h
+        net_crypto/mbedtls/network_mbedtls.c
     )
 
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ${NXP_IOT_AGENT_MBEDTLS_FILES})
@@ -75,7 +75,7 @@ IF(SSS_HAVE_HOST_FRDMK64F OR SSS_HAVE_HOST_EVKMIMXRT1060 OR SSS_HAVE_HOST_EVKMIM
     FILE(
     GLOB
     NXP_IOT_AGENT_PORT_FILES
-    platform/mbedtls/net_lwip.c
+    net_crypto/mbedtls/net_lwip.c
     )
 
     SET(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ${NXP_IOT_AGENT_PORT_FILES})
@@ -85,7 +85,7 @@ IF(SSS_HAVE_HOST_LPCXPRESSO55S)
     FILE(
     GLOB
     NXP_IOT_AGENT_PORT_FILES
-    platform/mbedtls/net_lpc_mwm.c
+    net_crypto/mbedtls/net_lpc_mwm.c
     )
 
     SET(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ${NXP_IOT_AGENT_PORT_FILES})
@@ -194,7 +194,7 @@ IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
 
     TARGET_INCLUDE_DIRECTORIES(
     nxp_iot_agent
-    PUBLIC platform/openssl
+    PUBLIC net_crypto/openssl
     )
 
     TARGET_COMPILE_DEFINITIONS(nxp_iot_agent PRIVATE OPENSSL_LOAD_CONF)
@@ -208,7 +208,7 @@ IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS)
 
     TARGET_INCLUDE_DIRECTORIES(
     nxp_iot_agent
-    PUBLIC platform/mbedtls
+    PUBLIC net_crypto/mbedtls
     )
 
 ENDIF()

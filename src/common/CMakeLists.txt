@@ -38,7 +38,7 @@ TARGET_COMPILE_DEFINITIONS(
 TARGET_INCLUDE_DIRECTORIES(
     nxp_iot_agent_common
     PUBLIC ../../inc
-    PUBLIC ../../platform
+    PUBLIC ../../net_crypto
     PUBLIC ../../src/protobuf
     PUBLIC ../../../semslite/lib/inc
 )
