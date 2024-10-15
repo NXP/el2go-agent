@@ -19,9 +19,9 @@ IF(SSS_HAVE_HOST_PCWINDOWS)
     FILE(
         GLOB
             NXP_IOT_AGENT_WINDOWS_FILES
-            ../../platform/windows/*.h
-            ../../platform/windows/*.h.in
-            ../../platform/windows/*.c
+            ../../src/osal/win/*.h
+            ../../src/osal/win/*.h.in
+            ../../src/osal/win/*.c
     )
 
     set(NXP_IOT_AGENT_COMMON_FILES ${NXP_IOT_AGENT_COMMON_FILES} ${NXP_IOT_AGENT_WINDOWS_FILES})
@@ -82,7 +82,7 @@ ENDIF()
 IF(SSS_HAVE_HOST_PCWINDOWS OR SSS_HAVE_HOST_WIN10IOT)
     TARGET_INCLUDE_DIRECTORIES(
         nxp_iot_agent_common
-        PUBLIC ../../platform/windows
+        PUBLIC ../../src/osal/win
     )
 ENDIF()
 
