@@ -19,10 +19,16 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.sss)
     mcux_add_source(
         SOURCES ex/inc/iot_agent_claimcode_inject.h
                 ex/src/utils/iot_agent_claimcode_inject.c
+                platform/se05x/*.c
+                platform/se05x/*.h
+                src/keystore/sss/*.c
+                src/keystore/sss/*.h
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
     mcux_add_include(
         INCLUDES ex/inc
+                 src/keystore/sss
+                 platform/se05x
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
 endif()
@@ -33,11 +39,15 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.psa)
                 ex/inc/mbedtls_psa/iot_agent_psa_sign_test.h
                 ex/src/utils/iot_agent_claimcode_import.c
                 ex/src/utils/mbedtls_psa/iot_agent_psa_sign_test.c
+                platform/tfm/*.c
+                src/keystore/psa/*.c
+                src/keystore/psa/*.h
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
     mcux_add_include(
         INCLUDES ex/inc
                  ex/inc/mbedtls_psa
+                 nxp_iot_agent/src/keystore/psa
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
 endif()
@@ -51,12 +61,13 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
                 ex/inc/iot_agent_demo_config.h
                 ex/inc/iot_agent_mqtt_freertos.h
                 ex/inc/iot_agent_network.h
-                ex/src/osal/iot_agent_osal_freertos.c
+                ex/src/osal/freertos/iot_agent_osal_freertos.c
+                ex/src/osal/freertos/iot_agent_osal_freertos.h
                 ex/src/utils/iot_agent_mqtt_freertos.c
-                platform/network.h
-                platform/mbedtls/network_mbedtls.h
-                platform/mbedtls/network_mbedtls.c
-                platform/mbedtls/net_lwip.c
+                net_crypto/network.h
+                net_crypto/mbedtls/network_mbedtls.h
+                net_crypto/mbedtls/network_mbedtls.c
+                net_crypto/mbedtls/net_lwip.c
                 src/*.c
                 src/common/*.c
                 src/protobuf/*.h
@@ -66,9 +77,10 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
     mcux_add_include(
         INCLUDES inc
                  ex/inc
-                 platform
-                 platform/mbedtls
+                 net_crypto
+                 net_crypto/mbedtls
                  src/protobuf
+                 ex/src/osal/freertos/
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
 endif()
