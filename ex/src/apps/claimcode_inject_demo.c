@@ -35,8 +35,8 @@ static void print_usage()
 
     printf("Inject claim code from a given file into Secure element\n");
     printf(" Usage:\n");
-    printf(" To inject new claim code: claimcode_inject filename\n");
-    printf(" To delete existing claim code:claimcode_inject --delete\n");
+    printf(" To inject new claim code: el2go_claimcode_inject filename\n");
+    printf(" To delete existing claim code:el2go_claimcode_inject --delete\n");
     printf("\n");
 }
 

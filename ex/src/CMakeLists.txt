@@ -13,9 +13,9 @@ IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
     INCLUDE(${SIMW_TOP_DIR}/ext/core-json.cmake)
 ENDIF()
 
-###################### nxp_iot_agent_demo
+###################### el2go_agent
 
-PROJECT(nxp_iot_agent_demo)
+PROJECT(el2go_agent)
 
 INCLUDE_DIRECTORIES(../inc/)
 IF(SSS_HAVE_HOST_WIN10IOT OR SSS_HAVE_HOST_PCWINDOWS)
@@ -145,10 +145,10 @@ IF(SSS_HAVE_HOST_LINUX_LIKE)
     INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)
 ENDIF()
 
-###################### claimcode_inject
+###################### el2go_claimcode_inject
 
 IF(SSS_HAVE_HOSTCRYPTO_OPENSSL AND SSS_HAVE_APPLET_SE05X_IOT)
-    PROJECT(claimcode_inject)
+    PROJECT(el2go_claimcode_inject)
 
 SET(HEADER_FILES
     ../inc/iot_agent_claimcode_inject.h

@@ -203,18 +203,18 @@ the EdgeLock 2GO service. Please refer to the EdgeLock 2GO documentation (AN1269
 to the allowlist using claim codes') for more details.
 
 To facilitate injection of claim code into device, a simple application capable of injecting and
-deleting claim codes (claimcode_inject) is delivered in combination with the EdgeLock 2GO agent.
+deleting claim codes (el2go_claimcode_inject) is delivered in combination with the EdgeLock 2GO agent.
 This application reads a claim code from a text file.
 
 After the claim code was generated on EdgeLock 2GO service, the user has to create a .txt file (``claim.txt`` for example)
 and copy the generated claim code value inside the file. Then, to inject the claim code copied in the file ``claim.txt``,
 the following command can be used:
 
-``./claimcode_inject claim.txt``
+``./el2go_claimcode_inject claim.txt``
 
 Application also supports deleting existing claim code from with the following command:
 
-``./claimcode_inject --delete``
+``./el2go_claimcode_inject --delete``
 
 
 .. _el2go_offline_provisioning:
