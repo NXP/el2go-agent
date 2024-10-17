@@ -11,18 +11,18 @@
 
 /* clang-format off */
 #define NXP_IOT_AGENT_PROD_NAME          "nxp_iot_agent"
-#define NXP_IOT_AGENT_VER_STRING_NUM     "v05.02.01_20240829"
-#define NXP_IOT_AGENT_PROD_NAME_VER_FULL "nxp_iot_agent_v05.02.01_20240829"
-#define NXP_IOT_AGENT_VER_MAJOR          (5u)
-#define NXP_IOT_AGENT_VER_MINOR          (2u)
-#define NXP_IOT_AGENT_VER_DEV            (1u)
+#define NXP_IOT_AGENT_VER_STRING_NUM     "v06.00.00_20241122"
+#define NXP_IOT_AGENT_PROD_NAME_VER_FULL "nxp_iot_agent_v06.00.00_20241122"
+#define NXP_IOT_AGENT_VER_MAJOR          (6u)
+#define NXP_IOT_AGENT_VER_MINOR          (0u)
+#define NXP_IOT_AGENT_VER_DEV            (0u)
 
-/* v05.02 = 50002u */
+/* v06.00 = 60000u */
 #define NXP_IOT_AGENT_VER_MAJOR_MINOR ( 0 \
     | (NXP_IOT_AGENT_VER_MAJOR * 10000u)    \
     | (NXP_IOT_AGENT_VER_MINOR))
 
-/* v05.02.01 = 500020001ULL */
+/* v06.00.00 = 600000000ULL */
 #define NXP_IOT_AGENT_VER_MAJOR_MINOR_DEV ( 0 \
     | (NXP_IOT_AGENT_VER_MAJOR * 10000*10000u)    \
     | (NXP_IOT_AGENT_VER_MINOR * 10000u)    \
@@ -47,11 +47,11 @@
  * 
  * lang_namespace = ""
  * 
- * v_major  = "05"
+ * v_major  = "06"
  * 
- * v_minor  = "02"
+ * v_minor  = "00"
  * 
- * v_dev    = "01"
+ * v_dev    = "00"
  * 
  * v_meta   = ""
  * 
