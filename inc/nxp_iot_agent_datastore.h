@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 NXP
+ * Copyright 2018-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -10,7 +10,9 @@
 #ifndef _NXP_IOT_AGENT_DATASTORE_H_
 #define _NXP_IOT_AGENT_DATASTORE_H_
 
-#include <nxp_iot_agent_common.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <nxp_iot_agent_status.h>
 #include <nxp_iot_agent_endpoint.h>
 
 /** @defgroup edgelock2go_agent_datastore EdgeLock 2GO agent datastore related functionality.
@@ -78,6 +80,16 @@ typedef struct datastore_stream_context_t
 
 typedef struct _nxp_iot_ResponsePayload nxp_iot_ResponsePayload;
 
+typedef bool(*iot_agent_datastore_validator_t)(const iot_agent_datastore_t* context);
+
+/** @brief Initialize a Agent datastore.
+ *
+ * The Agent datastore; internally executes all the necessary operations which
+ * allows the specific datastore to be initialized
+ *
+ */
+iot_agent_status_t iot_agent_datastore_init(iot_agent_datastore_t* datastore,
+	uint32_t identifier, const char* basename, iot_agent_datastore_validator_t validator);
 
 /** @brief Destroy the datastore.
  *

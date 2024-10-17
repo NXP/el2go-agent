@@ -9,8 +9,7 @@
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_keystore.h>
-#include <nxp_iot_agent_datastore_fs.h>
-#include <nxp_iot_agent_datastore_plain.h>
+#include <nxp_iot_agent_datastore.h>
 #include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_macros.h>
 #include <nxp_iot_agent_time.h>
@@ -624,14 +623,9 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 	// the URL/port/etc. If a filesystem is available, here, we use a file-based
 	// datastore.
 	// Note, that the ID of the datastore is a given.
-#if DS_FS
-	agent_status = iot_agent_datastore_fs_init(&edgelock2go_datastore,
+	agent_status = iot_agent_datastore_init(&edgelock2go_datastore,
 		nxp_iot_DatastoreIdentifiers_DATASTORE_EDGELOCK2GO_ID, gszEdgeLock2GoDatastoreFilename,
 		&iot_agent_service_is_configuration_data_valid);
-#elif DS_PLAIN
-	agent_status = iot_agent_datastore_plain_init(&edgelock2go_datastore,
-		nxp_iot_DatastoreIdentifiers_DATASTORE_EDGELOCK2GO_ID);
-#endif
 	AGENT_SUCCESS_OR_EXIT();
 
 	// Configure the datastore using the EdgeLock 2GO hostname and port from one of the inputs:
@@ -647,15 +641,10 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 	agent_status = iot_agent_set_edgelock2go_datastore(&iot_agent_context, &edgelock2go_datastore);
 	AGENT_SUCCESS_OR_EXIT();
 
-#if DS_FS
-	agent_status = iot_agent_datastore_fs_init(&datastore, 0U, gszDatastoreFilename,
+	agent_status = iot_agent_datastore_init(&datastore, 0U, gszDatastoreFilename,
 		&iot_agent_service_is_configuration_data_valid);
 	AGENT_SUCCESS_OR_EXIT();
-#endif
-#if DS_PLAIN
-	agent_status = iot_agent_datastore_plain_init(&datastore, 0U);
-	AGENT_SUCCESS_OR_EXIT();
-#endif
+
 	agent_status = iot_agent_register_datastore(&iot_agent_context, &datastore);
     AGENT_SUCCESS_OR_EXIT();
     // doc: initialization of contexts - end

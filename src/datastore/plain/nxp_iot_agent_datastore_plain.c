@@ -8,8 +8,8 @@
 #include <nxp_iot_agent_utils_protobuf.h>
 #include <nxp_iot_agent_macros.h>
 
-#include "./protobuf/Dispatcher.pb.h"
-#include "./protobuf/Datastore.pb.h"
+#include "../protobuf/Dispatcher.pb.h"
+#include "../protobuf/Datastore.pb.h"
 
 #define IOT_AGENT_DATASTORE_PLAIN_VERSION_MAJOR (1U)
 #define IOT_AGENT_DATASTORE_PLAIN_VERSION_MINOR (0U)
@@ -29,6 +29,12 @@ const iot_agent_datastore_interface_t iot_agent_datastore_plain_interface =
         &iot_agent_datastore_plain_handle_request,
     },
 };
+
+iot_agent_status_t iot_agent_datastore_init(iot_agent_datastore_t* datastore,
+	uint32_t identifier, const char* basename, iot_agent_datastore_validator_t validator)
+{
+	return iot_agent_datastore_plain_init(datastore, identifier);
+}
 
 iot_agent_status_t iot_agent_datastore_plain_init(iot_agent_datastore_t* datastore,
 	uint32_t identifier)

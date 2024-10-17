@@ -8,11 +8,8 @@
 #ifndef _NXP_IOT_AGENT_DATASTORE_FS_H_
 #define _NXP_IOT_AGENT_DATASTORE_FS_H_
 
-#if !(defined(__ICCARM__) || defined(__CC_ARM) || defined(__ARMCC_VERSION))
 #include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_datastore.h>
-
-#if !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 
 /*! @defgroup edgelock2go_agent_datastore_fs EdgeLock 2GO agent FS datastore related functionality.
  * @ingroup edgelock2go_agent_datastore
@@ -42,10 +39,6 @@ typedef struct iot_agent_datastore_fs_context_t {
 	/** @brief The index of the fp to which writes will be done. */
 	size_t idx_write;
 } iot_agent_datastore_fs_context_t;
-
-
-typedef bool(*iot_agent_datastore_validator_t)(const iot_agent_datastore_t* context);
-
 
 /** @brief Initialize a fs datastore.
  *
@@ -106,6 +99,4 @@ extern const iot_agent_datastore_interface_t iot_agent_datastore_fs_interface;
 /*!
 *@}
 */ /* end of edgelock2go_agent_datastore_fs */
-#endif // !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1
-#endif // !(defined(__ICCARM__) || defined(__CC_ARM) || defined(__ARMCC_VERSION))
 #endif // _NXP_IOT_AGENT_DATASTORE_FS_H_

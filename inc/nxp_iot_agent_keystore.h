@@ -63,7 +63,7 @@ typedef struct iot_agent_keystore_t
 /** @brief Initialize an Agent keystore.
  *
  * The Agent keystore; internally executes all the necessary operations which
- * allows the specific keystore to be initializes as for example openining a SE5x session
+ * allows the specific keystore to be initialized as for example openining a SE5x session
  * with the secure element if necessary
  *
  * If the function does not return IOT_AGENT_SUCCESS, it can be assumed that

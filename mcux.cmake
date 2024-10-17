@@ -72,6 +72,8 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
                 src/common/*.c
                 src/protobuf/*.h
                 src/protobuf/*.c
+                src/datastore/plain/*.c
+                src/datastore/plain/*.h
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
     mcux_add_include(
@@ -80,7 +82,8 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
                  net_crypto
                  net_crypto/mbedtls
                  src/protobuf
-                 ex/src/osal/freertos/
+                 ex/src/osal/freertos
+                 src/datastore/plain
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
 endif()

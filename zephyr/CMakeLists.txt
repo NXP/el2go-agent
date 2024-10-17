@@ -24,7 +24,7 @@ if(CONFIG_EL2GO_COMMON)
         target_sources(app PRIVATE
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_common.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_config.c
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_datastore_plain.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/datastore/plain/nxp_iot_agent_datastore_plain.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_datastore.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa/nxp_iot_agent_keystore_psa.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_keystore.c
@@ -62,6 +62,7 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/datastore/plain
         )
 
         target_sources(app PRIVATE

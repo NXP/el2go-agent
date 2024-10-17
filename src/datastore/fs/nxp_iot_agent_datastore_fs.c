@@ -5,15 +5,13 @@
  * 
  */
 
-#if !(defined(__ICCARM__) || defined(__CC_ARM) || defined(__ARMCC_VERSION))
 #include <nxp_iot_agent_datastore_fs.h>
 #include <nxp_iot_agent_utils_protobuf.h>
 #include <nxp_iot_agent_macros.h>
 
-#include "./protobuf/Dispatcher.pb.h"
-#include "./protobuf/Datastore.pb.h"
+#include "../protobuf/Dispatcher.pb.h"
+#include "../protobuf/Datastore.pb.h"
 
-#if !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 #define IOT_AGENT_DATASTORE_FS_VERSION_MAJOR (1U)
 #define IOT_AGENT_DATASTORE_FS_VERSION_MINOR (0U)
 #define IOT_AGENT_DATASTORE_FS_VERSION_PATCH (0U)
@@ -67,6 +65,11 @@ exit:
 	return agent_status;
 }
 
+iot_agent_status_t iot_agent_datastore_init(iot_agent_datastore_t* datastore,
+	uint32_t identifier, const char* basename, iot_agent_datastore_validator_t validator)
+{
+	return iot_agent_datastore_fs_init(datastore, identifier, basename, validator);
+}
 
 iot_agent_status_t iot_agent_datastore_fs_init(iot_agent_datastore_t* datastore,
 	uint32_t identifier, const char* basename, iot_agent_datastore_validator_t validator)
@@ -461,5 +464,3 @@ bool iot_agent_datastore_fs_handle_request(pb_istream_t *istream,
 exit:
 	return result;
 }
-#endif //!(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
-#endif //!(defined(__ICCARM__) || defined(__CC_ARM) || defined(__ARMCC_VERSION))

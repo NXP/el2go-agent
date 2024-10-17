@@ -11,8 +11,7 @@
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_keystore.h>
-#include <nxp_iot_agent_datastore_fs.h>
-#include <nxp_iot_agent_datastore_plain.h>
+#include <nxp_iot_agent_datastore.h>
 #include <nxp_iot_agent_macros.h>
 #include <iot_agent_demo_config.h>
 #include <iot_agent_rtp_client.h>
@@ -1701,28 +1700,18 @@ static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_
 	write_log(TEST_LOG_ID_REGISTER_ENDPOINT, "{ endpoint: '%s' }", IOT_AGENT_TEST_ENDPOINT_SE05X);
 #endif
 
-#if DS_FS
-	agent_status = iot_agent_datastore_fs_init(datastore, 0U, gszDatastoreFilename,
+	agent_status = iot_agent_datastore_init(datastore, 0U, gszDatastoreFilename,
 		&iot_agent_service_is_configuration_data_valid);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore initialization\n");
-#endif
-#if DS_PLAIN
-	agent_status = iot_agent_datastore_plain_init(datastore, 0U);
-	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore initialization\n");
-#endif
 
 	agent_status = iot_agent_register_datastore(pst_iot_agent_context, datastore);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore registration\n");
-#if SSS_HAVE_APPLET_SE05X_IOT
-	agent_status = iot_agent_datastore_plain_init(edgelock2go_datastore, (uint32_t)nxp_iot_DatastoreIdentifiers_DATASTORE_EDGELOCK2GO_ID);
-	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore initialization\n");
-#endif
-#if NXP_IOT_AGENT_HAVE_PSA
-	agent_status = iot_agent_datastore_fs_init(edgelock2go_datastore,
+
+	agent_status = iot_agent_datastore_init(edgelock2go_datastore,
 		nxp_iot_DatastoreIdentifiers_DATASTORE_EDGELOCK2GO_ID, gszEdgeLock2GoDatastoreFilename,
 		&iot_agent_service_is_configuration_data_valid);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore initialization\n");
-#endif
+
 	agent_status = write_edgelock2go_datastore_from_env(keystore, edgelock2go_datastore);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore writing from env\n");
 
