@@ -14,7 +14,7 @@
 #include <test_keystore.h>
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_datastore.h>
-#include <nxp_iot_agent_datastore_plain.h>
+#include <nxp_iot_agent_datastore_fs.h>
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 
 
@@ -23,6 +23,7 @@
 /* ************************************************************************** */
 
 #define TEST_ROOT_FOLDER "."
+#define DATASTORE_BASENAME "datastore_file.bin"
 
 /* ************************************************************************** */
 /* Structures and Typedefs                                                    */
@@ -96,7 +97,8 @@ TEST(PublicInterface, DoRegisterDatastore)
 	iot_agent_status_t agent_status = iot_agent_init(&iot_agent_context);
     TEST_ASSERT_EQUAL_INT(IOT_AGENT_SUCCESS, agent_status);
 
-    agent_status = iot_agent_datastore_plain_init(&datastore, datastore_id);
+    agent_status = iot_agent_datastore_fs_init(&datastore, datastore_id, DATASTORE_BASENAME,
+		&iot_agent_service_is_configuration_data_valid);
     TEST_ASSERT_EQUAL_INT(IOT_AGENT_SUCCESS, agent_status);
 
     agent_status = iot_agent_register_datastore(&iot_agent_context, &datastore);
@@ -160,7 +162,8 @@ TEST(PublicInterface, DoRegisterTooManyDatastores)
 	// Fill all available datastore slots + 1
 	for (size_t i = 0U; i <= NXP_IOT_AGENT_MAX_NUM_DATASTORES; i++)
 	{
-        agent_status = iot_agent_datastore_plain_init(&datastore[i], (int32_t)i);
+		agent_status = iot_agent_datastore_fs_init(&datastore[i], (int32_t)i, DATASTORE_BASENAME,
+			&iot_agent_service_is_configuration_data_valid);
         TEST_ASSERT_EQUAL_INT(IOT_AGENT_SUCCESS, agent_status);
 
         agent_status = iot_agent_register_datastore(&iot_agent_context, &datastore[i]);
@@ -197,7 +200,9 @@ TEST(PublicInterface, DoGetDataStoreById)
 
 	iot_agent_datastore_t datastore = { 0 };
 	uint32_t datastore_id = 7;
-	agent_status = iot_agent_datastore_plain_init(&datastore, datastore_id);
+
+	agent_status = iot_agent_datastore_fs_init(&datastore, datastore_id, DATASTORE_BASENAME,
+		&iot_agent_service_is_configuration_data_valid);
 	TEST_ASSERT_EQUAL_INT(IOT_AGENT_SUCCESS, agent_status);
 
 	agent_status = iot_agent_register_datastore(&iot_agent_context, &datastore);
@@ -217,7 +222,9 @@ TEST(PublicInterface, DoIsServiceConfigurationValid)
 
 	iot_agent_datastore_t datastore = { 0 };
 	uint32_t datastore_id = 7;
-	agent_status = iot_agent_datastore_plain_init(&datastore, datastore_id);
+
+	agent_status = iot_agent_datastore_fs_init(&datastore, datastore_id, DATASTORE_BASENAME,
+		&iot_agent_service_is_configuration_data_valid);
 	TEST_ASSERT_EQUAL_INT(IOT_AGENT_SUCCESS, agent_status);
 
 	agent_status = iot_agent_register_datastore(&iot_agent_context, &datastore);
@@ -264,7 +271,8 @@ TEST(PublicInterface, DoSelectServiceById)
 
 	nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
 
-	agent_status = iot_agent_datastore_plain_init(&datastore, datastore_id);
+	agent_status = iot_agent_datastore_fs_init(&datastore, datastore_id, DATASTORE_BASENAME,
+		&iot_agent_service_is_configuration_data_valid);
 	TEST_ASSERT_EQUAL_INT(IOT_AGENT_SUCCESS, agent_status);
 
 	agent_status = iot_agent_register_datastore(&iot_agent_context, &datastore);
@@ -322,6 +330,5 @@ static void runAllTests(void)
 	RUN_TEST_GROUP(AgentUtils);
 	RUN_TEST_GROUP(Datastore);
 	RUN_TEST_GROUP(DatastoreFS);
-	RUN_TEST_GROUP(DatastorePlain);
 	RUN_TEST_GROUP(Keystore);
 }
