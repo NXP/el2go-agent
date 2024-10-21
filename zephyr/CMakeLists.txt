@@ -29,7 +29,6 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa/nxp_iot_agent_keystore_psa.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_keystore.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_service.c
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_time.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_utils_protobuf_socket.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_utils.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent.c
@@ -67,6 +66,7 @@ if(CONFIG_EL2GO_COMMON)
 
         target_sources(app PRIVATE
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm/nxp_iot_agent_platform_tfm.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm/nxp_iot_agent_time_tfm.c
         )
 
     elseif(CONFIG_EL2GO_MQTT_LIBRARY_SOURCES)

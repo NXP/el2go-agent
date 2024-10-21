@@ -96,6 +96,10 @@ const uint32_t gKeystoreId = 0x0000BEEFU;
 
 const char * gszKeystoreFilename = "keystore.bin";
 
+#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+extern iot_agent_time_t iot_agent_time;
+#endif
+
 void iot_agent_print_uid_integer(char* hexString, size_t len);
 #if NXP_IOT_AGENT_HAVE_SSS
 iot_agent_status_t iot_agent_print_uid (sss_se05x_session_t* pSession);
@@ -394,8 +398,8 @@ exit:
 iot_agent_status_t agent_start(int argc, const char* argv[])
 {
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    axTimeMeasurement_t iot_agent_demo_time = {0};
-    initMeasurement(&iot_agent_demo_time);
+    iot_agent_time_context_t iot_agent_demo_time = {0};
+    iot_agent_time_init_measurement(&iot_agent_demo_time);
 #endif
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     iot_agent_context_t iot_agent_context = { 0 };
@@ -433,8 +437,8 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 #if IOT_AGENT_CLAIMCODE_INJECT_ENABLE
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
 	long claimcode_inject_time = 0;
-    axTimeMeasurement_t iot_agent_claimcode_inject_time = { 0 };
-    initMeasurement(&iot_agent_claimcode_inject_time);
+    iot_agent_time_context_t iot_agent_claimcode_inject_time = { 0 };
+    iot_agent_time_init_measurement(&iot_agent_claimcode_inject_time);
 #endif
 #if NXP_IOT_AGENT_HAVE_SSS
     agent_status = iot_agent_claimcode_inject((ex_sss_boot_ctx_t *)iot_agent_platform_context.ctx, IOT_AGENT_CLAIMCODE_STRING, strlen(IOT_AGENT_CLAIMCODE_STRING));
@@ -450,8 +454,9 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 #endif // NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
 #endif
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    concludeMeasurement(&iot_agent_claimcode_inject_time);
-    claimcode_inject_time = getMeasurement(&iot_agent_claimcode_inject_time);
+    iot_agent_time_conclude_measurement(&iot_agent_claimcode_inject_time);
+    claimcode_inject_time = iot_agent_time_get_measurement(&iot_agent_claimcode_inject_time);
+    iot_agent_time_free_measurement_ctx(&iot_agent_claimcode_inject_time);
     IOT_AGENT_INFO("Performance timing: CLAIMCODE_INJECT_TIME : %ldms", claimcode_inject_time);
 #endif  //IOT_AGENT_TIME_MEASUREMENT_ENABLE
 #endif  //IOT_AGENT_CLAIMCODE_INJECT_ENABLE
@@ -511,8 +516,8 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
     // doc: initialization of contexts - end
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    concludeMeasurement(&iot_agent_demo_time);
-    iot_agent_time.init_time = getMeasurement(&iot_agent_demo_time);
+    iot_agent_time_conclude_measurement(&iot_agent_demo_time);
+    iot_agent_time.init_time = iot_agent_time_get_measurement(&iot_agent_demo_time);
 #if IOT_AGENT_CLAIMCODE_INJECT_ENABLE
     iot_agent_time.init_time -= claimcode_inject_time;
 #endif
@@ -543,8 +548,9 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
     // doc: iterating over services - end
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    concludeMeasurement(&iot_agent_demo_time);
-    iot_agent_time.total_time = getMeasurement(&iot_agent_demo_time);
+    iot_agent_time_conclude_measurement(&iot_agent_demo_time);
+    iot_agent_time.total_time = iot_agent_time_get_measurement(&iot_agent_demo_time);
+    iot_agent_time_free_measurement_ctx(&iot_agent_demo_time);
     iot_agent_log_performance_timing();
     memset(&iot_agent_time, 0, sizeof(iot_agent_time));
 #endif

@@ -155,7 +155,9 @@
 /**
  * Flag to enable or disable measurement performance timings of EdgeLock 2GO Agent.
  */
+#ifndef IOT_AGENT_TIME_MEASUREMENT_ENABLE
 #define IOT_AGENT_TIME_MEASUREMENT_ENABLE     1
+#endif
  
 /**
  * Set the log-level that is used for output of messages of the openssl engine. The level is a 

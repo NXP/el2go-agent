@@ -65,6 +65,10 @@
 	(((IOT_AGENT_VERSION_MAJOR * 256) + IOT_AGENT_VERSION_MINOR) * 256 \
 		+ IOT_AGENT_VERSION_PATCH)
 
+#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+extern iot_agent_time_t iot_agent_time;
+#endif
+
 static const iot_agent_endpoint_interface_t iot_agent_endpoint_interface =
 {
 	&iot_agent_get_endpoint_info,
@@ -172,10 +176,10 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	nxp_iot_UpdateStatusReport* status_report)
 {
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    axTimeMeasurement_t iot_agent_prepare_tls_time = { 0 };
-    axTimeMeasurement_t network_connect_time = { 0 };
-    axTimeMeasurement_t process_provision_time = { 0 };
-    initMeasurement(&iot_agent_prepare_tls_time);
+    iot_agent_time_context_t iot_agent_prepare_tls_time = { 0 };
+    iot_agent_time_context_t network_connect_time = { 0 };
+    iot_agent_time_context_t process_provision_time = { 0 };
+    iot_agent_time_init_measurement(&iot_agent_prepare_tls_time);
 #endif
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	int network_status = 0;
@@ -408,17 +412,19 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 #endif
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    concludeMeasurement(&iot_agent_prepare_tls_time);
-    iot_agent_time.prepare_tls_time = getMeasurement(&iot_agent_prepare_tls_time);
+	iot_agent_time_conclude_measurement(&iot_agent_prepare_tls_time);
+	iot_agent_time.prepare_tls_time = iot_agent_time_get_measurement(&iot_agent_prepare_tls_time);
+    iot_agent_time_free_measurement_ctx(&iot_agent_prepare_tls_time);
 
-    initMeasurement(&network_connect_time);
+    iot_agent_time_init_measurement(&network_connect_time);
 #endif
 	network_status = network_connect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_connect failed with 0x%08x.", network_status);
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    concludeMeasurement(&network_connect_time);
-    iot_agent_time.network_connect_time = getMeasurement(&network_connect_time);
-    initMeasurement(&process_provision_time);
+    iot_agent_time_conclude_measurement(&network_connect_time);
+	iot_agent_time.network_connect_time = iot_agent_time_get_measurement(&network_connect_time);
+    iot_agent_time_free_measurement_ctx(&network_connect_time);
+    iot_agent_time_init_measurement(&process_provision_time);
 #endif
 
 #if SSS_HAVE_HOSTCRYPTO_OPENSSL
@@ -443,8 +449,9 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	AGENT_SUCCESS_OR_EXIT();
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    concludeMeasurement(&process_provision_time);
-    iot_agent_time.process_provision_time = getMeasurement(&process_provision_time);
+    iot_agent_time_conclude_measurement(&process_provision_time);
+	iot_agent_time.process_provision_time = iot_agent_time_get_measurement(&process_provision_time);
+    iot_agent_time_free_measurement_ctx(&process_provision_time);
 #endif
 	network_status = network_disconnect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == 0, "network_disconnect failed with 0x%08x", network_status);
@@ -1036,8 +1043,8 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 #if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
 	else if (message_type == nxp_iot_AgentCrlRequest_fields) {
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-        axTimeMeasurement_t iot_agent_crl_time = { 0 };
-        initMeasurement(&iot_agent_crl_time);
+        iot_agent_time_context_t iot_agent_crl_time = { 0 };
+        iot_agent_time_init_measurement(&iot_agent_crl_time);
 #endif
 		nxp_iot_AgentCrlRequest request = nxp_iot_AgentCrlRequest_init_default;
 		if (!pb_decode_delimited(istream, nxp_iot_AgentCrlRequest_fields, &request)) {
@@ -1102,8 +1109,9 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 			return false;
 		}
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-        concludeMeasurement(&iot_agent_crl_time);
-        iot_agent_time.crl_time = getMeasurement(&iot_agent_crl_time);
+        iot_agent_time_conclude_measurement(&iot_agent_crl_time);
+		iot_agent_time.crl_time = iot_agent_time_get_measurement(&iot_agent_crl_time);
+        iot_agent_time_free_measurement_ctx(&iot_agent_crl_time);
 #endif
 		return true;
 	}

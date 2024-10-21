@@ -1676,8 +1676,8 @@ static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_
 	AX_UNUSED_ARG(log);
 #endif
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    axTimeMeasurement_t iot_agent_init_time = { 0 };
-    initMeasurement(&iot_agent_init_time);
+    iot_agent_time_context_t iot_agent_init_time = { 0 };
+    iot_agent_time_init_measurement(&iot_agent_init_time);
 #endif
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
@@ -1718,8 +1718,9 @@ static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_
 	agent_status = iot_agent_set_edgelock2go_datastore(pst_iot_agent_context, edgelock2go_datastore);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore setting\n");
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-    concludeMeasurement(&iot_agent_init_time);
-    iot_agent_time.init_time = getMeasurement(&iot_agent_init_time);
+    iot_agent_time_conclude_measurement(&iot_agent_init_time);
+    iot_agent_time.init_time = iot_agent_time_get_measurement(&iot_agent_init_time);
+    iot_agent_time_free_measurement_ctx(&iot_agent_init_time);
 #endif
 
 exit:
@@ -1855,12 +1856,13 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
         log_ptr = start_log_ptr;
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-        initMeasurement(&iot_agent_total_time);
+        iot_agent_time_init_measurement(&iot_agent_total_time);
 #endif
         agent_status = execute_nxp_iot_agent_service_prov(pAgentContext);
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-        concludeMeasurement(&iot_agent_total_time);
-        iot_agent_time.total_time = getMeasurement(&iot_agent_total_time) + iot_agent_time.init_time;
+        iot_agent_time_conclude_measurement(&iot_agent_total_time);
+        iot_agent_time.total_time = iot_agent_time_get_measurement(&iot_agent_total_time) + iot_agent_time.init_time;
+        iot_agent_time_free_measurement_ctx(&iot_agent_total_time);
 #endif
         if (agent_status != IOT_AGENT_SUCCESS)
         {

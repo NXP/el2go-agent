@@ -8,27 +8,13 @@
 #ifndef _NXP_IOT_AGENT_TIME_H_
 #define _NXP_IOT_AGENT_TIME_H_
 
-#include <nxp_iot_agent_common.h>
+#include <nxp_iot_agent_status.h>
+#include <nxp_iot_agent_config.h>
 
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-
-#include <nxp_iot_agent.h>
-
-#if defined(RW612_SERIES) || defined(__ZEPHYR__)
-/**
- * Utility structure enabling delta time measurement.
- */
-typedef struct {
-    long tStart; //!< To contain start of time measurement
-    long tEnd;   //!< To contain end of time measurement
-} axTimeMeasurement_t;
-
-long getMeasurement(axTimeMeasurement_t *mPair);
-void initMeasurement(axTimeMeasurement_t *mPair);
-void concludeMeasurement(axTimeMeasurement_t *mPair);
-#else
-#include "tst_sm_time.h"
-#endif
+typedef struct iot_agent_time_context_t
+{
+	void* ctx;
+}iot_agent_time_context_t;
 
 typedef struct iot_agent_time_t
 {
@@ -45,8 +31,36 @@ typedef struct iot_agent_time_t
 
 extern iot_agent_time_t iot_agent_time;
 
-iot_agent_status_t iot_agent_log_performance_timing(void);
+/*! @brief Initializes the time measurement.
+ *
+ * @param time_context: Context for the iot_agent.
+ */
+void iot_agent_time_init_measurement(iot_agent_time_context_t* time_context);
 
-#endif //IOT_AGENT_TIME_MEASUREMENT_ENABLE
+/*! @brief Initializes the time measurement.
+ *
+ * @param time_context: Context for the iot_agent.
+ */
+void iot_agent_time_conclude_measurement(iot_agent_time_context_t* time_context);
+
+/*! @brief Gets the time measurement.
+ *
+ * @param time_context: Context for the iot_agent.
+ * @retval The measured time.
+ */
+long iot_agent_time_get_measurement(iot_agent_time_context_t* time_context);
+
+/*! @brief Frees the measurement context.
+ *
+ * @param time_context: Context for the iot_agent.
+ */
+void iot_agent_time_free_measurement_ctx(iot_agent_time_context_t* time_context);
+
+/*! @brief Prints the time measurement.
+ *
+ * @param time: structure including the time to be printed 
+ * @retval IOT_AGENT_SUCCESS if pass
+ */
+iot_agent_status_t iot_agent_log_performance_timing(void);
 
 #endif // #ifndef _NXP_IOT_AGENT_TIME_H_
