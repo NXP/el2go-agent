@@ -24,7 +24,7 @@
 #include "pb_encode.h"
 #include "pb_decode.h"
 
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 #include "nxp_iot_agent_macros_sss.h"
 #include <nxp_iot_agent_session.h>
@@ -82,7 +82,7 @@
 #include <iot_agent_osal_freertos.h>
 #endif
 
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 // Includes in case of MBED TLS
 #include <mbedtls/version.h>
 #include <iot_agent_mqtt_freertos.h>
@@ -92,7 +92,7 @@
 #include <fsl_sss_mbedtls_apis.h>
 #endif
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 #include <unistd.h>
 #include <iot_agent_mqtt_paho.h>
 #ifdef _MSC_VER
@@ -101,7 +101,7 @@
 #define ACCESS access
 #endif
 #endif
-#if ((SSS_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
+#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
 #define OBJECT_ID_SIZE 10U
 #define COMMON_NAME_MAX_SIZE 256
 #define COS_OVER_RTP_CERT_SIZE 2048
@@ -214,7 +214,7 @@ size_t resp_apdu_length;
 
 bool getRespString(char *str, uint8_t *buffer, size_t buffer_len);
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 static iot_agent_status_t execute_write_pem_test(sss_key_store_t* sss_context, const char* object_id)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
@@ -571,7 +571,7 @@ bool getRespString(char *str, uint8_t *buffer, size_t buffer_len)
 	return true;
 }
 
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 
 // this function sends an APDU to device and checks response
 static iot_agent_status_t send_apdu_to_device(void)
@@ -660,7 +660,7 @@ exit:
 	return agent_status;
 }
 
-#endif //SSS_HAVE_APPLET_SE05X_IOT
+#endif //NXP_IOT_AGENT_HAVE_SSS
 
 #if NXP_IOT_AGENT_HAVE_PSA
 // this function sends an APDU to device and checks response
@@ -725,7 +725,7 @@ static iot_agent_status_t parse_send_cmd_command(nxp_iot_RpcRequest* pRpcRequest
 	memcpy(cmd_ptr, pRpcRequest->arg[command_index].payload.data.string_arg, command_length);
 	if (((size_t)(cmd_ptr - start_cmd_ptr) + command_length) == cmd_length)
 	{
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 		send_apdu_to_device();
 #endif
 #if NXP_IOT_AGENT_HAVE_PSA
@@ -819,7 +819,7 @@ exit:
 	return agent_status;
 }
 
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 // This function executes the factory reset on the secure element
 static iot_agent_status_t execute_factory_reset(ex_sss_boot_ctx_t *pCtx)
 {
@@ -1095,11 +1095,11 @@ static iot_agent_status_t execute_connect_to_services(iot_agent_context_t *iot_a
 		AGENT_SUCCESS_OR_EXIT();
 
 		agent_status = iot_agent_verify_mqtt_connection_for_service(iot_agent_context, &service_descriptor);
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 		write_log(TEST_LOG_ID_CONNECTED_SERVICE, "{ service_id: '%" PRIu64 "', status: '%d' }",
 			service_descriptor.identifier, agent_status);
 #endif
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 		write_log(TEST_LOG_ID_CONNECTED_SERVICE, "{ service_id: '%d', status: '%d' }",
 			(uint32_t) service_descriptor.identifier, agent_status);
 #endif
@@ -1112,10 +1112,10 @@ exit:
 	iot_agent_free_service_descriptor(&service_descriptor);
 	return agent_status;
 }
-#endif //SSS_HAVE_APPLET_SE05X_IOT
+#endif //NXP_IOT_AGENT_HAVE_SSS
 
 
-#if ((SSS_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
+#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
 static iot_agent_status_t execute_cos_over_rtp_connection(iot_agent_context_t *iot_agent_context, char* serviceDescriptorId) {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
@@ -1185,11 +1185,11 @@ static iot_agent_status_t execute_cos_over_rtp_connection(iot_agent_context_t *i
 	}
 
 exit:
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 	write_log(TEST_LOG_ID_CONNECTED_SERVICE, "{ service_id: '%" PRIu64 "', status: '%d' }",
 		service_descriptor.identifier, agent_status);
 #endif
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 	write_log(TEST_LOG_ID_CONNECTED_SERVICE, "{ service_id: '%d', status: '%d' }",
 		(uint32_t)service_descriptor.identifier, agent_status);
 #endif
@@ -1594,12 +1594,12 @@ static void write_status_report_log(const nxp_iot_UpdateStatusReport* status_rep
 		if (status_report->has_cspStatus) {
 			buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), ", csp_status: { status: %d, details: [ ", status_report->cspStatus.status);
 			for (size_t i = 0U; i < status_report->cspStatus.details_count; i++) {
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 				buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), "%s { endpoint_id: %d, service_id: %" PRIu64 ", status: %d }",
 					i == 0U ? "" : ",",
 					status_report->cspStatus.details[i].endpointId, status_report->cspStatus.details[i].serviceId, status_report->cspStatus.details[i].status);
 #endif
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 				buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), "%s { endpoint_id: %d, service_id: %d, status: %d }",
 					i == 0U ? "" : ",",
 					status_report->cspStatus.details[i].endpointId, (uint32_t)status_report->cspStatus.details[i].serviceId, status_report->cspStatus.details[i].status);
@@ -1674,7 +1674,7 @@ exit:
 static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_agent_context,
 	iot_agent_datastore_t* edgelock2go_datastore, iot_agent_datastore_t* datastore, iot_agent_keystore_t* keystore, char* log)
 {
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 	AX_UNUSED_ARG(log);
 #endif
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
@@ -1686,7 +1686,7 @@ static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_
 	agent_status = iot_agent_init(pst_iot_agent_context);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in agent initialization\n");
 
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 	agent_status = iot_agent_keystore_sss_se05x_init(keystore, EDGELOCK2GO_KEYSTORE_ID, &gex_sss_boot_ctx, true);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in keystore initialization\n");
 
@@ -1764,7 +1764,7 @@ static iot_agent_status_t execute_nxp_iot_agent_service_prov(iot_agent_context_t
 		AGENT_SUCCESS_OR_EXIT_MSG("Error in service selection\n");
 
 		char* client_certificate_str = pb_bytes_array_to_hex_str(service_descriptor.client_certificate);
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 		//write to files - end
 		if (service_descriptor.service_type == nxp_iot_ServiceType_AZURESERVICE) {
 			write_log(TEST_LOG_ID_PROVISIONED_SERVICE, "{ service_id: '%" PRIu64 "', hostname: '%s', port: %d, client_cert: '%s' }",
@@ -1774,7 +1774,7 @@ static iot_agent_status_t execute_nxp_iot_agent_service_prov(iot_agent_context_t
 					service_descriptor.identifier, service_descriptor.hostname, service_descriptor.port, client_certificate_str);
 		}
 #endif
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 		if (service_descriptor.service_type == nxp_iot_ServiceType_AZURESERVICE) {
 			write_log(TEST_LOG_ID_PROVISIONED_SERVICE, "{ service_id: '%d', hostname: '%s', port: %d, client_cert: '%s' }",
 					(uint32_t)service_descriptor.identifier, "global.azure-devices-provisioning.net", 8883, client_certificate_str);
@@ -1784,7 +1784,7 @@ static iot_agent_status_t execute_nxp_iot_agent_service_prov(iot_agent_context_t
 		}
 #endif
 #ifdef _WIN32
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 		// this is just used to test the function for coverage purpose
 		char keyref_filename[] = "temp_file";
 		if (IOT_AGENT_SUCCESS != iot_agent_utils_write_key_ref_service_pem(pst_iot_agent_context, keyref_filename))
@@ -1813,17 +1813,17 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	size_t offset = 0U;
 	size_t size = 0U;
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 	char* object_id;
 #endif
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 	iot_agent_keystore_sss_se05x_context_t* se05x_context = NULL;
 	sss_se05x_session_t* se05x_session = NULL;
 #endif
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-	axTimeMeasurement_t iot_agent_total_time = { 0 };
+	iot_agent_time_context_t iot_agent_total_time = { 0 };
 #endif
-#if ((SSS_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
+#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
 	char* serviceDescriptorId = NULL;
 #endif
 	ASSERT_OR_EXIT_MSG(pRpcRequest->id == RPC_ID, "Wrong ID\n");
@@ -1921,7 +1921,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		FPRINTF("Is running Command received successfully\n");
 		build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
 		break;
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 	case RPC_REQUEST_CMD_WRITE_PEM:
 		FPRINTF("Write PEM Command received successfully\n");
 		object_id = malloc((size_t)(OBJECT_ID_SIZE + 1U));
@@ -2016,7 +2016,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		AGENT_SUCCESS_OR_EXIT_MSG("Error in handle_endpoint_request command\n");
 		// Note, the response is assembled in the handler already, no build_rpc_response_status required here!
 		break;
-#if ((SSS_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
+#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
 	case RPC_REQUEST_CMD_COS_OVER_RTP:
 		serviceDescriptorId = malloc((size_t)(OBJECT_ID_SIZE + 1U));
 		memset(serviceDescriptorId, 0, (size_t)(OBJECT_ID_SIZE + 1U));

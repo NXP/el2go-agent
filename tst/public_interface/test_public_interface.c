@@ -65,7 +65,7 @@ TEST(PublicInterface, DoInitContext)
 
 TEST(PublicInterface, DoRegisterKeystore)
 {
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 	iot_agent_context_t iot_agent_context = { 0 };
 	iot_agent_keystore_t keystore = { 0 };
 	uint32_t keystore_id = 0x1234; // freely choosable
@@ -113,7 +113,7 @@ TEST(PublicInterface, DoRegisterDatastore)
 
 TEST(PublicInterface, DoRegisterTooManyKeystores)
 {
-#if SSS_HAVE_APPLET_SE05X_IOT
+#if NXP_IOT_AGENT_HAVE_SSS
 	iot_agent_context_t iot_agent_context = { 0 };
 	iot_agent_keystore_t keystore[NXP_IOT_AGENT_MAX_NUM_KEYSTORES + 1U] = { 0 };
 	iot_agent_status_t agent_status;

@@ -7,6 +7,10 @@
 #ifndef _NXP_IOT_AGENT_COMMON_H_
 #define _NXP_IOT_AGENT_COMMON_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -21,18 +25,25 @@
 #include <nxp_iot_agent_status.h>
 #include <nxp_iot_agent_log.h>
 
-#if defined(SSS_USE_FTR_FILE)
-#include <fsl_sss_ftr.h>
-#else
-#include <fsl_sss_ftr_default.h>
+#if (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL & NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS)
+#        error "Only one between NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL and NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS can be set to 1"
 #endif
 
-// following defines decides if SSS or PSA is used as MBEDTLS crypto implementation
-#ifndef NXP_IOT_AGENT_HAVE_SSS
-#define NXP_IOT_AGENT_HAVE_SSS (SSS_HAVE_HOSTCRYPTO_OPENSSL || (SSS_HAVE_HOSTCRYPTO_MBEDTLS && SSS_HAVE_MBEDTLS_ALT_SSS))
+#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL | NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) == 0)
+// if the crypto is not choosen externally fall back to mbedtls
+#undef NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#define NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS 1
 #endif
-#ifndef NXP_IOT_AGENT_HAVE_PSA
-#define NXP_IOT_AGENT_HAVE_PSA (SSS_HAVE_HOSTCRYPTO_MBEDTLS && SSS_HAVE_MBEDTLS_ALT_PSA)
+
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+
+#if (NXP_IOT_AGENT_HAVE_SSS & NXP_IOT_AGENT_HAVE_PSA)
+#        error "Only one between NXP_IOT_AGENT_HAVE_SSS and NXP_IOT_AGENT_HAVE_PSA can be set to 1"
+#endif
+#if ((NXP_IOT_AGENT_HAVE_SSS | NXP_IOT_AGENT_HAVE_PSA) == 0)
+// if the crypto is not choosen externally fall back to PSA
+#undef NXP_IOT_AGENT_HAVE_PSA
+#define NXP_IOT_AGENT_HAVE_PSA 1
 #endif
 
 #if NXP_IOT_AGENT_HAVE_PSA
@@ -62,6 +73,7 @@
 #endif
 
 #endif // NXP_IOT_AGENT_HAVE_PSA
+#endif // NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <sm_types.h>
@@ -96,12 +108,6 @@
 #endif // compiler selection
 
 #endif // #if AX_EMBEDDED
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /** Endpoint types. Those need to be aligned to the endpoint
  * types on the protocol layer. This is guarded by compile time
  * assertion in dispatcher.c! */
@@ -132,19 +138,11 @@ extern "C" {
 
 #define IOT_AGENT_KEYSTORE_ID_SEMSLITE  (1)
 
-
 /** The length of a correlation ID as used by the cloud service.
  *
  * These are UUIDs: 32 hex digits + 4 dashes + \0.
  */
 #define NXP_IOT_AGENT_CORRELATION_ID_LENGTH (37)
-
-// TODO: extract the time measurement from smcomm to be able to use it
-// also without smcomm (for PSA-only approach).
-#if NXP_IOT_AGENT_HAVE_PSA && ((NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW) || (NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL))
-#undef IOT_AGENT_TIME_MEASUREMENT_ENABLE
-#define IOT_AGENT_TIME_MEASUREMENT_ENABLE     0
-#endif // ! NXP_IOT_AGENT_HAVE_SSS
 
 #if (NXP_IOT_AGENT_HAVE_PSA && (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)) // TODO we need to move the parsing of simulator blob logic to driver wrapper (see IOTDL-1233)
 #undef psa_import_key

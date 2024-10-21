@@ -25,24 +25,18 @@
 #include "./protobuf/Datastore.pb.h"
 #include "./protobuf/ServiceDescriptor.pb.h"
 
-#if defined(SSS_USE_FTR_FILE)
-#include <fsl_sss_ftr.h>
-#else
-#include <fsl_sss_ftr_default.h>
-#endif
-
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 #include <network_openssl.h>
 #include <nxp_iot_agent_macros_openssl.h>
 #endif
 
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 #include "network_mbedtls.h"
 #include "mbedtls/pk.h"
 #endif
 
 #if NXP_IOT_AGENT_HAVE_SSS
-#if SSS_HAVE_MBEDTLS_ALT_SSS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 #include "sss_mbedtls.h"
 #endif
 #include "fsl_sss_api.h"
@@ -208,13 +202,13 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	uint8_t* client_certificate_buffer = NULL;
 	size_t client_certificate_size = 0U;
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 	BIO *bio_in = NULL;
 	BIO *bio_in_verify = NULL;
 	uint32_t private_key_object_id = 0U;
 
 	openssl_network_config_t openssl_network_config = { 0 };
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 
 	mbedtls_network_config_t network_config = { 0 };
 
@@ -304,7 +298,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	agent_status = iot_agent_init_dispatcher(&dispatcher_context, agent_context, service_descriptor, status_report);
 	AGENT_SUCCESS_OR_EXIT();
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 	IOT_AGENT_INFO("Close SE session before starting openssl engine session");
 	iot_agent_keystore_close_session(keystore);
 
@@ -360,7 +354,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	network_status = network_configure(dispatcher_context.network_context, &openssl_network_config);
 	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_configure failed with 0x%08x.", network_status);
 
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 
 	network_config.hostname = service_descriptor->hostname;
 	network_config.port = service_descriptor->port;
@@ -429,7 +423,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
     iot_agent_time_init_measurement(&process_provision_time);
 #endif
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 
 	// We need to distinguish here, if we need to do a CRL verification, this has to be the
 	// first thing that we do after connection establishment and openssl still needs control over
@@ -458,7 +452,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	network_status = network_disconnect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == 0, "network_disconnect failed with 0x%08x", network_status);
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 	network_status = network_openssl_engine_session_disconnect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == 0, "network_openssl_engine_session_disconnect failed with 0x%08x", network_status);
 #endif
@@ -479,7 +473,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 
 exit:
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 	network_status = network_openssl_engine_session_disconnect(dispatcher_context.network_context);
 	if (network_status != NETWORK_STATUS_OK) {
 		IOT_AGENT_ERROR("network_openssl_engine_session_disconnect failed with 0x%08x", network_status);

@@ -35,16 +35,12 @@
 
 #include <mbedtls/pk.h>
 
-
-#if SSS_HAVE_MBEDTLS_ALT_SSS
+#if NXP_IOT_AGENT_HAVE_SSS
 #include "sss_mbedtls.h"
 #include "ex_sss_boot.h"
 #include "sm_types.h"
 #include "nxLog_App.h"
-#endif
 
-
-#if NXP_IOT_AGENT_HAVE_SSS
 static iot_agent_status_t associateKeyPair(mbedtls_pk_context *pk, sss_object_t* service_private_key,
         iot_agent_keystore_t* keystore, uint32_t key_id);
 

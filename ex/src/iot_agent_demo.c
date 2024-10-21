@@ -25,7 +25,7 @@
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <iot_agent_claimcode_inject.h>
 
-#elif SSS_HAVE_MBEDTLS_ALT_PSA
+#elif NXP_IOT_AGENT_HAVE_PSA
 #if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
 #include <iot_agent_claimcode_import.h>
 #else
@@ -37,10 +37,10 @@ const uint8_t iot_agent_claimcode_el2go_pub_key[1 + NXP_IOT_AGENT_CLAIMCODE_KEY_
 };
 const size_t iot_agent_claimcode_el2go_pub_key_size = sizeof(iot_agent_claimcode_el2go_pub_key);
 #endif // NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
-#endif // SSS_HAVE_MBEDTLS_ALT_PSA
+#endif // NXP_IOT_AGENT_HAVE_PSA
 #endif // IOT_AGENT_CLAIMCODE_INJECT_ENABLE
 
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 #include <mbedtls/version.h>
 #endif
 
@@ -53,7 +53,7 @@ const size_t iot_agent_claimcode_el2go_pub_key_size = sizeof(iot_agent_claimcode
 #include <iot_agent_psa_sign_test.h>
 #endif
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 #include <fsl_sss_openssl_apis.h>
 #include <openssl/opensslv.h>
 #include <iot_agent_mqtt_paho.h>
@@ -107,7 +107,7 @@ iot_agent_status_t iot_agent_print_uid (sss_se05x_session_t* pSession);
 iot_agent_status_t iot_agent_print_uid();
 #endif
 
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 
 #define COMMON_NAME_MAX_SIZE 256
 const PB_BYTES_ARRAY_T(AWS_ROOT_SERVER_CERT_SIZE) aws_root_server_cert =
@@ -227,7 +227,7 @@ exit:
 #endif
 
 
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 void iot_agent_fill_service_char_array(char** dest, char *src, size_t len)
 {
 	char* ptr = malloc(len);
@@ -424,7 +424,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
     //Intializations of local variables
     size_t number_of_services = 0U;
 	nxp_iot_UpdateStatusReport status_report = nxp_iot_UpdateStatusReport_init_default;
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 	nxp_iot_ServiceDescriptor aws_service_descriptor = nxp_iot_ServiceDescriptor_init_default;
 	nxp_iot_ServiceDescriptor azure_service_descriptor = nxp_iot_ServiceDescriptor_init_default;
 #endif
@@ -557,14 +557,14 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 
 #if NXP_IOT_AGENT_HAVE_SSS
     // doc: trigger MQTT connection - start
-#if (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)
+#if (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)
     agent_status = iot_agent_verify_mqtt_connection(&iot_agent_context);
     AGENT_SUCCESS_OR_EXIT();
 #endif
 #endif //NXP_IOT_AGENT_HAVE_SSS
 	// doc: trigger MQTT connection - end
     // doc: trigger MQTT connection RTP - start
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 	// example code for MQTT conneciton when provisioning services as RTP objects
 	iot_agent_cleanup_mqtt_config_files_cos_over_rtp();
 	AGENT_SUCCESS_OR_EXIT();
@@ -596,7 +596,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
         AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_verify_psa_export failed: 0x%08x", agent_status);
 #endif // NXP_IOT_AGENT_HAVE_PSA && (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 exit:
-#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
+#if	((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)) && (IOT_AGENT_MQTT_ENABLE == 1)
 	iot_agent_free_mqtt_service_descriptor(&aws_service_descriptor);
 	iot_agent_free_mqtt_service_descriptor(&azure_service_descriptor);
 #endif

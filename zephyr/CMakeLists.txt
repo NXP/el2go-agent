@@ -4,6 +4,8 @@
 if(CONFIG_EL2GO_COMMON)
     target_compile_definitions(app PRIVATE
         AX_EMBEDDED=1
+        NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1
+        NXP_IOT_AGENT_HAVE_PSA=1
         NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1
         PB_FIELD_32BIT
         SSS_USE_FTR_FILE

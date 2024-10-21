@@ -21,7 +21,7 @@
 #include "psa_crypto_its.h"
 #endif
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HOSTCRYPTO_OPENSSL
 #include <openssl/ossl_typ.h>
 #include <openssl/engine.h>
 #endif
@@ -52,7 +52,7 @@ typedef struct iot_agent_keystore_t iot_agent_keystore_t;
 #define NXP_IOT_AGENT_EDGELOCK2GO_CLIENT_CERTIFICATE_BUFFER_SIZE 4096
 
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 
 /*! @brief Create an EC_KEY key reference.
  *
@@ -157,7 +157,7 @@ iot_agent_status_t iot_agent_utils_write_key_ref_service_pem(const iot_agent_con
 #endif
 
 
-#if	(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+#if	(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)
 /*! @brief Create a PEM file containing service certificate stored in keystore.
 *
 * @param[in] ctx  Context for the iot_agent
@@ -242,7 +242,7 @@ iot_agent_status_t iot_agent_utils_get_edgelock2go_key_id(iot_agent_keystore_t* 
  */
 iot_agent_status_t iot_agent_utils_get_edgelock2go_certificate_id(iot_agent_keystore_t* keystore, uint32_t* object_id);
 
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
         iot_agent_keystore_t* keystore, uint8_t* certificate_buffer, 
         size_t* certificate_buffer_size);

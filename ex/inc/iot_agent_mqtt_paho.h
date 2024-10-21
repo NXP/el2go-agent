@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 NXP
+ * Copyright 2020-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -53,7 +53,7 @@ iot_agent_status_t iot_agent_verify_mqtt_connection(iot_agent_context_t* iot_age
 
 iot_agent_status_t iot_agent_cleanup_mqtt_config_files();
 
-#if	(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+#if	(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)
 iot_agent_status_t iot_agent_verify_mqtt_connection_cos_over_rtp(iot_agent_context_t* iot_agent_context, const nxp_iot_ServiceDescriptor* service_descriptor);
 
 iot_agent_status_t iot_agent_cleanup_mqtt_config_files_cos_over_rtp();

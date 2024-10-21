@@ -11,7 +11,7 @@
 #include <unistd.h>
 #endif
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -19,7 +19,7 @@
 #include <nxp_iot_agent_macros_openssl.h>
 #endif
 
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 #include "network_mbedtls.h"
 #include <mbedtls/version.h>
 #include <mbedtls/sha256.h>
@@ -75,7 +75,7 @@ extern const key_recipe_t recipe_el2goconn_auth_prk;
 // AES CBC
 #define AES_CBC_BLOCK_SIZE  		16
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 
 extern void print_openssl_errors(char* function);
 
@@ -517,7 +517,7 @@ exit:
 }
 #endif // NXP_IOT_AGENT_HAVE_SSS
 
-#if	(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+#if	(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)
 iot_agent_status_t iot_agent_utils_write_certificate_pem_cos_over_rtp(iot_agent_context_t* ctx,
 	const nxp_iot_ServiceDescriptor* service_descriptor, const char* filename)
 {
@@ -617,7 +617,7 @@ exit:
 	return agent_status;
 }
 
-#endif //#if (SSS_HAVE_HOSTCRYPTO_OPENSSL)
+#endif //#if (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)
 
 #if	(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 
@@ -993,11 +993,11 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
     size_t total_size = 0U;
     pb_ostream_t ostream = { 0 };
     configuration_data_header_t* header = NULL;
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
     int success = 1;
     unsigned int calculted_checksum_len = 0U;
     EVP_MD_CTX* digest_context = NULL;
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
     int failed = 0;
 #endif
 #if NXP_IOT_AGENT_HAVE_PSA
@@ -1082,7 +1082,7 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
 	header->number_of_services = 1U;
 	header->version = IOT_AGENT_CONFIGURATION_DATA_VERSION;
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 	digest_context = EVP_MD_CTX_create();
 #else
@@ -1094,7 +1094,7 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
 	calculted_checksum_len = (unsigned int)sizeof(header->checksum);
 	success &= EVP_DigestFinal_ex(digest_context, header->checksum, &calculted_checksum_len);
 	ASSERT_OR_EXIT_MSG(success == 1, "Header checksum calculation failed.");
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 	ASSERT_OR_EXIT_MSG(total_size >= sizeof(header->checksum), "Buffer overflow in SHA calculation.");
 	mbedtls_sha256_context digest_context;
 	mbedtls_sha256_init(&digest_context);

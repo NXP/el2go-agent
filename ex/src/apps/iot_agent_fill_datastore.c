@@ -20,9 +20,9 @@
 #include <nxp_iot_agent_keystore.h>
 #include <nxp_iot_agent_platform.h>
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 #include <openssl/pem.h>
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 #include <mbedtls/x509_crt.h>
 #endif
 
