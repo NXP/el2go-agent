@@ -16,6 +16,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
+#include <nxp_iot_agent_macros_openssl.h>
 #endif
 
 #if SSS_HAVE_HOSTCRYPTO_MBEDTLS
@@ -58,14 +59,18 @@ extern const key_recipe_t recipe_el2goconn_auth_prk;
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <fsl_sss_api.h>
 #include <nxp_iot_agent_keystore_sss_se05x.h>
+#include <nxp_iot_agent_macros_sss.h>
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA && !NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL
+#if NXP_IOT_AGENT_HAVE_PSA
+#include <nxp_iot_agent_macros_psa.h>
+#if !NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL
 #ifdef __ZEPHYR__
 #include <zephyr/drivers/hwinfo.h>
 #else
 #include <fsl_silicon_id.h>
-#endif
-#endif
+#endif //__ZEPHYR__
+#endif //!NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL
+#endif // NXP_IOT_AGENT_HAVE_PSA
 
 // AES CBC
 #define AES_CBC_BLOCK_SIZE  		16

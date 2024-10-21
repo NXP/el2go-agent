@@ -26,6 +26,7 @@
 
 #if SSS_HAVE_APPLET_SE05X_IOT
 #include <nxp_iot_agent_keystore_sss_se05x.h>
+#include "nxp_iot_agent_macros_sss.h"
 #include <nxp_iot_agent_session.h>
 #include <fsl_sss_se05x_apis.h>
 #include <se05x_APDU_apis.h>
@@ -36,6 +37,7 @@
 #endif
 #if NXP_IOT_AGENT_HAVE_PSA
 #include <nxp_iot_agent_keystore_psa.h>
+#include "nxp_iot_agent_macros_psa.h"
 #include "psa_init_utils.h"
 #include <psa/crypto.h>
 #endif

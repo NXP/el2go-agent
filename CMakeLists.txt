@@ -98,11 +98,13 @@ IF(SSS_HAVE_HOSTCRYPTO_OPENSSL OR (SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_MBED
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/se05x/nxp_iot_agent_session.h)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/sss/nxp_iot_agent_keystore_sss_se05x.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/sss/nxp_iot_agent_keystore_sss_se05x.h)
+    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/sss/nxp_iot_agent_macros_sss.h)
 ENDIF()
 
 IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_MBEDTLS_ALT_PSA)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/psa/nxp_iot_agent_keystore_psa.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/psa/nxp_iot_agent_keystore_psa.h)
+    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/psa/nxp_iot_agent_macros_psa.h)
     IF(NOT NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
         set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ex/src/utils/mbedtls_psa/psa_crypto_wrapper.c)
         IF(SSS_HAVE_HOST_PCWINDOWS OR SSS_HAVE_HOST_PCLINUX)

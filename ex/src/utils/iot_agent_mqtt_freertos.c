@@ -12,6 +12,7 @@
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <fsl_sss_api.h>
 #include <nxp_iot_agent_keystore_sss_se05x.h>
+#include <nxp_iot_agent_macros_sss.h>
 #endif
 
 #include "core_mqtt_serializer.h"

@@ -9,6 +9,7 @@
 
 #if NXP_IOT_AGENT_HAVE_SSS
 
+#include <nxp_iot_agent_macros_sss.h>
 #include <se05x_APDU.h>
 
 static uint8_t CheckIfKeyIdExists(sss_object_t* obj, uint32_t keyId, pSe05xSession_t session_ctx)

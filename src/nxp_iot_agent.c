@@ -33,6 +33,7 @@
 
 #if SSS_HAVE_HOSTCRYPTO_OPENSSL
 #include <network_openssl.h>
+#include <nxp_iot_agent_macros_openssl.h>
 #endif
 
 #if SSS_HAVE_HOSTCRYPTO_MBEDTLS
@@ -54,6 +55,7 @@
 #include <nxp_iot_agent_time.h>
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <nxp_iot_agent_keystore_sss_se05x.h>
+#include <nxp_iot_agent_macros_sss.h>
 #include <nxp_iot_agent_session.h>
 #endif
 

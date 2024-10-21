@@ -21,6 +21,7 @@
 
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_macros_psa.h>
 
 #include <iot_agent_network.h>
 #include <iot_agent_demo_config.h>

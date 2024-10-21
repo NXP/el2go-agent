@@ -12,6 +12,7 @@
 #undef psa_import_key
 
 #include "nxp_iot_agent_macros.h"
+#include "nxp_iot_agent_macros_psa.h"
 #include "nxp_iot_agent_utils.h"
 
 #include "psa/crypto.h"

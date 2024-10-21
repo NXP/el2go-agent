@@ -9,6 +9,7 @@
 
 #if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
 #include "nxp_iot_agent_macros.h"
+#include <nxp_iot_agent_macros_psa.h>
 #include "nxp_iot_agent_utils.h"
 
 #include "psa/crypto.h"

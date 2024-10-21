@@ -8,6 +8,7 @@
 #include "nxp_iot_agent_log.h"
 #include "nxp_iot_agent_status.h"
 #include "nxp_iot_agent_macros.h"
+#include "nxp_iot_agent_macros_psa.h"
 #include "nxp_iot_agent_utils.h"
 
 #undef psa_import_key

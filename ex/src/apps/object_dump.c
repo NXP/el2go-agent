@@ -19,6 +19,7 @@
 
 #include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_macros_sss.h>
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 
 

@@ -21,6 +21,7 @@
 
 #include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_macros_sss.h>
 #include <iot_agent_claimcode_inject.h>
 
 static ex_sss_boot_ctx_t gex_sss_boot_ctx;

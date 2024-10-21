@@ -13,6 +13,7 @@ if(CONFIG_EL2GO_COMMON)
     target_include_directories(app PRIVATE
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/inc
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/common
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa
     )
 
     if(CONFIG_EL2GO_AGENT_LIBRARY_SOURCES)
@@ -60,7 +61,6 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/datastore/plain
         )
 
