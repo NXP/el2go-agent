@@ -16,6 +16,7 @@
 #include <nxp_iot_agent_datastore.h>
 #include <nxp_iot_agent_context.h>
 #include <nxp_iot_agent_dispatcher.h>
+#include "../protobuf/Agent.pb.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -343,6 +344,13 @@ void iot_agent_free_service_descriptor(
  */
 void iot_agent_free_update_status_report(nxp_iot_UpdateStatusReport* status_report);
 
+/*! @brief Print status report.
+ *
+ * It prints the status report of the agent execution.
+ *
+ * @param[in] status_report: Reference to status_report
+ */
+void iot_agent_print_status_report(const nxp_iot_UpdateStatusReport* status_report);
 
 /** @brief Get the index of a datastore based on its identifier.
  *
