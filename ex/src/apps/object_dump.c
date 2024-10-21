@@ -101,7 +101,7 @@ int main(int argc, const char *argv[])
 	case kSSS_CipherType_EC_MONTGOMERY: /* Montgomery Key,   */
 	case kSSS_CipherType_EC_TWISTED_ED: /* twisted Edwards form elliptic curve public key */
 	case kSSS_CipherType_EC_BRAINPOOL: /* Brainpool form elliptic curve public key */
-        agent_status = iot_agent_utils_write_key_ref_pem(&gex_sss_boot_ctx.ks, &obj, objid, filename);
+        agent_status = iot_agent_utils_write_key_ref_pem_from_keystore(&keystore, objid, filename);
         AGENT_SUCCESS_OR_EXIT_MSG("Failed to create keyref file")
         printf("Generated Key reference file for ObjectId 0x%x in %s \n", objid, filename);
 		break;

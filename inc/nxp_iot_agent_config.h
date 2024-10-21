@@ -193,7 +193,4 @@
 #define ENABLE_IOT_AGENT_ERROR     1
 #endif
 
-typedef struct pb_bytes_array_s pb_bytes_array_t;
-extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
-
 #endif // #ifndef _NXP_IOT_AGENT_CONFIG_H_

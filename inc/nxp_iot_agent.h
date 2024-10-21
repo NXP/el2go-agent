@@ -47,80 +47,10 @@ extern "C" {
  */
 #define EDGELOCK2GO_KEYSTORE_ID                 0x70000010U
 
-
-#if NXP_IOT_AGENT_HAVE_SSS
-/**@ brief Start of the range of keys to use for keys of cloud services provisioned by EdgeLock 2GO. */
-#define EDGELOCK2GO_MANAGED_SERVICE_KEY_MIN	0x80000000U
-
-/**@ brief End of the range of keys to use for keys of cloud services provisioned by EdgeLock 2GO. */
-#define EDGELOCK2GO_MANAGED_SERVICE_KEY_MAX	0x81000000U
-
 /**
- * @brief The keyid on the SSS API to use for the keystore and keypair to use for connecting to
- * EdgeLock 2GO cloud service.
+ * @brief The keyid on the PSA API to use for fetching a claimcode.
  */
-#define EDGELOCK2GO_KEYID_ECC         0xF0000000U
-#define EDGELOCK2GO_KEYID_RSA         0xF0000004U
- /**
-  * @brief The certid on the SSS API to use for the keystore to use for connecting to EdgeLock 2GO
-  * cloud service.
-  */
-#define EDGELOCK2GO_CERTID_ECC        0xF0000001U
-#define EDGELOCK2GO_CERTID_RSA        0xF0000005U
-/**
- * @brief The attestation keyid on the SSS API to use for the attestation.
- */
-#define EDGELOCK2GO_ATTESTATION_KEY_ECC         0xF0000012U
-#define EDGELOCK2GO_ATTESTATION_KEY_RSA         0xF0000010U
-
-#elif NXP_IOT_AGENT_HAVE_PSA
-
- // TODO: Agree on all of these ids!
-
- /**@ brief Start of the range of keys to use for keys of cloud services provisioned by EdgeLock 2GO. */
-#define EDGELOCK2GO_MANAGED_SERVICE_KEY_MIN	0x08000000U
-
-/**@ brief End of the range of keys to use for keys of cloud services provisioned by EdgeLock 2GO. */
-#define EDGELOCK2GO_MANAGED_SERVICE_KEY_MAX	0x08100000U
-
-/**
- * @brief The keyid on the PSA API to use for connecting to the EdgeLock 2GO cloud service.
- */
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL || defined(NXP_IOT_AGENT_ENABLE_LITE)
-#define EDGELOCK2GO_KEYID_ECC              0x3fff0201U
-#else
-#define EDGELOCK2GO_KEYID_ECC              0x7FFF816CU
-#endif
-
-/**
- * @brief The keyid on the PSA API to use for unwrapping EdgeLock 2GO cloud service key blobs into Sentinel50 slots.
- */
-#define EL2GOIMPORT_KEK_SK                 0x3fff0210U
-
-/**
-   * @brief The keyid on the PSA API to use for decrypting EdgeLock 2GO cloud service key blobs into TF-M.
-   */
-#define EL2GOIMPORTTFM_KEK_SK                 0x3fff0211U
-
-/**
-	* @brief The keyid on the PSA API to use for validation of EdgeLock 2GO cloud service key blobs.
-	*/
-#define EL2GOIMPORT_AUTH_SK                 0x3fff0212U
-
-  
-/**
-  * @brief The keyid on the PSA API to use for fetching a claimcode.
-  */
 #define CLAIMCODE_OBJ_ID    		       0xf00000e0U
-
-  /**
-   * @brief The keyid on the PSA API to use for OEM specific objects.
-   */
-#define EL2GO_OEM_FW_AUTH_KEY_HASH			0x7fff817aU
-#define EL2GO_OEM_FW_DECRYPT_KEY			0x7fff817bU
-
-#endif
-
 
 typedef struct _nxp_iot_UpdateStatusReport nxp_iot_UpdateStatusReport;
 
@@ -153,10 +83,10 @@ iot_agent_status_t iot_agent_register_keystore(
 /*! @brief Register datastore endpoint.
  *
  * Note that the ownership for the datastore is not transferred.
- * The caller is responsible that the datastore is freed at the 
+ * The caller is responsible that the datastore is freed at the
  * appropriate time.
  *
- * It is not possible to register two endpoints with the 
+ * It is not possible to register two endpoints with the
  * same identifier.
  *
  * @param[in] ctx: Context for the iot_agent.
@@ -167,7 +97,6 @@ iot_agent_status_t iot_agent_register_keystore(
 iot_agent_status_t iot_agent_register_datastore(
 	iot_agent_context_t* ctx,
 	iot_agent_datastore_t* datastore);
-
 
 /** @brief Set the datastore that is used to hold the 
  * information to connect to the EdgeLock 2GO cloud service.
@@ -198,7 +127,7 @@ iot_agent_status_t iot_agent_update_device_configuration(iot_agent_context_t * a
 	nxp_iot_UpdateStatusReport* status_report);
 
 
-/*! @brief Update device configuration
+/*! @brief Update device configuration from constants
  * 
  * Reach out to EdgeLock 2GO cloud service for checking and (if applicable) fetching
  * configuration updates for the device.
@@ -225,6 +154,63 @@ iot_agent_status_t iot_agent_update_device_configuration_from_constants(
 	iot_agent_context_t* agent_context,
 	nxp_iot_UpdateStatusReport* status_report);
 
+/*! @brief Update device configuration from service descriptor
+ *
+ * Reach out to EdgeLock 2GO cloud service for checking and (if applicable) fetching
+ * configuration updates for the device.
+ *
+ * The connection details (hostname/port/server root certificates, etc.) are taken
+ * from the service descriptor passed as input parameter
+ *
+ * It is necessary that an sss keystore that contains credentials (client key and client
+ * certificate) for connecting to the EdgeLock 2GO cloud service. The object ids to
+ * those credentials are settable via function arguments.
+ *
+ * @param[in] ctx: Context for the iot_agent.
+ * @param[in] service_descriptor: Service descriptor including the connection parameters
+ * @param[out] status_report: Provides a more detailed view on the operations performed
+ *    during the update and its outcomes. If the argument is NULL, no detailed status
+ *    is reported.
+ * \post
+ *   In case of success, the status_report structure is filled using dynamically allocated
+ *   fields and needs to be freed after usage by calling #iot_agent_free_status_report.
+ *
+ * @retval IOT_AGENT_SUCCESS Upon success
+ * @retval IOT_AGENT_FAILURE Upon failure
+ */
+iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor(
+	iot_agent_context_t* agent_context,
+	nxp_iot_ServiceDescriptor* service_descriptor,
+	nxp_iot_UpdateStatusReport* status_report);
+
+/*! @brief Update device configuration from datastore
+ *
+ * Reach out to EdgeLock 2GO cloud service for checking and (if applicable) fetching
+ * configuration updates for the device.
+ *
+ * The connection details (hostname/port/server root certificates, etc.) are taken
+ * from the datastore passed as input parameter
+ *
+ * It is necessary that an sss keystore that contains credentials (client key and client
+ * certificate) for connecting to the EdgeLock 2GO cloud service. The object ids to
+ * those credentials are settable via function arguments.
+ *
+ * @param[in] ctx: Context for the iot_agent.
+ * @param[in] datastore: Datastore including the connection parameters
+ * @param[out] status_report: Provides a more detailed view on the operations performed
+ *    during the update and its outcomes. If the argument is NULL, no detailed status
+ *    is reported.
+ * \post
+ *   In case of success, the status_report structure is filled using dynamically allocated
+ *   fields and needs to be freed after usage by calling #iot_agent_free_status_report.
+ *
+ * @retval IOT_AGENT_SUCCESS Upon success
+ * @retval IOT_AGENT_FAILURE Upon failure
+ */
+iot_agent_status_t iot_agent_update_device_configuration_from_datastore(
+	iot_agent_context_t* agent_context,
+	iot_agent_datastore_t* datastore,
+	nxp_iot_UpdateStatusReport* status_report);
 
 /*! @brief Select service by given index
  * @param[in] ctx: Context for the iot_agent.
@@ -424,16 +410,6 @@ iot_agent_status_t iot_agent_init_dispatcher(
 	iot_agent_context_t * agent_context,
 	nxp_iot_ServiceDescriptor* service_descriptor,
 	nxp_iot_UpdateStatusReport* status_report);
-
-iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor(
-    iot_agent_context_t* agent_context,
-    nxp_iot_ServiceDescriptor* service_descriptor,
-    nxp_iot_UpdateStatusReport* status_report);
-
-iot_agent_status_t iot_agent_update_device_configuration_from_datastore(
-    iot_agent_context_t* agent_context,
-    iot_agent_datastore_t* datastore,
-    nxp_iot_UpdateStatusReport* status_report);
 /*!
  *@}
  */ /* end of edgelock2go_agent_main */

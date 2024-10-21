@@ -74,7 +74,7 @@ extern "C" {
 
 #else
 
-#if defined(__clang__)
+#if defined(__clang__) || defined(__ICCARM__)
 // Clang. This can be windows or linux or mingw or .... Attention, clang in those cases ALSO
 // defines _MSC_VER or __GNUC__, so this check MUST BE BEFORE the others.
 #define COMPILE_TIME_ASSERT(condition) _Static_assert(condition, "compile_time assert failed")
@@ -128,15 +128,6 @@ extern "C" {
  * These are UUIDs: 32 hex digits + 4 dashes + \0.
  */
 #define NXP_IOT_AGENT_CORRELATION_ID_LENGTH (37)
-
-#if (NXP_IOT_AGENT_HAVE_PSA && (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)) // TODO we need to move the parsing of simulator blob logic to driver wrapper (see IOTDL-1233)
-#undef psa_import_key
-#else
-#if !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
-#define psa_import_key psa_import_key_wrap
-#endif
-#endif
-
 
 #ifdef __cplusplus
 } // extern "C"

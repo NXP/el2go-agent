@@ -12,6 +12,7 @@
 #include "nxp_iot_agent_macros.h"
 #include "nxp_iot_agent_macros_psa.h"
 #include "nxp_iot_agent_utils.h"
+#include "nxp_iot_agent_utils_internal.h"
 
 #undef psa_import_key
 

@@ -67,6 +67,8 @@
 extern iot_agent_time_t iot_agent_time;
 #endif
 
+extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
+
 static const iot_agent_endpoint_interface_t iot_agent_endpoint_interface =
 {
 	&iot_agent_get_endpoint_info,

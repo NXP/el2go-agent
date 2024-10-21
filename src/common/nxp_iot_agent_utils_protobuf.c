@@ -9,7 +9,7 @@
 #include <nxp_iot_agent_utils_protobuf.h>
 #include <nxp_iot_agent_utils.h>
 
-bool copy_bytes_to_buffer(pb_istream_t *stream, buffer_t *read_buffer)
+static bool copy_bytes_to_buffer(pb_istream_t *stream, buffer_t *read_buffer)
 {
     size_t len = stream->bytes_left;
     if (len > read_buffer->len) {
@@ -169,18 +169,18 @@ const pb_field_t* decode_unionmessage_type(pb_istream_t *stream, const pb_field_
     return NULL;
 }
 
-pb_ostream_t pb_ostream_from_response_buffer(iot_agent_response_buffer_t* response_buffer)
-{
-    pb_ostream_t stream = { &pb_ostream_response_buffer_direct_write, response_buffer, response_buffer->remaining, 0U };
-    return stream;
-}
-
-bool pb_ostream_response_buffer_direct_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
+static bool pb_ostream_response_buffer_direct_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
 {
     iot_agent_response_buffer_t* response_buffer = (iot_agent_response_buffer_t*)stream->state;
     memcpy(response_buffer->pos, buf, count);
     pb_response_buffer_consume_bytes(response_buffer, count);
     return true;
+}
+
+pb_ostream_t pb_ostream_from_response_buffer(iot_agent_response_buffer_t* response_buffer)
+{
+    pb_ostream_t stream = { &pb_ostream_response_buffer_direct_write, response_buffer, response_buffer->remaining, 0U };
+    return stream;
 }
 
 iot_agent_response_buffer_t* pb_ostream_response_buffer_get_internal_buffer(pb_ostream_t *stream)
@@ -197,7 +197,7 @@ void pb_response_buffer_consume_bytes(iot_agent_response_buffer_t* response_buff
 	}
 }
 
-int byte_array_to_hex_str(const uint8_t* arr, size_t sz, char* str, size_t strlen)
+static int byte_array_to_hex_str(const uint8_t* arr, size_t sz, char* str, size_t strlen)
 {
 	size_t i;
 	char* strp = str;

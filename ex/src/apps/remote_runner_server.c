@@ -212,6 +212,8 @@ size_t cmd_length = 0;
 char* resp_apdu_ptr = NULL;
 size_t resp_apdu_length;
 
+extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
+
 bool getRespString(char *str, uint8_t *buffer, size_t buffer_len);
 
 #if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
@@ -258,7 +260,7 @@ static iot_agent_status_t execute_write_pem_test(sss_key_store_t* sss_context, c
 	case kSSS_CipherType_EC_MONTGOMERY: /* Montgomery Key,   */
 	case kSSS_CipherType_EC_TWISTED_ED: /* twisted Edwards form elliptic curve public key */
 	case kSSS_CipherType_EC_BRAINPOOL: /* Brainpool form elliptic curve public key */
-		agent_status = iot_agent_utils_write_key_ref_pem(sss_context, &obj, objid, filename);
+		agent_status = iot_agent_utils_write_key_ref_pem_from_keystore(&keystore, objid, filename);
 		AGENT_SUCCESS_OR_EXIT_MSG("Failed to create keyref file")
 			printf("Generated Key reference file for ObjectId 0x%x in %s \n", objid, filename);
 		break;
@@ -1727,6 +1729,49 @@ static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_
 
 exit:
 	return agent_status;
+}
+
+static int byte_array_to_hex_str(const uint8_t* arr, size_t sz, char* str, size_t strlen)
+{
+	size_t i;
+	char* strp = str;
+	char* eos = str + strlen + 1U;
+
+	if (strlen < 1U)
+		return 0;
+
+	size_t wlen = 0U;
+	for (i = 0U; i < sz; i++)
+	{
+		/* i use 3 here since we are going to add at most
+		2 chars, and need a null terminator */
+		if (strp + 3 < eos)
+		{
+			strp += sprintf(strp, "%02X", arr[i]);
+			if (wlen <= (SIZE_MAX - 2U))
+			{
+				wlen += 2U;
+			}
+		}
+	}
+	if (strp < (eos - 1U)) {
+		*strp++ = 0x00;
+	}
+	return wlen;
+}
+
+static char* pb_bytes_array_to_hex_str(const pb_bytes_array_t* arr)
+{
+	size_t len = 0U;
+
+	if (arr->size < ((UINT32_MAX - 1U) / 2U)) {
+		len = (size_t)2U * arr->size + 1U;
+	}
+
+    char* str = (char*) malloc(len);
+    if (str == NULL) return NULL;
+    byte_array_to_hex_str(arr->bytes, (size_t)arr->size, str, len);
+    return str;
 }
 
 // This function executes the Agent

@@ -6,6 +6,7 @@
  */
 
 #include <nxp_iot_agent_utils_protobuf.h>
+#include <nxp_iot_agent_utils_internal.h>
 #include <nxp_iot_agent_log.h>
 #include <network.h>
 
@@ -25,7 +26,7 @@ void print_binary_data(const char* info, const uint8_t* buf, size_t len) {
 }
 #endif
 
-bool write_callback(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
+static bool write_callback(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
 {
 	void* network_context = stream->state;
 
@@ -42,7 +43,7 @@ bool write_callback(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
 	return ((size_t)written == count);
 }
 
-bool read_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+static bool read_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
 	void* network_context = stream->state;
 #if defined(ENABLE_IOT_AGENT_PROTOBUF_DEBUG) && (ENABLE_IOT_AGENT_PROTOBUF_DEBUG == 1)

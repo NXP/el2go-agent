@@ -29,6 +29,7 @@
 
 const char * gszEdgeLock2GoDatastoreFilename = "edgelock2go_datastore.bin";
 
+extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
 
 static void print_usage()
 {

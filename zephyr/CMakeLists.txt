@@ -14,6 +14,7 @@ if(CONFIG_EL2GO_COMMON)
 
     target_include_directories(app PRIVATE
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/inc
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/common
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa
     )

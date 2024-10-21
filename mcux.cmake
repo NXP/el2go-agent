@@ -64,6 +64,7 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
     )
     mcux_add_source(
         SOURCES inc/*.h
+                src/*.h
                 ex/inc/iot_agent_demo_config.h
                 ex/inc/iot_agent_mqtt_freertos.h
                 ex/inc/iot_agent_network.h
@@ -84,6 +85,7 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
     )
     mcux_add_include(
         INCLUDES inc
+                 src
                  ex/inc
                  net_crypto
                  net_crypto/mbedtls

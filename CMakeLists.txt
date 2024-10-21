@@ -41,6 +41,7 @@ FILE(
     inc/*.h
     inc/*.h.in
     src/*.c
+    src/*.h
     src/protobuf/*.h
     src/protobuf/*.c
 )
@@ -171,6 +172,7 @@ ENDIF()
 TARGET_INCLUDE_DIRECTORIES(
     nxp_iot_agent
     PUBLIC inc
+    PUBLIC src
     PUBLIC platform
     PUBLIC src/protobuf
 )
