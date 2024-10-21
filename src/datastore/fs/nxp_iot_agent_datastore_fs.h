@@ -8,6 +8,7 @@
 #ifndef _NXP_IOT_AGENT_DATASTORE_FS_H_
 #define _NXP_IOT_AGENT_DATASTORE_FS_H_
 
+#include <stdio.h>
 #include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_datastore.h>
 

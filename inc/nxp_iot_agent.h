@@ -109,12 +109,6 @@ extern "C" {
 
   
 /**
- * @brief The keyid on the PSA API to use for fetching the device ID.
- */
-#define DEVICEID_KEYID                     0x3fff0220U
-#define DEVICEID_LENGTH                            16U
-
- /**
   * @brief The keyid on the PSA API to use for fetching a claimcode.
   */
 #define CLAIMCODE_OBJ_ID    		       0xf00000e0U

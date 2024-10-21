@@ -6,11 +6,14 @@
 
 #include <iot_agent_claimcode_inject.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_status.h>
+#include <nxp_iot_agent_common.h>
 
 #if NXP_IOT_AGENT_HAVE_SSS
 
 #include <nxp_iot_agent_macros_sss.h>
 #include <se05x_APDU.h>
+#include <ex_sss_boot.h>
 
 static uint8_t CheckIfKeyIdExists(sss_object_t* obj, uint32_t keyId, pSe05xSession_t session_ctx)
 {

@@ -10,6 +10,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "../protobuf/pb.h"
+#include "../protobuf/pb_encode.h"
+#include "../protobuf/pb_decode.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -11,20 +11,6 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-
-#if defined(NXP_IOT_AGENT_CONFIG_FILE)
-#include NXP_IOT_AGENT_CONFIG_FILE
-#else
-#include <nxp_iot_agent_config.h>
-#endif
-
-#include <nxp_iot_agent_status.h>
-#include <nxp_iot_agent_log.h>
-
 #if (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL & NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS)
 #        error "Only one between NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL and NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS can be set to 1"
 #endif
@@ -75,10 +61,6 @@ extern "C" {
 #endif // NXP_IOT_AGENT_HAVE_PSA
 #endif // NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 
-#if NXP_IOT_AGENT_HAVE_SSS
-#include <sm_types.h>
-#endif
-
 #if AX_EMBEDDED
 
  // A freescale cpu
@@ -110,7 +92,8 @@ extern "C" {
 #endif // #if AX_EMBEDDED
 /** Endpoint types. Those need to be aligned to the endpoint
  * types on the protocol layer. This is guarded by compile time
- * assertion in dispatcher.c! */
+ * assertion in dispatcher.c!
+ */
 #define IOT_AGENT_KS_SSS_A71CH_NOT_SUPPORTED    (10U)
 #define IOT_AGENT_KS_SSS_SE05X                  (11U)
 #define IOT_AGENT_KS_SSS_RPC_NOT_SUPPORTED      (20U)
@@ -119,8 +102,9 @@ extern "C" {
 #define IOT_AGENT_DS_PLAIN                      (51U)
 
 /** Cloud specific Serice types. Those need to be aligned to the serivice
-* types on the protocol layer. This is guarded by compile time
-* assertion in dispatcher.c! */
+ * types on the protocol layer. This is guarded by compile time
+ * assertion in dispatcher.c!
+ */
 #define IOT_AGENT_AWSSERVICE	(0)
 #define IOT_AGENT_GOOGLESERVICE	(1)
 #define IOT_AGENT_AZURESERVICE	(2)
@@ -128,7 +112,8 @@ extern "C" {
 #define IOT_AGENT_CUSTOMSERVICE	(15)
 
 /** Protocol types. This is guarded by compile time
-* assertion in dispatcher.c! */
+ * assertion in dispatcher.c!
+ */
 #define IOT_AGENT_PROTOCOL_HTTPS    (1)
 #define IOT_AGENT_PROTOCOL_MQTTS    (2)
 #define IOT_AGENT_PROTOCOL_AMQPS    (3)

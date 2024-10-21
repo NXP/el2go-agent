@@ -89,6 +89,7 @@ extern uint32_t tfm_ns_interface_init(void);
 #include <iot_agent_demo_config.h>
 
 #define MAX_UID_DECIMAL_STRING_SIZE 44U
+#define DEVICEID_LENGTH             16U
 
 const char * gszEdgeLock2GoDatastoreFilename = "edgelock2go_datastore.bin";
 const char * gszDatastoreFilename = "datastore.bin";

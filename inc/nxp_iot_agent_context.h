@@ -1,5 +1,5 @@
 /* 
- * Copyright 2018-2021 NXP
+ * Copyright 2018-2021,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -7,8 +7,8 @@
 #ifndef _NXP_IOT_AGENT_CONTEXT_H_
 #define _NXP_IOT_AGENT_CONTEXT_H_
 
-#include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_service.h>
+#include <nxp_iot_agent_config.h>
 #include <nxp_iot_agent_keystore.h>
 #include <nxp_iot_agent_datastore.h>
 

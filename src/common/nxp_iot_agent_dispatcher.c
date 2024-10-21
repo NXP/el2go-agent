@@ -10,6 +10,7 @@
 #include <nxp_iot_agent_macros.h>
 
 #include <nxp_iot_agent.h>
+#include <nxp_iot_agent_common.h>
 
 #include "../protobuf/pb.h"
 #include "../protobuf/pb_encode.h"

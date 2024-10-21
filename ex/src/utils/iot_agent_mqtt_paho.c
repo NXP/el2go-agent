@@ -35,6 +35,11 @@
 #include <network_openssl.h>
 #include <MQTTClient.h>
 
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#include <openssl/ossl_typ.h>
+#include <openssl/engine.h>
+#endif
+
 #ifdef NXP_IOT_AGENT_USE_COREJSON
 #include "core_json.h"
 #else

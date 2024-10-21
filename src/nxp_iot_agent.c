@@ -14,7 +14,9 @@
 
 #include <nxp_iot_agent_macros.h>
 #include <nxp_iot_agent.h>
+#include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_dispatcher.h>
+#include <nxp_iot_agent_utils_internal.h>
 
 #include "./protobuf/pb.h"
 #include "./protobuf/pb_encode.h"
@@ -486,7 +488,7 @@ exit:
 	EVP_PKEY_free(openssl_network_config.private_key);
 	X509_free(openssl_network_config.certificate);
 
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 #if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
 	mbedtls_x509_crt_free(&network_config.ca_chain);
 	#endif
@@ -1071,7 +1073,7 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 			dispatcher_context->closed = true;
 		}
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 		{
 			int network_status = network_openssl_engine_session_disconnect((openssl_network_context_t*)dispatcher_context->network_context);
 			if (network_status != NETWORK_STATUS_OK) {

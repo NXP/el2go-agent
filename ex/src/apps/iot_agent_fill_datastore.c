@@ -15,6 +15,7 @@
 
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_status.h>
 #include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_datastore_fs.h>
 #include <nxp_iot_agent_keystore.h>
@@ -154,8 +155,8 @@ exit:
 		free(*certificates);
 		*certificates = NULL;
 	}
-	return agent_status;
 #endif
+	return agent_status;
 }
 
 int main(int argc, const char *argv[])

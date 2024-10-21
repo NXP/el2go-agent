@@ -5,6 +5,8 @@
  *
  */
 
+#include "nxp_iot_agent_common.h"
+#include "nxp_iot_agent.h"
 #include "nxp_iot_agent_log.h"
 #include "nxp_iot_agent_status.h"
 #include "nxp_iot_agent_macros.h"

@@ -6,6 +6,7 @@
  */
 
 #include <nxp_iot_agent_utils_protobuf.h>
+#include <nxp_iot_agent_log.h>
 #include <network.h>
 
 #if defined(ENABLE_IOT_AGENT_PROTOBUF_DEBUG) && (ENABLE_IOT_AGENT_PROTOBUF_DEBUG == 1)

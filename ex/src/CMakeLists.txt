@@ -577,6 +577,7 @@ IF(NXPInternal)
 			MBEDTLS_PROJECT_SOURCE
 			apps/psa_examples/nxp_iot_agent_psa_init_keystore.c
 			utils/mbedtls_psa/psa_init_utils.c
+			${SIMW_TOP_DIR}/nxp_iot_agent/src/keystore/psa/nxp_iot_agent_macros_psa.h
 		)
 
 		ADD_EXECUTABLE(${PROJECT_NAME}
@@ -587,6 +588,7 @@ IF(NXPInternal)
 			${PROJECT_NAME}
 			${SIMW_TOP_DIR}/ext/mbedtls/include
             ../inc/mbedtls_psa
+			${SIMW_TOP_DIR}/nxp_iot_agent/src/keystore/psa
 		)
 		TARGET_LINK_LIBRARIES(
 			${PROJECT_NAME}

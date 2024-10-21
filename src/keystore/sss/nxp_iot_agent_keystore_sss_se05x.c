@@ -46,12 +46,6 @@ iot_agent_status_t iot_agent_keystore_init(iot_agent_keystore_t* keystore,
 	return iot_agent_keystore_sss_se05x_init(keystore, identifier, (ex_sss_boot_ctx_t*)platform_context->ctx, true);
 }
 
-//iot_agent_status_t iot_agent_keystore_init(iot_agent_keystore_t* keystore,
-//	uint32_t identifier, iot_agent_platform_context_t* platform_context)
-//{
-//	return iot_agent_keystore_sss_se05x_init(keystore, identifier, (ex_sss_boot_ctx_t*)platform_context->ctx, true);
-//}
-
 iot_agent_status_t iot_agent_keystore_sss_se05x_init(iot_agent_keystore_t* keystore,
 	uint32_t identifier, ex_sss_boot_ctx_t* boot_context, bool is_session_open)
 {

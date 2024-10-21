@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 NXP
+ * Copyright 2020-2022,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -7,6 +7,7 @@
 #ifndef _IOT_AGENT_CLAIMCODE_INJECT_H_
 #define _IOT_AGENT_CLAIMCODE_INJECT_H_
 
+#include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_config.h>
 
@@ -31,7 +32,6 @@ extern "C" {
 * @{
 */
 
-#define CLAIMCODE_OBJ_ID    		0xF00000E0U
 #define DEFAULT_USER_ID     		0x00000000U
 /*FastSCP autentication keyID for demo devices*/
 #define EDGELOCK2GO_USER_ID_DEMO 	0xF0000021U
