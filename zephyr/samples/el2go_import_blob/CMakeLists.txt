@@ -17,6 +17,6 @@ zephyr_include_directories(
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/ex/src/apps/psa_examples/el2go_import_blob
 )
 
-if(NOT CONFIG_VALIDATE_PSA_IMPORT_OPERATION EQUAL 0)
-    target_compile_definitions(app PRIVATE VALIDATE_PSA_IMPORT_OPERATION=${CONFIG_VALIDATE_PSA_IMPORT_OPERATION})
+if(CONFIG_VALIDATE_PSA_IMPORT_OPERATION)
+    target_compile_definitions(app PRIVATE VALIDATE_PSA_IMPORT_OPERATION=1)
 endif()

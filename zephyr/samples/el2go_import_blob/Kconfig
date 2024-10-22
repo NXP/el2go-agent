@@ -4,7 +4,6 @@
 source "Kconfig.zephyr"
 
 config VALIDATE_PSA_IMPORT_OPERATION
-    int "Validate imported blob"
-    default 0
+    bool "Validate imported blob"
     help
         Validate imported blob fetched from flash.

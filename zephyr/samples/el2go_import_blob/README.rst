@@ -37,8 +37,8 @@ Prepare the Demo
     ``#define VALIDATE_PSA_IMPORT_OPERATION 1`
 
     This value can optionally also be set in the prj.conf like this:
-    ``CONFIG_VALIDATE_PSA_IMPORT_OPERATION=1``
-    If its set in the prj.conf to a value unequal to 0, then it will override the value of define
+    ``CONFIG_VALIDATE_PSA_IMPORT_OPERATION=y``
+    If its set in the prj.conf to true, then it will override the value of define
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/apps/psa_examples/el2go_import_blob/el2go_import_blob.h`.
 
 2.  [Optional] In order to maximize the TF-M ITS performance, the maximum supported blob size is set to 2908 bytes. In case

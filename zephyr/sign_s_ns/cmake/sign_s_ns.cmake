@@ -29,7 +29,7 @@ function(sign_s_ns)
     set(CERT_BLOCK "")
 
     # Take private key from prj.conf first, else from env. variable
-    if(CONFIG_EL2GO_PRIVATE_KEY STREQUAL "")
+    if(NOT CONFIG_EL2GO_PRIVATE_KEY)
         if(NOT DEFINED ENV{CONFIG_EL2GO_PRIVATE_KEY})
             message(FATAL_ERROR "EL2GO Private Key neither set in CONFIG_EL2GO_PRIVATE_KEY prj.conf file nor in CONFIG_EL2GO_PRIVATE_KEY environment variable")
         else()
@@ -39,7 +39,7 @@ function(sign_s_ns)
         set(PRIVATE_KEY ${CONFIG_EL2GO_PRIVATE_KEY})
     endif()
 
-    if(CONFIG_EL2GO_CERT_BLOCK STREQUAL "")
+    if(NOT CONFIG_EL2GO_CERT_BLOCK)
         if(NOT DEFINED ENV{CONFIG_EL2GO_CERT_BLOCK})
             message(FATAL_ERROR "EL2GO Certificate Block
             neither set in CONFIG_EL2GO_CERT_BLOCK prj.conf file

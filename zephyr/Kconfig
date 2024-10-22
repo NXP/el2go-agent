@@ -34,20 +34,17 @@ config EL2GO_TFM_DATA_IMPORT_REGION
 
 config EL2GO_SIGN_USING_NXPIMAGE
     bool "Sign s/ns binaries using nxpimage"
-    default false
     help
         Sign s/ns binaries using SPSDK nxpimage tool.
 
 config EL2GO_PRIVATE_KEY
     string "Private key input"
     depends on EL2GO_SIGN_USING_NXPIMAGE
-    default ""
     help
         Private key input to sign merged s/ns image.
 
 config EL2GO_CERT_BLOCK
     string "Certificate file"
     depends on EL2GO_SIGN_USING_NXPIMAGE
-    default ""
     help
         Certificate input for the keys.

@@ -104,6 +104,6 @@ if(CONFIG_EL2GO_TFM_DATA_IMPORT_REGION)
 endif()
 
 # Sign image using SPSDK 'nxpimage' tool
-if(CONFIG_EL2GO_SIGN_USING_NXPIMAGE)
+if(DEFINED CONFIG_EL2GO_SIGN_USING_NXPIMAGE)
     include(${CMAKE_CURRENT_LIST_DIR}/sign_s_ns/cmake/sign_s_ns.cmake)
 endif()
