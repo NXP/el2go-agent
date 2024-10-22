@@ -53,7 +53,7 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.psa)
     mcux_add_include(
         INCLUDES ex/inc
                  ex/inc/mbedtls_psa
-                 nxp_iot_agent/src/keystore/psa
+                 src/keystore/psa
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
 endif()
