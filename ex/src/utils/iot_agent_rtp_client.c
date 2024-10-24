@@ -41,6 +41,7 @@
 
 #endif
 
+#include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
 #include <iot_agent_rtp_client.h>

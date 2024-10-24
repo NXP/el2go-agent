@@ -155,7 +155,9 @@
 /**
  * Flag to enable or disable measurement performance timings of EdgeLock 2GO Agent.
  */
+#ifndef IOT_AGENT_TIME_MEASUREMENT_ENABLE
 #define IOT_AGENT_TIME_MEASUREMENT_ENABLE     1
+#endif
  
 /**
  * Set the log-level that is used for output of messages of the openssl engine. The level is a 
@@ -190,8 +192,5 @@
 #ifndef ENABLE_IOT_AGENT_ERROR
 #define ENABLE_IOT_AGENT_ERROR     1
 #endif
-
-typedef struct pb_bytes_array_s pb_bytes_array_t;
-extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
 
 #endif // #ifndef _NXP_IOT_AGENT_CONFIG_H_

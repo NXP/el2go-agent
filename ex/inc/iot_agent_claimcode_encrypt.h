@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 NXP
+ * Copyright 2022-2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -7,17 +7,12 @@
 #ifndef _IOT_AGENT_CLAIMCODE_ENCRYPT_H_
 #define _IOT_AGENT_CLAIMCODE_ENCRYPT_H_
 
-#if defined(SSS_USE_FTR_FILE)
-#include <fsl_sss_ftr.h>
-#else
-#include <fsl_sss_ftr_default.h>
-#endif
-
 #include "nxp_iot_agent_status.h"
 #include "stdint.h"
 #include "stddef.h"
 
-#if SSS_HAVE_MBEDTLS_ALT_PSA
+#if NXP_IOT_AGENT_HAVE_PSA
+#if !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,6 +56,7 @@ iot_agent_status_t iot_agent_claimcode_encrypt_and_import(char *claimcode,
 *@}
 */ /* end of edgelock2go_agent_claimcode_encrypt */
 
-#endif // SSS_HAVE_MBEDTLS_ALT_PSA
+#endif // !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
+#endif // NXP_IOT_AGENT_HAVE_PSA
 
 #endif // #ifndef _IOT_AGENT_CLAIMCODE_ENCRYPT_H_

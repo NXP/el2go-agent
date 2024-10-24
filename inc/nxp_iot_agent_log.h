@@ -8,24 +8,21 @@
 #ifndef _NXP_IOT_AGENT_LOG_H_
 #define _NXP_IOT_AGENT_LOG_H_
 
-#if !defined(NXP_IOT_AGENT_CONFIG_FILE)
+#include <stdio.h>
+#include <stdlib.h>
 #include <nxp_iot_agent_config.h>
-#else
-#include NXP_IOT_AGENT_CONFIG_FILE
-#endif
 
 # ifdef __cplusplus
 extern "C" {
 # endif /* ifdef __cplusplus */
-
-#include <stdio.h>
-#include <stdlib.h>
 
 
 #if defined ( _WIN32 )
 #define __func__ __FUNCTION__
 #endif
 
+// Log macros use printf function; only for Freertos target the printf function
+// should be forwarded to the PRINTF function implemented in debug console
 #if defined(SDK_OS_FREE_RTOS)
 #include "fsl_debug_console.h"
 #if defined(printf)
@@ -33,12 +30,7 @@ extern "C" {
 #endif
 #define printf PRINTF
 #endif
-
-/**
- * @brief Macro used to avoid compiler warnings for unused variables/function arguments.
- */
-#define IOT_AGENT_UNUSED(x) (void)(x)
-
+	
 /**
  * @brief Debug level logging macro.
  *
@@ -161,7 +153,6 @@ extern "C" {
 #else
 #    define IOT_AGENT_TEST_LOG(...)
 #endif
-
 
 # ifdef __cplusplus
 }

@@ -5,13 +5,16 @@
 
 #include "iot_agent_claimcode_encrypt.h"
 #include "nxp_iot_agent.h"
+#include "nxp_iot_agent_common.h"
 
-#if SSS_HAVE_MBEDTLS_ALT_PSA
+#if NXP_IOT_AGENT_HAVE_PSA
+#if !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
 
  // TODO: remove that once the import_key_wrap hack is removed!
 #undef psa_import_key
 
 #include "nxp_iot_agent_macros.h"
+#include "nxp_iot_agent_macros_psa.h"
 #include "nxp_iot_agent_utils.h"
 
 #include "psa/crypto.h"
@@ -451,4 +454,5 @@ exit:
     return agent_status;
 }
 
-#endif // SSS_HAVE_MBEDTLS_ALT_PSA
+#endif // !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
+#endif // NXP_IOT_AGENT_HAVE_PSA

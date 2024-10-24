@@ -9,10 +9,6 @@
 
 #include "nxp_iot_agent_common.h"
 
-#if defined(SSS_USE_FTR_FILE)
-#include <fsl_sss_ftr.h>
-#endif
-
 #if NXP_IOT_AGENT_HAVE_SSS
 #include <sm_types.h>
 #endif
@@ -91,7 +87,7 @@ extern "C" {
  */
 #define IOT_AGENT_NONSE_TESTS_ENABLE 0
 
-#if ((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (SSS_HAVE_HOSTCRYPTO_OPENSSL)) && \
+#if ((AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1) || (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL)) && \
     (IOT_AGENT_MQTT_ENABLE == 1)
 
 // doc: MQTT required modification - start

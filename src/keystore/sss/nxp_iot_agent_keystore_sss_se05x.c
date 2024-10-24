@@ -46,12 +46,6 @@ iot_agent_status_t iot_agent_keystore_init(iot_agent_keystore_t* keystore,
 	return iot_agent_keystore_sss_se05x_init(keystore, identifier, (ex_sss_boot_ctx_t*)platform_context->ctx, true);
 }
 
-//iot_agent_status_t iot_agent_keystore_init(iot_agent_keystore_t* keystore,
-//	uint32_t identifier, iot_agent_platform_context_t* platform_context)
-//{
-//	return iot_agent_keystore_sss_se05x_init(keystore, identifier, (ex_sss_boot_ctx_t*)platform_context->ctx, true);
-//}
-
 iot_agent_status_t iot_agent_keystore_sss_se05x_init(iot_agent_keystore_t* keystore,
 	uint32_t identifier, ex_sss_boot_ctx_t* boot_context, bool is_session_open)
 {
@@ -166,13 +160,14 @@ bool iot_agent_keystore_sss_se05x_handle_request(pb_istream_t *istream,
         smStatus_t sm_comm_status;
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-        axTimeMeasurement_t apdu_time = { 0 };
-        initMeasurement(&apdu_time);
+        iot_agent_time_context_t apdu_time = { 0 };
+        iot_agent_time_init_measurement(&apdu_time);
 #endif
 		sm_comm_status = DoAPDUTxRx(&(pSession->s_ctx), read_buffer.buf, read_buffer.len, write_buffer.buf, &len);
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-        concludeMeasurement(&apdu_time);
-		long measured_time = getMeasurement(&apdu_time);
+        iot_agent_time_conclude_measurement(&apdu_time);
+		long measured_time = iot_agent_time_get_measurement(&apdu_time);
+		iot_agent_time_free_measurement_ctx(&apdu_time);
 		if (iot_agent_time.apdu_time > (LONG_MAX - measured_time))
 		{
 			IOT_AGENT_ERROR("Error in the time measurement");

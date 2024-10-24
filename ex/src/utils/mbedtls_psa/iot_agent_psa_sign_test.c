@@ -8,6 +8,7 @@
 #include <iot_agent_psa_sign_test.h>
 #include <psa/crypto.h>
 #include <nxp_iot_agent_macros.h>
+#include "nxp_iot_agent_macros_psa.h"
 
 uint8_t psa_import_blob_buffer[] =
 {

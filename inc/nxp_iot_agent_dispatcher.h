@@ -10,7 +10,6 @@
 #ifndef _NXP_IOT_AGENT_DISPATCHER_H_
 #define _NXP_IOT_AGENT_DISPATCHER_H_
 
-#include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_utils_protobuf.h>
 #include <nxp_iot_agent_context.h>
 #include <nxp_iot_agent_endpoint.h>
@@ -94,14 +93,35 @@ typedef struct handle_request_payload_args_t {
 	iot_agent_response_buffer_t* response_buffer;
 } handle_request_payload_args_t;
 
-
 typedef struct iot_agent_context_t iot_agent_context_t;
 
+/*! @brief Handles the payload request
+* @param[in] stream Input stream
+* @param[in] filed Input pb field
+* @param[in] args Payload arguments
+*/
 bool handle_request_payload(pb_istream_t *stream, const pb_field_t *field, void **arg);
+
+/*! @brief Handles the request
+* @param[in] stream Input stream
+* @param[in] filed Input pb field
+* @param[in] args Payload arguments
+*/
 bool handle_requests(pb_istream_t *stream, const pb_field_t *field, void **arg);
 
+/*! @brief Encodes the response from payload
+* @param[out] ostream Output stream
+* @param[in] response The input payload
+*/
 bool encode_responses_from_payload(pb_ostream_t *ostream, nxp_iot_ResponsePayload* response);
+
+/*! @brief Encodes the responses callback
+* @param[out] ostream Output stream
+* @param[in] filed Input pb field
+* @param[in] args Payload arguments
+*/
 bool encode_responses_callback(pb_ostream_t *ostream, const pb_field_t *field, void* const* arg);
+
 /*! @brief Dispatcher
 * @param[in] dispatcher_context Context for the dispatcher
 * @param[in] input Input stream

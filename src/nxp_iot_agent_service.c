@@ -5,6 +5,7 @@
  *
  */
 
+#include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_service.h>
 #include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_macros.h>
@@ -14,10 +15,10 @@
 
 #include "./protobuf/ServiceDescriptor.pb.h"
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 #include <openssl/evp.h>
 #endif
-#if SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 #include <mbedtls/version.h>
 #include <mbedtls/sha256.h>
 #endif
@@ -33,7 +34,7 @@
 *   @param expected_len
 *   @return agent_status
 */
-iot_agent_status_t iot_agent_service_read_buffer(const iot_agent_datastore_t* ctx, size_t offset, void* buffer, size_t expected_len)
+static iot_agent_status_t iot_agent_service_read_buffer(const iot_agent_datastore_t* ctx, size_t offset, void* buffer, size_t expected_len)
 {
 	size_t len = expected_len;
 	iot_agent_status_t agent_status = ctx->iface.read(ctx->context, buffer, offset, &len);
@@ -46,15 +47,15 @@ exit:
 /** @brief This shall only be called on configuration data that was checked before to be valid, as
 * 			there is no error checking done on this level any more.
 */
-void iot_agent_service_read_header(const iot_agent_datastore_t* ctx, size_t offset, configuration_data_header_t* header)
+static void iot_agent_service_read_header(const iot_agent_datastore_t* ctx, size_t offset, configuration_data_header_t* header)
 {
 	(void) iot_agent_service_read_buffer(ctx, offset, header, sizeof(*header));
 }
 
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 
-iot_agent_status_t iot_agent_service_calculate_cofiguration_checksum(const iot_agent_datastore_t* ctx,
+static iot_agent_status_t iot_agent_service_calculate_configuration_checksum(const iot_agent_datastore_t* ctx,
 	const configuration_data_header_t* header, uint8_t calculated_checksum[32])
 {
 	uint8_t buffer[CONFIG_BUFFER_CHUNK_SIZE] = { 0U };
@@ -106,9 +107,9 @@ exit:
 }
 
 
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 
-iot_agent_status_t iot_agent_service_calculate_cofiguration_checksum(const iot_agent_datastore_t* ctx,
+static iot_agent_status_t iot_agent_service_calculate_configuration_checksum(const iot_agent_datastore_t* ctx,
 	const configuration_data_header_t* header, uint8_t calculated_checksum[32])
 {
 	uint8_t buffer[CONFIG_BUFFER_CHUNK_SIZE] = { 0U };
@@ -194,8 +195,8 @@ bool iot_agent_service_is_configuration_data_valid(
 		header.version, IOT_AGENT_CONFIGURATION_DATA_VERSION);
 #endif
 
-	agent_status = iot_agent_service_calculate_cofiguration_checksum(ctx, &header, calculated_checksum);
-	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_service_calculate_cofiguration_checksum failed with 0x%08x", agent_status);
+	agent_status = iot_agent_service_calculate_configuration_checksum(ctx, &header, calculated_checksum);
+	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_service_calculate_configuration_checksum failed with 0x%08x", agent_status);
 
 	valid = (memcmp(header.checksum, calculated_checksum, sizeof(calculated_checksum)) == 0);
 

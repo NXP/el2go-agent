@@ -16,6 +16,9 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.lwip_wifi)
 endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.sss)
+    mcux_add_macro(
+        CC "NXP_IOT_AGENT_HAVE_SSS=1"
+    )
     mcux_add_source(
         SOURCES ex/inc/iot_agent_claimcode_inject.h
                 ex/src/utils/iot_agent_claimcode_inject.c
@@ -34,6 +37,9 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.sss)
 endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.psa)
+    mcux_add_macro(
+        CC "NXP_IOT_AGENT_HAVE_PSA=1 NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1"
+    )
     mcux_add_source(
         SOURCES ex/inc/iot_agent_claimcode_import.h
                 ex/inc/mbedtls_psa/iot_agent_psa_sign_test.h
@@ -54,10 +60,11 @@ endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
     mcux_add_macro(
-        CC "PB_FIELD_32BIT"
+        CC "PB_FIELD_32BIT NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1"
     )
     mcux_add_source(
         SOURCES inc/*.h
+                src/*.h
                 ex/inc/iot_agent_demo_config.h
                 ex/inc/iot_agent_mqtt_freertos.h
                 ex/inc/iot_agent_network.h
@@ -78,6 +85,7 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
     )
     mcux_add_include(
         INCLUDES inc
+                 src
                  ex/inc
                  net_crypto
                  net_crypto/mbedtls
@@ -113,6 +121,9 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt)
 endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.claimcode)
+    mcux_add_macro(
+        CC "NXP_IOT_AGENT_HAVE_PSA=1"
+    )
     mcux_add_source(
         SOURCES inc/*.h
                 ex/inc/iot_agent_claimcode_encrypt.h

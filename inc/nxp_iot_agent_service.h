@@ -10,8 +10,9 @@
 #ifndef _NXP_IOT_AGENT_SERVICE_H_
 #define _NXP_IOT_AGENT_SERVICE_H_
 
-#include <nxp_iot_agent_common.h>
+#include <nxp_iot_agent_status.h>
 #include <nxp_iot_agent_datastore.h>
+#include <nxp_iot_agent_keystore.h>
 
 #include "../protobuf/ServiceDescriptor.pb.h"
 
@@ -41,7 +42,7 @@ typedef uint8_t service_identifier_t[32];
 #pragma pack(push)  /* push current alignment to stack */
 #pragma pack(1)     /* set alignment to 1 byte boundary */
 typedef struct
-#elif defined(__unix) || defined(__GNUC__) || defined(__clang__)
+#elif defined(__unix) || defined(__GNUC__) || defined(__clang__) || defined(__ICCARM__)
 typedef struct __attribute__((packed, aligned(1)))
 #else // _WIN32
 typedef __PACKED_STRUCT
@@ -225,15 +226,7 @@ iot_agent_status_t iot_agent_service_get_service_descriptor_of_service(
  */
 void iot_agent_service_free_service_descriptor(
 	 nxp_iot_ServiceDescriptor* service_descriptor);
-iot_agent_status_t iot_agent_service_read_buffer(const iot_agent_datastore_t* ctx, size_t offset, void* buffer, size_t expected_len);
-void iot_agent_service_read_header(const iot_agent_datastore_t* ctx, size_t offset, configuration_data_header_t* header);
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
-iot_agent_status_t iot_agent_service_calculate_cofiguration_checksum(const iot_agent_datastore_t* ctx,
-    const configuration_data_header_t* header, uint8_t calculated_checksum[32]);
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
-iot_agent_status_t iot_agent_service_calculate_cofiguration_checksum(const iot_agent_datastore_t* ctx,
-    const configuration_data_header_t* header, uint8_t calculated_checksum[32]);
-#endif
+
 /*!
  *@}
  */ /* end of edgelock2go_agent_service */

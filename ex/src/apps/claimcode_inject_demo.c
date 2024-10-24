@@ -21,11 +21,11 @@
 
 #include <nxp_iot_agent_session.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_macros_sss.h>
 #include <iot_agent_claimcode_inject.h>
 
 static ex_sss_boot_ctx_t gex_sss_boot_ctx;
 
-#define CLAIMCODE_OBJ_ID    		0xF00000E0U
 #define DEFAULT_USER_ID     		0x00000000U
 #define EDGELOCK2GO_USER_ID_DEMO 	0xF0000021U
 #define EDGELOCK2GO_USER_ID      	0xF0000020U

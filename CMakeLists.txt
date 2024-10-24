@@ -5,17 +5,31 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-PROJECT(nxp_iot_agent LANGUAGES C)
+PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.0.0)
 
 IF(NOT COMMAND CREATE_BINARY)
     MACRO(CREATE_BINARY PROJECT_NAME)
     ENDMACRO()
 ENDIF()
 
-IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
-    add_definitions(-DNXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+
+IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+    add_definitions(-DNXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL=1 -DNXP_IOT_AGENT_HAVE_SSS=1)
 ENDIF()
 
+IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS)
+    add_definitions(-DNXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1)
+    IF(SSS_HAVE_MBEDTLS_ALT_SSS)
+        add_definitions(-DNXP_IOT_AGENT_HAVE_SSS=1)
+    ELSEIF(SSS_HAVE_MBEDTLS_ALT_PSA)
+        add_definitions(-DNXP_IOT_AGENT_HAVE_PSA=1)
+        IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+            add_definitions(-DNXP_IOT_AGENT_HAVE_PSA_IMPL_SMW=1)
+        ELSE()
+            add_definitions(-DNXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL=1)
+        ENDIF()
+    ENDIF()
+ENDIF()
 
 IF(NXP_IOT_AGENT_ENABLE_SANDBOX_TEST)
     add_definitions(-DNXP_IOT_AGENT_ENABLE_SANDBOX_TEST=1)
@@ -27,6 +41,7 @@ FILE(
     inc/*.h
     inc/*.h.in
     src/*.c
+    src/*.h
     src/protobuf/*.h
     src/protobuf/*.c
 )
@@ -93,23 +108,36 @@ ENDIF()
 
 IF(SSS_HAVE_HOSTCRYPTO_OPENSSL OR (SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_MBEDTLS_ALT_SSS))
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/se05x/nxp_iot_agent_platform_se05x.c)
+    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/se05x/nxp_iot_agent_time_se05x.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/se05x/nxp_iot_agent_session.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/se05x/nxp_iot_agent_session.h)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/sss/nxp_iot_agent_keystore_sss_se05x.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/sss/nxp_iot_agent_keystore_sss_se05x.h)
+    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/sss/nxp_iot_agent_macros_sss.h)
 ENDIF()
 
 IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_MBEDTLS_ALT_PSA)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/psa/nxp_iot_agent_keystore_psa.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/psa/nxp_iot_agent_keystore_psa.h)
+    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/keystore/psa/nxp_iot_agent_macros_psa.h)
     IF(NOT NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
-        set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/tfm/nxp_iot_agent_platform_tfm.c)
         set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} ex/src/utils/mbedtls_psa/psa_crypto_wrapper.c)
+        IF(SSS_HAVE_HOST_PCWINDOWS OR SSS_HAVE_HOST_PCLINUX)
+            # PSA simulators
+            add_definitions(-DIOT_AGENT_TIME_MEASUREMENT_ENABLE=0)
+            set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/psa_simul/nxp_iot_agent_platform_psa_simul.c)
+            set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/psa_simul/nxp_iot_agent_time_psa_simul.c)
+        ELSE()
+            set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/tfm/nxp_iot_agent_platform_tfm.c)
+            set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/tfm/nxp_iot_agent_time_tfm.c)
+        ENDIF()
     ENDIF()
 ENDIF()
 
 IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+    add_definitions(-DIOT_AGENT_TIME_MEASUREMENT_ENABLE=0)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/smw/nxp_iot_agent_platform_smw.c)
+    set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/smw/nxp_iot_agent_time_smw.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} platform/smw/device_mgr.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/datastore/fs/nxp_iot_agent_datastore_fs.c)
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/datastore/fs/nxp_iot_agent_datastore_fs.h)
@@ -125,7 +153,15 @@ IF(SSS_HAVE_HOST_FRDMK64F OR SSS_HAVE_HOST_EVKMIMXRT1060 OR SSS_HAVE_HOST_EVKMIM
     set(NXP_IOT_AGENT_FILES ${NXP_IOT_AGENT_FILES} src/datastore/plain/nxp_iot_agent_datastore_plain.h)
 ENDIF()
 
-ADD_LIBRARY(nxp_iot_agent ${NXP_IOT_AGENT_FILES})
+IF (NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+    ADD_LIBRARY(nxp_iot_agent SHARED ${NXP_IOT_AGENT_FILES})
+    set_target_properties(nxp_iot_agent PROPERTIES
+        C_STANDARD 99
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR})
+ELSE()
+    ADD_LIBRARY(nxp_iot_agent ${NXP_IOT_AGENT_FILES})
+ENDIF()
 
 IF(
     CMAKE_CXX_COMPILER
@@ -144,6 +180,7 @@ ENDIF()
 TARGET_INCLUDE_DIRECTORIES(
     nxp_iot_agent
     PUBLIC inc
+    PUBLIC src
     PUBLIC platform
     PUBLIC src/protobuf
 )
@@ -282,8 +319,17 @@ IF(SSS_HAVE_RTOS_DEFAULT AND NXPInternal)
     ADD_SUBDIRECTORY(tst)
 ENDIF()
 
-IF(SSS_HAVE_HOST_PCLINUX OR SSS_HAVE_HOST_IMXLINUX)
+IF(SSS_HAVE_HOST_LINUX_LIKE OR NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+    FILE(GLOB
+        NXP_IOT_AGENT_PUBLIC_FILES
+        inc/*.h)
+
+    FILE(GLOB
+        NXP_IOT_AGENT_COMMON_PROTOBUF_HEADERS
+        src/protobuf/*.h)
     INSTALL(TARGETS nxp_iot_agent DESTINATION lib)
+    INSTALL(FILES ${NXP_IOT_AGENT_PUBLIC_FILES} DESTINATION include/el2go-agent/nxp-iot-agent)
+    INSTALL(FILES ${NXP_IOT_AGENT_COMMON_PROTOBUF_HEADERS} DESTINATION include/el2go-agent/protobuf)
 ENDIF()
 
 IF("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")

@@ -9,6 +9,7 @@
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_service.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_macros_sss.h>
 #include <fsl_sss_api.h>
 
 iot_agent_status_t iot_agent_session_connect(ex_sss_boot_ctx_t *pCtx)

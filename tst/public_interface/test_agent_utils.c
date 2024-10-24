@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019, 2021-2022 NXP
+ * Copyright 2018-2019,2021-2022,2024 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -11,6 +11,7 @@
 #include "test_agent_utils.h"
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_utils.h>
+#include <nxp_iot_agent_utils_internal.h>
 #include <nxp_iot_agent_datastore_fs.h>
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 #include <nxp_iot_agent_session.h>

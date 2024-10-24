@@ -12,6 +12,7 @@
 #endif
 
 #include <nxp_iot_agent.h>
+#include <nxp_iot_agent_log.h>
 #include <nxp_iot_agent_common.h>
 
 #ifndef NETWORK_malloc

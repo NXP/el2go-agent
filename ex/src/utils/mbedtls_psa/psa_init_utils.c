@@ -7,6 +7,7 @@
 #include "psa_init_utils.h"
 #include "psa_crypto_its.h"
 #include "nxp_iot_agent_macros.h"
+#include "nxp_iot_agent_macros_psa.h"
 #include "nxp_iot_agent_log.h"
 #include <string.h>
 

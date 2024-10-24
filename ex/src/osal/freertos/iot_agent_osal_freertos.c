@@ -99,8 +99,8 @@ static void agent_start_task_in_loop(void *args) {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-	axTimeMeasurement_t iot_agent_demo_boot_time = { 0 };
-	initMeasurement(&iot_agent_demo_boot_time);
+	iot_agent_time_context_t iot_agent_demo_boot_time = { 0 };
+	iot_agent_time_init_measurement(&iot_agent_demo_boot_time);
 #endif
 
 	iot_agent_freertos_boot_rtos_task();
@@ -119,8 +119,9 @@ static void agent_start_task_in_loop(void *args) {
 	const TickType_t xDelay = 2 * 1000 / portTICK_PERIOD_MS;
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-	concludeMeasurement(&iot_agent_demo_boot_time);
-	IOT_AGENT_INFO("Performance timing: DEVICE_INIT_TIME : %lums", getMeasurement(&iot_agent_demo_boot_time));
+	iot_agent_time_conclude_measurement(&iot_agent_demo_boot_time);
+	IOT_AGENT_INFO("Performance timing: DEVICE_INIT_TIME : %lums", iot_agent_time_get_measurement(&iot_agent_demo_boot_time));
+	 iot_agent_time_free_measurement_ctx(&iot_agent_demo_boot_time);
 #endif
 
 	for (;;)

@@ -15,19 +15,21 @@
 
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_status.h>
 #include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_datastore_fs.h>
 #include <nxp_iot_agent_keystore.h>
 #include <nxp_iot_agent_platform.h>
 
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 #include <openssl/pem.h>
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 #include <mbedtls/x509_crt.h>
 #endif
 
 const char * gszEdgeLock2GoDatastoreFilename = "edgelock2go_datastore.bin";
 
+extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
 
 static void print_usage()
 {
@@ -154,8 +156,8 @@ exit:
 		free(*certificates);
 		*certificates = NULL;
 	}
-	return agent_status;
 #endif
+	return agent_status;
 }
 
 int main(int argc, const char *argv[])

@@ -7,6 +7,7 @@
 
 #include <iot_agent_mqtt_zephyr.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_macros_psa.h>
 
 #include <zephyr/net/mqtt.h>
 #include <zephyr/data/json.h>

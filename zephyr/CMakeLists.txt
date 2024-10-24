@@ -4,6 +4,8 @@
 if(CONFIG_EL2GO_COMMON)
     target_compile_definitions(app PRIVATE
         AX_EMBEDDED=1
+        NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1
+        NXP_IOT_AGENT_HAVE_PSA=1
         NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1
         PB_FIELD_32BIT
         SSS_USE_FTR_FILE
@@ -12,7 +14,9 @@ if(CONFIG_EL2GO_COMMON)
 
     target_include_directories(app PRIVATE
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/inc
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/common
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa
     )
 
     if(CONFIG_EL2GO_AGENT_LIBRARY_SOURCES)
@@ -29,7 +33,6 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa/nxp_iot_agent_keystore_psa.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_keystore.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_service.c
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_time.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_utils_protobuf_socket.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent_utils.c
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/nxp_iot_agent.c
@@ -61,12 +64,12 @@ if(CONFIG_EL2GO_COMMON)
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/net_crypto/mbedtls
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/protobuf
-            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/keystore/psa
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/src/datastore/plain
         )
 
         target_sources(app PRIVATE
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm/nxp_iot_agent_platform_tfm.c
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/platform/tfm/nxp_iot_agent_time_tfm.c
         )
 
     elseif(CONFIG_EL2GO_MQTT_LIBRARY_SOURCES)

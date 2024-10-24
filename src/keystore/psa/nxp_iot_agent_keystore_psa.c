@@ -8,6 +8,7 @@
 #include "nxp_iot_agent_keystore_psa.h"
 
 #include "nxp_iot_agent_macros.h"
+#include "nxp_iot_agent_macros_psa.h"
 #include "nxp_iot_agent_dispatcher.h"
 #include "nxp_iot_agent_time.h"
 
@@ -27,6 +28,16 @@
 #define IOT_AGENT_KEYSTORE_PSA_VERSION (((IOT_AGENT_KEYSTORE_PSA_VERSION_MAJOR * 256U) \
 		+ IOT_AGENT_KEYSTORE_PSA_VERSION_MINOR) * 256U + IOT_AGENT_KEYSTORE_PSA_VERSION_PATCH)
 
+#if (NXP_IOT_AGENT_HAVE_PSA & NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL)
+#include <psa_crypto_wrapper.h>
+#define psa_import_key psa_import_key_wrap
+#endif //(NXP_IOT_AGENT_HAVE_PSA & NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL)
+
+ /**
+  * @brief Macro used to avoid compiler warnings for unused variables/function arguments.
+  */
+#define IOT_AGENT_UNUSED(x) (void)(x)
+
 #if defined(NXP_IOT_AGENT_ENABLE_LITE)
 
 #define BLOB_AREA       0x084B0000U
@@ -38,6 +49,7 @@ struct BlobBuffer {
     size_t count;
 };
 #endif
+
 
 const iot_agent_keystore_interface_t iot_agent_keystore_psa_interface =
 {
