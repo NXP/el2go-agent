@@ -38,7 +38,8 @@ endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.psa)
     mcux_add_macro(
-        CC "NXP_IOT_AGENT_HAVE_PSA=1 NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1"
+        CC "NXP_IOT_AGENT_HAVE_PSA=1\
+            NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1"
     )
     mcux_add_source(
         SOURCES ex/inc/iot_agent_claimcode_import.h
@@ -60,7 +61,8 @@ endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
     mcux_add_macro(
-        CC "PB_FIELD_32BIT NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1"
+        CC "PB_FIELD_32BIT\
+            NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1"
     )
     mcux_add_source(
         SOURCES inc/*.h
@@ -98,7 +100,11 @@ endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt)
     mcux_add_macro(
-        CC "PB_FIELD_32BIT IOT_AGENT_MQTT_ENABLE=1"
+        CC "PB_FIELD_32BIT\
+            NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1\
+            NXP_IOT_AGENT_HAVE_PSA=1\
+            NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1\
+            IOT_AGENT_MQTT_ENABLE=1"
     )
     mcux_add_source(
         SOURCES inc/*.h
@@ -106,6 +112,7 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt)
                 ex/inc/iot_agent_mqtt_freertos.h
                 ex/inc/iot_agent_network.h
                 ex/src/utils/iot_agent_mqtt_freertos.c
+                src/keystore/psa/nxp_iot_agent_macros_psa.h
                 src/protobuf/*.h
                 src/protobuf/pb_common.c
                 src/protobuf/pb_decode.c
@@ -115,6 +122,7 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt)
     mcux_add_include(
         INCLUDES inc
                  ex/inc
+                 src/keystore/psa
                  src/protobuf
         BASE_PATH ${SdkRootDirPath}/middleware/nxp_iot_agent/
     )
@@ -122,7 +130,8 @@ endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.claimcode)
     mcux_add_macro(
-        CC "NXP_IOT_AGENT_HAVE_PSA=1"
+        CC "NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1\
+            NXP_IOT_AGENT_HAVE_PSA=1"
     )
     mcux_add_source(
         SOURCES inc/*.h
