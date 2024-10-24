@@ -121,6 +121,9 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt)
 endif()
 
 if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent.claimcode)
+    mcux_add_macro(
+        CC "NXP_IOT_AGENT_HAVE_PSA=1"
+    )
     mcux_add_source(
         SOURCES inc/*.h
                 ex/inc/iot_agent_claimcode_encrypt.h
