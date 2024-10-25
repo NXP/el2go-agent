@@ -40,6 +40,10 @@ Prepare the Demo
     ``CONFIG_VALIDATE_PSA_IMPORT_OPERATION=y``
     If its set in the prj.conf to true, then it will override the value of define
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/apps/psa_examples/el2go_import_blob/el2go_import_blob.h`.
+    
+    This provides an example on how the imported blobs can be used. Specifically, the example demonstrates:
+    - AES-ECB message encryption with a 256-bit key.
+    - ECDSA SHA 256 message signing.
 
 2.  [Optional] In order to maximize the TF-M ITS performance, the maximum supported blob size is set to 2908 bytes. In case
     you want to support bigger blobs (8K is the maximum size supported by PSA), you need to change the following three variables:
