@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-PROJECT(nxp_iot_agent_common LANGUAGES C VERSION 6.0.0)
+PROJECT(nxp_iot_agent_common LANGUAGES C VERSION 6.0.1)
 
 FILE(
     GLOB
