@@ -15,8 +15,8 @@ menu "NXP IoT Agent"
 
     config MCUX_COMPONENT_middleware.nxp_iot_agent
         bool "NXP IoT Agent library sources"
-        depends on MCUX_HW_BOARD_evkmimxrt1060 || MCUX_HW_BOARD_evkmimxrt1170 || MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612
-        select MCUX_COMPONENT_middleware.nxp_iot_agent.sss if MCUX_HW_BOARD_evkmimxrt1060 || MCUX_HW_BOARD_evkmimxrt1170
+        depends on MCUX_HW_BOARD_evkbmimxrt1060 || MCUX_HW_BOARD_evkcmimxrt1060 || MCUX_HW_BOARD_evkbmimxrt1170 || MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612
+        select MCUX_COMPONENT_middleware.nxp_iot_agent.sss if MCUX_HW_BOARD_evkbmimxrt1060 || MCUX_HW_BOARD_evkcmimxrt1060 || MCUX_HW_BOARD_evkbmimxrt1170
         select MCUX_COMPONENT_middleware.nxp_iot_agent.psa if MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612
     if MCUX_COMPONENT_middleware.nxp_iot_agent
         choice
