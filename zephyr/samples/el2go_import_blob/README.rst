@@ -64,10 +64,11 @@ Prepare the Demo
     ``CONFIG_EL2GO_CERT_BLOCK="PATH_TO_YOUR_CERTIFICATE_YML_FILE"``
     
     With this configuration the SPE and NSPE images will automatically get merged and signed using SPSDK nxpimage tool after 
-    the build is done. Furthermore, there are 2 ways to specify the key and certificate:
+    the build is done. Furthermore, there are 2 ways to specify these variables:
     1. In prj.conf file, like stated above (has most precedence).
     2. If not set in prj.conf file, then set as environment variable using the same names: 
-       CONFIG_EL2GO_PRIVATE_KEY,CONFIG_EL2GO_CERT_BLOCK.
+       CONFIG_EL2GO_PRIVATE_KEY,CONFIG_EL2GO_CERT_BLOCK,CONFIG_EL2GO_SIGN_USING_NXPIMAGE.
+       Please set them to same value as you would in prj.conf file.
     Important Note: Please make sure SPSDK is set in the PATH for automated signing.
 
     Additionaly, if the example is supposed to run in the OEM CLOSED life cycle, the image needs to be encrypted with

@@ -22,3 +22,41 @@ zephyr_include_directories(
     ${APPLICATION_SOURCE_DIR}/inc
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/ex/inc
 )
+
+if(CONFIG_AP_SSID)
+    target_compile_definitions(app PRIVATE AP_SSID="${CONFIG_AP_SSID}")
+else()
+    if(DEFINED ENV{CONFIG_AP_SSID})
+        target_compile_definitions(app PRIVATE AP_SSID="$ENV{CONFIG_AP_SSID}")
+    endif()
+endif()
+
+if(CONFIG_AP_PASSWORD)
+    target_compile_definitions(app PRIVATE AP_PASSWORD="${CONFIG_AP_PASSWORD}")
+else()
+    if(DEFINED ENV{CONFIG_AP_PASSWORD})
+        target_compile_definitions(app PRIVATE AP_PASSWORD="$ENV{CONFIG_AP_PASSWORD}")
+    endif()
+endif()
+
+# Compare these to default value in Kconfig
+# Not possible to leave default value out in Kconfig, leads to build errors
+if(NOT CONFIG_AWS_SERVICE_KEY_PAIR_ID EQUAL 0x0)
+    target_compile_definitions(app PRIVATE
+        AWS_SERVICE_KEY_PAIR_ID=${CONFIG_AWS_SERVICE_KEY_PAIR_ID})
+endif()
+
+if(NOT CONFIG_AWS_SERVICE_DEVICE_CERT_ID EQUAL 0x0)
+    target_compile_definitions(app PRIVATE
+        AWS_SERVICE_DEVICE_CERT_ID=${CONFIG_AWS_SERVICE_DEVICE_CERT_ID})
+endif()
+
+if(NOT CONFIG_AZURE_SERVICE_KEY_PAIR_ID EQUAL 0x0)
+    target_compile_definitions(app PRIVATE
+        AZURE_SERVICE_KEY_PAIR_ID=${CONFIG_AZURE_SERVICE_KEY_PAIR_ID})
+endif()
+
+if(NOT CONFIG_AZURE_SERVICE_DEVICE_CERT_ID EQUAL 0x0)
+    target_compile_definitions(app PRIVATE
+        AZURE_SERVICE_DEVICE_CERT_ID=${CONFIG_AZURE_SERVICE_DEVICE_CERT_ID})
+endif()

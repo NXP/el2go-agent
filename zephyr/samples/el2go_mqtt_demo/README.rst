@@ -42,14 +42,40 @@ Prepare the Demo
     (the relevant macros are enclosed by "doc: MQTT required modification - start" and "doc: MQTT required modification - end").
     Details on the different configuration options are explained in the file.
 
+    The values for the EdgeLock 2GO object ids can optionally also be set in the prj.conf file like this:
+    ``CONFIG_$SERVER$_SERVICE_KEY_PAIR_ID=0x081000``
+    ``CONFIG_$SERVER$_SERVICE_DEVICE_CERT_ID=0x080100``
+
 2.  Provide the Wi-Fi access point credentials:
 
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/network/iot_agent_network_zephyr_wifi.c`
     ``#define AP_SSID``
     ``#define AP_PASSWORD``
 
+    These values can optionally also be set in the prj.conf like this:
+    ``CONFIG_AP_SSID="YOUR_SSID"``
+    ``CONFIG_AP_PASSWORD="YOUR_PASSWORD"``
+    If these are set in the prj.conf, then it will override the value of defines
+    in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/network/iot_agent_network_zephyr_wifi.c`.
+    Furthermore, these values can be set as environment variables, but the values in prj.conf have
+    most precedence. Set as environment variable using same names CONFIG_AP_SSID and CONFIG_AP_PASSWORD.
+
 3.  To correctly run the example, the secure boot mode on the device needs to be enabled. The bootheader needs to be removed
     from the SPE image, it has to be merged with the NSPE image and the resulting image must be signed with the OEM key.
+    Optionally, it is possible to automate the signing and merging process by setting the following variables in the prj.conf file:
+    
+    ``CONFIG_EL2GO_SIGN_USING_NXPIMAGE=y``
+    ``CONFIG_EL2GO_PRIVATE_KEY="PATH_TO_YOUR_KEY_PEM_FILE"``
+    ``CONFIG_EL2GO_CERT_BLOCK="PATH_TO_YOUR_CERTIFICATE_YML_FILE"``
+    
+    With this configuration the SPE and NSPE images will automatically get merged and signed using SPSDK nxpimage tool after 
+    the build is done. Furthermore, there are 2 ways to specify these variables:
+    1. In prj.conf file, like stated above (has most precedence).
+    2. If not set in prj.conf file, then set as environment variable using the same names: 
+       CONFIG_EL2GO_PRIVATE_KEY,CONFIG_EL2GO_CERT_BLOCK,CONFIG_EL2GO_SIGN_USING_NXPIMAGE.
+       Please set them to same value as you would in prj.conf file.
+    Important Note: Please make sure SPSDK is set in the PATH for automated signing.
+    
     Additionaly, if the example is supposed to run in the OEM CLOSED life cycle, the image needs to be encrypted with
     the OEM FW encryption key and loaded as an SB3.1 container.
     Details on how to execute these steps can be found in the Application note AN13813 "Secure boot on RW61x", downloadable from
