@@ -70,6 +70,7 @@ if(CONFIG_MCUX_COMPONENT_middleware.nxp_iot_agent)
                 ex/inc/iot_agent_demo_config.h
                 ex/inc/iot_agent_mqtt_freertos.h
                 ex/inc/iot_agent_network.h
+                ex/inc/iot_agent_osal.h
                 ex/src/osal/freertos/iot_agent_osal_freertos.c
                 ex/src/osal/freertos/iot_agent_osal_freertos.h
                 ex/src/utils/iot_agent_mqtt_freertos.c
