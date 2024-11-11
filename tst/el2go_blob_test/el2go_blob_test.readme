@@ -8,7 +8,8 @@ Prerequisites
 - Edgelock 2GO account
 - MCUXpresso SDK or Zephyr
 - Provisioned RD-RW612-BGA, FRDM-RW612, MCX-N5XX-EVK or MCX-N9XX-EVK board
-- Python >= 3.10 with packages from scripts/requirements.txt
+- SPSDK (for N10)
+- Python >= 3.9 with packages from scripts/requirements.txt
 
 Create device specific blobs [EL2GO, Generic tests, RW61x]
 ==========================================================

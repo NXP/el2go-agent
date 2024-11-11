@@ -72,39 +72,64 @@ def get_usage(usage):
         return "UNKNOWN"
 
 def get_hash(hash):
-    match hash:
-        case 0x02000005: return "SHA1"
-        case 0x02000008: return "SHA224"
-        case 0x02000009: return "SHA256"
-        case 0x0200000a: return "SHA384"
-        case 0x0200000b: return "SHA512"
-        case 0x0200000c: return "SHA512224"
-        case 0x0200000d: return "SHA512256"
-        case 0x020000ff: return "ANYHASH"
-        case _: return "UNKNOWN"
+    if(hash == 0x02000005):
+        return "SHA1"
+    elif(hash == 0x02000008):
+        return "SHA224"
+    elif(hash == 0x02000009):
+        return "SHA256"
+    elif(hash == 0x0200000a):
+        return "SHA384"
+    elif(hash == 0x0200000b):
+        return "SHA512"
+    elif(hash == 0x0200000c):
+        return "SHA512224"
+    elif(hash == 0x0200000d):
+        return "SHA512256"
+    elif(hash == 0x020000ff):
+        return "ANYHASH"
+    else:
+        return "UNKNOWN"
 
 def get_algorithm(algorithm):
-    match algorithm:
-        case 0x00000000: return "NONE"
-        case 0x03c00200: return "CMAC"
-        case 0x04c01000: return "CTR"
-        case 0x04404400: return "ECB"
-        case 0x04404000: return "CBC"
-        case 0x05500200: return "GCM"
-        case 0x06000200: return "RAW"
-        case 0x06000600: return "ECDSAANY"
-        case 0x07000200: return "PKCS1V15"
-        case 0x09020000: return "ECDH"
-        case _: 
-            hash_string = get_hash(0x02000000 | (algorithm & 0x000000ff))
-            match algorithm & ~0x000000ff:
-                case 0x03800000: return "HMAC" + hash_string
-                case 0x06000200: return "PKCS1V15" + hash_string
-                case 0x06000300: return "PSS" + hash_string
-                case 0x06000600: return "ECDSA" + hash_string
-                case 0x07000300: return "OAEP" + hash_string
-                case 0x08000100: return "HKDF" + hash_string
-                case _: return "UNKNOWN"
+    if(algorithm == 0x00000000):
+        return "NONE"
+    elif(algorithm == 0x03c00200):
+        return "CMAC"
+    elif(algorithm == 0x04c01000):
+        return "CTR"
+    elif(algorithm == 0x04404400):
+        return "ECB"
+    elif(algorithm == 0x04404000):
+        return "CBC"
+    elif(algorithm == 0x05500200):
+        return "GCM"
+    elif(algorithm == 0x06000200):
+        return "RAW"
+    elif(algorithm == 0x06000600):
+        return "ECDSAANY"
+    elif(algorithm == 0x07000200):
+        return "PKCS1V15"
+    elif(algorithm == 0x09020000):
+        return "ECDH"
+    else:
+        hash_string = get_hash(0x02000000 | (algorithm & 0x000000ff))
+        algorithm = algorithm & ~0x000000ff
+
+        if(algorithm == 0x03800000):
+            return "HMAC" + hash_string
+        elif(algorithm == 0x06000200):
+            return "PKCS1V15" + hash_string
+        elif(algorithm == 0x06000300):
+            return "PSS" + hash_string
+        elif(algorithm == 0x06000600):
+            return "ECDSA" + hash_string
+        elif(algorithm == 0x07000300):
+            return "OAEP" + hash_string
+        elif(algorithm == 0x08000100):
+            return "HKDF" + hash_string
+        else:
+            return "UNKNOWN"
 
 def data_to_c_array(name, data):
     return f"static const uint8_t {name}[] = {{{', '.join([hex(byte) for byte in data])}}};"
