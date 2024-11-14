@@ -3,8 +3,6 @@ sample:
   description: The EdgeLock 2GO agent sample demonstrates how to connect to EdgeLock 2GO and provision secure objects to the chip
 tests:
   sample.nxp_iot_agent.el2go_agent_whitelisting:
-    extra_args:
-      - OVERLAY_CONFIG="overlay-el2go-whitelisting-rw61x.conf"
     tags:
       - el2go
       - trusted-firmware-m

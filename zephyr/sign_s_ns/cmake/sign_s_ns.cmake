@@ -17,7 +17,7 @@ function(sign_s_ns)
 
     find_program(SPSDK "spsdk" NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
 
-    if(DEFINED SPSDK)
+    if(SPSDK)
         message(STATUS "SPSDK found with: ${SPSDK}")
     else()
         message(FATAL_ERROR

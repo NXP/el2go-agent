@@ -9,3 +9,6 @@ config RUN_VERIFIED_ONLY
 
 config LARGE_BLOBS_ENABLED
     bool "Enable testing of blobs with a key size larger than 2783 bytes"
+
+config RTP_JSON
+    string "Path to the RTP JSON file from EdgeLock 2GO"
