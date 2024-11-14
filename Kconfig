@@ -32,7 +32,7 @@ menu "NXP IoT Agent"
 
     config MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt
         bool "Standalone MQTT library sources"
-        depends on MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612 || MCUX_HW_BOARD_mcxn5xxevk || MCUX_HW_BOARD_mcxn9xxevk
+        depends on MCUX_HW_BOARD_rdrw612bga || MCUX_HW_BOARD_frdmrw612 || MCUX_HW_BOARD_mcxn5xxevk || MCUX_HW_BOARD_mcxn9xxevk || MCUX_HW_BOARD_frdmmcxn947
     if MCUX_COMPONENT_middleware.nxp_iot_agent.mqtt
         choice
             prompt "Network backend"

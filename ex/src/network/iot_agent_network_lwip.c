@@ -11,20 +11,11 @@
 #include <nxp_iot_agent_status.h>
 #include "fsl_debug_console.h"
 
-#include "ax_reset.h"
-#include "se_reset_config.h"
-#include "sm_timer.h"
-
-#if defined(MBEDTLS)
-#include "ksdk_mbedtls.h"
-#endif
-
 #ifndef INC_FREERTOS_H /* Header guard of FreeRTOS */
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #endif /* INC_FREERTOS_H */
 #include "task.h"
-
 
 #include "lwip/opt.h"
 #include "lwip/tcpip.h"
@@ -33,24 +24,26 @@
 #include "netif/ethernet.h"
 #include "ethernetif.h"
 #include "lwip/netifapi.h"
-#if defined (LPC_ENET)
+
+#if defined(LPC_ENET)
+#include "fsl_enet.h"
 #ifdef EXAMPLE_USE_100M_ENET_PORT
-#include "fsl_enet.h"
-#include "fsl_phyksz8081.h"
+#if defined(CPU_MCXN547VDF_cm33_core0) || defined(CPU_MCXN947VDF_cm33_core0)
+#include "fsl_phylan8741.h"
 #else
-#include "fsl_enet.h"
+#include "fsl_phyksz8081.h"
+#endif // CPU_MCXN547VDF_cm33_core0 || CPU_MCXN947VDF_cm33_core0
+#else
 #include "fsl_phyrtl8211f.h"
-#endif
-#endif
+#endif // EXAMPLE_USE_100M_ENET_PORT
 
-#include <nxp_iot_agent_status.h>
-
-#if defined (LPC_ENET)
 /* ENET clock frequency. */
 #if defined(CPU_MIMXRT1176DVMAA_cm7)
 #define EXAMPLE_CLOCK_FREQ CLOCK_GetRootClockFreq(kCLOCK_Root_Bus)
 #elif defined(CPU_MIMXRT1062DVL6A) || defined (CPU_MIMXRT1062DVL6B)
 #define EXAMPLE_CLOCK_FREQ CLOCK_GetFreq(kCLOCK_IpgClk)
+#elif defined(CPU_MCXN547VDF_cm33_core0) || defined(CPU_MCXN947VDF_cm33_core0)
+#define EXAMPLE_CLOCK_FREQ (50000000U)
 #else
 #define EXAMPLE_CLOCK_FREQ CLOCK_GetFreq(kCLOCK_CoreSysClk)
 #endif // CPU_MIMXRT1176DVMAA_cm7
@@ -61,12 +54,21 @@
 #ifdef EXAMPLE_USE_100M_ENET_PORT
 /* Address of PHY interface. */
 #define EXAMPLE_PHY_ADDRESS BOARD_ENET0_PHY_ADDRESS
+#if defined(CPU_MCXN547VDF_cm33_core0) || defined(CPU_MCXN947VDF_cm33_core0)
+phy_lan8741_resource_t g_phy_resource_agent;
+/* PHY operations. */
+#define EXAMPLE_PHY_OPS &phylan8741_ops
+/* ENET instance select. */
+#define EXAMPLE_NETIF_INIT_FN ethernetif0_init
+#define EXAMPLE_ENET ENET0
+#else
 phy_ksz8081_resource_t g_phy_resource_agent;
 /* PHY operations. */
 #define EXAMPLE_PHY_OPS &phyksz8081_ops
 /* ENET instance select. */
 #define EXAMPLE_NETIF_INIT_FN ethernetif0_init
 #define EXAMPLE_ENET ENET
+#endif // CPU_MCXN547VDF_cm33_core0 || CPU_MCXN947VDF_cm33_core0
 #else
 /* Address of PHY interface. */
 #define EXAMPLE_PHY_ADDRESS BOARD_ENET1_PHY_ADDRESS
@@ -75,11 +77,10 @@ phy_rtl8211f_resource_t g_phy_resource_agent;
 #define EXAMPLE_PHY_OPS &phyrtl8211f_ops
 /* ENET instance select. */
 #define EXAMPLE_NETIF_INIT_FN ethernetif1_init
-#define EXAMPLE_ENET          ENET_1G
+#define EXAMPLE_ENET ENET_1G
 #endif // EXAMPLE_USE_100M_ENET_PORT
 #define EXAMPLE_PHY_RESOURCE &g_phy_resource_agent
-
-#endif  // (LPC_ENET)
+#endif // LPC_ENET
 
 #define configMAC_ADDR {0x04, 0x12, 0x13, 0xB1, 0x11, 0x90}
 
@@ -123,7 +124,11 @@ static struct netif fsl_netif0;
 static void MDIO_Init(void)
 {
     (void)CLOCK_EnableClock(s_enetClock[ENET_GetInstance(EXAMPLE_ENET)]);
+#if defined(CPU_MCXN547VDF_cm33_core0) || defined(CPU_MCXN947VDF_cm33_core0)
+    ENET_SetSMI(EXAMPLE_ENET, CLOCK_GetCoreSysClkFreq());
+#else
     ENET_SetSMI(EXAMPLE_ENET, EXAMPLE_CLOCK_FREQ, false);
+#endif
 }
 
 static status_t MDIO_Write(uint8_t phyAddr, uint8_t regAddr, uint16_t data)
