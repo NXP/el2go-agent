@@ -6,10 +6,8 @@ import argparse
 import os
 import json
 import base64
-import uttlv
 import datetime
 import pathlib
-import numpy
 
 parser = argparse.ArgumentParser(description='Converts EL2GO RTP JSON for the el2go_blob_test framework')
 
@@ -38,6 +36,60 @@ if len(partitions) != 2 or not partitions[0].isdigit() or not partitions[1].isdi
 work_dir_path = pathlib.Path(os.path.abspath(os.path.dirname(__file__)))
 inc_path = work_dir_path.parent.joinpath("inc")
 el2go_blob_test_generic_header_path = inc_path.joinpath("el2go_blob_test_suite_generic.h")
+
+def parse_bytes_tlv(data: bytes, tag_size: int = 1) -> dict[int, int]:
+    result = {}
+
+    default_length = 1
+    next_addr = 0
+    while True:
+        tag = int.from_bytes(data[next_addr:next_addr+tag_size], "big")
+
+        length_bytes = default_length
+        temp = (next_addr + tag_size + default_length)
+        length = int.from_bytes(data[next_addr+tag_size:temp], "big")
+        
+        if(length > 128):
+            length_bytes = (length & 0x0f)
+            length = int.from_bytes(data[temp:temp+length_bytes], "big")
+
+        val_addr = (temp + length_bytes - default_length)
+        next_addr = (val_addr + length)
+
+        if(length > 0):
+            value = data[val_addr:next_addr]
+            result[tag] = value
+
+        if(next_addr >= len(data)):
+            break
+
+    return result
+
+def array_split(lst: list, parts: int) -> list:
+    length = len(lst)
+    if(length <= 0):
+        return []
+
+    if(parts <= 0):
+        raise ValueError("There must be more than 0 parts!")
+    elif(length < parts):
+        raise ValueError("There must be less parts than items in the list!")
+
+    
+    from math import ceil
+    steps = [ceil(length / parts)] * parts
+    for i in range(0, parts):
+        if(sum(steps) == length):
+            break
+        steps[parts - i - 1] -= 1
+
+    i = 0
+    result = []
+    for step in steps:
+        result += [lst[i:i+step]]
+        i = i + step
+
+    return result
 
 def get_usage(usage):
     flags = []
@@ -157,7 +209,7 @@ if diff_count:
 
 if int(partitions[1]) > 1:
     print(f"Splitting into {int(partitions[1])} parts ({args.partition})")
-    provisioning_parts = numpy.array_split(device['rtpProvisionings'], int(partitions[1]))
+    provisioning_parts = array_split(device['rtpProvisionings'], int(partitions[1]))
     device['rtpProvisionings'] = provisioning_parts[int(partitions[0]) - 1]
 
 data_arrays = []
@@ -171,8 +223,7 @@ for provisioning in device['rtpProvisionings']:
     base64_string = provisioning['apdus']['createApdu']['apdu']
     blob = base64.b64decode(base64_string)
 
-    blob_tlv = uttlv.TLV()
-    blob_tlv.parse_array(blob)
+    blob_tlv = parse_bytes_tlv(blob)
 
     internal = int.from_bytes(blob_tlv[0x46], "big") == 0xE0000101
     bits = int.from_bytes(blob_tlv[0x45], "big")
