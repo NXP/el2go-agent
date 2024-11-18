@@ -15,7 +15,7 @@ iot_agent_status_t iot_agent_platform_init(int argc, const char *argv[], iot_age
 	int res;
 
 	res = smw_osal_lib_init();
-	if (res != SMW_STATUS_OK) {
+	if (res != SMW_STATUS_OK && res != SMW_STATUS_LIBRARY_ALREADY_INIT) {
 		IOT_AGENT_ERROR("SMW library initialization failed %d", res);
 		return IOT_AGENT_FAILURE;
 	}
