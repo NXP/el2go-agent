@@ -33,6 +33,15 @@ static void warn_crt_crl_period(uint32_t verify_result)
 	}
 }
 
+static void network_lowlevel_disconnect(mbedtls_network_context_t* network_ctx)
+{
+	if (network_ctx != NULL)
+	{
+		mbedtls_ssl_free(&network_ctx->ssl);
+		mbedtls_net_free(&network_ctx->server_fd);
+	}
+}
+
 static const mbedtls_ecp_group_id supported_curves [] = {MBEDTLS_ECP_DP_SECP192R1,
 		MBEDTLS_ECP_DP_SECP224R1,
 		MBEDTLS_ECP_DP_SECP256R1,
@@ -49,24 +58,21 @@ void* network_new(void)
 	return network_ctx;
 }
 
-
 void network_free(void* ctx)
 {
 	if (ctx != NULL)
 	{
 		mbedtls_network_context_t* network_ctx = (mbedtls_network_context_t*)ctx;
 
-		mbedtls_ssl_free(&(network_ctx->ssl));
+		network_lowlevel_disconnect(network_ctx);
 		mbedtls_ssl_config_free(&(network_ctx->conf));
 		mbedtls_ctr_drbg_free(&(network_ctx->ctr_drbg));
 		mbedtls_pk_free(&(network_ctx->pkey));
-		mbedtls_net_free(&network_ctx->server_fd);
 		mbedtls_entropy_free(&network_ctx->entropy);
 
 		NETWORK_free(ctx);
 	}
 }
-
 
 #ifdef CONFIG_MBEDTLS_DEBUG
 static void network_debug(void *ctx, int level, const char *file, int line, const char *str)
@@ -74,7 +80,6 @@ static void network_debug(void *ctx, int level, const char *file, int line, cons
 	mbedtls_printf("MBEDTLS: %s", str);
 }
 #endif
-
 
 int network_configure(void* opaque_ctx, void* opaque_network_config) {
 
@@ -112,20 +117,20 @@ int network_connect(void* opaque_ctx)
 	mbedtls_network_config_t* network_config = &network_context->network_config;
 	int ret;
 	unsigned char max_fragment_len = MBEDTLS_SSL_MAX_FRAG_LEN_NONE;
-
+	uint32_t verify_result = 0U;
 
 	char port_str[32] = { 0 };
 	if (snprintf(port_str, sizeof(port_str), "%d", network_config->port) < 0)
 	{
-		IOT_AGENT_ERROR("Error in building the port string");
-		return -1;
+		IOT_AGENT_ERROR("Failed to build port string");
+		goto exit;
 	}
 
 	if ((ret = mbedtls_net_connect(&network_context->server_fd,
 		network_config->hostname, port_str,	MBEDTLS_NET_PROTO_TCP)) != 0)
 	{
-		IOT_AGENT_ERROR("%s: %s", __FUNCTION__, "connecting tcp socket failed");
-		return 1;
+		IOT_AGENT_ERROR("Failed to connect TCP socket");
+		goto exit;
 	}
 
 	mbedtls_net_set_block(&network_context->server_fd);
@@ -133,7 +138,7 @@ int network_connect(void* opaque_ctx)
 	if ((ret = mbedtls_ssl_config_defaults(&(network_context->conf),
 		MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
 		MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
-		return -1;
+		goto disconnect;
 	}
 
 	{
@@ -201,7 +206,7 @@ int network_connect(void* opaque_ctx)
 
 	if (max_fragment_len != MBEDTLS_SSL_MAX_FRAG_LEN_NONE) {
 		if ((ret = mbedtls_ssl_conf_max_frag_len(&(network_context->conf), max_fragment_len)) != 0) {
-			return -1;
+			goto disconnect;
 		}
 	}
 
@@ -210,16 +215,16 @@ int network_connect(void* opaque_ctx)
 
 	if ((ret = mbedtls_ssl_conf_own_cert(&(network_context->conf),
 		&network_context->network_config.clicert, &(network_context->pkey))) != 0) {
-		return -1;
+		goto disconnect;
 	}
 
 	if ((ret = mbedtls_ssl_setup(&(network_context->ssl), &(network_context->conf)))
 		!= 0) {
-		return -1;
+		goto disconnect;
 	}
 
 	if ((ret = mbedtls_ssl_set_hostname(&(network_context->ssl), network_context->network_config.hostname)) != 0) {
-		return -1;
+		goto disconnect;
 	}
 
 	mbedtls_ssl_set_bio(&network_context->ssl, &network_context->server_fd,
@@ -232,19 +237,29 @@ int network_connect(void* opaque_ctx)
 			&& ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
 
 			if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
-				uint32_t verify_result = mbedtls_ssl_get_verify_result(&(network_context->ssl));
+				verify_result = mbedtls_ssl_get_verify_result(&(network_context->ssl));
 				warn_crt_crl_period(verify_result);
-				IOT_AGENT_ERROR("mbedtls_ssl_handshake failed with 0x%08x, verify results: 0x%08x", ret, verify_result);
 			}
 
-			if (ret == MBEDTLS_ERR_SSL_BAD_INPUT_DATA) {
-				IOT_AGENT_ERROR("MBEDTLS_ERR_SSL_BAD_INPUT_DATA: %d", ret);
-			}
-			return -1;
+			goto disconnect;
 		}
 	}
 
 	return ret;
+
+disconnect:
+	IOT_AGENT_ERROR("Failed to establish SSL connection (Error: -0x%04X, Verify: 0x%X)", -(uint32_t)ret, verify_result);
+#ifdef MBEDTLS_ERROR_C
+	if (mbedtls_high_level_strerr(ret)) {
+		IOT_AGENT_ERROR("High-level error: %s", mbedtls_high_level_strerr(ret));
+	}
+	if (mbedtls_low_level_strerr(ret)) {
+		IOT_AGENT_ERROR("Low-level error: %s", mbedtls_low_level_strerr(ret));
+	}
+#endif
+	network_lowlevel_disconnect(network_context);
+exit:
+	return -1;
 }
 
 int network_disconnect(void* opaque_ctx)
@@ -256,6 +271,9 @@ int network_disconnect(void* opaque_ctx)
 	do {
 		ret = mbedtls_ssl_close_notify(&network_ctx->ssl);
 	} while (ret == MBEDTLS_ERR_SSL_WANT_WRITE);
+
+	network_lowlevel_disconnect(network_ctx);
+
 	return ret;
 }
 
@@ -286,7 +304,7 @@ int network_verify_server_certificate(void* context, uint8_t* trusted_bytes, siz
 
 	network_status = mbedtls_x509_crl_parse_der(&crl, (const unsigned char *)crl_bytes, crl_size);
 	if (network_status != 0) {
-		IOT_AGENT_ERROR("Error in parsing CRL.");
+		IOT_AGENT_ERROR("Failed to parse CRL");
 	    goto exit;
 	}
 
@@ -298,7 +316,7 @@ int network_verify_server_certificate(void* context, uint8_t* trusted_bytes, siz
 
     if (*error != 0U) {
 		warn_crt_crl_period(*error);
-		IOT_AGENT_ERROR("Server cert verification with CRL failed. mbedTLS indicates error %u.", *error);
+		IOT_AGENT_ERROR("Failed to verify server certificate with CRL (Verify: 0x%X)", *error);
         network_status = MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
         goto exit;
     }
