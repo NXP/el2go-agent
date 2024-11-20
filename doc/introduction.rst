@@ -60,6 +60,22 @@ to the EdgeLock 2GO cloud service by calling the EdgeLock 2GO agent API. See
 service, the device will get provisioned with the credentials that you have configured. 
 For more details, please refer to the EdgeLock 2GO documentation (AN12691).
 
+Re-provisioning of objects
+--------------------------------------------------
+
+If during provisioning of one object the EdgeLock 2GO server finds an objects with same ID, will first delete
+the object before provision the new one.
+Now, the following consideration needs to be taken in place when deleting one object:
+- the server doesn't know the DELETE permissions of the object on the device (which are defined through policies)
+- the server can't read the policies using read attribute APDU since the READ persmissions might be disabled
+To solve the issue, the server executes two DELETE operation, one unathenticated and one authenticated,
+which covers most of possible object status on the device. Now, imagine that you have one object
+where the unauthenticated DELETE is not allowed while the authenticated is, the first APDU will fail with the 6986 status word.
+The server will ignore the error returnes status of the APDU and continue with provisioning, but on device a warning will be displayed
+as can be seen in the log below. User can ignore this or similar warnings in case the final report shows success.:
+
+    sss   :WARN :APDU Transaction Error: Command not allowed - access denied based on object policy (0x6986)
+
 Datastore / Keystore
 ======================================
 
