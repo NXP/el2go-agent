@@ -36,6 +36,8 @@ if len(partitions) != 2 or not partitions[0].isdigit() or not partitions[1].isdi
 work_dir_path = pathlib.Path(os.path.abspath(os.path.dirname(__file__)))
 inc_path = work_dir_path.parent.joinpath("inc")
 el2go_blob_test_generic_header_path = inc_path.joinpath("el2go_blob_test_suite_generic.h")
+if not el2go_blob_test_generic_header_path.exists():
+    el2go_blob_test_generic_header_path = work_dir_path.parent.joinpath("el2go_blob_test_suite_generic.h")
 
 def parse_bytes_tlv(data: bytes, tag_size: int = 1) -> dict[int, int]:
     result = {}
