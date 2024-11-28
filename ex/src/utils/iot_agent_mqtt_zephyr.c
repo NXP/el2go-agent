@@ -380,6 +380,11 @@ static iot_agent_status_t connectMQTTClient(struct mqtt_client *client, char* se
         {
             return IOT_AGENT_UPDATE_FAILED;
         }
+        else
+        {
+            IOT_AGENT_ERROR("No CONNACK event received");
+            mqtt_disconnect(client);
+        }
     }
 
     return IOT_AGENT_FAILURE;

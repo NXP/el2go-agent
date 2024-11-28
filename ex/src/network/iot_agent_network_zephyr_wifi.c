@@ -99,7 +99,7 @@ iot_agent_status_t network_init(void)
     params.psk_length = strlen(AP_PASSWORD);
     params.band = WIFI_FREQ_BAND_UNKNOWN;
     params.channel = WIFI_CHANNEL_ANY;
-    params.security = WIFI_SECURITY_TYPE_PSK;
+    params.security = WIFI_SECURITY_TYPE_WPA_AUTO_PERSONAL;
     params.mfp = WIFI_MFP_OPTIONAL;
     params.timeout = AP_CONNECT_TIMEOUT;
 

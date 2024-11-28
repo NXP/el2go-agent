@@ -9,7 +9,6 @@
 
 // Defines which cannot be specified in prj.conf
 #define MBEDTLS_X509_CREATE_C
-#define MBEDTLS_X509_CRT_WRITE_C
 #define MBEDTLS_SSL_KEEP_PEER_CERTIFICATE
 
 #endif /* __MBEDTLS_USER_CONFIG_H__ */
