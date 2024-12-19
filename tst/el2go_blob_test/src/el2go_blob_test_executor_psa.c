@@ -98,8 +98,8 @@ static psa_algorithm_t get_usage_key_alg(psa_algorithm_t key_alg,
 {
     if (PSA_ALG_IS_ECDSA(key_alg))
     {
-        if ((key_bits >= 384 && hash_alg == PSA_ALG_SHA_1) ||
-            (key_bits >= 512 && (hash_alg == PSA_ALG_SHA_224 || hash_alg == PSA_ALG_SHA_512_224)) ||
+        if ((key_bits >= 384U && hash_alg == PSA_ALG_SHA_1) ||
+            (key_bits >= 512U && (hash_alg == PSA_ALG_SHA_224 || hash_alg == PSA_ALG_SHA_512_224)) ||
             (internal && hash_alg != PSA_ALG_SHA_256))
         {
             return PSA_ALG_NONE;
@@ -138,14 +138,16 @@ static psa_algorithm_t get_usage_key_alg(psa_algorithm_t key_alg,
             return PSA_ALG_NONE;
         }
 #endif
-        if (key_bits <= 1024 && hash_alg == PSA_ALG_SHA_512)
+        if (key_bits <= 1024U && hash_alg == PSA_ALG_SHA_512)
         {
             return PSA_ALG_NONE;
         }
         return PSA_ALG_RSA_PSS(hash_alg);
     }
-
-    return PSA_ALG_NONE;
+    else
+    {
+        return PSA_ALG_NONE;
+    }
 }
 
 // Init functions
@@ -159,7 +161,7 @@ static void psa_blob_test_initialize(psa_key_attributes_t attributes,
     psa_key_type_t key_type = psa_get_key_type(&attributes);
     size_t key_bits = psa_get_key_bits(&attributes);
 
-    if (blob_size == 1)                                                           
+    if (blob_size == 1U)                                                           
     {                                                                             
         TEST_SKIP("Placeholder blob");                                            
         return;                                                                   
@@ -173,13 +175,13 @@ static void psa_blob_test_initialize(psa_key_attributes_t attributes,
 #endif                                                            
     else if ((key_type == PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_K1) ||    
               key_type == PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_K1)) && 
-             (key_bits == 224 || key_bits == 225))                                
+             (key_bits == 224U || key_bits == 225U))                                
     {                                                                             
         TEST_SKIP("secp224k1 is broken in mbedtls PSA");                          
         return;                                                                   
     }
 
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
     psa_status = psa_crypto_init();
     if (psa_status != PSA_SUCCESS)
     {
@@ -188,6 +190,11 @@ static void psa_blob_test_initialize(psa_key_attributes_t attributes,
     }
 
     psa_status      = psa_import_key(&attributes, blob, blob_size, id);
+    if (psa_status == PSA_ERROR_ALREADY_EXISTS) 
+    {
+        psa_status = psa_destroy_key(id);
+        psa_status = psa_import_key(&attributes, blob, blob_size, id);
+    }
     if (psa_status != PSA_SUCCESS)
     {
         TEST_FAIL_PSA("psa_import_key");
@@ -202,7 +209,7 @@ void psa_blob_cipher_test(psa_key_attributes_t attributes,
                           size_t blob_size,
                           struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -220,6 +227,11 @@ void psa_blob_cipher_test(psa_key_attributes_t attributes,
     const uint8_t plaintext[] = "This is the plaintxt to encrypt";
     size_t ciphertext_size    = PSA_CIPHER_ENCRYPT_OUTPUT_SIZE(key_type, key_alg, sizeof(plaintext));
     ciphertext                = malloc(ciphertext_size);
+    if (ciphertext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t ciphertext_length  = 0;
     psa_status =
         psa_cipher_encrypt(id, key_alg, plaintext, sizeof(plaintext), ciphertext, ciphertext_size, &ciphertext_length);
@@ -231,6 +243,11 @@ void psa_blob_cipher_test(psa_key_attributes_t attributes,
 
     size_t decrypted_plaintext_size   = PSA_CIPHER_DECRYPT_OUTPUT_SIZE(key_type, key_alg, ciphertext_length);
     decrypted_plaintext               = malloc(decrypted_plaintext_size);
+    if (decrypted_plaintext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t decrypted_plaintext_length = 0;
     psa_status = psa_cipher_decrypt(id, key_alg, ciphertext, ciphertext_length, decrypted_plaintext,
                                     decrypted_plaintext_size, &decrypted_plaintext_length);
@@ -239,9 +256,14 @@ void psa_blob_cipher_test(psa_key_attributes_t attributes,
         TEST_FAIL_PSA("psa_cipher_decrypt");
         goto cleanup;
     }
+    if (sizeof(plaintext) != decrypted_plaintext_length)
+    {
+        TEST_FAIL("Decrypted data doesn't match with plaintext");
+        goto cleanup;
+    }
 
-    uint32_t comp_result = memcmp(plaintext, decrypted_plaintext, sizeof(plaintext));
-    if (comp_result != 0 || sizeof(plaintext) != decrypted_plaintext_length)
+    int comp_result = memcmp(plaintext, decrypted_plaintext, sizeof(plaintext));
+    if (comp_result != 0) 
     {
         TEST_FAIL("Decrypted data doesn't match with plaintext");
         goto cleanup;
@@ -263,7 +285,7 @@ void psa_blob_encrypt_test(psa_key_attributes_t attributes,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -280,6 +302,11 @@ void psa_blob_encrypt_test(psa_key_attributes_t attributes,
     const uint8_t plaintext[] = "This is the plaintxt to encrypt";
     size_t ciphertext_size    = PSA_CIPHER_ENCRYPT_OUTPUT_SIZE(key_type, key_alg, sizeof(plaintext));
     ciphertext                = malloc(ciphertext_size);
+    if (ciphertext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t ciphertext_length  = 0;
     psa_status =
         psa_cipher_encrypt(id, key_alg, plaintext, sizeof(plaintext), ciphertext, ciphertext_size, &ciphertext_length);
@@ -304,7 +331,7 @@ void psa_blob_decrypt_test(psa_key_attributes_t attributes,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -324,6 +351,11 @@ void psa_blob_decrypt_test(psa_key_attributes_t attributes,
     size_t ciphertext_length   = sizeof(ciphertext);
     size_t plaintext_size      = PSA_CIPHER_DECRYPT_OUTPUT_SIZE(key_type, key_alg, ciphertext_length);
     plaintext                  = malloc(plaintext_size);
+    if (plaintext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t plaintext_length    = 0;
     psa_status =
         psa_cipher_decrypt(id, key_alg, ciphertext, sizeof(ciphertext), plaintext, plaintext_size, &plaintext_length);
@@ -350,7 +382,7 @@ void psa_blob_aead_test(psa_key_attributes_t attributes,
                         size_t blob_size,
                         struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -368,6 +400,11 @@ void psa_blob_aead_test(psa_key_attributes_t attributes,
 
     size_t nonce_length = PSA_AEAD_NONCE_LENGTH(key_type, key_alg);
     nonce               = malloc(nonce_length);
+    if (nonce == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     psa_status          = psa_generate_random(nonce, nonce_length);
     if (psa_status != PSA_SUCCESS)
     {
@@ -378,6 +415,11 @@ void psa_blob_aead_test(psa_key_attributes_t attributes,
     const uint8_t plaintext[] = "This is the plaintxt to encrypt";
     size_t ciphertext_size    = PSA_AEAD_ENCRYPT_OUTPUT_SIZE(key_type, key_alg, sizeof(plaintext));
     ciphertext                = malloc(ciphertext_size);
+    if (ciphertext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t ciphertext_length  = 0;
     psa_status = psa_aead_encrypt(id, key_alg, nonce, nonce_length, 0, 0, plaintext, sizeof(plaintext), ciphertext,
                                   ciphertext_size, &ciphertext_length);
@@ -389,6 +431,11 @@ void psa_blob_aead_test(psa_key_attributes_t attributes,
 
     size_t decrypted_plaintext_size   = PSA_AEAD_DECRYPT_OUTPUT_SIZE(key_type, key_alg, ciphertext_length);
     decrypted_plaintext               = malloc(decrypted_plaintext_size);
+    if (decrypted_plaintext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t decrypted_plaintext_length = 0;
     psa_status = psa_aead_decrypt(id, key_alg, nonce, nonce_length, 0, 0, ciphertext, ciphertext_length,
                                   decrypted_plaintext, decrypted_plaintext_size, &decrypted_plaintext_length);
@@ -398,8 +445,14 @@ void psa_blob_aead_test(psa_key_attributes_t attributes,
         goto cleanup;
     }
 
-    uint32_t comp_result = memcmp(plaintext, decrypted_plaintext, sizeof(plaintext));
-    if (comp_result != 0 || sizeof(plaintext) != decrypted_plaintext_length)
+    if (sizeof(plaintext) != decrypted_plaintext_length)
+    {
+        TEST_FAIL("Decrypted data doesn't match with plaintext");
+        goto cleanup;
+    }
+
+    int comp_result = memcmp(plaintext, decrypted_plaintext, sizeof(plaintext));
+    if (comp_result != 0)
     {
         TEST_FAIL("Decrypted data doesn't match with plaintext");
         goto cleanup;
@@ -422,7 +475,7 @@ void psa_blob_aead_encrypt_test(psa_key_attributes_t attributes,
                                 size_t blob_size,
                                 struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -439,6 +492,11 @@ void psa_blob_aead_encrypt_test(psa_key_attributes_t attributes,
 
     size_t nonce_length = PSA_AEAD_NONCE_LENGTH(key_type, key_alg);
     nonce               = malloc(nonce_length);
+    if (nonce == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     psa_status          = psa_generate_random(nonce, nonce_length);
     if (psa_status != PSA_SUCCESS)
     {
@@ -449,8 +507,13 @@ void psa_blob_aead_encrypt_test(psa_key_attributes_t attributes,
     const uint8_t plaintext[] = "This is the plaintxt to encrypt";
     size_t ciphertext_size    = PSA_AEAD_ENCRYPT_OUTPUT_SIZE(key_type, key_alg, sizeof(plaintext));
     ciphertext                = malloc(ciphertext_size);
+    if (ciphertext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t ciphertext_length  = 0;
-    psa_status = psa_aead_encrypt(id, key_alg, nonce, nonce_length, 0, 0, plaintext, sizeof(plaintext), ciphertext,
+    psa_status = psa_aead_encrypt(id, key_alg, nonce, nonce_length, NULL, 0, plaintext, sizeof(plaintext), ciphertext,
                                   ciphertext_size, &ciphertext_length);
     if (psa_status != PSA_SUCCESS)
     {
@@ -474,7 +537,7 @@ void psa_blob_aead_decrypt_test(psa_key_attributes_t attributes,
                                 size_t blob_size,
                                 struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -491,6 +554,11 @@ void psa_blob_aead_decrypt_test(psa_key_attributes_t attributes,
 
     size_t nonce_length = PSA_AEAD_NONCE_LENGTH(key_type, key_alg);
     nonce               = malloc(nonce_length);
+    if (nonce == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     psa_status          = psa_generate_random(nonce, nonce_length);
     if (psa_status != PSA_SUCCESS)
     {
@@ -503,8 +571,13 @@ void psa_blob_aead_decrypt_test(psa_key_attributes_t attributes,
     size_t ciphertext_length          = sizeof(ciphertext);
     size_t decrypted_plaintext_size   = PSA_AEAD_DECRYPT_OUTPUT_SIZE(key_type, key_alg, ciphertext_length);
     decrypted_plaintext               = malloc(decrypted_plaintext_size);
+    if (decrypted_plaintext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t decrypted_plaintext_length = 0;
-    psa_status = psa_aead_decrypt(id, key_alg, nonce, nonce_length, 0, 0, ciphertext, ciphertext_length,
+    psa_status = psa_aead_decrypt(id, key_alg, nonce, nonce_length, NULL, 0, ciphertext, ciphertext_length,
                                   decrypted_plaintext, decrypted_plaintext_size, &decrypted_plaintext_length);
 
     if (psa_status == PSA_ERROR_INVALID_SIGNATURE)
@@ -536,7 +609,7 @@ void psa_blob_mac_test(psa_key_attributes_t attributes,
                        size_t blob_size,
                        struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -554,6 +627,11 @@ void psa_blob_mac_test(psa_key_attributes_t attributes,
     const uint8_t message[] = "This is the message to authenticate";
     size_t mac_size         = PSA_MAC_LENGTH(key_type, key_bits, key_alg);
     mac                     = malloc(mac_size);
+    if (mac == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t mac_length       = 0;
     psa_status              = psa_mac_compute(id, key_alg, message, sizeof(message), mac, mac_size, &mac_length);
     if (psa_status != PSA_SUCCESS)
@@ -584,7 +662,7 @@ void psa_blob_mac_compute_test(psa_key_attributes_t attributes,
                                size_t blob_size,
                                struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -602,6 +680,11 @@ void psa_blob_mac_compute_test(psa_key_attributes_t attributes,
     const uint8_t message[] = "This is the message to authenticate";
     size_t mac_size         = PSA_MAC_LENGTH(key_type, key_bits, key_alg);
     mac                     = malloc(mac_size);
+    if (mac == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t mac_length       = 0;
     psa_status              = psa_mac_compute(id, key_alg, message, sizeof(message), mac, mac_size, &mac_length);
     if (psa_status != PSA_SUCCESS)
@@ -625,7 +708,7 @@ void psa_blob_mac_verify_test(psa_key_attributes_t attributes,
                               size_t blob_size,
                               struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -643,6 +726,11 @@ void psa_blob_mac_verify_test(psa_key_attributes_t attributes,
     const uint8_t message[] = "This is the message to authenticate";
     size_t mac_size         = PSA_MAC_LENGTH(key_type, key_bits, key_alg);
     mac                     = malloc(mac_size);
+    if (mac == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     // Mock a signature of correct length
     size_t mac_length = mac_size;
 
@@ -680,12 +768,17 @@ static psa_status_t psa_blob_sig_ver_msg(psa_key_type_t key_type,
                                          enum indentation_t indentation,
                                          struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     const uint8_t message[] = "This is the message to sign";
 
     size_t signature_size   = PSA_SIGN_OUTPUT_SIZE(key_type, key_bits, key_alg);
     uint8_t *signature      = malloc(signature_size);
+    if (signature == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t signature_length = 0;
 
     if (execute_sign)
@@ -763,17 +856,17 @@ static void psa_blob_sig_ver_msg_variations(psa_key_type_t key_type,
         if (psa_status != PSA_SUCCESS)
         {
             LOG_SET_COLOR(RED);
-            if (result->message != 0)
+            if (result->message != NULL)
             {
                 LOG("%*s%s", VARIATION, "", result->message);
-                if (result->function != 0)
+                if (result->function != NULL)
                 {
                     LOG(" (%s:%d)\r\n", result->function, result->line);
                 }
             }
             else
             {
-                if (result->function != 0)
+                if (result->function != NULL)
                 {
                     LOG("%*sFailed at %s:%d\r\n", VARIATION, "", result->function, result->line);
                 }
@@ -793,7 +886,7 @@ void psa_blob_sigvermsg_test(psa_key_attributes_t attributes,
                              size_t blob_size,
                              struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -841,7 +934,7 @@ void psa_blob_sigmsg_test(psa_key_attributes_t attributes,
                           size_t blob_size,
                           struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -889,7 +982,7 @@ void psa_blob_vermsg_test(psa_key_attributes_t attributes,
                           size_t blob_size,
                           struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -944,7 +1037,7 @@ static psa_status_t psa_blob_sig_ver_hash(psa_key_type_t key_type,
                                           enum indentation_t indentation,
                                           struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     uint8_t *hash           = NULL;
     uint8_t *signature      = NULL;
@@ -956,7 +1049,7 @@ static psa_status_t psa_blob_sig_ver_hash(psa_key_type_t key_type,
     if (key_alg == PSA_ALG_RSA_PKCS1V15_SIGN_RAW)
     {
         const uint8_t *digest_info = get_rsa_digest_info(hash_alg);
-        if (!digest_info)
+        if (digest_info == NULL)
         {
             TEST_FAIL("No RSA digest info avaliable for specified hash algorithm");
             psa_status = PSA_ERROR_GENERIC_ERROR;
@@ -964,13 +1057,28 @@ static psa_status_t psa_blob_sig_ver_hash(psa_key_type_t key_type,
         }
         digest_info_size = sizeof(digest_info);
         hash             = malloc(digest_info_size + hash_size);
-        memcpy(hash, digest_info, digest_info_size);
+        if (hash == NULL)
+        {
+            TEST_FAIL_PSA("Failure in dynamic memory allocation");
+            goto cleanup;
+        }
+        if (memcpy(hash, digest_info, digest_info_size) == NULL)
+        {
+            TEST_FAIL("No RSA digest info avaliable for specified hash algorithm");
+            psa_status = PSA_ERROR_GENERIC_ERROR;
+            goto cleanup;
+        }
         psa_status =
             psa_hash_compute(hash_alg, message, sizeof(message), (hash + digest_info_size), hash_size, &hash_length);
     }
     else
     {
         hash       = malloc(hash_size);
+        if (hash == NULL)
+        {
+            TEST_FAIL_PSA("Failure in dynamic memory allocation");
+            goto cleanup;
+        }
         psa_status = psa_hash_compute(hash_alg, message, sizeof(message), hash, hash_size, &hash_length);
     }
     if (psa_status != PSA_SUCCESS)
@@ -993,6 +1101,11 @@ static psa_status_t psa_blob_sig_ver_hash(psa_key_type_t key_type,
 
     size_t signature_size   = PSA_SIGN_OUTPUT_SIZE(key_type, key_bits, key_alg);
     signature               = malloc(signature_size);
+    if (signature == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t signature_length = 0;
 
     if (execute_sign)
@@ -1070,17 +1183,17 @@ static void psa_blob_sig_ver_hash_variations(psa_key_type_t key_type,
         if (psa_status != PSA_SUCCESS)
         {
             LOG_SET_COLOR(RED);
-            if (result->message != 0)
+            if (result->message != NULL)
             {
                 LOG("%*s%s", VARIATION, "", result->message);
-                if (result->function != 0)
+                if (result->function != NULL)
                 {
                     LOG(" (%s:%d)\r\n", result->function, result->line);
                 }
             }
             else
             {
-                if (result->function != 0)
+                if (result->function != NULL)
                 {
                     LOG("%*sFailed at %s:%d\r\n", VARIATION, "", result->function, result->line);
                 }
@@ -1100,7 +1213,7 @@ void psa_blob_sigverhash_test(psa_key_attributes_t attributes,
                               size_t blob_size,
                               struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -1148,7 +1261,7 @@ void psa_blob_sighash_test(psa_key_attributes_t attributes,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -1196,7 +1309,7 @@ void psa_blob_verhash_test(psa_key_attributes_t attributes,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -1246,7 +1359,7 @@ void psa_blob_export_test(psa_key_attributes_t attributes,
                           size_t blob_size,
                           struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -1263,6 +1376,11 @@ void psa_blob_export_test(psa_key_attributes_t attributes,
 
     size_t exported_key_size   = PSA_EXPORT_KEY_OUTPUT_SIZE(key_type, key_bits);
     exported_key               = malloc(exported_key_size);
+    if (exported_key == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t exported_key_length = 0;
     psa_status                 = psa_export_key(id, exported_key, exported_key_size, &exported_key_length);
     if (psa_status != PSA_SUCCESS)
@@ -1281,6 +1399,11 @@ void psa_blob_export_test(psa_key_attributes_t attributes,
     {
         size_t exported_public_key_size   = PSA_EXPORT_PUBLIC_KEY_OUTPUT_SIZE(key_type, key_bits);
         exported_public_key               = malloc(exported_public_key_size);
+        if (exported_public_key == NULL)
+        {
+            TEST_FAIL_PSA("Failure in dynamic memory allocation");
+            goto cleanup;
+        }
         size_t exported_public_key_length = 0;
         psa_status =
             psa_export_public_key(id, exported_public_key, exported_public_key_size, &exported_public_key_length);
@@ -1292,8 +1415,14 @@ void psa_blob_export_test(psa_key_attributes_t attributes,
 
         if (PSA_KEY_TYPE_IS_PUBLIC_KEY(key_type))
         {
-            uint32_t comp_result = memcmp(exported_key, exported_public_key, exported_public_key_length);
-            if (comp_result != 0 || exported_key_length != exported_public_key_length)
+            if (exported_key_length != exported_public_key_length)
+            {
+                TEST_FAIL("Public keys do not match");
+                goto cleanup;
+            }
+
+            int comp_result = memcmp(exported_key, exported_public_key, exported_public_key_length);
+            if (comp_result != 0)
             {
                 TEST_FAIL("Public keys do not match");
                 goto cleanup;
@@ -1319,7 +1448,7 @@ void psa_blob_kdf_test(psa_key_attributes_t attributes,
                        size_t blob_size,
                        struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -1384,7 +1513,7 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
                            size_t blob_size,
                            struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -1405,7 +1534,13 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
 
     psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(PSA_KEY_PERSISTENCE_DEFAULT,
                                                                                      PSA_KEY_LOCATION_LOCAL_STORAGE));
-    psa_set_key_id(&attributes, id + 1);
+    if (id >= UINT32_MAX)
+    {
+        TEST_FAIL_PSA("id out of the range");
+        goto cleanup;
+    }
+
+    psa_set_key_id(&attributes, id + 1U);
 
     psa_key_id_t peer_id = 0U;
     psa_status           = psa_generate_key(&attributes, &peer_id);
@@ -1417,6 +1552,11 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
 
     size_t peer_key_size   = PSA_EXPORT_PUBLIC_KEY_OUTPUT_SIZE(key_type, key_bits);
     peer_key               = malloc(peer_key_size);
+    if (peer_key == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t peer_key_length = 0;
     psa_status             = psa_export_public_key(peer_id, peer_key, peer_key_size, &peer_key_length);
     if (psa_status != PSA_SUCCESS)
@@ -1427,6 +1567,11 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
 
     size_t output_size   = PSA_RAW_KEY_AGREEMENT_OUTPUT_SIZE(key_type, key_bits);
     output               = malloc(output_size);
+    if (output == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t output_length = 0;
     psa_status = psa_raw_key_agreement(key_alg, id, peer_key, peer_key_length, output, output_size, &output_length);
     if (psa_status != PSA_SUCCESS)
@@ -1442,6 +1587,11 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
     }
 
     public_key               = malloc(peer_key_size);
+    if (public_key == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t public_key_length = 0;
     psa_status               = psa_export_public_key(id, public_key, peer_key_size, &public_key_length);
     if (psa_status != PSA_SUCCESS)
@@ -1451,6 +1601,11 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
     }
 
     verification_output               = malloc(output_size);
+    if (verification_output == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t verification_output_length = 0;
     psa_status = psa_raw_key_agreement(key_alg, peer_id, public_key, public_key_length, verification_output,
                                        output_size, &verification_output_length);
@@ -1466,7 +1621,7 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
         goto cleanup;
     }
 
-    uint32_t comp_result = memcmp(output, verification_output, verification_output_length);
+    int comp_result = memcmp(output, verification_output, verification_output_length);
     if (comp_result != 0 || output_length != verification_output_length)
     {
         TEST_FAIL("Shared secrets do not match");
@@ -1499,7 +1654,7 @@ void psa_blob_crypt_test(psa_key_attributes_t attributes,
                          size_t blob_size,
                          struct test_result_t *result)
 {
-    psa_status_t psa_status;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
@@ -1518,6 +1673,11 @@ void psa_blob_crypt_test(psa_key_attributes_t attributes,
     const uint8_t plaintext[] = "This is the plaintxt to encrypt";
     size_t ciphertext_size    = PSA_ASYMMETRIC_ENCRYPT_OUTPUT_SIZE(key_type, key_bits, key_alg);
     ciphertext                = malloc(ciphertext_size);
+    if (ciphertext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t ciphertext_length  = 0;
     psa_status = psa_asymmetric_encrypt(id, key_alg, plaintext, sizeof(plaintext), NULL, 0, ciphertext, ciphertext_size,
                                         &ciphertext_length);
@@ -1529,6 +1689,11 @@ void psa_blob_crypt_test(psa_key_attributes_t attributes,
 
     size_t decrypted_plaintext_size   = PSA_ASYMMETRIC_DECRYPT_OUTPUT_SIZE(key_type, key_bits, key_alg);
     decrypted_plaintext               = malloc(decrypted_plaintext_size);
+    if (decrypted_plaintext == NULL)
+    {
+        TEST_FAIL_PSA("Failure in dynamic memory allocation");
+        goto cleanup;
+    }
     size_t decrypted_plaintext_length = 0;
     psa_status = psa_asymmetric_decrypt(id, key_alg, ciphertext, ciphertext_length, NULL, 0, decrypted_plaintext,
                                         decrypted_plaintext_size, &decrypted_plaintext_length);
@@ -1538,8 +1703,14 @@ void psa_blob_crypt_test(psa_key_attributes_t attributes,
         goto cleanup;
     }
 
-    uint32_t comp_result = memcmp(plaintext, decrypted_plaintext, sizeof(plaintext));
-    if (comp_result != 0 || sizeof(plaintext) != decrypted_plaintext_length)
+    if (sizeof(plaintext) != decrypted_plaintext_length)
+    {
+        TEST_FAIL("Decrypted data doesn't match with plaintext");
+        goto cleanup;
+    }
+
+    int comp_result = memcmp(plaintext, decrypted_plaintext, sizeof(plaintext));
+    if (comp_result != 0)
     {
         TEST_FAIL("Decrypted data doesn't match with plaintext");
         goto cleanup;

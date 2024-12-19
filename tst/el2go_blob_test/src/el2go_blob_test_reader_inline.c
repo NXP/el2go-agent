@@ -13,7 +13,7 @@
 void read_blob_data(
     const uint8_t *data, size_t data_length, uint8_t **blob, size_t *blob_length, struct test_result_t *result)
 {
-    if (data == NULL || data_length == 0 || blob == NULL || blob_length == NULL)
+    if (data == NULL || data_length == 0U || blob == NULL || blob_length == NULL)
     {
         TEST_FAIL_READER("Invalid input data");
         return;
@@ -26,6 +26,10 @@ void read_blob_data(
         return;
     }
 
-    memcpy(*blob, data, data_length);
+    if (memcpy(*blob, data, data_length) == NULL)
+    {
+        TEST_FAIL_READER("Error in memory copying");
+        return;
+    }
     *blob_length = data_length;
 }

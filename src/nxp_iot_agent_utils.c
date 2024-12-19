@@ -1359,20 +1359,20 @@ exit:
 
 #endif //!(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 
-iot_agent_status_t iot_agent_utils_convert_service2key_id(uint64_t service_id, uint32_t *key_id)
+iot_agent_status_t iot_agent_utils_convert_service2key_id(uint64_t service_id, uint32_t *key_id_ptr)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
-	ASSERT_OR_EXIT_MSG(key_id != NULL, "key_id is NULL.");
+	ASSERT_OR_EXIT_MSG(key_id_ptr != NULL, "key_id is NULL.");
 
 	if (service_id > 0xFFFFFFFFUL)
 	{
 		return IOT_AGENT_FAILURE;
 	}
 
-	*key_id = EDGELOCK2GO_MANAGED_SERVICE_KEY_MIN | ((uint32_t) service_id);
+	*key_id_ptr = EDGELOCK2GO_MANAGED_SERVICE_KEY_MIN | ((uint32_t) service_id);
 
-	if (*key_id > EDGELOCK2GO_MANAGED_SERVICE_KEY_MAX)
+	if (*key_id_ptr > EDGELOCK2GO_MANAGED_SERVICE_KEY_MAX)
 	{
 		agent_status = IOT_AGENT_FAILURE;
 	}

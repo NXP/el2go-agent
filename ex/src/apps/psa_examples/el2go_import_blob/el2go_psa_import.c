@@ -49,44 +49,56 @@ static uint16_t get_uint16_val(const uint8_t *input)
     return output;
 }
 
-static int get_len(const unsigned char **p, const unsigned char *end, size_t *len)
+static int get_len(const unsigned char **p, const unsigned char *end_ptr, size_t *len)
 {
-    if ((end - *p) < 1)
+    if ((end_ptr - *p) < 1)
+    { 
         return (PSA_ERROR_INVALID_ARGUMENT);
+    }
 
-    if ((**p & 0x80) == 0)
+    if ((**p & 0x80U) == 0U)
+    { 
         *len = *(*p)++;
+    }
     else
     {
-        switch (**p & 0x7F)
+        switch (**p & 0x7FU)
         {
             case 1:
-                if ((end - *p) < 2)
+                if ((end_ptr - *p) < 2)
+                {
                     return (PSA_ERROR_INVALID_ARGUMENT);
+                }
 
                 *len = (*p)[1];
                 (*p) += 2;
                 break;
 
             case 2:
-                if ((end - *p) < 3)
+                if ((end_ptr - *p) < 3)
+                {
                     return (PSA_ERROR_INVALID_ARGUMENT);
+                }
 
                 *len = ((size_t)(*p)[1] << 8) | (*p)[2];
                 (*p) += 3;
                 break;
 
             case 3:
-                if ((end - *p) < 4)
+                if ((end_ptr - *p) < 4)
+                {
                     return (PSA_ERROR_INVALID_ARGUMENT);
+                }
 
                 *len = ((size_t)(*p)[1] << 16) | ((size_t)(*p)[2] << 8) | (*p)[3];
                 (*p) += 4;
                 break;
 
             case 4:
-                if ((end - *p) < 5)
+                if ((end_ptr - *p) < 5)
+                {
                     return (PSA_ERROR_INVALID_ARGUMENT);
+                }
 
                 *len = ((size_t)(*p)[1] << 24) | ((size_t)(*p)[2] << 16) | ((size_t)(*p)[3] << 8) | (*p)[4];
                 (*p) += 5;
@@ -96,23 +108,29 @@ static int get_len(const unsigned char **p, const unsigned char *end, size_t *le
                 return (PSA_ERROR_INVALID_ARGUMENT);
         }
     }
-    if (*len > (size_t)(end - *p))
+    if (*len > (size_t)(end_ptr - *p))
+    {
         return (PSA_ERROR_INVALID_ARGUMENT);
+    }
 
     return (0);
 }
 
-static int get_tag(const unsigned char **p, const unsigned char *end, size_t *len, int tag)
+static int get_tag(const unsigned char **p, const unsigned char *end_ptr, size_t *len, int tag)
 {
-    if ((end - *p) < 1)
+    if ((end_ptr - *p) < 1)
+    {
         return (PSA_ERROR_INVALID_ARGUMENT);
+    }
 
     if (**p != tag)
+    {
         return (PSA_ERROR_INVALID_ARGUMENT);
+    }
 
     (*p)++;
 
-    return (get_len(p, end, len));
+    return (get_len(p, end_ptr, len));
 }
 
 psa_status_t iot_agent_utils_parse_blob(const uint8_t *blob, size_t blob_size, psa_key_attributes_t *attributes, size_t *actual_blob_size)
@@ -123,26 +141,40 @@ psa_status_t iot_agent_utils_parse_blob(const uint8_t *blob, size_t blob_size, p
     size_t cmd_len = 0U; // the length of the current TLV
 
     const uint8_t *cmd_ptr = NULL;
-    const uint8_t *end     = NULL;
+    const uint8_t *end_ptr     = NULL;
 
     if ( blob == NULL )
-      LOG("blob address is NULL\r\n");
+    {
+        agent_status = PSA_ERROR_GENERIC_ERROR;
+        LOG("blob address is NULL\r\n");
+        goto exit;
+    }
     if ( attributes == NULL )
-       LOG("attributes address is NULL\r\n");
+    {
+        agent_status = PSA_ERROR_GENERIC_ERROR;
+        LOG("attributes address is NULL\r\n");
+        goto exit;
+    }
     if ( actual_blob_size == NULL )
-       LOG("actual_blob_size is NULL\r\n");
+    {
+        agent_status = PSA_ERROR_GENERIC_ERROR;
+        LOG("actual_blob_size is NULL\r\n");
+        goto exit;
+    }
 
     *attributes = psa_key_attributes_init();
 
     cmd_ptr = blob;
-    end     = cmd_ptr + blob_size;
+    end_ptr     = cmd_ptr + blob_size;
 
-    while ((cmd_ptr + 1) < end)
+    while ((cmd_ptr + 1) < end_ptr)
     {
         tag = *cmd_ptr;
-        psa_status_t psa_status = get_tag(&cmd_ptr, end, &cmd_len, tag);
+        psa_status_t psa_status = get_tag(&cmd_ptr, end_ptr, &cmd_len, tag);
         if( psa_status != PSA_SUCCESS)
-          LOG("Get_tag failed (%d)\r\n", psa_status);
+        {
+            LOG("Get_tag failed (%d)\r\n", psa_status);
+        }
 
         switch (tag)
         {
@@ -166,7 +198,13 @@ psa_status_t iot_agent_utils_parse_blob(const uint8_t *blob, size_t blob_size, p
                 break;
             case PSA_CMD_TAG_SIGNATURE:
                 // Handle blobs with longer than actual size (we can count on this being the last tag)
-				*actual_blob_size = (cmd_ptr + cmd_len) - blob;
+                if (((cmd_ptr + cmd_len) - blob) < 0)
+                {
+                    LOG("Error in the signature calculation\r\n");
+                    agent_status = PSA_ERROR_GENERIC_ERROR;
+                    goto exit;
+                }
+                *actual_blob_size = (cmd_ptr + cmd_len) - blob;
                 goto exit;
             default:
                 break;
@@ -178,10 +216,12 @@ exit:
     return agent_status;
 }
 
-static bool is_blob_magic(const uint8_t *ptr, const uint8_t *end)
+static bool is_blob_magic(const uint8_t *ptr, const uint8_t *end_ptr)
 {
-    if (ptr + MAGIC_TLV_SIZE >= end)
+    if (ptr + MAGIC_TLV_SIZE >= end_ptr)
+    {
         return false;
+    }
 
     // The magic TLV is 104 bits long, sufficient to not randomly appear inside the blob (for practical purposes)
     return get_uint32_val(ptr)     == MAGIC_TLV_1 &&
@@ -195,9 +235,17 @@ psa_status_t iot_agent_utils_psa_import_blobs_from_flash(const uint8_t *blob_are
     psa_status_t psa_import_status = PSA_SUCCESS;
 
     if ( blob_area == NULL )
-      LOG("blob_area address is NULL\r\n");
+    {
+        psa_import_status = PSA_ERROR_GENERIC_ERROR;
+        LOG("blob_area address is NULL\r\n");
+        goto exit;
+    }
     if ( blobs_imported == NULL )
-      LOG("blobs_imported address is NULL\r\n");
+    {
+        psa_import_status = PSA_ERROR_GENERIC_ERROR;
+        LOG("blobs_imported address is NULL\r\n");
+        goto exit;
+    }
 
     *blobs_imported = 0U;
 
@@ -215,6 +263,13 @@ psa_status_t iot_agent_utils_psa_import_blobs_from_flash(const uint8_t *blob_are
         do {
             blob_ptr++;
         } while (!is_blob_magic(blob_ptr, blob_area_end) && blob_ptr < blob_area_end);
+
+        if ((blob_ptr - blob) < 0)
+        {
+            psa_import_status = PSA_ERROR_GENERIC_ERROR;
+            LOG("Failed to parse blob attributes\r\n");
+            goto exit;
+        }
 
         // This will be longer than the actual blob size for the last blob (handled by the blob parser)
         size_t blob_size = blob_ptr - blob;

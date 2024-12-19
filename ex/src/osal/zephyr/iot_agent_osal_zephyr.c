@@ -33,7 +33,7 @@ typedef struct agent_start_task_ags
 	const char **v;
 } agent_start_task_args_t;
 
-agent_start_task_args_t agent_start_args;
+static agent_start_task_args_t agent_start_args;
 
 static void agent_start_task_in_loop(void *args, void*, void*){
 
@@ -98,5 +98,5 @@ iot_agent_status_t iot_agent_osal_start_task(agent_start_task_t agent_start_task
 
 	k_thread_start(agent_thread_id);
 
-	return 1;
+	return IOT_AGENT_FAILURE;
 }

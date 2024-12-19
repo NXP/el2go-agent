@@ -146,12 +146,15 @@ void iot_agent_print_uid_integer(char* hexString, size_t len) {
 			uint32_t charWeightedContrib = 0U;
 			unsigned char pickChar = *(hexString + len - 1U - i);
 
-			if ((pickChar >= '0') && (pickChar <= '9'))
+			if ((pickChar >= '0') && (pickChar <= '9')) {
 				charWeightedContrib = (((unsigned char)pickChar) - '0');
-			else if ((pickChar >= 'A') && (pickChar <= 'F'))
+			}
+			else if ((pickChar >= 'A') && (pickChar <= 'F')) {
 				charWeightedContrib = (((unsigned char)pickChar) - 'A') + 10U;
-			else if ((pickChar >= 'a') && (pickChar <= 'f'))
+			}
+			else if ((pickChar >= 'a') && (pickChar <= 'f')) {
 				charWeightedContrib = (uint32_t)(pickChar - 'a') + 10U;
+			}
 			charWeightedContrib *= weigthValueArray[j];
 			decimalDigitWeightedSum[j] += charWeightedContrib;
 		}
@@ -166,7 +169,7 @@ void iot_agent_print_uid_integer(char* hexString, size_t len) {
 	// from the decimal digit weighted sum compute the final decimal string
 	uint32_t rem = 0U;
 	for (uint8_t i = 0U; i < MAX_UID_DECIMAL_STRING_SIZE; i++) {
-		uint8_t index = MAX_UID_DECIMAL_STRING_SIZE - 1 - i;
+		uint8_t index = MAX_UID_DECIMAL_STRING_SIZE - 1U - i;
 		decimalString[index] += ((rem + decimalDigitWeightedSum[i]) % 10U);
 		rem = (rem + decimalDigitWeightedSum[i]) / 10U;
 	}
@@ -174,7 +177,9 @@ void iot_agent_print_uid_integer(char* hexString, size_t len) {
 	// print without leasign 0s
 	char* printedString;
 	printedString = decimalString;
-	while (*printedString && *printedString == '0') printedString++;
+	while (*printedString && *printedString == '0') {
+		printedString++;
+	}
 	IOT_AGENT_INFO("UID in decimal format: %s", printedString);
 
 }
@@ -199,7 +204,7 @@ iot_agent_status_t iot_agent_print_uid (sss_se05x_session_t* pSession) {
 	}
 	char uidHexString[(SE050_MODULE_UNIQUE_ID_LEN * 2U) + 1U];
 	for (uint8_t i = 0U; i < SE050_MODULE_UNIQUE_ID_LEN; i++) {
-		sprintf((uidHexString + (i * 2)), "%02X", uid[i]);
+		ASSERT_OR_EXIT_MSG(sprintf((uidHexString + (i * 2U)), "%02X", uid[i]) >= 0, "Error in printing UUID");
 	}
 	IOT_AGENT_INFO("UID in hex format: %s", uidHexString);
 	iot_agent_print_uid_integer(uidHexString, (((size_t)SE050_MODULE_UNIQUE_ID_LEN) * 2U));
@@ -207,7 +212,7 @@ exit:
 	return agent_status;
 }
 #else
-iot_agent_status_t iot_agent_print_uid() {
+iot_agent_status_t iot_agent_print_uid(void) {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
 	uint8_t uid[DEVICEID_LENGTH];
@@ -218,8 +223,9 @@ iot_agent_status_t iot_agent_print_uid() {
 	ASSERT_OR_EXIT_MSG(agent_status == IOT_AGENT_SUCCESS, "iot_agent_utils_get_device_id failed with 0x%08x", agent_status);
 
 	for (uint8_t i = 0U; i < uidLen; i++) {
-		sprintf((uidHexString + (i * 2)), "%02X", uid[i]);
+		ASSERT_OR_EXIT_MSG(sprintf((uidHexString + (i * 2)), "%02X", uid[i]) >= 0, "Error in printing UUID");
 	}
+
 	IOT_AGENT_INFO("UID in hex format: %s", uidHexString);
 	iot_agent_print_uid_integer(uidHexString, (uidLen * 2U));
 exit:

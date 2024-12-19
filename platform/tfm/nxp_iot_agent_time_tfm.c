@@ -29,10 +29,25 @@ typedef struct {
 void iot_agent_time_init_measurement(iot_agent_time_context_t* time_context)
 {
 	time_meas_t* time_meas_ctx = malloc(sizeof(time_meas_t));
+	if (time_meas_ctx == NULL)
+	{
+		IOT_AGENT_WARN("Issue in initializing measurement context");
+		return;
+	}
 #ifdef __ZEPHYR__
 	time_meas_ctx->tEnd = time_meas_ctx->tStart = k_uptime_get();
 #else
-	time_meas_ctx->tEnd = time_meas_ctx->tStart = xTaskGetTickCount();
+	uint32_t time = xTaskGetTickCount();
+	if (time > INT32_MAX)
+	{
+		IOT_AGENT_WARN("Possible issue in time measurement due to overflow");
+		time_meas_ctx->tEnd = time_meas_ctx->tStart = 0;
+	}
+	else
+	{
+		time_meas_ctx->tEnd = time_meas_ctx->tStart = time;
+	}
+	
 #endif
 	time_context->ctx = (time_meas_t*)time_meas_ctx;
 }
@@ -42,16 +57,29 @@ void iot_agent_time_conclude_measurement(iot_agent_time_context_t* time_context)
 #ifdef __ZEPHYR__
 	((time_meas_t*)time_context->ctx)->tEnd = k_uptime_get();
 #else
-	((time_meas_t*)time_context->ctx)->tEnd = xTaskGetTickCount();
+	uint32_t time = xTaskGetTickCount();
+	if (time > INT32_MAX)
+	{
+	  	IOT_AGENT_WARN("Possible issue in time measurement due to overflow");
+		((time_meas_t*)time_context->ctx)->tEnd = 0;
+	}
+	else
+	{
+		((time_meas_t*)time_context->ctx)->tEnd = time;
+	}
 #endif
 }
 
 long iot_agent_time_get_measurement(iot_agent_time_context_t* time_context)
 {
 	if (((time_meas_t*)time_context->ctx)->tEnd >= ((time_meas_t*)time_context->ctx)->tStart)
+  {
 		return ((time_meas_t*)time_context->ctx)->tEnd - ((time_meas_t*)time_context->ctx)->tStart;
+  }
 	else
+  {
 		return 0;
+  }
 }
 
 void iot_agent_time_free_measurement_ctx(iot_agent_time_context_t* time_context)

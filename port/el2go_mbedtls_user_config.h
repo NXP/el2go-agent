@@ -22,8 +22,8 @@
 #ifndef __MBEDTLS_USER_CONFIG_H__
 #define __MBEDTLS_USER_CONFIG_H__
 
-/* Reduce RAM usage.*/
-/* More info: https://tls.mbed.org/kb/how-to/reduce-mbedtls-memory-and-storage-footprint */
+// Reduce RAM usage.
+// More info: https://tls.mbed.org/kb/how-to/reduce-mbedtls-memory-and-storage-footprint
 #define MBEDTLS_ECP_FIXED_POINT_OPTIM 0 /* To reduce peak memory usage */
 #define MBEDTLS_SSL_MAX_CONTENT_LEN (1024 * 16) /* Reduce SSL frame buffer. */
 #define MBEDTLS_AES_ROM_TABLES

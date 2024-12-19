@@ -34,22 +34,22 @@ uint32_t get_uptime_ms(void)
 }
 #endif
 
-void run_testsuite(struct test_suite_t *test_suite)
+static void run_testsuite(struct test_suite_t *test_suite)
 {
     test_suite->suite(test_suite);
 
     LOG_SET_COLOR(YELLOW);
     LOG("Running test suite %s\r\n", test_suite->name);
 
-    uint32_t failed_tests  = 0;
-    uint32_t skipped_tests = 0;
-    uint32_t passed_tests  = 0;
+    uint32_t failed_tests  = 0U;
+    uint32_t skipped_tests = 0U;
+    uint32_t passed_tests  = 0U;
 
-    uint32_t elapsed_time       = 0;
-    uint32_t total_elapsed_time = 0;
+    uint32_t elapsed_time       = 0U;
+    uint32_t total_elapsed_time = 0U;
 
     struct test_t *test = test_suite->test_list;
-    for (int i = 0; i < test_suite->test_list_size; i++)
+    for (size_t i = 0U; i < test_suite->test_list_size; i++)
     {
         LOG_SET_COLOR(DEFAULT);
         LOG("> Executing test %s \r\n", test->name);
@@ -129,29 +129,29 @@ void run_testsuite(struct test_suite_t *test_suite)
         test++;
     }
 
-    if (failed_tests != 0)
+    if (failed_tests != 0U)
     {
         LOG_SET_COLOR(MAGENTA);
         LOG("%d of %d FAILED\r\n", failed_tests, test_suite->test_list_size);
     }
-    if (skipped_tests != 0)
+    if (skipped_tests != 0U)
     {
         LOG_SET_COLOR(CYAN);
         LOG("%d of %d SKIPPED\r\n", skipped_tests, test_suite->test_list_size);
     }
-    if (passed_tests != 0)
+    if (passed_tests != 0U)
     {
         LOG_SET_COLOR(CYAN);
         LOG("%d of %d PASSED\r\n", passed_tests, test_suite->test_list_size);
     }
 
-    if (failed_tests == 0 && passed_tests != 0)
+    if (failed_tests == 0U && passed_tests != 0U)
     {
         LOG_SET_COLOR(GREEN);
         LOG("Test suite %s - PASSED (%d ms)\r\n", test_suite->name, total_elapsed_time);
         test_suite->status = TEST_PASSED;
     }
-    else if (failed_tests == 0 && passed_tests == 0)
+    else if (failed_tests == 0U && passed_tests == 0U)
     {
         LOG_SET_COLOR(BLUE);
         LOG("Test suite %s - SKIPPED\r\n", test_suite->name);

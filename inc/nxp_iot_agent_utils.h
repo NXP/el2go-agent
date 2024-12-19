@@ -119,12 +119,12 @@ iot_agent_status_t iot_agent_utils_write_key_ref_pem_cos_over_rtp(const iot_agen
 /** @brief Converts the service ID to key id.
  *
  * @param[in] service_id  Service ID @
- * param[out] key_id  Key ID
+ * param[out] key_id_ptr  Key ID
  *
  * @retval IOT_AGENT_SUCCESS upon success
  * @retval IOT_AGENT_FAILURE upon failure
  */
-iot_agent_status_t iot_agent_utils_convert_service2key_id(uint64_t service_id, uint32_t *key_id);
+iot_agent_status_t iot_agent_utils_convert_service2key_id(uint64_t service_id, uint32_t *key_id_ptr);
 
 /** @brief Maps a given service id to the range of keys that are managed by the EdgeLock 2GO cloud
  * service.
