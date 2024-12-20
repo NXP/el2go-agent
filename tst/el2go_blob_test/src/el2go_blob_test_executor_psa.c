@@ -192,7 +192,7 @@ static void psa_blob_test_initialize(psa_key_attributes_t attributes,
     psa_status      = psa_import_key(&attributes, blob, blob_size, id);
     if (psa_status == PSA_ERROR_ALREADY_EXISTS) 
     {
-        psa_status = psa_destroy_key(id);
+        psa_status = psa_destroy_key(*id);
         psa_status = psa_import_key(&attributes, blob, blob_size, id);
     }
     if (psa_status != PSA_SUCCESS)
