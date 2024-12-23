@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -1544,6 +1544,19 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
 
     psa_key_id_t peer_id = 0U;
     psa_status           = psa_generate_key(&attributes, &peer_id);
+
+    /* If key already exist, destroy and then regenerate */
+    if (psa_status == PSA_ERROR_ALREADY_EXISTS)
+    {
+        psa_status = psa_destroy_key(peer_id);
+        if (psa_status != PSA_SUCCESS)
+        {
+            TEST_FAIL_PSA("psa_destroy_key");
+            goto cleanup;
+        }
+        psa_status = psa_generate_key(&attributes, &peer_id);
+
+    }
     if (psa_status != PSA_SUCCESS)
     {
         TEST_FAIL_PSA("psa_generate_key");
