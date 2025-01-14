@@ -248,12 +248,12 @@ int network_connect(void* opaque_ctx)
 	return ret;
 
 disconnect:
-	IOT_AGENT_ERROR("Failed to establish SSL connection (Error: -0x%04X, Verify: 0x%X)", -(uint32_t)ret, verify_result);
+	IOT_AGENT_ERROR("Failed to establish SSL connection (Error: 0x%04X, Verify: 0x%X)", (uint32_t)ret, verify_result);
 #ifdef MBEDTLS_ERROR_C
-	if (mbedtls_high_level_strerr(ret)) {
+	if (mbedtls_high_level_strerr(ret) != NULL) {
 		IOT_AGENT_ERROR("High-level error: %s", mbedtls_high_level_strerr(ret));
 	}
-	if (mbedtls_low_level_strerr(ret)) {
+	if (mbedtls_low_level_strerr(ret) != NULL) {
 		IOT_AGENT_ERROR("Low-level error: %s", mbedtls_low_level_strerr(ret));
 	}
 #endif

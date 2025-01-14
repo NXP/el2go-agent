@@ -44,19 +44,19 @@ static uint16_t get_uint16_val(const uint8_t *input)
     return output;
 }
 
-static int get_len(const unsigned char **p, const unsigned char *end, size_t *len)
+static int get_len(const unsigned char **p, const unsigned char *end_ptr, size_t *len)
 {
-    if ((end - *p) < 1)
+    if ((end_ptr - *p) < 1)
         return (PSA_ERROR_INVALID_ARGUMENT);
 
-    if ((**p & 0x80) == 0)
+    if ((**p & 0x80U) == 0U)
         *len = *(*p)++;
     else
     {
-        switch (**p & 0x7F)
+        switch (**p & 0x7FU)
         {
             case 1:
-                if ((end - *p) < 2)
+                if ((end_ptr - *p) < 2)
                     return (PSA_ERROR_INVALID_ARGUMENT);
 
                 *len = (*p)[1];
@@ -64,7 +64,7 @@ static int get_len(const unsigned char **p, const unsigned char *end, size_t *le
                 break;
 
             case 2:
-                if ((end - *p) < 3)
+                if ((end_ptr - *p) < 3)
                     return (PSA_ERROR_INVALID_ARGUMENT);
 
                 *len = ((size_t)(*p)[1] << 8) | (*p)[2];
@@ -72,7 +72,7 @@ static int get_len(const unsigned char **p, const unsigned char *end, size_t *le
                 break;
 
             case 3:
-                if ((end - *p) < 4)
+                if ((end_ptr - *p) < 4)
                     return (PSA_ERROR_INVALID_ARGUMENT);
 
                 *len = ((size_t)(*p)[1] << 16) | ((size_t)(*p)[2] << 8) | (*p)[3];
@@ -80,7 +80,7 @@ static int get_len(const unsigned char **p, const unsigned char *end, size_t *le
                 break;
 
             case 4:
-                if ((end - *p) < 5)
+                if ((end_ptr - *p) < 5)
                     return (PSA_ERROR_INVALID_ARGUMENT);
 
                 *len = ((size_t)(*p)[1] << 24) | ((size_t)(*p)[2] << 16) | ((size_t)(*p)[3] << 8) | (*p)[4];
@@ -91,15 +91,15 @@ static int get_len(const unsigned char **p, const unsigned char *end, size_t *le
                 return (PSA_ERROR_INVALID_ARGUMENT);
         }
     }
-    if (*len > (size_t)(end - *p))
+    if (*len > (size_t)(end_ptr - *p))
         return (PSA_ERROR_INVALID_ARGUMENT);
 
     return (0);
 }
 
-static int get_tag(const unsigned char **p, const unsigned char *end, size_t *len, int tag)
+static int get_tag(const unsigned char **p, const unsigned char *end_ptr, size_t *len, int tag)
 {
-    if ((end - *p) < 1)
+    if ((end_ptr - *p) < 1)
         return (PSA_ERROR_INVALID_ARGUMENT);
 
     if (**p != tag)
@@ -107,7 +107,7 @@ static int get_tag(const unsigned char **p, const unsigned char *end, size_t *le
 
     (*p)++;
 
-    return (get_len(p, end, len));
+    return (get_len(p, end_ptr, len));
 }
 
 static psa_status_t parse_psa_key_attributes(const uint8_t *data, size_t data_size, psa_key_attributes_t *attributes)
@@ -118,9 +118,9 @@ static psa_status_t parse_psa_key_attributes(const uint8_t *data, size_t data_si
     size_t cmd_len = 0U; // the length of the current TLV
 
     const uint8_t *cmd_ptr = NULL;
-    const uint8_t *end     = NULL;
+    const uint8_t *end_ptr     = NULL;
 
-    if (data == NULL || data_size == 0 || attributes == NULL)
+    if (data == NULL || data_size == 0U || attributes == NULL)
     {
         psa_status = PSA_ERROR_INVALID_ARGUMENT;
         goto exit;
@@ -129,12 +129,12 @@ static psa_status_t parse_psa_key_attributes(const uint8_t *data, size_t data_si
     *attributes = psa_key_attributes_init();
 
     cmd_ptr = data;
-    end     = cmd_ptr + data_size;
+    end_ptr     = cmd_ptr + data_size;
 
-    while ((cmd_ptr + 1) < end)
+    while ((cmd_ptr + 1) < end_ptr)
     {
         tag        = *cmd_ptr;
-        psa_status = get_tag(&cmd_ptr, end, &cmd_len, tag);
+        psa_status = get_tag(&cmd_ptr, end_ptr, &cmd_len, tag);
         if (psa_status != PSA_SUCCESS)
         {
             goto exit;
@@ -172,7 +172,7 @@ exit:
 
 void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_result_t *result)
 {
-    if (blob_length == 1)
+    if (blob_length == 1U)
     {
         TEST_SKIP("Placeholder blob");
         return;
@@ -191,18 +191,18 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
     psa_algorithm_t key_algorithm = psa_get_key_algorithm(&attributes);
 
     // PSA_KEY_USAGE_NONE
-    if (key_usage == 0)
+    if (key_usage == 0U)
     {
         psa_blob_export_test(attributes, blob, blob_length, result);
         return;
     }
 
-    if (key_usage & PSA_KEY_USAGE_EXPORT)
+    if ((key_usage & PSA_KEY_USAGE_EXPORT) != 0U)
     {
         psa_blob_export_test(attributes, blob, blob_length, result);
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_EXPORT);
     }
-    if (key_usage & PSA_KEY_USAGE_ENCRYPT && key_usage & PSA_KEY_USAGE_DECRYPT)
+    if (((key_usage & PSA_KEY_USAGE_ENCRYPT) != 0U) && ((key_usage & PSA_KEY_USAGE_DECRYPT) != 0U))
     {
         if (PSA_ALG_IS_AEAD(key_algorithm))
         {
@@ -218,7 +218,7 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
         }
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
     }
-    if (key_usage & PSA_KEY_USAGE_ENCRYPT)
+    if ((key_usage & PSA_KEY_USAGE_ENCRYPT) != 0U)
     {
         if (PSA_ALG_IS_AEAD(key_algorithm))
         {
@@ -234,7 +234,7 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
         }
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_ENCRYPT);
     }
-    if (key_usage & PSA_KEY_USAGE_DECRYPT)
+    if ((key_usage & PSA_KEY_USAGE_DECRYPT) != 0U)
     {
         if (PSA_ALG_IS_AEAD(key_algorithm))
         {
@@ -250,7 +250,7 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
         }
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_DECRYPT);
     }
-    if (key_usage & PSA_KEY_USAGE_SIGN_MESSAGE && key_usage & PSA_KEY_USAGE_VERIFY_MESSAGE)
+    if (((key_usage & PSA_KEY_USAGE_SIGN_MESSAGE) != 0U) && ((key_usage & PSA_KEY_USAGE_VERIFY_MESSAGE) != 0U))
     {
         if (PSA_ALG_IS_MAC(key_algorithm))
         {
@@ -262,7 +262,7 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
         }
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_VERIFY_MESSAGE);
     }
-    if (key_usage & PSA_KEY_USAGE_SIGN_MESSAGE)
+    if ((key_usage & PSA_KEY_USAGE_SIGN_MESSAGE) != 0U)
     {
         if (PSA_ALG_IS_MAC(key_algorithm))
         {
@@ -274,7 +274,7 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
         }
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_SIGN_MESSAGE);
     }
-    if (key_usage & PSA_KEY_USAGE_VERIFY_MESSAGE)
+    if ((key_usage & PSA_KEY_USAGE_VERIFY_MESSAGE) != 0U)
     {
         if (PSA_ALG_IS_MAC(key_algorithm))
         {
@@ -286,22 +286,22 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
         }
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_VERIFY_MESSAGE);
     }
-    if (key_usage & PSA_KEY_USAGE_SIGN_HASH && key_usage & PSA_KEY_USAGE_VERIFY_HASH)
+    if (((key_usage & PSA_KEY_USAGE_SIGN_HASH) != 0U) && ((key_usage & PSA_KEY_USAGE_VERIFY_HASH) != 0U))
     {
         psa_blob_sigverhash_test(attributes, blob, blob_length, result);
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH);
     }
-    if (key_usage & PSA_KEY_USAGE_SIGN_HASH)
+    if ((key_usage & PSA_KEY_USAGE_SIGN_HASH) != 0U)
     {
         psa_blob_sighash_test(attributes, blob, blob_length, result);
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_SIGN_HASH);
     }
-    if (key_usage & PSA_KEY_USAGE_VERIFY_HASH)
+    if ((key_usage & PSA_KEY_USAGE_VERIFY_HASH) != 0U)
     {
         psa_blob_verhash_test(attributes, blob, blob_length, result);
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_VERIFY_HASH);
     }
-    if (key_usage & PSA_KEY_USAGE_DERIVE)
+    if ((key_usage & PSA_KEY_USAGE_DERIVE) != 0U)
     {
         if (PSA_ALG_IS_KEY_AGREEMENT(key_algorithm))
         {
@@ -314,7 +314,7 @@ void parse_and_run_test(const uint8_t *blob, size_t blob_length, struct test_res
         RETURN_OR_CLEAR_FLAG(PSA_KEY_USAGE_DERIVE);
     }
 
-    if (key_usage != 0)
+    if (key_usage != 0U)
     {
         TEST_SKIP("Blob contains unknown key usage");
         return;

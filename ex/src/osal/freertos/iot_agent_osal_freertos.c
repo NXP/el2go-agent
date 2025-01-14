@@ -10,6 +10,7 @@
 #endif /* INC_FREERTOS_H */
 #include "task.h"
 #include "iot_agent_osal.h"
+#include "iot_agent_osal_freertos.h"
 #include "iot_agent_network.h"
 #include "nxp_iot_agent_common.h"
 #include "nxp_iot_agent_log.h"
@@ -41,6 +42,7 @@
 #ifdef NXP_IOT_AGENT_ENABLE_LITE
 extern void config_mbedtls_threading_alt(void);
 #else
+#include "os_wrapper/common.h"
 extern uint32_t tfm_ns_interface_init(void);
 #endif
 #endif
@@ -53,7 +55,7 @@ typedef struct agent_start_task_ags
 	const char **v;
 } agent_start_task_args_t;
 
-agent_start_task_args_t agent_start_args;
+static agent_start_task_args_t agent_start_args;
 
 void iot_agent_freertos_bm(void)
 {
@@ -109,14 +111,15 @@ static void agent_start_task_in_loop(void *args) {
 #ifdef NXP_IOT_AGENT_ENABLE_LITE
 	config_mbedtls_threading_alt();
 #else
-	tfm_ns_interface_init();
+	uint32_t ret = tfm_ns_interface_init();
+	ASSERT_OR_EXIT_MSG(ret == OS_WRAPPER_SUCCESS, "TF-M interface initialization failed");	
 #endif
 #endif
 
 	agent_status = network_init();
 	AGENT_SUCCESS_OR_EXIT_MSG("Network initialization failed");
 
-	const TickType_t xDelay = 2 * 1000 / portTICK_PERIOD_MS;
+	const TickType_t xDelay = 2U * 1000U / portTICK_PERIOD_MS;
 
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
 	iot_agent_time_conclude_measurement(&iot_agent_demo_boot_time);
@@ -171,5 +174,5 @@ iot_agent_status_t iot_agent_osal_start_task(agent_start_task_t agent_start_task
 	/* Run RTOS */
 	vTaskStartScheduler();
 
-	return 1;
+	return IOT_AGENT_FAILURE;
 }

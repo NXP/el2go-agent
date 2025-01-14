@@ -587,8 +587,6 @@ iot_agent_status_t iot_agent_update_device_configuration_from_constants(
 	  
 	service_descriptor.has_client_certificate_sss_ref = true;
 	service_descriptor.client_certificate_sss_ref.has_type = true;
-	ASSERT_OR_EXIT_MSG(keystore->type <= _nxp_iot_EndpointType_MAX, "Error in keystore type");
-	service_descriptor.client_certificate_sss_ref.type = (nxp_iot_EndpointType)keystore->type;
 	service_descriptor.client_certificate_sss_ref.has_endpoint_id = true;
 	service_descriptor.client_certificate_sss_ref.endpoint_id = EDGELOCK2GO_KEYSTORE_ID;
 	service_descriptor.client_certificate_sss_ref.type = nxp_iot_EndpointType_KS_SSS_SE05X;

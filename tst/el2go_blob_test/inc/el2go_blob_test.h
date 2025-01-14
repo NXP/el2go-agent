@@ -33,7 +33,7 @@ enum serial_color_t
     CYAN    = 36
 };
 
-#define LOG_SET_COLOR(color) LOG("\33[%dm", color)
+#define LOG_SET_COLOR(color) LOG("\33" "[%dm", color)
 
 enum indentation_t
 {

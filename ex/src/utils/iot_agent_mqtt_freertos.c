@@ -66,7 +66,7 @@ static iot_agent_status_t pubSubCosOverRtp(iot_agent_context_t* iot_agent_contex
 
 typedef enum { NOT_ASSIGNED, ASSIGNING, ASSIGNED } registration_state;
 
-#define mqttexampleCONNACK_RECV_TIMEOUT_MS      	1000U
+#define mqttexampleCONNACK_RECV_TIMEOUT_MS      	2500U
 #define mqttexampleTRANSPORT_SEND_RECV_TIMEOUT_MS   200U
 #define mqttexampleKEEP_ALIVE_TIMEOUT_SECONDS      	60U
 #define mqttexampleKEEP_ALIVE_ACTUAL_INTERVAL_MS   	10000U

@@ -265,7 +265,7 @@ static int net_would_block( const mbedtls_net_context *ctx )
  */
 int mbedtls_net_accept( mbedtls_net_context *bind_ctx,
                         mbedtls_net_context *client_ctx,
-                        void *client_ip, size_t buf_size, size_t *ip_len )
+                        void *client_ip, size_t buf_size, size_t *cip_len )
 {
     int ret;
     int type;
@@ -348,12 +348,12 @@ int mbedtls_net_accept( mbedtls_net_context *bind_ctx,
     if( client_ip != NULL )
     {
             struct sockaddr_in *addr4 = (struct sockaddr_in *) &client_addr;
-            *ip_len = sizeof( addr4->sin_addr.s_addr );
+            *cip_len = sizeof( addr4->sin_addr.s_addr );
 
-            if( buf_size < *ip_len )
+            if( buf_size < *cip_len )
                 return( MBEDTLS_ERR_NET_BUFFER_TOO_SMALL );
 
-            memcpy( client_ip, &addr4->sin_addr.s_addr, *ip_len );
+            memcpy( client_ip, &addr4->sin_addr.s_addr, *cip_len );
     }
 
     return( 0 );
@@ -458,13 +458,15 @@ int mbedtls_net_recv_timeout( void *ctx, unsigned char *buf, size_t len,
 
     /* Zero fds ready means we timed out */
     if( ret == 0 )
+	{
         return( MBEDTLS_ERR_SSL_TIMEOUT );
-
+	}
     if( ret < 0 )
     {
         if( errno == EINTR )
+		{
             return( MBEDTLS_ERR_SSL_WANT_READ );
-
+		}
         return( MBEDTLS_ERR_NET_RECV_FAILED );
     }
 

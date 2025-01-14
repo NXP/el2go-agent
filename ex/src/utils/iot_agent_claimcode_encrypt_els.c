@@ -33,10 +33,11 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define UID_FUSE_IDX   46U
-#define UID_SIZE       16U
-#define IV_SIZE        16U
-#define AES_BLOCK_SIZE 16U
+#define UID_FUSE_IDX                46U
+#define UID_SIZE                    16U
+#define IV_SIZE                     16U
+#define AES_BLOCK_SIZE              16U
+#define PADDED_CLAIM_CODE_MAX_SIZE  112U
 
 /*******************************************************************************
  * Prototypes
@@ -105,21 +106,21 @@ static const char nibble_to_char[16] = {
 
 static void printf_buffer(const char *name, const unsigned char *buffer, size_t size)
 {
-#define PP_BYTES_PER_LINE (32)
-    char line_buffer[PP_BYTES_PER_LINE * 2 + 2];
+#define PP_BYTES_PER_LINE (32U)
+    char line_buffer[PP_BYTES_PER_LINE * 2U + 2U];
     const unsigned char *pos = buffer;
     size_t remaining         = size;
-    while (remaining > 0)
+    while (remaining > 0U)
     {
         size_t block_size = remaining > PP_BYTES_PER_LINE ? PP_BYTES_PER_LINE : remaining;
-        uint32_t len      = 0;
-        for (size_t i = 0; i < block_size; i++)
+        uint32_t len      = 0U;
+        for (size_t i = 0U; i < block_size; i++)
         {
-            line_buffer[len++] = nibble_to_char[((*pos) & 0xf0) >> 4];
-            line_buffer[len++] = nibble_to_char[(*pos++) & 0x0f];
+            line_buffer[len++] = nibble_to_char[((*pos) & 0xf0U) >> 4U];
+            line_buffer[len++] = nibble_to_char[(*pos++) & 0x0fU];
         }
         line_buffer[len++] = '\n';
-        line_buffer[len++] = '\0';
+        line_buffer[len] = '\0';
         LOG("%s (0x%p): %s", name, pos, line_buffer);
         remaining -= block_size;
     }
@@ -127,7 +128,7 @@ static void printf_buffer(const char *name, const unsigned char *buffer, size_t 
 
 static size_t ceil_to_aes_blocksize(size_t size)
 {
-    return ((size + (AES_BLOCK_SIZE - 1)) & (~(AES_BLOCK_SIZE - 1)));
+    return ((size + (AES_BLOCK_SIZE - 1U)) & (~(AES_BLOCK_SIZE - 1U)));
 }
 
 static iot_agent_status_t read_uid(uint8_t *uid)
@@ -136,7 +137,10 @@ static iot_agent_status_t read_uid(uint8_t *uid)
 #ifdef __ZEPHYR__
     hwinfo_get_device_id(uid, uid_len);
 #else
-    SILICONID_GetID(uid, &uid_len);
+    if (SILICONID_GetID(uid, &uid_len) != kStatus_Success)
+    {
+        return IOT_AGENT_FAILURE;
+    }
 #endif
     return IOT_AGENT_SUCCESS;
 }
@@ -145,20 +149,20 @@ static bool is_active_keyslot(mcuxClEls_KeyIndex_t keyIdx)
 {
     mcuxClEls_KeyProp_t key_properties;
     key_properties.word.value = ((const volatile uint32_t *)(&ELS->ELS_KS0))[keyIdx];
-    return key_properties.bits.kactv;
+    return (key_properties.bits.kactv == MCUXCLCSS_KEYPROPERTY_ACTIVE_TRUE);
 }
 
 static inline uint32_t get_required_keyslots(mcuxClEls_KeyProp_t prop)
 {
-    return prop.bits.ksize == MCUXCLELS_KEYPROPERTY_KEY_SIZE_128 ? 1 : 2;
+    return prop.bits.ksize == MCUXCLELS_KEYPROPERTY_KEY_SIZE_128 ? 1U : 2U;
 }
 
 static mcuxClEls_KeyIndex_t get_free_keyslot(uint32_t required_keyslots)
 {
-    for (mcuxClEls_KeyIndex_t keyIdx = 0; keyIdx <= (MCUXCLELS_KEY_SLOTS - required_keyslots); keyIdx++)
+    for (mcuxClEls_KeyIndex_t keyIdx = 0U; keyIdx <= (MCUXCLELS_KEY_SLOTS - required_keyslots); keyIdx++)
     {
         bool is_valid_keyslot = true;
-        for (uint32_t i = 0; i < required_keyslots; i++)
+        for (uint32_t i = 0U; i < required_keyslots; i++)
         {
             if (is_active_keyslot(keyIdx + i))
             {
@@ -179,7 +183,7 @@ static iot_agent_status_t generate_keypair(mcuxClEls_KeyIndex_t *dst_key_index,
                                            uint8_t *public_key,
                                            size_t *public_key_size)
 {
-    if (*public_key_size < 64)
+    if (*public_key_size < 64U)
     {
         PLOG_ERROR("insufficient space for public key");
         return IOT_AGENT_FAILURE;
@@ -221,12 +225,12 @@ static iot_agent_status_t generate_keypair(mcuxClEls_KeyIndex_t *dst_key_index,
 }
 
 static iot_agent_status_t perform_key_agreement(mcuxClEls_KeyIndex_t keypair_index,
-                                                mcuxClEls_KeyProp_t shared_secret_prop,
+                                                mcuxClEls_KeyProp_t shared_secret_properties,
                                                 mcuxClEls_KeyIndex_t *dst_key_index,
                                                 const uint8_t *public_key,
                                                 size_t public_key_size)
 {
-    uint32_t shared_secret_required_keyslots = get_required_keyslots(shared_secret_prop);
+    uint32_t shared_secret_required_keyslots = get_required_keyslots(shared_secret_properties);
     *dst_key_index                           = get_free_keyslot(shared_secret_required_keyslots);
 
     if (!(*dst_key_index < MCUXCLELS_KEY_SLOTS))
@@ -236,7 +240,7 @@ static iot_agent_status_t perform_key_agreement(mcuxClEls_KeyIndex_t keypair_ind
     }
 
     MCUX_CSSL_FP_FUNCTION_CALL_BEGIN(
-        result, token, mcuxClEls_EccKeyExchange_Async(keypair_index, public_key, *dst_key_index, shared_secret_prop));
+        result, token, mcuxClEls_EccKeyExchange_Async(keypair_index, public_key, *dst_key_index, shared_secret_properties));
 
     if ((MCUX_CSSL_FP_FUNCTION_CALLED(mcuxClEls_EccKeyExchange_Async) != token) || (MCUXCLELS_STATUS_OK_WAIT != result))
     {
@@ -339,9 +343,9 @@ static iot_agent_status_t encrypt_claimcode(mcuxClEls_KeyIndex_t shared_secret_i
                                             const uint8_t *iv,
                                             uint8_t *encrypted_claimcode)
 {
-    uint8_t padded_plain_claimcode[0x70] = {0U}; // Max claimcode length is 100 characters.
+    uint8_t padded_plain_claimcode[PADDED_CLAIM_CODE_MAX_SIZE] = {0U}; // Max claimcode length is 100 characters.
     size_t plain_claimcode_len           = strlen(plain_claimcode);
-    size_t encrypted_claimcode_len       = ceil_to_aes_blocksize(plain_claimcode_len + 1);
+    size_t encrypted_claimcode_len       = ceil_to_aes_blocksize(plain_claimcode_len + 1U);
     mcuxClEls_KeyIndex_t enc_key_index   = 0U;
     iot_agent_status_t agent_status =
         derive_key(shared_secret_index, enc_key_prop, ckdf_derivation_data_enc, &enc_key_index);
@@ -356,8 +360,13 @@ static iot_agent_status_t encrypt_claimcode(mcuxClEls_KeyIndex_t shared_secret_i
     cipher_options.bits.dcrpt               = MCUXCLELS_CIPHER_ENCRYPT;
     cipher_options.bits.extkey              = MCUXCLELS_CIPHER_INTERNAL_KEY;
 
+    if (plain_claimcode_len > PADDED_CLAIM_CODE_MAX_SIZE)
+    {
+        PLOG_ERROR("Error in plain claim code size");
+        return IOT_AGENT_FAILURE;
+    }
     memcpy(padded_plain_claimcode, plain_claimcode, plain_claimcode_len);
-    padded_plain_claimcode[plain_claimcode_len] = 0x80;
+    padded_plain_claimcode[plain_claimcode_len] = 0x80U;
 
     // The ELS will not write to the location of the IV with the given ciper options, therefore it is safe to cast away
     // the const here.
@@ -396,13 +405,13 @@ static iot_agent_status_t cmac_claimcode(mcuxClEls_KeyIndex_t shared_secret_inde
                                          uint32_t claimcode_blob_length_before_mac)
 {
     uint8_t *pos                         = &claimcode_blob[claimcode_blob_length_before_mac];
-    uint8_t mac[AES_BLOCK_SIZE]          = {0};
+    uint8_t mac[AES_BLOCK_SIZE]          = {0U};
     uint32_t missing_bytes_to_fill_block = AES_BLOCK_SIZE - (claimcode_blob_length_before_mac % AES_BLOCK_SIZE);
     // ELS needs us to pad the message, it does not do that itself :-(
-    if (missing_bytes_to_fill_block != 0)
+    if (missing_bytes_to_fill_block != 0U)
     {
         memset(pos, 0, missing_bytes_to_fill_block);
-        *pos = 0x80;
+        *pos = 0x80U;
     }
 
     mcuxClEls_KeyIndex_t mac_key_index = 13U;
@@ -449,26 +458,26 @@ static iot_agent_status_t cmac_claimcode(mcuxClEls_KeyIndex_t shared_secret_inde
     return IOT_AGENT_SUCCESS;
 }
 
-iot_agent_status_t iot_agent_claimcode_encrypt(const char *plain_claimcode,
+iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
                                                const uint8_t *el2go_public_key,
                                                size_t el2go_public_key_size,
                                                uint8_t *claimcode_blob,
                                                size_t *claimcode_blob_size)
 {
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-    size_t plain_claimcode_len      = strlen(plain_claimcode);
+    size_t plain_claimcode_len      = strlen(claimcode);
     size_t encrypted_claimcode_len =
-        ceil_to_aes_blocksize(plain_claimcode_len + 1 /* padding adds at least one byte */);
+        ceil_to_aes_blocksize(plain_claimcode_len + 1U /* padding adds at least one byte */);
 
     // clang-format off
-    size_t claimcode_blob_len = 0
-        + 2 + UID_SIZE 
-        + 2 + 65               // public key
-        + 2 + sizeof(uint32_t) // key properties
-        + 2 + sizeof(uint32_t) // key properties
-        + 2 + IV_SIZE          // IV
-        + 2 + encrypted_claimcode_len
-        + 2 + AES_BLOCK_SIZE;              // CMAC
+    size_t claimcode_blob_len = 0U
+        + 2U + UID_SIZE 
+        + 2U + 65U               // public key
+        + 2U + sizeof(uint32_t) // key properties
+        + 2U + sizeof(uint32_t) // key properties
+        + 2U + IV_SIZE          // IV
+        + 2U + encrypted_claimcode_len
+        + 2U + AES_BLOCK_SIZE;              // CMAC
     // clang-format on
 
     if (*claimcode_blob_size < claimcode_blob_len)
@@ -531,7 +540,7 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *plain_claimcode,
     PLOG_INFO("Creating claimcode blob... ");
     uint8_t *pos = claimcode_blob;
 
-    *pos++       = 0x41;
+    *pos++       = 0x41U;
     *pos++       = UID_SIZE;
     agent_status = read_uid(pos);
     if (IOT_AGENT_SUCCESS != agent_status)
@@ -542,27 +551,27 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *plain_claimcode,
     }
     pos += UID_SIZE;
 
-    *pos++ = 0x42;
-    *pos++ = sizeof(public_key) + 1;
-    *pos++ = 0x04; // Indicating uncompressed point format (this is what PSA uses as well).
+    *pos++ = 0x42U;
+    *pos++ = sizeof(public_key) + 1U;
+    *pos++ = 0x04U; // Indicating uncompressed point format (this is what PSA uses as well).
     memcpy(pos, public_key, sizeof(public_key));
     pos += sizeof(public_key);
 
-    *pos++ = 0x43;
-    *pos++ = 4;
-    *pos++ = (enc_key_prop.word.value >> 24) & 0xFF;
-    *pos++ = (enc_key_prop.word.value >> 16) & 0xFF;
-    *pos++ = (enc_key_prop.word.value >> 8) & 0xFF;
-    *pos++ = (enc_key_prop.word.value) & 0xFF;
+    *pos++ = 0x43U;
+    *pos++ = 4U;
+    *pos++ = (enc_key_prop.word.value >> 24U) & 0xFFU;
+    *pos++ = (enc_key_prop.word.value >> 16U) & 0xFFU;
+    *pos++ = (enc_key_prop.word.value >> 8U) & 0xFFU;
+    *pos++ = (enc_key_prop.word.value) & 0xFFU;
 
-    *pos++ = 0x44;
-    *pos++ = 4;
-    *pos++ = (mac_key_prop.word.value >> 24) & 0xFF;
-    *pos++ = (mac_key_prop.word.value >> 16) & 0xFF;
-    *pos++ = (mac_key_prop.word.value >> 8) & 0xFF;
-    *pos++ = (mac_key_prop.word.value) & 0xFF;
+    *pos++ = 0x44U;
+    *pos++ = 4U;
+    *pos++ = (mac_key_prop.word.value >> 24U) & 0xFFU;
+    *pos++ = (mac_key_prop.word.value >> 16U) & 0xFFU;
+    *pos++ = (mac_key_prop.word.value >> 8U) & 0xFFU;
+    *pos++ = (mac_key_prop.word.value) & 0xFFU;
 
-    *pos++       = 0x45;
+    *pos++       = 0x45U;
     *pos++       = IV_SIZE;
     uint8_t *iv  = pos; // The IV is filled during encryption
     agent_status = generate_iv(iv);
@@ -574,20 +583,37 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *plain_claimcode,
     }
     pos += IV_SIZE;
 
-    *pos++                       = 0x46;
+    *pos++                       = 0x46U;
+
+    if (encrypted_claimcode_len > UINT8_MAX)
+    {
+        PLOG_ERROR("Issue in claim code length\n");
+        delete_key(shared_secret_index);
+        return IOT_AGENT_FAILURE;
+    }
+
     *pos++                       = encrypted_claimcode_len;
     uint8_t *encrypted_claimcode = pos;
-    agent_status                 = encrypt_claimcode(shared_secret_index, plain_claimcode, iv, encrypted_claimcode);
+    agent_status                 = encrypt_claimcode(shared_secret_index, claimcode, iv, encrypted_claimcode);
     if (IOT_AGENT_SUCCESS != agent_status)
     {
         PLOG_ERROR("encrypt_claimcode failed: 0x%08x\n", agent_status);
         delete_key(shared_secret_index);
         return IOT_AGENT_FAILURE;
     }
+
     pos += encrypted_claimcode_len;
 
-    *pos++                                  = 0x5e;
+    *pos++                                  = 0x5eU;
     *pos++                                  = AES_BLOCK_SIZE;
+
+    if ((pos - claimcode_blob) < 0)
+    {
+        PLOG_ERROR("Issue in claim code length\n");
+        delete_key(shared_secret_index);
+        return IOT_AGENT_FAILURE;
+    }
+
     size_t claimcode_blob_length_before_mac = pos - claimcode_blob;
     agent_status = cmac_claimcode(shared_secret_index, claimcode_blob, claimcode_blob_length_before_mac);
     if (IOT_AGENT_SUCCESS != agent_status)
@@ -597,6 +623,13 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *plain_claimcode,
         return IOT_AGENT_FAILURE;
     }
     pos += AES_BLOCK_SIZE;
+
+    if ((pos - claimcode_blob) < 0)
+    {
+        PLOG_ERROR("Issue in claim code length\n");
+        delete_key(shared_secret_index);
+        return IOT_AGENT_FAILURE;
+    }
 
     *claimcode_blob_size = pos - claimcode_blob;
 
