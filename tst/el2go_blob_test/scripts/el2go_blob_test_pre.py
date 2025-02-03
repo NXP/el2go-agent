@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2024 NXP
+# Copyright 2024-2025 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 import argparse
@@ -166,6 +166,18 @@ def get_algorithm(algorithm):
         return "PKCS1V15"
     elif(algorithm == 0x09020000):
         return "ECDH"
+    elif(algorithm == 0x84C0FF00):
+        return "ALL_CIPHER"
+    elif(algorithm == 0x8550FF00):
+        return "ALL_AEAD"
+    elif(algorithm == 0x8902FC00):
+        return "S200_ECDH_OR_ECDH_CKDF"
+    elif(algorithm == 0x8800FD00):
+        return "S200_ECBKDF_OR_CKDF"
+    elif(algorithm == 0x8800FF00):
+        return "ALG_S50_CKDF"        
+    elif(algorithm == 0x8800FE09):
+        return "ALG_S50_HKDF_SHA_256"         
     else:
         hash_string = get_hash(0x02000000 | (algorithm & 0x000000ff))
         algorithm = algorithm & ~0x000000ff
