@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -26,6 +26,9 @@ extern "C" {
 #define PSA_KEY_LOCATION_S50_ENC_STORAGE_KEY  0xE00101U
 #define PSA_KEY_LOCATION_S50_BLOB_STORAGE     0xE00001U
 
+#define ALG_VENDOR_NXP_ALL_CIPHER             0x84C0FF00U
+#define ALG_VENDOR_NXP_ALL_AEAD               0x8550FF00U
+      
 /**
  * \brief Run cipher tests with different blobs
  *
