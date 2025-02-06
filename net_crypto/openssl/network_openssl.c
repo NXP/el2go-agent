@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021,2024 NXP
+ * Copyright 2018-2021,2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -13,10 +13,15 @@
 #include <openssl/engine.h>
 #include <openssl/crypto.h>
 #include <openssl/conf.h>
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+#include <openssl/provider.h>
+#include <openssl/core_names.h>
+#endif //if (OPENSSL_VERSION_NUMBER >= 0x30000000)
 
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_common.h>
 #include <nxp_iot_agent_macros.h>
+#include <nxp_iot_agent_session.h>
 
 #ifndef NETWORK_malloc
 #define NETWORK_malloc malloc
@@ -156,8 +161,9 @@ void print_openssl_errors(char* function)
 
 
 int network_openssl_init(openssl_network_context_t* network_ctx) {
-	AX_UNUSED_ARG(network_ctx);
 	int network_status = NETWORK_STATUS_OK;
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
+	AX_UNUSED_ARG(network_ctx);
 	int openssl_status;
 
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
@@ -168,9 +174,9 @@ int network_openssl_init(openssl_network_context_t* network_ctx) {
 	ERR_load_BIO_strings();
 	ERR_load_crypto_strings();
 	SSL_load_error_strings();
-#else	
+#else //if (OPENSSL_VERSION_NUMBER < 0x10100000L)	
 	OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, NULL);
-#endif
+#endif //if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 
 	ENGINE *e = ENGINE_by_id(NETWORK_OPENSSL_ENGINE_ID);
 	NETWORK_ASSERT_OR_EXIT_MSG(e != NULL, "Error finding OpenSSL Engine by id (id = %s)\n", NETWORK_OPENSSL_ENGINE_ID);
@@ -178,43 +184,85 @@ int network_openssl_init(openssl_network_context_t* network_ctx) {
 	IOT_AGENT_INFO("Setting log level OpenSSL-engine %s to 0x%02X.\n", NETWORK_OPENSSL_ENGINE_ID, NXP_IOT_AGENT_OPENSSL_ENGINE_LOG_LEVEL);
 	openssl_status = ENGINE_ctrl(e, ENGINE_CMD_BASE, NXP_IOT_AGENT_OPENSSL_ENGINE_LOG_LEVEL, NULL, NULL);
 	NETWORK_ASSERT_OR_EXIT_MSG(openssl_status == 1, "Using ENGINE_ctrl for setting log level failed: %d", openssl_status);
+#else //if (OPENSSL_VERSION_NUMBER < 0x30000000)
+	// In OpenSSL 3.x version of library the concept of using builtin providers was introduced. This allows quite some useful
+	// features respect to the providers loaded via configuration file when using custom built providers as is the sssProvider:
+	// - possibility to load/unload the provider during runtime
+	// - possibility to retrieve the provider internal context => especially this feature is useful since allows the application
+	//   to get the boot context of the sssProvider and control opening/closing of SE05x sessions
+	// - possibility to get/set specific provider parameters
 
+	// The first parameter set to NULL means that the default OpenSSL context will be used
+	NETWORK_ASSERT_OR_EXIT_MSG(OSSL_PROVIDER_add_builtin(NULL, "nxp_prov", sssProvider_init) == 1, "Error adding builtin provider");
+
+	network_ctx->sss_provider = OSSL_PROVIDER_load(NULL, "nxp_prov");
+	NETWORK_ASSERT_OR_EXIT_MSG(network_ctx->sss_provider != NULL, "Error in loading the sssProvider provider");
+
+	// The internal provider context will be useful for controlling the sessions from sssProvider to SE05x
+	network_ctx->sss_provider_ctx = OSSL_PROVIDER_get0_provider_ctx(network_ctx->sss_provider);
+	NETWORK_ASSERT_OR_EXIT_MSG(network_ctx->sss_provider_ctx != NULL, "Error in getting the sssProvider provider context");
+
+	// After loading the sssProvider is mandatory to reload the default one which will act as fallback for crypto functionalities
+	// not supported by the sssProvider
+	NETWORK_ASSERT_OR_EXIT_MSG(OSSL_PROVIDER_load(NULL, "default") != NULL, "Error in loading the sefault provider");
+
+	// The following property will instruct the default Open SSL context to preferably use the sssProvider cryptographic functionalities
+	// if they are present
+	NETWORK_ASSERT_OR_EXIT_MSG(EVP_set_default_properties(NULL, "?provider=nxp_prov") == 1,
+		"Error in setting default properties");
+
+#endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
 exit:
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	ENGINE_free(e);
+#endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	return network_status;
 }
 
 int network_openssl_engine_session_connect(openssl_network_context_t* network_ctx) {
 
-    AX_UNUSED_ARG(network_ctx);
 	int network_status = NETWORK_STATUS_OK;
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
+    AX_UNUSED_ARG(network_ctx);
 	ENGINE *e = ENGINE_by_id(NETWORK_OPENSSL_ENGINE_ID);
 	NETWORK_ASSERT_OR_EXIT_MSG(e != NULL, "Error finding OpenSSL Engine by id (id = %s)\n", NETWORK_OPENSSL_ENGINE_ID);
 
 	// NOTE: Open engine connection to SE via Engine control interface
 	IOT_AGENT_INFO("Open connection to secure element through Engine control interface (Engine=%s).\n", NETWORK_OPENSSL_ENGINE_ID);
 	ENGINE_ctrl(e, ENGINE_CMD_BASE + 1, 0, NULL, NULL);
-
+#else
+	NETWORK_ASSERT_OR_EXIT_MSG(iot_agent_session_connect(network_ctx->sss_provider_ctx->p_ex_sss_boot_ctx) == IOT_AGENT_SUCCESS,
+		"Error in opening session");
+	if (ex_sss_boot_open_host_session(network_ctx->sss_provider_ctx->p_ex_sss_boot_ctx) != kStatus_SSS_Success) {
+		IOT_AGENT_TRACE("ex_sss_boot_open_host_session return a failure: this can occur when the host session was open \
+in the ex_sss_boot_open which is needed for SCP03 Authentication");
+	}
+#endif
 exit:
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	ENGINE_free(e);
+#endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	return network_status;
 }
 
 
 int network_openssl_engine_session_disconnect(openssl_network_context_t* network_ctx) {
 	int network_status = NETWORK_STATUS_OK;
-
-	if (network_ctx == NULL)
-		return NETWORK_STATUS_OK;
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
+	AX_UNUSED_ARG(network_ctx);
 
 	ENGINE *e = ENGINE_by_id(NETWORK_OPENSSL_ENGINE_ID);
 	NETWORK_ASSERT_OR_EXIT_MSG(e != NULL, "Error finding OpenSSL Engine by id (id = %s)\n", NETWORK_OPENSSL_ENGINE_ID);
 
 	IOT_AGENT_INFO("Close connection to secure element through Engine control interface (Engine=%s).\n", NETWORK_OPENSSL_ENGINE_ID);
 	ENGINE_ctrl(e, ENGINE_CMD_BASE + 2, 0, NULL, NULL);
-	
+#else
+	iot_agent_session_disconnect(network_ctx->sss_provider_ctx->p_ex_sss_boot_ctx);
+#endif
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
 exit:
 	ENGINE_free(e);
+#endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	return network_status;
 }
 
@@ -242,13 +290,43 @@ void network_free(void* ctx)
 
 int network_configure(void* context, void* opaque_network_config)
 {
+	int network_status = NETWORK_STATUS_OK;
 	const SSL_METHOD *method = NULL;
 	SSL_CTX *ctx = NULL;
-
+	EVP_PKEY* pkey = NULL;
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+	EVP_PKEY_CTX* key_ctx = NULL;
+	OSSL_PARAM* rsa_param = NULL;
+#endif //if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+	NETWORK_ASSERT_OR_EXIT_MSG(context != NULL, "Network context is NULL");
+	NETWORK_ASSERT_OR_EXIT_MSG(opaque_network_config != NULL, "Opaque netwrok config is NULL");
 	openssl_network_context_t* network_context = (openssl_network_context_t*) context;
 	openssl_network_config_t* network_config = (openssl_network_config_t*)opaque_network_config;
 	network_context->network_config = *network_config;
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
+	pkey = network_config->private_key;
+#else
+	// OpenSSL 3.x is opening a session with SE05x from sssProvider as soon as the provider init
+	// function is called. If between provider initialization and usage for signature calculation
+	// SE05x will be used from the EL2GO Agent (for reading keys), the TLS hanshake will fail when
+	// trying to compute the signature since will not be able to initialize SE05x. For this reason
+	// all the provider initialization + EVP_PKEY creation is executed just before executing TLS
+	// connection
+	rsa_param = OSSL_PARAM_locate(network_config->private_key, OSSL_PKEY_PARAM_RSA_N);
+	if (rsa_param == NULL) {
+		key_ctx = EVP_PKEY_CTX_new_from_name(NULL, "EC", "provider=nxp_prov");
+	} 
+	else {
+		key_ctx = EVP_PKEY_CTX_new_from_name(NULL, "RSA", "provider=nxp_prov");
+	}
+	NETWORK_ASSERT_OR_EXIT_MSG(key_ctx != NULL, "Error getting context");
 
+	NETWORK_ASSERT_OR_EXIT_MSG(EVP_PKEY_fromdata_init(key_ctx) == 1, "Error initializing key");
+	pkey = EVP_PKEY_new();
+	NETWORK_ASSERT_OR_EXIT_MSG(pkey != NULL, "private_key is NULL.");
+	NETWORK_ASSERT_OR_EXIT_MSG(EVP_PKEY_fromdata(key_ctx, &pkey, EVP_PKEY_KEYPAIR, network_config->private_key) == 1,
+		"Error getting  key from data");
+#endif //if (OPENSSL_VERSION_NUMBER >= 0x30000000)
 	if (SSL_library_init() < (int)0)
 	{
 		print_openssl_errors("SSL_library_init");
@@ -267,13 +345,13 @@ int network_configure(void* context, void* opaque_network_config)
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 	// Disabling SSLv2 will leave v3 and TSLv1 for negotiation
 	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2);
-#else
+#else //if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 	// As of OpenSSL 1.1.0, setting protocol versions using set_options is 
 	// deprecated, use SSL_CTX_set_min_proto_version() and 
 	// SSL_CTX_set_max_proto_version() instead.
 	SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
 	SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
-#endif
+#endif //if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 
 	if (SSL_CTX_use_certificate(ctx, network_config->certificate) != 1)
 	{
@@ -282,7 +360,7 @@ int network_configure(void* context, void* opaque_network_config)
 		return IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
 	}
 
-	if (SSL_CTX_use_PrivateKey(ctx, network_config->private_key) != 1)
+	if (SSL_CTX_use_PrivateKey(ctx, pkey) != 1)
 	{
 		print_openssl_errors("SSL_CTX_use_PrivateKey");
 		SSL_CTX_free(ctx);
@@ -299,10 +377,15 @@ int network_configure(void* context, void* opaque_network_config)
 	// Create new SSL connection state object
 	network_context->ssl = SSL_new(ctx);
 
+exit:
 	// The ctx is not needed any more
 	SSL_CTX_free(ctx);
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+	EVP_PKEY_CTX_free(key_ctx);
+	EVP_PKEY_free(pkey);
+#endif //if (OPENSSL_VERSION_NUMBER >= 0x30000000)
 
-	return IOT_AGENT_SUCCESS;
+	return network_status;
 }
 
 

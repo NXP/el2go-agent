@@ -262,6 +262,19 @@ IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
     ${OPENSSL_LIBRARIES}
     )
 
+    IF(SSS_HAVE_OPENSSL_3_0)
+        TARGET_LINK_LIBRARIES(
+            ${PROJECT_NAME}
+            sssProvider
+        )
+        
+
+        TARGET_INCLUDE_DIRECTORIES(
+            nxp_iot_agent
+            PUBLIC ${SIMW_TOP_DIR}/sss/plugin/openssl_provider/provider
+        )
+    ENDIF()
+
     IF(SSS_HAVE_HOST_PCWINDOWS)
     TARGET_LINK_LIBRARIES(
         nxp_iot_agent

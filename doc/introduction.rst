@@ -1,5 +1,5 @@
 ..
-    Copyright 2020, 2021, 2024 NXP
+    Copyright 2020, 2021, 2024-2025 NXP
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -59,6 +59,25 @@ to the EdgeLock 2GO cloud service by calling the EdgeLock 2GO agent API. See
 :ref:`el2go_usage_examples` for an example. During the connection to the EdgeLock 2GO cloud
 service, the device will get provisioned with the credentials that you have configured. 
 For more details, please refer to the EdgeLock 2GO documentation (AN12691).
+
+OpenSSL engine/provider configuration
+--------------------------------------------------
+
+When using OpenSSL as library an abstraction of the OpenSSL cyptographic APIs to the Se05x secure element is required:
+an example is the signature calculation used for authentication to the EdgeLock 2GO server done via a private key
+preprovisioned in the Secure Element. To achieve the abstraction the following SSS libraries are used:
+- OpenSSL 1.1.1: sss_engine
+- OpenSS: 3.x: sssProvider
+
+For OpenSSL 1.1.1 version the sss_engine is used for accessing Se05x functionality:
+- Build the sss_engine library together with the el2go_agent application
+- Add the path to the built library (libsss_engine.so) in the OpenSSL configuration file which is located under
+``<SE05X_root_folder>/simw-top/nxp_iot_agent/ex/src/openssl_conf_v111.cnf`` in the dynamic_path variable of e4sss_section
+- Add the environment varaible OPENSSL_CONF pointing to the changed openssl_conf_v111.cnf
+
+For OpenSSL 3.x version the sssProvider is used for accessing Se05x functionality. The provider library is linked
+to the el2go_agent application and is loaded during runtime using the OpenSSL feature of built-in provider support
+
 
 Re-provisioning of objects
 --------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 NXP
+ * Copyright 2018-2021,2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -20,6 +20,10 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+#include <sssProvider_main.h>
+#include <openssl/params.h>
+#endif
 
 #include <network.h>
 
@@ -37,8 +41,12 @@ typedef struct openssl_network_config_t
     const char* hostname;
 	int port;
 	X509* certificate;
-	EVP_PKEY* private_key;
 	X509_STORE* ca_chain;
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
+	EVP_PKEY* private_key;
+#else
+	OSSL_PARAM* private_key;
+#endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
 } openssl_network_config_t;
 
 
@@ -46,6 +54,10 @@ typedef struct openssl_network_context_t
 {
     openssl_network_config_t network_config;
     SSL* ssl;
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+	OSSL_PROVIDER *sss_provider;
+	sss_provider_context_t* sss_provider_ctx;
+#endif //if (OPENSSL_VERSION_NUMBER >= 0x30000000)
 } openssl_network_context_t;
 
 

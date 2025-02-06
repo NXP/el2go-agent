@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 NXP
+ * Copyright 2018-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -212,6 +212,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	uint32_t private_key_object_id = 0U;
 
 	openssl_network_config_t openssl_network_config = { 0 };
+	iot_agent_keystore_key_ref_t gen_key_ref = { 0 };
 #elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 
 	mbedtls_network_config_t network_config = { 0 };
@@ -314,7 +315,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 
 	openssl_network_config.hostname = service_descriptor->hostname;
 	openssl_network_config.port = (int)service_descriptor->port;
-	openssl_network_config.private_key = EVP_PKEY_new();
+
 	openssl_network_config.ca_chain = X509_STORE_new();
 
 	bio_in = BIO_new_mem_buf(client_certificate_buffer, (int)client_certificate_size);
@@ -347,8 +348,13 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	AGENT_SUCCESS_OR_EXIT_MSG("Failed to re-connect to Secure Element.")
 
 	private_key_object_id = service_descriptor->client_key_sss_ref.object_id;
-	agent_status = iot_agent_utils_gen_key_ref(sss_context, &private_key, private_key_object_id, openssl_network_config.private_key);
+
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
+	gen_key_ref.key_ref = ((EVP_PKEY*)EVP_PKEY_new());
+#endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
+	agent_status = iot_agent_utils_gen_key_ref(keystore, private_key_object_id, &gen_key_ref);
 	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_gen_key_ref failed: 0x%08x.", agent_status);
+	openssl_network_config.private_key = gen_key_ref.key_ref;
 
 	iot_agent_keystore_close_session(keystore);
 
@@ -487,7 +493,9 @@ exit:
 	BIO_free(bio_in_verify);
 	BIO_free(bio_in);
 	X509_STORE_free(openssl_network_config.ca_chain);
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	EVP_PKEY_free(openssl_network_config.private_key);
+#endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	X509_free(openssl_network_config.certificate);
 
 #elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS

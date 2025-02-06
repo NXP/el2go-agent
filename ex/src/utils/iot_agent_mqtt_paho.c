@@ -1,4 +1,4 @@
-/* Copyright 2020-2024 NXP
+/* Copyright 2020-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -535,6 +535,7 @@ exit:
 int network_openssl_engine_session_connect_mqtt() {
 
     int network_status = NETWORK_STATUS_OK;
+#if (OPENSSL_VERSION_NUMBER < 0x30000000) 
     ENGINE *e = ENGINE_by_id(NETWORK_OPENSSL_ENGINE_ID);
     NETWORK_ASSERT_OR_EXIT_MSG(e != NULL, "Error finding OpenSSL Engine by id (id = %s)\n", NETWORK_OPENSSL_ENGINE_ID);
 
@@ -544,11 +545,13 @@ int network_openssl_engine_session_connect_mqtt() {
 
 exit:
     ENGINE_free(e);
+#endif
     return network_status;
 }
 
 int network_openssl_engine_session_disconnect_mqtt() {
     int network_status = NETWORK_STATUS_OK;
+#if (OPENSSL_VERSION_NUMBER < 0x30000000) 
 
     ENGINE *e = ENGINE_by_id(NETWORK_OPENSSL_ENGINE_ID);
     NETWORK_ASSERT_OR_EXIT_MSG(e != NULL, "Error finding OpenSSL Engine by id (id = %s)\n", NETWORK_OPENSSL_ENGINE_ID);
@@ -558,16 +561,41 @@ int network_openssl_engine_session_disconnect_mqtt() {
 
 exit:
     ENGINE_free(e);
+#endif
     return network_status;
+}
+
+static iot_agent_status_t iot_agent_mqtt_open_session_from_sss(iot_agent_keystore_t* keystore, openssl_network_context_t* network_context)
+{
+	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+	int network_status = NETWORK_STATUS_OK;
+
+	iot_agent_keystore_close_session(keystore);
+
+	network_status = network_openssl_engine_session_connect(network_context);
+	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_openssl_engine_session_connect failed with 0x%08x.", network_status);
+exit:
+	return agent_status;
+}
+
+static iot_agent_status_t iot_agent_mqtt_open_session_from_keystore(iot_agent_keystore_t* keystore, openssl_network_context_t* network_context)
+{
+	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+	int network_status = NETWORK_STATUS_OK;
+
+	network_status = network_openssl_engine_session_disconnect(network_context);
+	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_openssl_engine_session_disconnect failed with 0x%08x.", network_status);
+
+	agent_status = iot_agent_keystore_open_session(keystore);
+	AGENT_SUCCESS_OR_EXIT_MSG("Failed to re-connect to Secure Element.")
+exit:
+	return agent_status;
 }
 
 iot_agent_status_t iot_agent_mqtt_test(const nxp_iot_ServiceDescriptor* service_descriptor, mqtt_connection_params_t* connection_params)
 {
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-    int network_status = 0;
 
-    network_status = network_openssl_engine_session_connect_mqtt();
-    ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_openssl_engine_session_connect failed with 0x%08x.", network_status);
     switch (service_descriptor->service_type)
     {
     case nxp_iot_ServiceType_AWSSERVICE:
@@ -583,9 +611,7 @@ iot_agent_status_t iot_agent_mqtt_test(const nxp_iot_ServiceDescriptor* service_
         LOG_E("Invalid service type\n");
         break;
     }
-    network_status = network_openssl_engine_session_disconnect_mqtt();
-    ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_openssl_engine_session_connect failed with 0x%08x.", network_status);
-exit:
+
     return agent_status;
 }
 #endif //IOT_AGENT_MQTT_CONNECTION_DEMO_ENABLE
@@ -844,6 +870,7 @@ exit:
 iot_agent_status_t iot_agent_verify_mqtt_connection_for_service(iot_agent_context_t* iot_agent_context, const nxp_iot_ServiceDescriptor* service_descriptor)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	int mkdir_check = 0;
 
 #if IOT_AGENT_MQTT_CONNECTION_TEST_ENABLE
@@ -955,10 +982,16 @@ iot_agent_status_t iot_agent_verify_mqtt_connection_for_service(iot_agent_contex
 #if IOT_AGENT_MQTT_CONNECTION_TEST_ENABLE
 	iot_agent_keystore_close_session(keystore);
 
+	int network_status = network_openssl_engine_session_connect_mqtt();
+	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_openssl_engine_session_connect failed with 0x%08x.", network_status);
+
 	connection_params.keypath = keyref_filename;
 	connection_params.devcert = certificate_filename;
 	connection_params.rootpath = server_cert_filename;
 	mqtt_status = iot_agent_mqtt_test(service_descriptor, &connection_params);
+
+	network_status = network_openssl_engine_session_disconnect_mqtt();
+	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_openssl_engine_session_connect failed with 0x%08x.", network_status);
 
 	agent_status = iot_agent_keystore_open_session(keystore);
 	AGENT_SUCCESS_OR_EXIT();
@@ -967,6 +1000,7 @@ exit:
 	if (mqtt_status != IOT_AGENT_SUCCESS) {
 		return mqtt_status;
 	}
+#endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	return agent_status;
 }
 
@@ -1006,6 +1040,7 @@ iot_agent_status_t iot_agent_cleanup_mqtt_config_files()
 iot_agent_status_t iot_agent_verify_mqtt_connection_cos_over_rtp(iot_agent_context_t* iot_agent_context, const nxp_iot_ServiceDescriptor* service_descriptor)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+	iot_agent_keystore_key_ref_t gen_key_ref = {0};
 	int mkdir_check = 0;
 
 #if IOT_AGENT_MQTT_CONNECTION_TEST_ENABLE
@@ -1102,8 +1137,37 @@ iot_agent_status_t iot_agent_verify_mqtt_connection_cos_over_rtp(iot_agent_conte
 			LOG_D("Created service client certificate file [%s]", certificate_filename);
 		}
 	}
+	iot_agent_keystore_close_session(keystore);
 
-	if (IOT_AGENT_SUCCESS != iot_agent_utils_write_key_ref_pem_cos_over_rtp(iot_agent_context, service_descriptor, keyref_filename))
+	openssl_network_context_t* network_context = network_new();
+	ASSERT_OR_EXIT_MSG(network_context != NULL, "Network context is NULL");
+	int network_status = network_openssl_init(network_context);
+	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "Network context is NULL");
+
+
+#if (OPENSSL_VERSION_NUMBER < 0x30000000)
+	gen_key_ref.key_ref = EVP_PKEY_new();
+#endif
+	agent_status = iot_agent_mqtt_open_session_from_keystore(keystore, network_context);
+	AGENT_SUCCESS_OR_EXIT_MSG("Failed to connect to Secure Element keystore.")
+
+	agent_status = iot_agent_utils_get_keystore_from_service_descriptor(iot_agent_context, service_descriptor, &keystore);
+	AGENT_SUCCESS_OR_EXIT();
+
+	agent_status = iot_agent_utils_gen_key_ref(keystore, service_descriptor->client_key_sss_ref.object_id, &gen_key_ref);
+	AGENT_SUCCESS_OR_EXIT();
+
+	// In OpenSSL >= 3.x the EVP PKEY generation required in iot_agent_utils_write_key_ref_pem need
+	// an open session between the sssProvider and SE05x: the function iot_agent_mqtt_open_session_from_sss
+	// will do the following steps:
+	// - close the session between EL2GO agent keystore and SE05x
+	// - open session between sssProvider and SE05x is open
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+	agent_status = iot_agent_mqtt_open_session_from_sss(keystore, network_context);
+	AGENT_SUCCESS_OR_EXIT_MSG("Failed to connect to Secure Element keystore.")
+#endif
+
+	if (IOT_AGENT_SUCCESS != iot_agent_utils_write_key_ref_pem(&gen_key_ref, keyref_filename))
 	{
 		write_error_logs(keyref_filename);
 	}
@@ -1113,16 +1177,23 @@ iot_agent_status_t iot_agent_verify_mqtt_connection_cos_over_rtp(iot_agent_conte
 	}
 	//write to files - end
 
+	// After writing the PEM, restore the session between EL2GO Agent keystore and Se05x
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+	agent_status = iot_agent_mqtt_open_session_from_keystore(keystore, network_context);
+	AGENT_SUCCESS_OR_EXIT_MSG("Failed to connect to Secure Element keystore.")
+#endif
 #if IOT_AGENT_MQTT_CONNECTION_TEST_ENABLE
-	iot_agent_keystore_close_session(keystore);
+
+	agent_status = iot_agent_mqtt_open_session_from_sss(keystore, network_context);
+	AGENT_SUCCESS_OR_EXIT_MSG("Failed to connect to Secure Element keystore.")
 
 	connection_params.keypath = keyref_filename;
 	connection_params.devcert = certificate_filename;
 	connection_params.rootpath = server_cert_filename;
 	mqtt_status = iot_agent_mqtt_test(service_descriptor, &connection_params);
 
-	agent_status = iot_agent_keystore_open_session(keystore);
-	AGENT_SUCCESS_OR_EXIT();
+	agent_status = iot_agent_mqtt_open_session_from_keystore(keystore, network_context);
+	AGENT_SUCCESS_OR_EXIT_MSG("Failed to connect to Secure Element keystore.")
 #endif
 exit:
 	if (mqtt_status != IOT_AGENT_SUCCESS) {

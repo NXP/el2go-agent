@@ -13,6 +13,12 @@ IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
     INCLUDE(${SIMW_TOP_DIR}/ext/core-json.cmake)
 ENDIF()
 
+IF (SSS_HAVE_HOSTCRYPTO_OPENSSL)
+    SET (NXP_IOT_AGENT_OPENSSL_ENABLE_PAHO TRUE)
+ELSE()
+    SET (NXP_IOT_AGENT_OPENSSL_ENABLE_PAHO FALSE)
+ENDIF()
+
 ###################### el2go_agent
 
 PROJECT(el2go_agent)
@@ -37,7 +43,7 @@ IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
         ${CMAKE_CURRENT_SOURCE_DIR}/utils/iot_agent_claimcode_encrypt.c)
 ENDIF()
 
-IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+IF(NXP_IOT_AGENT_OPENSSL_ENABLE_PAHO)
 SET(HEADER_FILES
     ../inc/iot_agent_mqtt_paho.h
     )
@@ -97,14 +103,14 @@ IF((SSS_HAVE_HOST_EVKMIMXRT1060) OR (SSS_HAVE_HOST_EVKMIMXRT1170)
 ENDIF()
 
 IF(BUILD_SHARED_LIBS)
-    IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+    IF(NXP_IOT_AGENT_OPENSSL_ENABLE_PAHO)
         TARGET_LINK_LIBRARIES(
             ${PROJECT_NAME}
                 paho-mqtt3cs
         )
     ENDIF()
 ELSE()
-    IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+    IF(NXP_IOT_AGENT_OPENSSL_ENABLE_PAHO)
         TARGET_LINK_LIBRARIES(
             ${PROJECT_NAME}
                 paho-mqtt3cs-static
@@ -269,7 +275,7 @@ IF(NXPInternal)
 
     ###################### object_dump
 
-    IF(SSS_HAVE_APPLET_SE05X_C AND SSS_HAVE_HOSTCRYPTO_OPENSSL)
+    IF(SSS_HAVE_APPLET_SE05X_C AND SSS_HAVE_HOSTCRYPTO_OPENSSL AND SSS_HAVE_OPENSSL_1_1_1)
         PROJECT(object_dump)
 
         ADD_EXECUTABLE(${PROJECT_NAME}
@@ -336,7 +342,6 @@ IF(NXPInternal)
 				GLOB
 				iot_agent_remote_runner_files
 				apps/remote_runner_server.c
-				utils/iot_agent_mqtt_paho.c
 			)
 			add_definitions(-DNXP_IOT_AGENT_USE_COREJSON)
 		ENDIF()
@@ -386,23 +391,29 @@ IF(NXPInternal)
 				utils/iot_agent_claimcode_encrypt.c
 				)
 		ENDIF()
-
-
+		IF(NXP_IOT_AGENT_OPENSSL_ENABLE_PAHO)
+			FILE(
+				GLOB
+				paho_files
+				utils/iot_agent_mqtt_paho.c
+			)
+		ENDIF()
 		ADD_EXECUTABLE(${PROJECT_NAME}
 			${KSDK_STARTUP_FILE}
 			${iot_agent_remote_runner_files}
 			${psa_init_files}
+			${paho_files}
 		)
 
 		IF(BUILD_SHARED_LIBS)
-			IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+			IF(NXP_IOT_AGENT_OPENSSL_ENABLE_PAHO)
 				TARGET_LINK_LIBRARIES(
 					${PROJECT_NAME}
 					paho-mqtt3cs
 				)
 			ENDIF()
 		ELSE()
-			IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
+			IF(NXP_IOT_AGENT_OPENSSL_ENABLE_PAHO)
 				TARGET_LINK_LIBRARIES(
 					${PROJECT_NAME}
 					paho-mqtt3cs-static
