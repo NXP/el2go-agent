@@ -1,4 +1,4 @@
-/* Copyright 2019-2024 NXP
+/* Copyright 2019-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -49,8 +49,13 @@ static iot_agent_status_t write_cert_to_keystore(iot_agent_keystore_t* keystore,
 
 static iot_agent_status_t pubSub(iot_agent_context_t* iot_agent_context,
 		const nxp_iot_ServiceDescriptor* service_descriptor);
-extern ex_sss_cloud_ctx_t *pex_sss_demo_tls_ctx;
+
+#ifdef NXP_IOT_AGENT_MQTT_DEFINE_CONTEXT
+static ex_sss_boot_ctx_t gex_sss_demo_boot_ctx;
+ex_sss_boot_ctx_t *pex_sss_demo_boot_ctx = &gex_sss_demo_boot_ctx;
+#else
 extern ex_sss_boot_ctx_t *pex_sss_demo_boot_ctx;
+#endif //NXP_IOT_AGENT_MQTT_DEFINE_CONTEXT
 #endif
 
 static iot_agent_status_t awsPubMqttMessage(const nxp_iot_ServiceDescriptor* service_descriptor);
@@ -295,8 +300,6 @@ iot_agent_status_t write_cert_to_keystore(iot_agent_keystore_t* keystore,
 	sss_object_t service_cert = { 0 };
 	sss_key_store_t* sss_keystore = NULL;
 
-	pex_sss_demo_tls_ctx->client_cert_index = cert_id;
-
 	agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_keystore);
 	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);
 
@@ -333,8 +336,6 @@ iot_agent_status_t associateKeyPair(mbedtls_pk_context *pk, sss_object_t* servic
 	sss_status_t sss_status = kStatus_SSS_Success;
 	sss_key_store_t* sss_keystore = NULL;
 	int ret;
-
-    pex_sss_demo_tls_ctx->client_keyPair_index = key_id;
 
     agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_keystore);
 	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);

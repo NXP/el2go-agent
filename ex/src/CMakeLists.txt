@@ -67,7 +67,7 @@ IF(SSS_HAVE_HOST_FRDMK64F OR SSS_HAVE_HOST_EVKMIMXRT1060 OR SSS_HAVE_HOST_EVKMIM
         network/iot_agent_network_lwip.c
         utils/iot_agent_mqtt_freertos.c
     )
-    add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
+    add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON -DNXP_IOT_AGENT_MQTT_DEFINE_CONTEXT)
 ENDIF()
 
 IF(SSS_HAVE_HOST_LPCXPRESSO55S)
@@ -78,7 +78,7 @@ IF(SSS_HAVE_HOST_LPCXPRESSO55S)
         network/iot_agent_network_lpc_mwm.c
         utils/iot_agent_mqtt_freertos.c
     )
-    add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
+    add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON -DNXP_IOT_AGENT_MQTT_DEFINE_CONTEXT)
 ENDIF()
 
 # Register the corresponding OSAL files
@@ -360,7 +360,7 @@ IF(NXPInternal)
 				osal/freertos/iot_agent_osal_freertos.c
 				osal/freertos/iot_agent_osal_freertos.h
 			)
-			add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON)
+			add_definitions(-DNXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT -DNXP_IOT_AGENT_USE_COREJSON -DNXP_IOT_AGENT_MQTT_DEFINE_CONTEXT)
 		ENDIF()
 
 		IF(SSS_HAVE_HOST_LPCXPRESSO55S)
