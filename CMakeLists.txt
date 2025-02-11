@@ -1,11 +1,11 @@
-# Copyright 2019-2021, 2024 NXP
+# Copyright 2019-2021, 2024-2025 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
 #
 
 cmake_minimum_required(VERSION 3.5)
 
-PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.1.0)
+PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.1.1)
 
 IF(NOT COMMAND CREATE_BINARY)
     MACRO(CREATE_BINARY PROJECT_NAME)
