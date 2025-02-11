@@ -1,9 +1,9 @@
-# Copyright 2019,2021,2023-2024 NXP
+# Copyright 2019,2021,2023-2025 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
 #
 
-PROJECT(nxp_iot_agent_common LANGUAGES C VERSION 6.1.0)
+PROJECT(nxp_iot_agent_common LANGUAGES C VERSION 6.2.0)
 
 FILE(
     GLOB
