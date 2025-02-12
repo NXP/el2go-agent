@@ -1042,6 +1042,7 @@ iot_agent_status_t iot_agent_verify_mqtt_connection_cos_over_rtp(iot_agent_conte
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	iot_agent_keystore_key_ref_t gen_key_ref = {0};
 	int mkdir_check = 0;
+	openssl_network_context_t* network_context = NULL;
 
 #if IOT_AGENT_MQTT_CONNECTION_TEST_ENABLE
 	mqtt_connection_params_t connection_params = { 0 };
@@ -1139,7 +1140,7 @@ iot_agent_status_t iot_agent_verify_mqtt_connection_cos_over_rtp(iot_agent_conte
 	}
 	iot_agent_keystore_close_session(keystore);
 
-	openssl_network_context_t* network_context = network_new();
+	network_context = network_new();
 	ASSERT_OR_EXIT_MSG(network_context != NULL, "Network context is NULL");
 	int network_status = network_openssl_init(network_context);
 	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "Network context is NULL");
@@ -1196,6 +1197,7 @@ iot_agent_status_t iot_agent_verify_mqtt_connection_cos_over_rtp(iot_agent_conte
 	AGENT_SUCCESS_OR_EXIT_MSG("Failed to connect to Secure Element keystore.")
 #endif
 exit:
+	network_free(network_context);
 	if (mqtt_status != IOT_AGENT_SUCCESS) {
 		return mqtt_status;
 	}

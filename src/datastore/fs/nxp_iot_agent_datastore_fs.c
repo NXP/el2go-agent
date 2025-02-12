@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 NXP
+ * Copyright 2018-2025 NXP
  * 
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -215,7 +215,7 @@ iot_agent_status_t iot_agent_datastore_fs_write(
 
 	ASSERT_OR_EXIT_MSG(datastore_context != NULL, "datastore_context is NULL.");
 	ASSERT_OR_EXIT_MSG(datastore_context->fp != NULL, "datastore_context->fp is NULL.");
-	ASSERT_OR_EXIT_MSG(offset < SIZE_MAX, "Error in the offset casting");
+	ASSERT_OR_EXIT_MSG(offset <= INT32_MAX, "Error in the offset casting");
 	ASSERT_OR_EXIT_MSG(datastore_context->idx_write < FILE_POINTER_NUMBER, "Overflow in the write index");
 	fp_status = fseek(datastore_context->fp[datastore_context->idx_write], offset, SEEK_SET);
 	ASSERT_OR_EXIT_MSG(fp_status == 0, "fseek failed: 0x%08x.", fp_status);
@@ -236,7 +236,7 @@ iot_agent_status_t iot_agent_datastore_fs_read(
 	size_t read = 0U;
 	int fp_status = 0;
 	ASSERT_OR_EXIT_MSG(datastore_context->idx_read < FILE_POINTER_NUMBER, "Overflow in the read index");
-	ASSERT_OR_EXIT_MSG(offset <= SIZE_MAX, "Error in offset casting.");
+	ASSERT_OR_EXIT_MSG(offset <= INT32_MAX, "Error in offset casting.");
 	fp_status = fseek(datastore_context->fp[datastore_context->idx_read], offset, SEEK_SET);
 	if (fp_status != 0) { *len = 0U; }
 	read = fread(dst, sizeof(uint8_t), *len, datastore_context->fp[datastore_context->idx_read]);

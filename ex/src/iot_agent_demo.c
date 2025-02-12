@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 NXP
+ * Copyright 2018-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -557,7 +557,6 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
     iot_agent_time_conclude_measurement(&iot_agent_demo_time);
     iot_agent_time.total_time = iot_agent_time_get_measurement(&iot_agent_demo_time);
-    iot_agent_time_free_measurement_ctx(&iot_agent_demo_time);
     iot_agent_log_performance_timing();
     memset(&iot_agent_time, 0, sizeof(iot_agent_time));
 #endif
@@ -613,5 +612,8 @@ exit:
     iot_agent_datastore_free(&edgelock2go_datastore);
 	iot_agent_datastore_free(&datastore);
 	iot_agent_keystore_free(&keystore);
+#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+	iot_agent_time_free_measurement_ctx(&iot_agent_demo_time);
+#endif
 	return agent_status;
 }

@@ -323,6 +323,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	openssl_network_config.certificate = d2i_X509_bio(bio_in, NULL);
 
 #if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+	ASSERT_OR_EXIT_MSG(service_descriptor->server_certificate->size <= INT32_MAX, "Overflow in size value");
 	bio_in_verify = BIO_new_mem_buf(service_descriptor->server_certificate->bytes, (int)service_descriptor->server_certificate->size);
 	OPENSSL_ASSERT_OR_EXIT(bio_in_verify != NULL, "BIO_new_mem_buf");
 	while (true) {
@@ -420,7 +421,6 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
 	iot_agent_time_conclude_measurement(&iot_agent_prepare_tls_time);
 	iot_agent_time.prepare_tls_time = iot_agent_time_get_measurement(&iot_agent_prepare_tls_time);
-    iot_agent_time_free_measurement_ctx(&iot_agent_prepare_tls_time);
 
     iot_agent_time_init_measurement(&network_connect_time);
 #endif
@@ -429,7 +429,6 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
     iot_agent_time_conclude_measurement(&network_connect_time);
 	iot_agent_time.network_connect_time = iot_agent_time_get_measurement(&network_connect_time);
-    iot_agent_time_free_measurement_ctx(&network_connect_time);
     iot_agent_time_init_measurement(&process_provision_time);
 #endif
 
@@ -457,7 +456,6 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
     iot_agent_time_conclude_measurement(&process_provision_time);
 	iot_agent_time.process_provision_time = iot_agent_time_get_measurement(&process_provision_time);
-    iot_agent_time_free_measurement_ctx(&process_provision_time);
 #endif
 	network_status = network_disconnect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == 0, "network_disconnect failed with 0x%08x", network_status);
@@ -504,7 +502,14 @@ exit:
 	#endif
 	mbedtls_x509_crt_free(&network_config.clicert);
 #endif
-
+#if NXP_IOT_AGENT_HAVE_SSS
+	sss_key_object_free(&private_key);
+#endif
+#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+	iot_agent_time_free_measurement_ctx(&iot_agent_prepare_tls_time);
+	iot_agent_time_free_measurement_ctx(&network_connect_time);
+	iot_agent_time_free_measurement_ctx(&process_provision_time);
+#endif
 	network_free(dispatcher_context.network_context);
 
 	// Finally also evaluate the message in the status from the dispatcher.
@@ -751,7 +756,10 @@ size_t iot_agent_get_number_of_services(
 	for (size_t i = 0U; i < ctx->numDatastores; i++)
 	{
 		const iot_agent_datastore_t* datastore = ctx->datastores[i];
-		totalNumServices += iot_agent_service_get_number_of_services(datastore);
+		size_t service_num = iot_agent_service_get_number_of_services(datastore);
+		if (service_num <= SIZE_MAX - totalNumServices) {
+			totalNumServices += service_num;
+		}
 	}
 	return totalNumServices;
 }
@@ -1015,13 +1023,21 @@ bool iot_agent_get_endpoint_info(void* context, void* endpoint_information)
 bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 	const pb_field_t* message_type, void *context)
 {
+	bool return_status = false;
+#if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
+#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+	iot_agent_time_context_t iot_agent_crl_time = { 0 };
+#endif
+#endif
+
 	iot_agent_dispatcher_context_t* dispatcher_context = (iot_agent_dispatcher_context_t*)context;
 	if (message_type == nxp_iot_AgentGoodbyeRequest_fields)
 	{
 		nxp_iot_AgentGoodbyeRequest request = nxp_iot_AgentGoodbyeRequest_init_default;
 		if (!pb_decode_delimited(istream, nxp_iot_AgentGoodbyeRequest_fields, &request)) {
 			IOT_AGENT_ERROR("Decode Server Message failed: %s\n", PB_GET_ERROR(istream));
-			return false;
+			return_status = false;
+			goto exit;
 		}
 
 		if (request.has_status) {
@@ -1044,18 +1060,19 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 
 		dispatcher_context->closed = true;
 		pb_release(nxp_iot_AgentGoodbyeRequest_fields, &request);
-		return true;
+		return_status = true;
+		goto exit;
 	}
 #if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
 	else if (message_type == nxp_iot_AgentCrlRequest_fields) {
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
-        iot_agent_time_context_t iot_agent_crl_time = { 0 };
         iot_agent_time_init_measurement(&iot_agent_crl_time);
 #endif
 		nxp_iot_AgentCrlRequest request = nxp_iot_AgentCrlRequest_init_default;
 		if (!pb_decode_delimited(istream, nxp_iot_AgentCrlRequest_fields, &request)) {
 			IOT_AGENT_ERROR("Decode Server Message failed: %s\n", PB_GET_ERROR(istream));
-			return false;
+			return_status = false;
+			goto exit;
 		}
 
 		nxp_iot_ResponsePayload response = nxp_iot_ResponsePayload_init_default;
@@ -1086,7 +1103,8 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 			int network_status = network_openssl_engine_session_disconnect((openssl_network_context_t*)dispatcher_context->network_context);
 			if (network_status != NETWORK_STATUS_OK) {
 				IOT_AGENT_ERROR("network_openssl_engine_session_disconnect failed with 0x%08x.", network_status);
-				return false;
+				return_status = false;
+				goto exit;
 			}
 
 			nxp_iot_ServiceDescriptor* service_descriptor = dispatcher_context->service_descriptor;
@@ -1097,13 +1115,15 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 			iot_agent_status_t agent_status = iot_agent_get_keystore_by_id(agent_context, id, &keystore);
 			if (agent_status != IOT_AGENT_SUCCESS) {
 				IOT_AGENT_ERROR("iot_agent_get_keystore_by_id for id 0x%08x failed with 0x%08x.", id, agent_status);
-				return false;
+				return_status = false;
+				goto exit;
 			}
 
 			agent_status = iot_agent_keystore_open_session(keystore);
 			if (agent_status != IOT_AGENT_SUCCESS) {
 				IOT_AGENT_ERROR("iot_agent_keystore_open_session failed with 0x%08x.", agent_status);
-				return false;
+				return_status = false;
+				goto exit;
 			}
 		}
 #endif
@@ -1112,17 +1132,24 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 		if (! encode_responses_from_payload(ostream, &response))
 		{
 			IOT_AGENT_ERROR("encode_responses_from_payload failed");
-			return false;
+			return_status = false;
+			goto exit;
 		}
 #if IOT_AGENT_TIME_MEASUREMENT_ENABLE
         iot_agent_time_conclude_measurement(&iot_agent_crl_time);
 		iot_agent_time.crl_time = iot_agent_time_get_measurement(&iot_agent_crl_time);
-        iot_agent_time_free_measurement_ctx(&iot_agent_crl_time);
 #endif
-		return true;
+		return_status = true;
 	}
 #endif
-	return false;
+
+exit:
+#if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
+#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+        iot_agent_time_free_measurement_ctx(&iot_agent_crl_time);
+#endif
+#endif
+	return return_status;
 }
 
 

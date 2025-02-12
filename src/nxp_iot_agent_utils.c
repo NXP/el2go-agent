@@ -450,6 +450,8 @@ iot_agent_status_t iot_agent_utils_get_certificate_common_name(iot_agent_context
 	agent_status = iot_agent_utils_get_certificate_from_keystore(keystore, certificate_id, cert_buffer, &cert_len);
 	AGENT_SUCCESS_OR_EXIT();
 
+	ASSERT_OR_EXIT_MSG(cert_len <= INT32_MAX, "Certificate lenght exceed max int value");
+
 	bio_in_cert = BIO_new_mem_buf(cert_buffer, (int)cert_len);
 	client_cert = d2i_X509_bio(bio_in_cert, NULL);
 	if (client_cert == NULL) {
@@ -458,6 +460,7 @@ iot_agent_status_t iot_agent_utils_get_certificate_common_name(iot_agent_context
 		EXIT_STATUS_MSG(IOT_AGENT_FAILURE, "Error in loading the client certificate");
 	}
 	subject_name = X509_get_subject_name(client_cert);
+	ASSERT_OR_EXIT_MSG(max_size <= INT32_MAX, "Certificate lenght exceed max int value");
 	X509_NAME_get_text_by_NID(subject_name, NID_commonName, common_name, max_size);
 	BIO_free(bio_in_cert);
 	X509_free(client_cert);
@@ -815,15 +818,15 @@ iot_agent_status_t iot_agent_utils_get_certificate_from_keystore(iot_agent_keyst
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
-	ASSERT_OR_EXIT_MSG(keystore != NULL, "keyStore is NULL.");
-	ASSERT_OR_EXIT_MSG(cert != NULL, "cert is NULL.");
-	ASSERT_OR_EXIT_MSG(cert_len != NULL, "cert_len is NULL.");
-	ASSERT_OR_EXIT_MSG(keystore->type == IOT_AGENT_KS_SSS_SE05X, "keystore type %d is unsupported.", keystore->type);
-
 #if NXP_IOT_AGENT_HAVE_SSS
 	sss_status_t sss_status;
 	sss_object_t certObj = { 0 };
 	size_t cert_lenBits = 0U;
+
+	ASSERT_OR_EXIT_MSG(keystore != NULL, "keyStore is NULL.");
+	ASSERT_OR_EXIT_MSG(cert != NULL, "cert is NULL.");
+	ASSERT_OR_EXIT_MSG(cert_len != NULL, "cert_len is NULL.");
+	ASSERT_OR_EXIT_MSG(keystore->type == IOT_AGENT_KS_SSS_SE05X, "keystore type %d is unsupported.", keystore->type);
 
 	ASSERT_OR_EXIT_MSG(*cert_len <= ((SIZE_MAX / 8U) - 1U), "Wraparound in length of bits.");
 	cert_lenBits = (*cert_len) * 8U;
@@ -842,8 +845,9 @@ iot_agent_status_t iot_agent_utils_get_certificate_from_keystore(iot_agent_keyst
 	// not make any sense for certificates, but not all keystore types accept NULL,
 	sss_status = sss_key_store_get_key(sss_key_store, &certObj, cert, cert_len, &cert_lenBits);
 	SSS_SUCCESS_OR_EXIT_MSG("sss_key_store_get_key failed: 0x%08x.", sss_status);
-#endif
 exit:
+	sss_key_object_free(&certObj);
+#endif
 	return agent_status;
 }
 
@@ -852,16 +856,16 @@ iot_agent_status_t iot_agent_get_first_found_object(iot_agent_keystore_t* keysto
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
+#if NXP_IOT_AGENT_HAVE_SSS
+	sss_status_t sss_status;
+	sss_object_t sss_object = { 0 };
+	sss_key_store_t* sss_key_store = NULL;
+
 	ASSERT_OR_EXIT_MSG(keystore != NULL, "keystore is NULL.");
 	ASSERT_OR_EXIT_MSG(object_ids != NULL, "object_ids is NULL.");
 	ASSERT_OR_EXIT_MSG(object_id != NULL, "object_id is NULL.");
 	ASSERT_OR_EXIT_MSG(keystore->type == IOT_AGENT_KS_SSS_SE05X, "keystore type %d is unsupported.", keystore->type);
 
-#if NXP_IOT_AGENT_HAVE_SSS
-	sss_status_t sss_status;
-	sss_object_t sss_object = { 0 };
-
-	sss_key_store_t* sss_key_store = NULL;
 	agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_key_store);
 	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);
 
@@ -875,8 +879,9 @@ iot_agent_status_t iot_agent_get_first_found_object(iot_agent_keystore_t* keysto
 			break;
 		}
 	}
-#endif
 exit:
+	sss_key_object_free(&sss_object);
+#endif
 	return agent_status;
 }
 
@@ -1343,7 +1348,8 @@ static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_env(i
 	len = strlen(edgelock2go_hostname_str);
 	edgelock2go_hostname = malloc(len + 1U);
 	ASSERT_OR_EXIT(edgelock2go_hostname != NULL);
-	memcpy(edgelock2go_hostname, edgelock2go_hostname_str, len + 1U);
+	memset(edgelock2go_hostname, '\0', len + 1U);
+	memcpy(edgelock2go_hostname, edgelock2go_hostname_str, len);
 
 #if defined(_WIN32) || defined(_WIN64)
 	ASSERT_OR_EXIT_MSG(_dupenv_s(&edgelock2go_port_str, &edgelock2go_port_env_size, "EDGELOCK2GO_PORT") == 0, "Error in getting environmental variable");

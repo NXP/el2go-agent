@@ -257,7 +257,9 @@ int network_openssl_engine_session_disconnect(openssl_network_context_t* network
 	IOT_AGENT_INFO("Close connection to secure element through Engine control interface (Engine=%s).\n", NETWORK_OPENSSL_ENGINE_ID);
 	ENGINE_ctrl(e, ENGINE_CMD_BASE + 2, 0, NULL, NULL);
 #else
+	if (network_ctx != NULL) {
 	iot_agent_session_disconnect(network_ctx->sss_provider_ctx->p_ex_sss_boot_ctx);
+	}
 #endif
 #if (OPENSSL_VERSION_NUMBER < 0x30000000)
 exit:
@@ -432,9 +434,14 @@ int network_connect(void* opaque_ctx)
 	// Try to SSL-connect here, returns 1 for success
 	if (SSL_connect(ssl) != 1)
 	{
-		uint32_t verify_result = SSL_get_verify_result(ssl);
+		long verify_result = SSL_get_verify_result(ssl);
+		if ((verify_result < 0) || (verify_result > UINT32_MAX)) {
+			IOT_AGENT_ERROR("SSL_connect failed");
+		}
+		else {
 		warn_crt_crl_period(verify_result);
 		IOT_AGENT_ERROR("SSL_connect failed, verify result (see man openssl verify): 0x%08x", verify_result);
+		}
 		print_openssl_errors("SSL_connect");
 		return 1;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021,2023-2024 NXP
+ * Copyright 2018-2021,2023-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -83,7 +83,11 @@ static iot_agent_status_t iot_agent_service_calculate_configuration_checksum(con
 		iot_agent_service_read_buffer(ctx, offset, &buffer[0], chunk_size);
 		success &= EVP_DigestUpdate(digest_context, &buffer[0], chunk_size);
 
+		if (remaining >= chunk_size)
+		{
 		remaining -= chunk_size;
+		}
+
 		if (offset <= (SIZE_MAX - chunk_size))
 		{
 			offset += chunk_size;
@@ -130,8 +134,12 @@ static iot_agent_status_t iot_agent_service_calculate_configuration_checksum(con
 	{
 		size_t chunk_size = remaining < sizeof(buffer) ? remaining : sizeof(buffer);
 		iot_agent_service_read_buffer(ctx, offset, &buffer[0], chunk_size);
+
 		failed |= mbedtls_sha256_update_ret(&digest_context, &buffer[0], chunk_size);
+		if (remaining >= chunk_size)
+		{
 		remaining -= chunk_size;
+		}
 
 		ASSERT_OR_EXIT_MSG((offset <= (SIZE_MAX - chunk_size)), "Error in the offset variable");
 		offset += chunk_size;
@@ -244,7 +252,7 @@ iot_agent_status_t iot_agent_service_get_service_type_as_string(
 		break;
 	default:
 		*buffer = NULL;
-		IOT_AGENT_ERROR("Invalid service_type: %d", (int)service_descriptor->service_type);
+		IOT_AGENT_ERROR("Invalid service_type: %u", service_descriptor->service_type);
 		return IOT_AGENT_FAILURE;
 	}
 	return IOT_AGENT_SUCCESS;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,23 +19,44 @@ iot_agent_time_t iot_agent_time = { 0 };
 void iot_agent_time_init_measurement(iot_agent_time_context_t* time_context)
 {
 	axTimeMeasurement_t* time_meas_ctx = malloc(sizeof(axTimeMeasurement_t));
-	initMeasurement(time_meas_ctx);
-	time_context->ctx = (axTimeMeasurement_t*)time_meas_ctx;
+	if (time_meas_ctx == NULL) {
+		IOT_AGENT_ERROR("time_meas_ctx is NULL");
+	}
+	else {
+		initMeasurement(time_meas_ctx);
+		time_context->ctx = (axTimeMeasurement_t*)time_meas_ctx;
+	}
 }
 
 void iot_agent_time_conclude_measurement(iot_agent_time_context_t* time_context)
 {
-	concludeMeasurement((axTimeMeasurement_t*)time_context->ctx);
+	if ((time_context == NULL) || (time_context->ctx == NULL)) {
+		IOT_AGENT_ERROR("Trying to use time measurement context set to NULL");
+	}
+	else {
+		concludeMeasurement((axTimeMeasurement_t*)time_context->ctx);
+	}
 }
 
 long iot_agent_time_get_measurement(iot_agent_time_context_t* time_context)
 {
-	return getMeasurement((axTimeMeasurement_t*)time_context->ctx);
+	if ((time_context == NULL) || (time_context->ctx == NULL)) {
+		IOT_AGENT_ERROR("Trying to use time measurement context set to NULL");
+		return 0;
+	}
+	else {
+		return getMeasurement((axTimeMeasurement_t*)time_context->ctx);
+	}
 }
 
 void iot_agent_time_free_measurement_ctx(iot_agent_time_context_t* time_context)
 {
-	free((axTimeMeasurement_t*)time_context->ctx);
+	if (time_context == NULL) {
+		IOT_AGENT_ERROR("time_context is NULL");
+	}
+	else {
+		free((axTimeMeasurement_t*)time_context->ctx);
+	}
 }
 
 iot_agent_status_t iot_agent_log_performance_timing(void)
