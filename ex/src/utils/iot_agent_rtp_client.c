@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021,2023-2024 NXP
+ * Copyright 2020-2021,2023-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -25,7 +25,10 @@
 #include <dirent.h>
 #else
  // Includes in case of FreeRTOS
-
+#ifndef INC_FREERTOS_H /* Header guard of FreeRTOS */
+#include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
+#endif /* INC_FREERTOS_H */
 #if defined(LPC_ENET)
 #include "lwip/opt.h"
 #include "lwip/tcpip.h"
