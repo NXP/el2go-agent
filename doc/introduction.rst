@@ -27,7 +27,7 @@ The build instructions for the EdgeLock 2GO agent do not deviate from the build 
 introduced in section :ref:`building`. For convenience, the script
 ``<SE05X_root_folder>/simw-top/scripts/create_cmake_projects.py``
 will generate bespoke CMake configurations with all CMake options set correctly for building the
-EdgeLock2 GO agent for KSDK (FRDMK64F, LPC55S69), and i.MX:
+EdgeLock2 GO agent for MCU-SDK (FRDMK64F, LPC55S69), and i.MX:
 
 - KSDK: ``<SE05X_root_folder>/simw-top_build/simw-top-eclipse_arm_el2go``
 - i.MX (native compilation): ``<SE05X_root_folder>/simw-top_build/imx_native_se050_t1oi2c_openssl_el2go``
