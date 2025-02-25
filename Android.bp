@@ -1,0 +1,99 @@
+// Copyright 2025 NXP
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+cc_defaults {
+    name: "libel2go_agent_defaults",
+    export_include_dirs: ["inc"],
+    local_include_dirs: [
+        "ex/inc/",
+        "src",
+        "src/protobuf",
+        "src/datastore/fs/",
+        "src/keystore/psa/",
+        "platform/smw",
+        "net_crypto/",
+        "net_crypto/mbedtls",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-DNXP_IOT_AGENT_HAVE_PSA=1",
+        "-DNXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1",
+        "-DNXP_IOT_AGENT_HAVE_PSA_IMPL_SMW=1",
+        "-DIOT_AGENT_TIME_MEASUREMENT_ENABLE=0",
+        "-DMBEDTLS_SSL_MAX_CONTENT_LEN=4096",
+        "-DMBEDTLS_USE_PSA_CRYPTO",
+        "-DPB_FIELD_32BIT",
+    ],
+    shared_libs: [
+        "liblog",
+    ],
+}
+
+cc_library {
+    name: "libel2go_agent",
+    vendor: true,
+    defaults: ["libel2go_agent_defaults"],
+    srcs: [
+        "net_crypto/mbedtls/network_mbedtls.c",
+        "platform/smw/device_mgr.c",
+        "platform/smw/nxp_iot_agent_platform_smw.c",
+        "platform/smw/nxp_iot_agent_time_smw.c",
+        "src/common/nxp_iot_agent_dispatcher.c",
+        "src/common/nxp_iot_agent_utils_protobuf.c",
+        "src/datastore/fs/nxp_iot_agent_datastore_fs.c",
+        "src/keystore/psa/nxp_iot_agent_keystore_psa.c",
+        "src/nxp_iot_agent.c",
+        "src/nxp_iot_agent_common.c",
+        "src/nxp_iot_agent_config.c",
+        "src/nxp_iot_agent_datastore.c",
+        "src/nxp_iot_agent_keystore.c",
+        "src/nxp_iot_agent_service.c",
+        "src/nxp_iot_agent_utils.c",
+        "src/nxp_iot_agent_utils_protobuf_socket.c",
+        "src/protobuf/Agent.pb.c",
+        "src/protobuf/Apdu.pb.c",
+        "src/protobuf/Datastore.pb.c",
+        "src/protobuf/Dispatcher.pb.c",
+        "src/protobuf/Hostcmd.pb.c",
+        "src/protobuf/PSA.pb.c",
+        "src/protobuf/Proxy.pb.c",
+        "src/protobuf/RPC.pb.c",
+        "src/protobuf/ServiceDescriptor.pb.c",
+        "src/protobuf/Types.pb.c",
+        "src/protobuf/pb_common.c",
+        "src/protobuf/pb_encode.c",
+        "src/protobuf/pb_decode.c",
+    ],
+
+    shared_libs: [
+        "libsmw_imx",
+        "libmbedtls_imx",
+    ],
+}
+
+cc_binary {
+    name: "el2go_demo",
+    vendor: true,
+    defaults: ["libel2go_agent_defaults"],
+    srcs: [
+        "ex/src/iot_agent_demo.c",
+        "ex/src/osal/linux/iot_agent_osal_linux.c",
+    ],
+    shared_libs: [
+        "libsmw_imx",
+        "libel2go_agent",
+        "libmbedtls_imx",
+    ],
+}
