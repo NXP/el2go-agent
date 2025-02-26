@@ -66,13 +66,19 @@ OpenSSL engine/provider configuration
 When using OpenSSL as library an abstraction of the OpenSSL cyptographic APIs to the Se05x secure element is required:
 an example is the signature calculation used for authentication to the EdgeLock 2GO server done via a private key
 preprovisioned in the Secure Element. To achieve the abstraction the following SSS libraries are used:
+
 - OpenSSL 1.1.1: sss_engine
+
 - OpenSS: 3.x: sssProvider
 
+
 For OpenSSL 1.1.1 version the sss_engine is used for accessing Se05x functionality:
+
 - Build the sss_engine library together with the el2go_agent application
+
 - Add the path to the built library (libsss_engine.so) in the OpenSSL configuration file which is located under
 ``<SE05X_root_folder>/simw-top/nxp_iot_agent/ex/src/openssl_conf_v111.cnf`` in the dynamic_path variable of e4sss_section
+
 - Add the environment varaible OPENSSL_CONF pointing to the changed openssl_conf_v111.cnf
 
 For OpenSSL 3.x version the sssProvider is used for accessing Se05x functionality. The provider library is linked
@@ -85,15 +91,18 @@ Re-provisioning of objects
 If during provisioning of one object the EdgeLock 2GO server finds an objects with same ID, will first delete
 the object before provision the new one.
 Now, the following consideration needs to be taken in place when deleting one object:
+
 - the server doesn't know the DELETE permissions of the object on the device (which are defined through policies)
+
 - the server can't read the policies using read attribute APDU since the READ persmissions might be disabled
+
 To solve the issue, the server executes two DELETE operation, one unathenticated and one authenticated,
 which covers most of possible object status on the device. Now, imagine that you have one object
 where the unauthenticated DELETE is not allowed while the authenticated is, the first APDU will fail with the 6986 status word.
 The server will ignore the error returnes status of the APDU and continue with provisioning, but on device a warning will be displayed
 as can be seen in the log below. User can ignore this or similar warnings in case the final report shows success.:
 
-    sss   :WARN :APDU Transaction Error: Command not allowed - access denied based on object policy (0x6986)
+``sss   :WARN :APDU Transaction Error: Command not allowed - access denied based on object policy (0x6986)``
 
 Datastore / Keystore
 ======================================
