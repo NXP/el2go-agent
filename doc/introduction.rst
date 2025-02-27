@@ -32,6 +32,12 @@ EdgeLock2 GO agent for MCU-SDK (FRDMK64F, LPC55S69), and i.MX:
 - KSDK: ``<SE05X_root_folder>/simw-top_build/simw-top-eclipse_arm_el2go``
 - i.MX (native compilation): ``<SE05X_root_folder>/simw-top_build/imx_native_se050_t1oi2c_openssl_el2go``
 
+In case of Unix builds the el2go_agent uses PAHO library to execute MQTT connection tests. In this case is
+important that the user correctly sets the values of the PAHO cmake cache variables PAHO_BUILD_SHARED and PAHO_BUILD_STATIC.
+In case the el2go_agent is built with usage of shared libraries (-DWithSharedLIB=ON), then the following options should
+be chosen when running cmake commmand: ``-DPAHO_BUILD_SHARED=TRUE -DPAHO_BUILD_STATIC=FALSE``. In case of build
+with static libraries use the following options instead: ``-DPAHO_BUILD_SHARED=FALSE -DPAHO_BUILD_STATIC=TRUE``.
+
 Registering the device to the EdgeLock 2GO service
 ----------------------------------------------------
 
@@ -82,7 +88,12 @@ For OpenSSL 1.1.1 version the sss_engine is used for accessing Se05x functionali
 - Add the environment varaible OPENSSL_CONF pointing to the changed openssl_conf_v111.cnf
 
 For OpenSSL 3.x version the sssProvider is used for accessing Se05x functionality. The provider library is linked
-to the el2go_agent application and is loaded during runtime using the OpenSSL feature of built-in provider support
+to the el2go_agent application and is loaded during runtime using the OpenSSL feature of built-in provider support.
+Note: the sssProvider is always built and installed as a dynamic library, building as static library is not supported.
+For this reason is recommended to built the el2go_agent with the option of using shared libraries (-DWithSharedLIB=ON):
+the binary will be able to dynamically load the sssProvider from the default library installation directory. The use case
+where the el2go_agent is built with usage of static libraries (-DWithSharedLIB=OFF) will still work, but the binary will expect
+the sssProvider dynamic library at the same place where it was present during the linking process.
 
 
 Re-provisioning of objects
