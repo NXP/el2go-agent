@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2024 NXP
+# Copyright 2024-2025 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 import pathlib
@@ -13,12 +13,13 @@ import sys
 import time
 import datetime
 
-parser = argparse.ArgumentParser(description='Rewraps EL2GO Secure Objects for N10 based devices')
+parser = argparse.ArgumentParser(description='Rewraps EL2GO Secure Objects for N10/N11 based devices')
 
 parser.add_argument('rtp_json_path', type=pathlib.Path, help='Path to a JSON file containing raw EL2GO RTP objects')
 parser.add_argument('provisioning_fw_path', type=pathlib.Path, help='Path to the provisioning firmware SB3 container')
 parser.add_argument('com_port', type=str, help='The COM port to use for contacting the device in ISP mode')
 parser.add_argument('rewrapped_rtp_json_out_path', type=pathlib.Path, help='Output path for the JSON file containing the rewrapped EL2GO objects')
+parser.add_argument('soc', type=str, default="mcxn947", nargs='?', help='Soc name, for which re_wrapping is being done e.g: mcxn236 or mcxn947')
 
 args = parser.parse_args()
 
@@ -35,8 +36,21 @@ processed_blobs_path = workspace.joinpath("processed_blobs.json")
 user_config_path = workspace.joinpath("user_config.bin")
 raw_blobs_path = workspace.joinpath("raw_blobs.bin")
 wrapped_blobs_path = workspace.joinpath("wrapped_blobs.bin")
+#default for mcxn947
+blob_flash_address = "0x1C0000"
 
-user_config = b'\x45\x4C\x55\x43\x00\x01\x00\x20\x00\x00\x1C\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+if str(args.soc).lower() == "mcxn947":
+    blob_flash_address = "0x001C0000"
+    blob_flash_little_endian_add = b'\x00\x00\x1C\x00'
+    print(f"SOC is MCXN947")
+elif str(args.soc).lower() == "mcxn236":
+    blob_flash_address = "0x000C4000"
+    blob_flash_little_endian_add = b'\x00\x40\x0C\x00'
+    print(f"SOC is MCXN236")
+else:
+    print(f"No SOC selected, default value will be used")
+    
+user_config = b'\x45\x4C\x55\x43\x00\x01\x00\x20' + blob_flash_little_endian_add + b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 blhost_args = ["blhost", "-p", f"{args.com_port},115200", "--"]
 
 def wrap_blobs(raw_blobs) -> bytes:
@@ -56,7 +70,7 @@ def wrap_blobs(raw_blobs) -> bytes:
 
     subprocess.run(["nxpdebugmbox", "ispmode", "-m", "1"], check=True)
 
-    subprocess.run(blhost_args + ["read-memory", "0x1C0000", hex(blobs_total_size), wrapped_blobs_path], check=True)
+    subprocess.run(blhost_args + ["read-memory", blob_flash_address, hex(blobs_total_size), wrapped_blobs_path], check=True)
 
     with open(wrapped_blobs_path, "rb") as wrapped_blobs_file:
         wrapped_blobs = wrapped_blobs_file.read()
@@ -110,7 +124,7 @@ while True:
         base64_string = provisioning['apdus']['createApdu']['apdu']
         blob = base64.b64decode(base64_string)
 
-        if len(blobs) + 1 <= 16 and blobs_total_size + len(blob) <= 16384:
+        if len(blobs) + 1 <= 16 and blobs_total_size + len(blob) <= 16128:
             blobs.append(blob)
             blobs_total_size += len(blob)
         else: 
