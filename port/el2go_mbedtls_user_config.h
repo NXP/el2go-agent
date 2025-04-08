@@ -32,13 +32,21 @@
 #define MBEDTLS_MPI_MAX_SIZE 512 /* Maximum number of bytes for usable MPIs. */
 #define MBEDTLS_ECP_MAX_BITS 521 /* Maximum bit size of groups */
 
+// Config required as on ns side, agent will use crypto as client.
+#ifndef MBEDTLS_PSA_CRYPTO_CLIENT
+    #define MBEDTLS_PSA_CRYPTO_CLIENT
+#endif // MBEDTLS_PSA_CRYPTO_CLIENT
+
+// Need to undef it in case its defined in default mcux_mbedtls_config.h is enabled, only to be used without tfm.
+// Here, the crypto services are expected to be provided by secure domain.
+#if defined MBEDTLS_PSA_CRYPTO_C
+    #undef MBEDTLS_PSA_CRYPTO_C
+#endif // MBEDTLS_PSA_CRYPTO_C
+
+
 #ifndef MBEDTLS_USE_PSA_CRYPTO
     #define MBEDTLS_USE_PSA_CRYPTO
 #endif // MBEDTLS_USE_PSA_CRYPTO
-
-#ifndef MBEDTLS_PSA_CRYPTO_STORAGE_C
-    #define MBEDTLS_PSA_CRYPTO_STORAGE_C
-#endif // MBEDTLS_PSA_CRYPTO_STORAGE_C
 
 #ifndef MBEDTLS_PK_HAVE_ECDSA
     #define MBEDTLS_PK_HAVE_ECDSA
