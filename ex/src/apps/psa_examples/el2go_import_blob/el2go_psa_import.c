@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -22,9 +22,10 @@
 #define PSA_CMD_TAG_KEY_LIFETIME        0x46U
 #define PSA_CMD_TAG_SIGNATURE           0x5EU
 
-#define OEM_KEY_ID      0x7FFF817BU
-#define RKTH_KEY_ID     0x7FFF817AU
-#define OTP_DATA_KEY_ID 0x7FFF817CU
+#define OEM_KEY_ID              0x7FFF817BU
+#define RKTH_KEY_ID             0x7FFF817AU
+#define OTP_DATA_KEY_ID         0x7FFF817CU
+#define BATCH_FLOW_KEY_ID       0x7FFF8181U
 
 
 static uint32_t get_uint32_val(const uint8_t *input)
@@ -282,7 +283,7 @@ psa_status_t iot_agent_utils_psa_import_blobs_from_flash(const uint8_t *blob_are
         }
         
         psa_key_id_t blob_key_id = psa_get_key_id(&attributes);
-        if (blob_key_id == OEM_KEY_ID || blob_key_id == RKTH_KEY_ID || blob_key_id == OTP_DATA_KEY_ID) {
+        if (blob_key_id == OEM_KEY_ID || blob_key_id == RKTH_KEY_ID || blob_key_id == OTP_DATA_KEY_ID || blob_key_id == BATCH_FLOW_KEY_ID) {
             continue;
         }
 
