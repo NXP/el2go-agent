@@ -1230,7 +1230,7 @@ exit:
 }
 #if !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 static iot_agent_status_t iot_agent_utils_update_edgelock2go_datastore(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, const char* hostname, uint32_t port)
+	iot_agent_datastore_t* datastore, const char* hostname, uint32_t port, const pb_bytes_array_t* trusted_root_ca_certificates)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
@@ -1256,8 +1256,8 @@ static iot_agent_status_t iot_agent_utils_update_edgelock2go_datastore(iot_agent
 			}
 
 			if (strcmp(service_descriptor.hostname, hostname) == 0) {
+				if ((service_descriptor.has_port) && (service_descriptor.port == port) && (trusted_root_ca_certificates == NULL)) {
 				IOT_AGENT_TRACE("EdgeLock 2GO hostname and port match, update of datastore not required");
-				if ((service_descriptor.has_port) && (service_descriptor.port == port)) {
 					agent_status = IOT_AGENT_SUCCESS;
 					goto exit;
 				}
@@ -1267,14 +1267,14 @@ static iot_agent_status_t iot_agent_utils_update_edgelock2go_datastore(iot_agent
 
 	IOT_AGENT_TRACE("Update of the EdgeLock 2GO datastore with hostname and port: %s:%d", hostname, port);
 	agent_status = iot_agent_utils_write_edgelock2go_datastore(keystore, datastore,
-		hostname, port, iot_agent_trusted_root_ca_certificates, NULL);
+		hostname, port, trusted_root_ca_certificates, NULL);
 
 exit:
 	return agent_status;
 }
 
 static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_cmdline(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, int argc, const char *argv[]) {
+	iot_agent_datastore_t* datastore, const pb_bytes_array_t* trusted_root_ca_certificates, int argc, const char *argv[]) {
 	iot_agent_status_t agent_status = IOT_AGENT_FAILURE;
 	int ret = 0;
 	char* edgelock2go_hostname = NULL;
@@ -1305,7 +1305,7 @@ static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_cmdli
 					int int_port = atoi(edgelock2go_port_str);
 					ASSERT_OR_EXIT_MSG(int_port >= 0, "Port is negative value.");
 					agent_status = iot_agent_utils_update_edgelock2go_datastore(keystore, datastore,
-						edgelock2go_hostname, (uint32_t)int_port);
+						edgelock2go_hostname, (uint32_t)int_port, trusted_root_ca_certificates);
 					goto exit;
 				}
 			}
@@ -1316,7 +1316,7 @@ exit:
 }
 
 static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_env(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore) {
+	iot_agent_datastore_t* datastore, const pb_bytes_array_t* trusted_root_ca_certificates) {
 	iot_agent_status_t agent_status = IOT_AGENT_FAILURE;
 	char* edgelock2go_hostname = NULL;
 	size_t len = 0U;
@@ -1364,7 +1364,7 @@ static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_env(i
 	int_port = atoi(edgelock2go_port_str);
 	ASSERT_OR_EXIT_MSG(int_port >= 0, "Port is negative value.");
 	agent_status = iot_agent_utils_update_edgelock2go_datastore(keystore, datastore,
-		edgelock2go_hostname, (uint32_t)int_port);
+		edgelock2go_hostname, (uint32_t)int_port, trusted_root_ca_certificates);
 
 exit:
 	free(edgelock2go_hostname);
@@ -1373,20 +1373,26 @@ exit:
 #endif //!(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 
 iot_agent_status_t iot_agent_utils_configure_edgelock2go_datastore(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, int argc, const char *argv[]) {
+	iot_agent_datastore_t* datastore, const pb_bytes_array_t* trusted_root_ca_certificates,
+	int argc, const char *argv[]) {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+	const pb_bytes_array_t* used_root_ca_certificates = iot_agent_trusted_root_ca_certificates;
+
+	if (trusted_root_ca_certificates != NULL) {
+		used_root_ca_certificates = trusted_root_ca_certificates;
+	}
 
 	ASSERT_OR_EXIT_MSG(keystore != NULL, "Port pointer is NULL");
 	ASSERT_OR_EXIT_MSG(datastore != NULL, "Port pointer is NULL");
 
 #if !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 	// in FreeRTOS and Zephyr the setting through command line or environment vairable is not supported
-	if (iot_agent_utils_get_el2go_hostname_and_port_from_cmdline(keystore, datastore, argc, argv) == IOT_AGENT_SUCCESS) {
+	if (iot_agent_utils_get_el2go_hostname_and_port_from_cmdline(keystore, datastore, used_root_ca_certificates, argc, argv) == IOT_AGENT_SUCCESS) {
 		IOT_AGENT_TRACE("EL2GO hostname set from command line");
 		goto exit;
 	}
 
-	if (iot_agent_utils_get_el2go_hostname_and_port_from_env(keystore, datastore) == IOT_AGENT_SUCCESS) {
+	if (iot_agent_utils_get_el2go_hostname_and_port_from_env(keystore, datastore, used_root_ca_certificates) == IOT_AGENT_SUCCESS) {
 		IOT_AGENT_TRACE("EL2GO hostname set from environment variable");
 		goto exit;
 	}
@@ -1396,7 +1402,7 @@ iot_agent_status_t iot_agent_utils_configure_edgelock2go_datastore(iot_agent_key
 	if (!iot_agent_service_is_configuration_data_valid(datastore)) {
 		IOT_AGENT_TRACE("Invalid EL2GO datastore file, use hostname and port from macros");
 		iot_agent_utils_write_edgelock2go_datastore(keystore, datastore,
-			EDGELOCK2GO_HOSTNAME, EDGELOCK2GO_PORT, iot_agent_trusted_root_ca_certificates, NULL);
+			EDGELOCK2GO_HOSTNAME, EDGELOCK2GO_PORT, used_root_ca_certificates, NULL);
 	}
 
 exit:
