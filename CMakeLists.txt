@@ -7,6 +7,17 @@ cmake_minimum_required(VERSION 3.5)
 
 PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.2.0)
 
+#define some variables which will be used in different places
+set(exported_targets el2go_agent-targets)
+set(config_install_dir lib/cmake/el2go_agent)
+set(input_config_file ${CMAKE_CURRENT_SOURCE_DIR}/el2go_agent-config.cmake.in)
+set(config_file ${CMAKE_CURRENT_BINARY_DIR}/el2go_agent-config.cmake)
+set(version_config_file ${CMAKE_CURRENT_BINARY_DIR}/el2go_agent-config-version.cmake)
+set(agent_include_build_dir ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+set(agent_include_install_dir include/el2go-agent/nxp-iot-agent/)
+set(protobuf_include_build_dir ${CMAKE_CURRENT_SOURCE_DIR}/src/protobuf)
+set(protobuf_include_install_dir include/el2go-agent/protobuf/)
+
 IF(NOT COMMAND CREATE_BINARY)
     MACRO(CREATE_BINARY PROJECT_NAME)
     ENDMACRO()
@@ -155,12 +166,12 @@ ENDIF()
 
 IF (NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
     ADD_LIBRARY(nxp_iot_agent SHARED ${NXP_IOT_AGENT_FILES})
-    set_target_properties(nxp_iot_agent PROPERTIES
+    set_target_properties(${PROJECT_NAME} PROPERTIES
         C_STANDARD 99
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR})
 ELSE()
-    ADD_LIBRARY(nxp_iot_agent ${NXP_IOT_AGENT_FILES})
+    ADD_LIBRARY(${PROJECT_NAME} ${NXP_IOT_AGENT_FILES})
 ENDIF()
 
 IF(
@@ -177,154 +188,131 @@ IF(
     PUBLIC -Wno-error=format)
 ENDIF()
 
+# For public interfaces, distinguish between the build and install paths
 TARGET_INCLUDE_DIRECTORIES(
-    nxp_iot_agent
-    PUBLIC inc
-    PUBLIC src
-    PUBLIC platform
-    PUBLIC src/protobuf
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${agent_include_build_dir}>
+    $<INSTALL_INTERFACE:${agent_include_install_dir}>
+)
+
+TARGET_INCLUDE_DIRECTORIES(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${protobuf_include_build_dir}>
+    $<INSTALL_INTERFACE:${protobuf_include_install_dir}>
+)
+
+# Private include directories doesn't need a install interface
+TARGET_INCLUDE_DIRECTORIES(
+    ${PROJECT_NAME}
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/platform>
 )
 
 IF(SSS_HAVE_KSDK)
-    TARGET_INCLUDE_DIRECTORIES(
-    nxp_iot_agent
-    PUBLIC port/ksdk
-    )
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/port/ksdk>)
 ELSE()
-    TARGET_INCLUDE_DIRECTORIES(
-    nxp_iot_agent
-    PUBLIC port/default
-    )
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/port/default>)
 ENDIF()
 
 
 IF(SSS_HAVE_HOSTCRYPTO_OPENSSL OR (SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_MBEDTLS_ALT_SSS))
-    TARGET_INCLUDE_DIRECTORIES(nxp_iot_agent PUBLIC src/keystore/sss/)
-    TARGET_INCLUDE_DIRECTORIES(nxp_iot_agent PUBLIC platform/se05x/)
+    TARGET_INCLUDE_DIRECTORIES(
+        ${PROJECT_NAME}
+        PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/keystore/sss/>
+        PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/platform/se05x/>
+    )
 ENDIF()
 
 IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS AND SSS_HAVE_MBEDTLS_ALT_PSA)
-    TARGET_INCLUDE_DIRECTORIES(nxp_iot_agent PUBLIC src/keystore/psa/)
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/keystore/psa/>)
     IF(NOT NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
-        TARGET_INCLUDE_DIRECTORIES(nxp_iot_agent PUBLIC ex/inc/mbedtls_psa)
+        TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ex/inc/mbedtls_psa>)
     ENDIF()
 ENDIF()
 
 IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
-    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC src/datastore/fs/)
-	TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC platform/smw)
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/datastore/fs/>)
+	TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/platform/smw>)
 
     FIND_PACKAGE(NXP_SMW CONFIG REQUIRED)
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} NXP_SMW::smw)
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} pthread)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:NXP_SMW::smw>)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:pthread>)
 
     FIND_PACKAGE(MbedTLS CONFIG REQUIRED)
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} MbedTLS::mbedtls)
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} MbedTLS::mbedx509)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:MbedTLS::mbedtls>)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:MbedTLS::mbedx509>)
 
     ADD_SUBDIRECTORY(src/common)
 ENDIF()
 
 
 IF(SSS_HAVE_HOST_PCWINDOWS OR SSS_HAVE_HOST_PCLINUX OR SSS_HAVE_HOST_IMXLINUX OR SSS_HAVE_HOST_RASPBIAN)
-    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC src/datastore/fs/)
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/datastore/fs/>)
 ENDIF()
 
 IF(SSS_HAVE_HOST_FRDMK64F OR SSS_HAVE_HOST_EVKMIMXRT1060 OR SSS_HAVE_HOST_EVKMIMXRT1170 OR SSS_HAVE_HOST_LPCXPRESSO55S)
-    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC src/datastore/plain/)
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/datastore/plain/>)
 ENDIF()
 
 IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS AND NOT NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
     IF (SSS_HAVE_MBEDTLS_ALT_PSA)
-        TARGET_LINK_LIBRARIES(
-            nxp_iot_agent
-            mbedtls_psa
-        )
+        TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:mbedtls_psa>)
     ELSE()
-    TARGET_LINK_LIBRARIES(
-    nxp_iot_agent
-    mbedtls
-    )
+        TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:mbedtls>)
     ENDIF()
 ENDIF()
 
 IF(SSS_HAVE_HOST_PCWINDOWS OR SSS_HAVE_HOST_WIN10IOT)
-    TARGET_INCLUDE_DIRECTORIES(
-    nxp_iot_agent
-    PUBLIC src/osal/win
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/osal/win>
     )
 ENDIF()
 
 
 IF(SSS_HAVE_HOSTCRYPTO_OPENSSL)
-    TARGET_LINK_LIBRARIES(
-    nxp_iot_agent
-    ${OPENSSL_LIBRARIES}
+
+    FIND_PACKAGE(OpenSSL REQUIRED)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME}
+        $<BUILD_INTERFACE:OpenSSL::SSL>
+        $<BUILD_INTERFACE:OpenSSL::Crypto>
     )
 
     IF(SSS_HAVE_OPENSSL_3_0)
-        TARGET_LINK_LIBRARIES(
-            ${PROJECT_NAME}
-            sssProvider
-        )
-        
-
-        TARGET_INCLUDE_DIRECTORIES(
-            nxp_iot_agent
-            PUBLIC ${SIMW_TOP_DIR}/sss/plugin/openssl_provider/provider
-        )
+        TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:sssProvider>)
+        TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${SIMW_TOP_DIR}/sss/plugin/openssl_provider/provider>)
     ENDIF()
 
     IF(SSS_HAVE_HOST_PCWINDOWS)
-    TARGET_LINK_LIBRARIES(
-        nxp_iot_agent
-        crypt32
-    )
+        TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:crypt32>)
     ENDIF()
 
-    TARGET_INCLUDE_DIRECTORIES(
-    nxp_iot_agent
-    PUBLIC net_crypto/openssl
-    )
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/net_crypto/openssl>)
 
-    TARGET_COMPILE_DEFINITIONS(nxp_iot_agent PRIVATE OPENSSL_LOAD_CONF)
+    TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE OPENSSL_LOAD_CONF)
 
 ENDIF()
 
 IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS)
-    TARGET_LINK_LIBRARIES(
-    nxp_iot_agent
-    )
-
-    TARGET_INCLUDE_DIRECTORIES(
-    nxp_iot_agent
-    PUBLIC net_crypto/mbedtls
-    )
-
+    TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/net_crypto/mbedtls>)
 ENDIF()
 
 IF(SSS_HAVE_APPLET_SE05X_IOT)
-    TARGET_LINK_LIBRARIES(
-    nxp_iot_agent
-    smCom
-    ex_common
-    SSS_APIs
-    se05x
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME}
+        $<BUILD_INTERFACE:smCom>
+        $<BUILD_INTERFACE:ex_common>
+        $<BUILD_INTERFACE:SSS_APIs>
+        $<BUILD_INTERFACE:se05x>
     )
 ENDIF()
 
-
-TARGET_COMPILE_DEFINITIONS(nxp_iot_agent PRIVATE PB_FIELD_32BIT)
+TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE PB_FIELD_32BIT)
 
 IF (WIN32)
-    SET(LIBS_SYSTEM ws2_32)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} $<BUILD_INTERFACE:ws2_32>)
 ENDIF()
 
-TARGET_LINK_LIBRARIES(
-    nxp_iot_agent
-    nxp_iot_agent_common
-    ${LIBS_SYSTEM}
-)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} nxp_iot_agent_common)
 
 ADD_SUBDIRECTORY(ex)
 
@@ -340,9 +328,31 @@ IF(SSS_HAVE_HOST_LINUX_LIKE OR NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
     FILE(GLOB
         NXP_IOT_AGENT_COMMON_PROTOBUF_HEADERS
         src/protobuf/*.h)
-    INSTALL(TARGETS nxp_iot_agent DESTINATION lib)
-    INSTALL(FILES ${NXP_IOT_AGENT_PUBLIC_FILES} DESTINATION include/el2go-agent/nxp-iot-agent)
-    INSTALL(FILES ${NXP_IOT_AGENT_COMMON_PROTOBUF_HEADERS} DESTINATION include/el2go-agent/protobuf)
+
+    # Create the agent config and version files and install them
+    include(CMakePackageConfigHelpers)
+    configure_package_config_file(
+        ${input_config_file}
+        ${config_file}
+        INSTALL_DESTINATION "${config_install_dir}"
+    )
+
+    write_basic_package_version_file(
+        ${version_config_file}
+        COMPATIBILITY AnyNewerVersion
+    )
+
+    INSTALL(
+        TARGETS ${PROJECT_NAME}
+        EXPORT ${exported_targets}
+        DESTINATION lib
+    )
+
+    INSTALL(FILES ${NXP_IOT_AGENT_PUBLIC_FILES} DESTINATION ${agent_include_install_dir})
+    INSTALL(FILES ${NXP_IOT_AGENT_COMMON_PROTOBUF_HEADERS} DESTINATION ${protobuf_include_install_dir})
+    INSTALL(FILES ${config_file} ${version_config_file} DESTINATION "${config_install_dir}")
+    INSTALL(EXPORT ${exported_targets} NAMESPACE el2go_agent:: DESTINATION "${config_install_dir}")
+
 ENDIF()
 
 IF("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
