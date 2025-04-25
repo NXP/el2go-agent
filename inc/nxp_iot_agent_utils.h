@@ -290,6 +290,8 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
  * authentication are stored in \p keystore.
  * @param[in] keystore The input keystore
  * @param[out] datastore The datastore where to write
+ * @param[in] trusted_root_ca_certificates The root certificate to be used in connection to server
+ *            If is NULL the certificate defined in the nxp_iot_agent_config.h will be used
  * @param[in] argc Number of arguments
  * @param[in] argv Argument array
  *
@@ -298,7 +300,8 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
  *
  */
 iot_agent_status_t iot_agent_utils_configure_edgelock2go_datastore(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, int argc, const char *argv[]);
+	iot_agent_datastore_t* datastore, const pb_bytes_array_t* trusted_root_ca_certificates,
+	int argc, const char *argv[]);
 
 /**
  * Checks existence of a file. If required it forces creation of file.

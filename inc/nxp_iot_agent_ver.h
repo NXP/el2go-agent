@@ -11,18 +11,18 @@
 
 /* clang-format off */
 #define NXP_IOT_AGENT_PROD_NAME          "nxp_iot_agent"
-#define NXP_IOT_AGENT_VER_STRING_NUM     "v06.02.00_20250228"
-#define NXP_IOT_AGENT_PROD_NAME_VER_FULL "nxp_iot_agent_v06.02.00_20250228"
+#define NXP_IOT_AGENT_VER_STRING_NUM     "v06.03.00_20250417"
+#define NXP_IOT_AGENT_PROD_NAME_VER_FULL "nxp_iot_agent_v06.03.00_20250417"
 #define NXP_IOT_AGENT_VER_MAJOR          (6u)
-#define NXP_IOT_AGENT_VER_MINOR          (2u)
+#define NXP_IOT_AGENT_VER_MINOR          (3u)
 #define NXP_IOT_AGENT_VER_DEV            (0u)
 
-/* v06.02 = 60002u */
+/* v06.03 = 60003u */
 #define NXP_IOT_AGENT_VER_MAJOR_MINOR ( 0 \
     | (NXP_IOT_AGENT_VER_MAJOR * 10000u)    \
     | (NXP_IOT_AGENT_VER_MINOR))
 
-/* v06.02.00 = 600020000ULL */
+/* v06.03.00 = 600030000ULL */
 #define NXP_IOT_AGENT_VER_MAJOR_MINOR_DEV ( 0 \
     | (NXP_IOT_AGENT_VER_MAJOR * 10000*10000u)    \
     | (NXP_IOT_AGENT_VER_MINOR * 10000u)    \
@@ -49,7 +49,7 @@
  * 
  * v_major  = "06"
  * 
- * v_minor  = "02"
+ * v_minor  = "03"
  * 
  * v_dev    = "00"
  * 

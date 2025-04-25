@@ -506,7 +506,7 @@ iot_agent_status_t agent_start(int argc, const char* argv[])
 	// - Environment variables
 	// - Existing valid datastore file
 	// - Macro defines
-	agent_status = iot_agent_utils_configure_edgelock2go_datastore(&keystore, &edgelock2go_datastore, argc, argv);
+	agent_status = iot_agent_utils_configure_edgelock2go_datastore(&keystore, &edgelock2go_datastore, NULL, argc, argv);
 	AGENT_SUCCESS_OR_EXIT();
 
 	// For connecting to the EdgeLock 2GO cloud service, we also need to register the
