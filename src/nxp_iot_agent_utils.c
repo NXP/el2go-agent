@@ -1083,7 +1083,7 @@ exit:
 
 iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystore_t *keystore,
 	iot_agent_datastore_t* datastore, const char* hostname, uint32_t port,
-	const pb_bytes_array_t* trusted_root_ca_certificates, const pb_bytes_array_t* client_certificate)
+	const iot_agent_array_t* trusted_root_ca_certificates, const iot_agent_array_t* client_certificate)
 {
 
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
@@ -1230,7 +1230,7 @@ exit:
 }
 #if !(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 static iot_agent_status_t iot_agent_utils_update_edgelock2go_datastore(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, const char* hostname, uint32_t port, const pb_bytes_array_t* trusted_root_ca_certificates)
+	iot_agent_datastore_t* datastore, const char* hostname, uint32_t port, const iot_agent_array_t* trusted_root_ca_certificates)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
@@ -1274,7 +1274,7 @@ exit:
 }
 
 static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_cmdline(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, const pb_bytes_array_t* trusted_root_ca_certificates, int argc, const char *argv[]) {
+	iot_agent_datastore_t* datastore, const iot_agent_array_t* trusted_root_ca_certificates, int argc, const char *argv[]) {
 	iot_agent_status_t agent_status = IOT_AGENT_FAILURE;
 	int ret = 0;
 	char* edgelock2go_hostname = NULL;
@@ -1316,7 +1316,7 @@ exit:
 }
 
 static iot_agent_status_t iot_agent_utils_get_el2go_hostname_and_port_from_env(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, const pb_bytes_array_t* trusted_root_ca_certificates) {
+	iot_agent_datastore_t* datastore, const iot_agent_array_t* trusted_root_ca_certificates) {
 	iot_agent_status_t agent_status = IOT_AGENT_FAILURE;
 	char* edgelock2go_hostname = NULL;
 	size_t len = 0U;
@@ -1373,10 +1373,10 @@ exit:
 #endif //!(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 
 iot_agent_status_t iot_agent_utils_configure_edgelock2go_datastore(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, const pb_bytes_array_t* trusted_root_ca_certificates,
+	iot_agent_datastore_t* datastore, const iot_agent_array_t* trusted_root_ca_certificates,
 	int argc, const char *argv[]) {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-	const pb_bytes_array_t* used_root_ca_certificates = iot_agent_trusted_root_ca_certificates;
+	const iot_agent_array_t* used_root_ca_certificates = (const iot_agent_array_t*)iot_agent_trusted_root_ca_certificates;
 
 	if (trusted_root_ca_certificates != NULL) {
 		used_root_ca_certificates = trusted_root_ca_certificates;
