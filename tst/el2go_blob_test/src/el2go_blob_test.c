@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -83,7 +83,17 @@ static void run_testsuite(struct test_suite_t *test_suite)
 #ifdef __ZEPHYR__
         elapsed_time = k_uptime_delta(&start_time);
 #else
-        elapsed_time        = get_uptime_ms() - start_time;
+
+        uint32_t get_time = get_uptime_ms();
+        if (get_time >= start_time)
+        {
+            elapsed_time        = get_time - start_time;
+        }
+        else
+        {
+            LOG("Warning: actual time is in past respect to start time\r\n");
+            elapsed_time        = 0U;
+        }
 #endif
 
         if (result.status == TEST_FAILED)

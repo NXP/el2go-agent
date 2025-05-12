@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -199,6 +199,11 @@ static iot_agent_status_t write_claimcode_blob_to_flash(uint32_t address,
         return IOT_AGENT_FAILURE;
     }
 
+    if (address > UINT32_MAX - sizeof(claimcode_blob_indicator))
+    {
+        LOG("Address out of the range\r\n");
+        return IOT_AGENT_FAILURE;
+    }
     status = program_memory(&context, address + sizeof(claimcode_blob_indicator), sizeof(uint32_t), (uint8_t*) &claimcode_blob_length);
     if (kStatus_Success != status)
     {
@@ -206,6 +211,11 @@ static iot_agent_status_t write_claimcode_blob_to_flash(uint32_t address,
         return IOT_AGENT_FAILURE;
     }
 
+    if ((address > UINT32_MAX - sizeof(claimcode_blob_indicator)) || (address > UINT32_MAX - sizeof(claimcode_blob_indicator) - sizeof(uint32_t)))
+    {
+        LOG("Address out of the range\r\n");
+        return IOT_AGENT_FAILURE;
+    }
     status = program_memory(&context, address + sizeof(claimcode_blob_indicator) + sizeof(uint32_t), claimcode_blob_length, claimcode_blob);
     if (kStatus_Success != status)
     {

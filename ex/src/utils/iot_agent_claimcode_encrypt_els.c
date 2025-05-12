@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -128,6 +128,11 @@ static void printf_buffer(const char *name, const unsigned char *buffer, size_t 
 
 static size_t ceil_to_aes_blocksize(size_t size)
 {
+    if (size > SIZE_MAX - (AES_BLOCK_SIZE - 1U))
+    {
+        LOG("Possible wrap in the size\n");
+        return size;
+    }
     return ((size + (AES_BLOCK_SIZE - 1U)) & (~(AES_BLOCK_SIZE - 1U)));
 }
 
@@ -159,6 +164,10 @@ static inline uint32_t get_required_keyslots(mcuxClEls_KeyProp_t prop)
 
 static mcuxClEls_KeyIndex_t get_free_keyslot(uint32_t required_keyslots)
 {
+    if (required_keyslots > MCUXCLELS_KEY_SLOTS)
+    {
+        return MCUXCLELS_KEY_SLOTS;
+    }
     for (mcuxClEls_KeyIndex_t keyIdx = 0U; keyIdx <= (MCUXCLELS_KEY_SLOTS - required_keyslots); keyIdx++)
     {
         bool is_valid_keyslot = true;
@@ -345,7 +354,14 @@ static iot_agent_status_t encrypt_claimcode(mcuxClEls_KeyIndex_t shared_secret_i
 {
     uint8_t padded_plain_claimcode[PADDED_CLAIM_CODE_MAX_SIZE] = {0U}; // Max claimcode length is 100 characters.
     size_t plain_claimcode_len           = strlen(plain_claimcode);
-    size_t encrypted_claimcode_len       = ceil_to_aes_blocksize(plain_claimcode_len + 1U);
+    size_t encrypted_claimcode_len       = 0U;
+
+    if (plain_claimcode_len > (SIZE_MAX - 1U))
+    {
+        PLOG_ERROR("Error in the plain claim code size\n");
+        return IOT_AGENT_FAILURE;
+    }
+    encrypted_claimcode_len = ceil_to_aes_blocksize(plain_claimcode_len + 1U);
     mcuxClEls_KeyIndex_t enc_key_index   = 0U;
     iot_agent_status_t agent_status =
         derive_key(shared_secret_index, enc_key_prop, ckdf_derivation_data_enc, &enc_key_index);
@@ -360,7 +376,7 @@ static iot_agent_status_t encrypt_claimcode(mcuxClEls_KeyIndex_t shared_secret_i
     cipher_options.bits.dcrpt               = MCUXCLELS_CIPHER_ENCRYPT;
     cipher_options.bits.extkey              = MCUXCLELS_CIPHER_INTERNAL_KEY;
 
-    if (plain_claimcode_len > PADDED_CLAIM_CODE_MAX_SIZE)
+    if (plain_claimcode_len >= PADDED_CLAIM_CODE_MAX_SIZE)
     {
         PLOG_ERROR("Error in plain claim code size");
         return IOT_AGENT_FAILURE;
@@ -466,7 +482,14 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
 {
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     size_t plain_claimcode_len      = strlen(claimcode);
-    size_t encrypted_claimcode_len =
+    size_t encrypted_claimcode_len = 0U;
+
+    if (plain_claimcode_len > (SIZE_MAX - 1U))
+    {
+        PLOG_ERROR("Error in the plain claim code size\n");
+        return IOT_AGENT_FAILURE;
+    }
+
         ceil_to_aes_blocksize(plain_claimcode_len + 1U /* padding adds at least one byte */);
 
     // clang-format off
@@ -476,9 +499,17 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
         + 2U + sizeof(uint32_t) // key properties
         + 2U + sizeof(uint32_t) // key properties
         + 2U + IV_SIZE          // IV
-        + 2U + encrypted_claimcode_len
+        + 2U                    // the encrypted length will be added after wrap check
         + 2U + AES_BLOCK_SIZE;              // CMAC
     // clang-format on
+
+    if (encrypted_claimcode_len > (SIZE_MAX - claimcode_blob_len))
+    {
+        PLOG_ERROR("Error in the claim code size\n");
+        return IOT_AGENT_FAILURE;
+    }
+
+    claimcode_blob_len += encrypted_claimcode_len;
 
     if (*claimcode_blob_size < claimcode_blob_len)
     {

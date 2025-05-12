@@ -1699,6 +1699,7 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
     psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
 
     psa_key_id_t id = 0;
+    psa_key_id_t peer_id = 0U;
     psa_blob_test_initialize(attributes, blob, blob_size, &id, result);
     if (result->status != TEST_PASSED)
     {
@@ -1725,7 +1726,6 @@ void psa_blob_keyexch_test(psa_key_attributes_t attributes,
 
     psa_set_key_id(&attributes, id + 1U);
 
-    psa_key_id_t peer_id = 0U;
     psa_status           = psa_generate_key(&attributes, &peer_id);
 
     /* If key already exist, destroy and then regenerate */
