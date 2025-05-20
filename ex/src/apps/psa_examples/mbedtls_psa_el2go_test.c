@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 NXP
+ * Copyright 2021-2022,2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -34,7 +34,7 @@
                             (psa_status_t) actual, (psa_status_t) expected ); \
             goto exit;                                                        \
         }                                                                     \
-    } while ( 0 )
+    } while ( false )
       
 #define PSA_ERROR(...)                          \
     for (;;)                                           \

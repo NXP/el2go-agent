@@ -369,7 +369,7 @@ int network_configure(void* context, void* opaque_network_config)
 		return IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
 	}
 
-#if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+#if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
 	SSL_CTX_set1_verify_cert_store(ctx, network_config->ca_chain);
 #else
@@ -413,7 +413,7 @@ int network_connect(void* opaque_ctx)
 	}
 
 	// Make openssl verify also the servername in the certificate.
-#if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+#if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
 	#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 	X509_VERIFY_PARAM *param = SSL_get0_param(ssl);
 	if (!X509_VERIFY_PARAM_set1_host(param, network_config->hostname, strlen(network_config->hostname))) {

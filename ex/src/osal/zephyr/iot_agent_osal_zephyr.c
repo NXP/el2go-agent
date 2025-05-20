@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -17,7 +17,7 @@
 
 K_THREAD_STACK_DEFINE(agent_thread_stack_area, EX_SSS_BOOT_RTOS_STACK_SIZE);
 
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
+#if defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM == 1)
 #ifdef NXP_IOT_AGENT_ENABLE_LITE
 extern void config_mbedtls_threading_alt(void);
 #else
@@ -39,12 +39,12 @@ static void agent_start_task_in_loop(void *args, void*, void*){
 
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
     iot_agent_time_context_t iot_agent_demo_boot_time = { 0 };
     iot_agent_time_init_measurement(&iot_agent_demo_boot_time);
 #endif
 
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM
+#if defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM == 1)
 #ifdef NXP_IOT_AGENT_ENABLE_LITE
 	config_mbedtls_threading_alt();
 #else
@@ -57,7 +57,7 @@ static void agent_start_task_in_loop(void *args, void*, void*){
 
     const k_timeout_t delay = K_SECONDS(2);
 
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
     iot_agent_time_conclude_measurement(&iot_agent_demo_boot_time);
     IOT_AGENT_INFO("Performance timing: DEVICE_INIT_TIME : %lums", iot_agent_time_get_measurement(&iot_agent_demo_boot_time));
     iot_agent_time_free_measurement_ctx(&iot_agent_demo_boot_time);

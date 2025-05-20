@@ -1,5 +1,5 @@
 /*
-* Copyright 2018-2021,2024 NXP
+* Copyright 2018-2021,2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
 */
@@ -65,7 +65,7 @@ TEST(PublicInterface, DoInitContext)
 
 TEST(PublicInterface, DoRegisterKeystore)
 {
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	iot_agent_context_t iot_agent_context = { 0 };
 	iot_agent_keystore_t keystore = { 0 };
 	uint32_t keystore_id = 0x1234; // freely choosable
@@ -113,7 +113,7 @@ TEST(PublicInterface, DoRegisterDatastore)
 
 TEST(PublicInterface, DoRegisterTooManyKeystores)
 {
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	iot_agent_context_t iot_agent_context = { 0 };
 	iot_agent_keystore_t keystore[NXP_IOT_AGENT_MAX_NUM_KEYSTORES + 1U] = { 0 };
 	iot_agent_status_t agent_status;
@@ -324,7 +324,7 @@ static void runAllTests(void)
     RUN_TEST_GROUP(PublicInterface);
 	RUN_TEST_GROUP(AgentDispatcher);
 	RUN_TEST_GROUP(AgentService);
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
 	RUN_TEST_GROUP(AgentTime);
 #endif
 	RUN_TEST_GROUP(AgentUtils);

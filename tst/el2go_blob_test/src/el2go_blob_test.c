@@ -218,6 +218,6 @@ int main(void)
     LOG("\r\n#### EL2GO blob tests finished ####\r\n");
     LOG_SET_COLOR(DEFAULT);
 
-    while (1)
+    while (true)
         ;
 }

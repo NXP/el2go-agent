@@ -17,10 +17,10 @@ extern "C" {
 
 #define TEST_FAIL_PSA_INDENT(msg, indentation)                      \
     LOG_SET_COLOR(RED);                                             \
-    LOG("%*s%s returned %d\r\n", indentation, "", msg, psa_status); \
+    LOG("%*s%s returned %d\r\n", (indentation), "", (msg), psa_status); \
     TEST_FAIL(NULL)
 
-#define TEST_FAIL_PSA(msg) TEST_FAIL_PSA_INDENT(msg, TEST);
+#define TEST_FAIL_PSA(msg) TEST_FAIL_PSA_INDENT((msg), TEST);
 
 #define PSA_KEY_LOCATION_S50_ENC_STORAGE_DATA 0xE08101U
 #define PSA_KEY_LOCATION_S50_ENC_STORAGE_KEY  0xE00101U

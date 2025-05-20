@@ -15,10 +15,10 @@
 
 #include "./protobuf/ServiceDescriptor.pb.h"
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 #include <openssl/evp.h>
 #endif
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include <mbedtls/version.h>
 #include <mbedtls/sha256.h>
 #endif
@@ -53,7 +53,7 @@ static void iot_agent_service_read_header(const iot_agent_datastore_t* ctx, size
 }
 
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 
 static iot_agent_status_t iot_agent_service_calculate_configuration_checksum(const iot_agent_datastore_t* ctx,
 	const configuration_data_header_t* header, uint8_t calculated_checksum[32])
@@ -111,7 +111,7 @@ exit:
 }
 
 
-#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#elif defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 
 static iot_agent_status_t iot_agent_service_calculate_configuration_checksum(const iot_agent_datastore_t* ctx,
 	const configuration_data_header_t* header, uint8_t calculated_checksum[32])

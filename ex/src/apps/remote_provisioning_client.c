@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021,2024 NXP
+ * Copyright 2020-2021,2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -58,7 +58,7 @@ static void remote_provisioning_start_task(void *args)
 
 		vTaskDelay(xDelay);
         //run only once
-        while (1);
+        while (true);
     }
 exit:
     return;
@@ -75,7 +75,7 @@ static int remote_provisioning_init_rtos(void *args)
         (tskIDLE_PRIORITY),
         NULL) != pdPASS) {
         IOT_AGENT_INFO("Task creation failed!.\r\n");
-        while (1);
+        while (true);
     }
 
     /* Run RTOS */

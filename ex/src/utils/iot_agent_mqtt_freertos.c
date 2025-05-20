@@ -9,7 +9,7 @@
 #include <nxp_iot_agent.h>
 #include <iot_agent_mqtt_freertos.h>
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 #include <fsl_sss_api.h>
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 #include <nxp_iot_agent_macros_sss.h>
@@ -35,7 +35,7 @@
 
 #include <mbedtls/pk.h>
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 #include "sss_mbedtls.h"
 #include "ex_sss_boot.h"
 #include "sm_types.h"
@@ -117,11 +117,11 @@ typedef struct MqttAgent_Context {
 uint32_t key_id = 0U;
 uint32_t cert_id = 0U;
 
-#if (NXP_IOT_AGENT_HAVE_PSA == 0)
+#if !(defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1))
 static void iot_agent_convert_id_to_label(char* label, size_t label_size, uint32_t id);
-#endif // (NXP_IOT_AGENT_HAVE_PSA == 0)
+#endif //#if !(defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1))
 #endif // NXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 // doc: trigger MQTT connection freertos - start
 iot_agent_status_t iot_agent_verify_mqtt_connection_for_service(iot_agent_context_t* iot_agent_context,
         const nxp_iot_ServiceDescriptor* service_descriptor)
@@ -183,7 +183,7 @@ static iot_agent_status_t pubSubCosOverRtp(iot_agent_context_t* iot_agent_contex
 
 
 #ifdef NXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	iot_agent_keystore_t* keystore = NULL;
 	uint32_t keystore_id = service_descriptor->client_key_sss_ref.endpoint_id;
 	agent_status = iot_agent_get_keystore_by_id(iot_agent_context, keystore_id, &keystore);
@@ -204,13 +204,13 @@ static iot_agent_status_t pubSubCosOverRtp(iot_agent_context_t* iot_agent_contex
 
     mbedtls_pk_context pk;
 	mbedtls_pk_init(&pk);
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	agent_status = associateKeyPair(&pk, keystore, key_id);
 	AGENT_SUCCESS_OR_EXIT();
 
 	pex_sss_demo_boot_ctx->client_cert_index = cert_id;
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	psa_iot_tls_context.keyId = key_id;
 	psa_iot_tls_context.certId = cert_id;
 #endif
@@ -250,7 +250,7 @@ exit:
 
 #endif
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 
 iot_agent_status_t pubSub(iot_agent_context_t* iot_agent_context,
         const nxp_iot_ServiceDescriptor* service_descriptor)
@@ -445,7 +445,7 @@ static iot_agent_status_t iot_agent_demo_mqtt_connect(MqttAgent_Context_t* pMqtt
     TlsTransportStatus_t xNetworkStatus = TLS_TRANSPORT_CONNECT_FAILURE;
     NetworkCredentials_t xNetworkCredentials = { 0 };
     const char * pcAlpnProtocols[] = { NULL, NULL };
-#if NXP_IOT_AGENT_HAVE_PSA == 0
+#if !(defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1))
 	char certLabel[20] = {'\0'};
     char keyLabel[20] = {'\0'};
 #endif
@@ -472,7 +472,7 @@ static iot_agent_status_t iot_agent_demo_mqtt_connect(MqttAgent_Context_t* pMqtt
     xNetworkCredentials.pRootCa = ( unsigned char * )pMqttAgentContext->pRootCa;
     xNetworkCredentials.rootCaSize = pMqttAgentContext->rootCaSize;
 	xNetworkCredentials.disableSni = pdFALSE;
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	xNetworkCredentials.certId = cert_id;
 	xNetworkCredentials.keyId = key_id;
 #else
@@ -1311,11 +1311,11 @@ static iot_agent_status_t azurePubMqttMessage(const nxp_iot_ServiceDescriptor* s
 }
 
 #ifdef NXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT
-#if (NXP_IOT_AGENT_HAVE_PSA == 0)
+#if !(defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1))
 static void iot_agent_convert_id_to_label(char* label, size_t label_size, uint32_t id) {
     memset(label, 0, label_size);
     snprintf(label, label_size, "sss:%08lx", id);
 }
 #endif // NXP_IOT_AGENT_USE_MBEDTLS_TRANSPORT_FOR_MQTT
-#endif // (NXP_IOT_AGENT_HAVE_PSA == 0)
+#endif //#if !(defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1))
 #endif //NXP_IOT_AGENT_ENABLE_LITE

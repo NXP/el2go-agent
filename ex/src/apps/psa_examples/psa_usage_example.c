@@ -1,5 +1,5 @@
 /*
- * Copyright 2021, 2023 NXP
+ * Copyright 2021,2023,2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -21,7 +21,7 @@
                     __FILE__, __LINE__, #predicate);                  \
             goto exit;                                                        \
         }                                                                     \
-    } while ( 0 )
+    } while ( false )
 
 #define ASSERT_STATUS( actual, expected )                                     \
     do                                                                        \
@@ -33,7 +33,7 @@
                             (psa_status_t) actual, (psa_status_t) expected ); \
             goto exit;                                                        \
         }                                                                     \
-    } while ( 0 )
+    } while ( false )
 
 static const uint8_t RSA_1024_KEY[] =
 {

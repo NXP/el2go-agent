@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 NXP
+ * Copyright 2022-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -11,8 +11,8 @@
 #include "stdint.h"
 #include "stddef.h"
 
-#if NXP_IOT_AGENT_HAVE_PSA
-#if !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
+#if !(defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW == 1))
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,7 +56,7 @@ iot_agent_status_t iot_agent_claimcode_encrypt_and_import(char *claimcode,
 *@}
 */ /* end of edgelock2go_agent_claimcode_encrypt */
 
-#endif // !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
-#endif // NXP_IOT_AGENT_HAVE_PSA
+#endif //#if !(defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW == 1))
+#endif //#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 
 #endif // #ifndef _IOT_AGENT_CLAIMCODE_ENCRYPT_H_

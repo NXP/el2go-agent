@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -59,13 +59,13 @@ struct test_result_t
 
 #define TEST_FAIL(msg)               \
     result->status   = TEST_FAILED;  \
-    result->message  = msg;          \
+    result->message  = (msg);        \
     result->function = __FUNCTION__; \
     result->line     = __LINE__;
 
 #define TEST_SKIP(msg)              \
     result->status  = TEST_SKIPPED; \
-    result->message = msg;
+    result->message = (msg);
 
 typedef void TESTCASE(struct test_result_t *result);
 struct test_t

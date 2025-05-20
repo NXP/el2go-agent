@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@ extern "C" {
 
 #define TEST_FAIL_READER(msg)                \
     LOG_SET_COLOR(RED);                      \
-    LOG("Failed to read blob: %s\r\n", msg); \
+    LOG("Failed to read blob: %s\r\n", (msg)); \
     TEST_FAIL(NULL)
 
 /**

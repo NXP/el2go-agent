@@ -27,29 +27,29 @@
 #include "./protobuf/Datastore.pb.h"
 #include "./protobuf/ServiceDescriptor.pb.h"
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 #include <network_openssl.h>
 #include <nxp_iot_agent_macros_openssl.h>
 #endif
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include "network_mbedtls.h"
 #include "mbedtls/pk.h"
 #endif
 
-#if NXP_IOT_AGENT_HAVE_SSS
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include "sss_mbedtls.h"
-#endif
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include "fsl_sss_api.h"
-#endif
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 
 #include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_macros.h>
 #include <nxp_iot_agent_datastore.h>
 #include <nxp_iot_agent_endpoint.h>
 #include <nxp_iot_agent_time.h>
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 #include <nxp_iot_agent_macros_sss.h>
 #include <nxp_iot_agent_session.h>
@@ -63,7 +63,7 @@
 	(((IOT_AGENT_VERSION_MAJOR * 256) + IOT_AGENT_VERSION_MINOR) * 256 \
 		+ IOT_AGENT_VERSION_PATCH)
 
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
 extern iot_agent_time_t iot_agent_time;
 #endif
 
@@ -175,7 +175,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	nxp_iot_ServiceDescriptor* service_descriptor,
 	nxp_iot_UpdateStatusReport* status_report)
 {
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
     iot_agent_time_context_t iot_agent_prepare_tls_time = { 0 };
     iot_agent_time_context_t network_connect_time = { 0 };
     iot_agent_time_context_t process_provision_time = { 0 };
@@ -185,7 +185,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	int network_status = 0;
 	uint32_t edgelock2go_keystore_id = 0U;
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	sss_status_t sss_status;
 	sss_object_t private_key = { 0 };
 	sss_key_store_t* sss_context = NULL;
@@ -197,7 +197,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	pb_istream_t input;
 	pb_ostream_t output;
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
     uint8_t buffer[NXP_IOT_AGENT_EDGELOCK2GO_CLIENT_CERTIFICATE_BUFFER_SIZE];
     size_t buffer_size = sizeof(buffer);
 #endif
@@ -206,18 +206,18 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	uint8_t* client_certificate_buffer = NULL;
 	size_t client_certificate_size = 0U;
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 	BIO *bio_in = NULL;
 	BIO *bio_in_verify = NULL;
 	uint32_t private_key_object_id = 0U;
 
 	openssl_network_config_t openssl_network_config = { 0 };
 	iot_agent_keystore_key_ref_t gen_key_ref = { 0 };
-#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#elif defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 
 	mbedtls_network_config_t network_config = { 0 };
 
-#if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+#if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
 	const uint8_t* pos = NULL;
 	const uint8_t* end_ptr = NULL;
 #endif
@@ -236,8 +236,8 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	agent_status = iot_agent_get_keystore_by_id(agent_context, edgelock2go_keystore_id, &keystore);
 	AGENT_SUCCESS_OR_EXIT_MSG("Unable to get keystore for connection to EdgeLock 2GO.");
 
-	if (0) {}
-#if NXP_IOT_AGENT_HAVE_SSS
+	if (false) {}
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	else if (keystore->type == IOT_AGENT_KS_SSS_SE05X) {
 		// This a secure element keystore, it is expected that the client certificate was provisioned together with the client 
 		// key to the keystore.
@@ -250,7 +250,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);
 	}
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	else if (keystore->type == IOT_AGENT_KS_PSA) {
 		// The keystore is abstracetd by a PSA interface. The key is in the keystore, the certificate is not.
 		ASSERT_OR_EXIT_MSG(service_descriptor->client_certificate != NULL, "service_descriptor does not contain a client certificate");
@@ -260,7 +260,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	    EXIT_STATUS_MSG(IOT_AGENT_FAILURE, "Unsuported keystore type: %d", keystore->type);
 	}
 
-#if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+#if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
 	// For the trusted root certificates, we for now always expect to have its contents as bytes.
 	ASSERT_OR_EXIT_MSG(service_descriptor->server_certificate != NULL, "service_descriptor does not contain a server certificate");
 #endif
@@ -271,7 +271,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 #endif
 
 	if (false) {}
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	else if (keystore->type == IOT_AGENT_KS_SSS_SE05X) {
 		agent_status = iot_agent_keystore_open_session(keystore);
 		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_open_session failed: 0x%08x", agent_status)
@@ -290,7 +290,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 		client_certificate_size = buffer_size;
 	}
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	else if (keystore->type == IOT_AGENT_KS_PSA) {
 		client_certificate_buffer = service_descriptor->client_certificate->bytes;
 		client_certificate_size = service_descriptor->client_certificate->size;
@@ -303,7 +303,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	agent_status = iot_agent_init_dispatcher(&dispatcher_context, agent_context, service_descriptor, status_report);
 	AGENT_SUCCESS_OR_EXIT();
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 	IOT_AGENT_INFO("Close SE session before starting openssl engine session");
 	iot_agent_keystore_close_session(keystore);
 
@@ -322,7 +322,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	OPENSSL_ASSERT_OR_EXIT(bio_in != NULL, "BIO_new_mem_buf");
 	openssl_network_config.certificate = d2i_X509_bio(bio_in, NULL);
 
-#if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+#if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
 	ASSERT_OR_EXIT_MSG(service_descriptor->server_certificate->size <= INT32_MAX, "Overflow in size value");
 	bio_in_verify = BIO_new_mem_buf(service_descriptor->server_certificate->bytes, (int)service_descriptor->server_certificate->size);
 	OPENSSL_ASSERT_OR_EXIT(bio_in_verify != NULL, "BIO_new_mem_buf");
@@ -365,7 +365,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	network_status = network_configure(dispatcher_context.network_context, &openssl_network_config);
 	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_configure failed with 0x%08x.", network_status);
 
-#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#elif defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 
 	network_config.hostname = service_descriptor->hostname;
 	network_config.port = service_descriptor->port;
@@ -374,7 +374,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	network_status = mbedtls_x509_crt_parse_der(&network_config.clicert, client_certificate_buffer, client_certificate_size);
 	ASSERT_OR_EXIT_MSG(network_status == 0, "mbedtls_x509_crt_parse_der of client cert failed with 0x%08x", network_status);
 
-#if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+#if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
 	mbedtls_x509_crt_init(&network_config.ca_chain);
 	pos = service_descriptor->server_certificate->bytes;
 	end_ptr = pos + service_descriptor->server_certificate->size;
@@ -398,13 +398,13 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	ASSERT_OR_EXIT_MSG(network_status == 0, "network_configure failed with 0x%08x", network_status);
 
 	if (false) {}
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	else if (keystore->type == IOT_AGENT_KS_SSS_SE05X) {
 		network_status = sss_mbedtls_associate_keypair(&((mbedtls_network_context_t*)dispatcher_context.network_context)->pkey, &private_key);
 		ASSERT_OR_EXIT_MSG(network_status == 0, "sss_mbedtls_associate_keypair failed with 0x%08x", network_status);
 	}
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	else if(keystore->type == IOT_AGENT_KS_PSA) {
 		service_descriptor->client_key_sss_ref.object_id = EDGELOCK2GO_KEYID_ECC;
 
@@ -418,7 +418,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 #error
 #endif
 
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
 	iot_agent_time_conclude_measurement(&iot_agent_prepare_tls_time);
 	iot_agent_time.prepare_tls_time = iot_agent_time_get_measurement(&iot_agent_prepare_tls_time);
 
@@ -426,19 +426,19 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 #endif
 	network_status = network_connect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_connect failed with 0x%08x.", network_status);
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
     iot_agent_time_conclude_measurement(&network_connect_time);
 	iot_agent_time.network_connect_time = iot_agent_time_get_measurement(&network_connect_time);
     iot_agent_time_init_measurement(&process_provision_time);
 #endif
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 
 	// We need to distinguish here, if we need to do a CRL verification, this has to be the
 	// first thing that we do after connection establishment and openssl still needs control over
 	// the secure element in that case. Only if we do not want a CRL verification to de done, we
 	// can release the engine's control over the secure element here.
-#if ! NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
+#if !(defined(NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO) && (NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO == 1))
 	network_status = network_openssl_engine_session_disconnect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == NETWORK_STATUS_OK, "network_openssl_engine_session_disconnect failed with 0x%08x.", network_status);
 
@@ -453,14 +453,14 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	agent_status = iot_agent_dispatcher(&dispatcher_context, &input, &output);
 	AGENT_SUCCESS_OR_EXIT();
 
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
     iot_agent_time_conclude_measurement(&process_provision_time);
 	iot_agent_time.process_provision_time = iot_agent_time_get_measurement(&process_provision_time);
 #endif
 	network_status = network_disconnect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == 0, "network_disconnect failed with 0x%08x", network_status);
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 	network_status = network_openssl_engine_session_disconnect(dispatcher_context.network_context);
 	ASSERT_OR_EXIT_MSG(network_status == 0, "network_openssl_engine_session_disconnect failed with 0x%08x", network_status);
 #endif
@@ -468,7 +468,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	agent_status = iot_agent_keystore_open_session(keystore);
 	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_open_session failed with 0x%08x", agent_status);
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	if (keystore->type == IOT_AGENT_KS_SSS_SE05X) {
 		sss_key_store_t* sss_key_store = NULL;
 		agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_key_store);
@@ -481,7 +481,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 
 exit:
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 	network_status = network_openssl_engine_session_disconnect(dispatcher_context.network_context);
 	if (network_status != NETWORK_STATUS_OK) {
 		IOT_AGENT_ERROR("network_openssl_engine_session_disconnect failed with 0x%08x", network_status);
@@ -496,16 +496,16 @@ exit:
 #endif //if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	X509_free(openssl_network_config.certificate);
 
-#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
-#if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+#elif defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
+#if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
 	mbedtls_x509_crt_free(&network_config.ca_chain);
 	#endif
 	mbedtls_x509_crt_free(&network_config.clicert);
 #endif
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	sss_key_object_free(&private_key);
 #endif
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
 	iot_agent_time_free_measurement_ctx(&iot_agent_prepare_tls_time);
 	iot_agent_time_free_measurement_ctx(&network_connect_time);
 	iot_agent_time_free_measurement_ctx(&process_provision_time);
@@ -569,7 +569,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_constants(
 	// be - in fact it must not be - released.
 	nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
 
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	PB_BYTES_ARRAY_T(1024) client_certificate_buffer = { 0 };
 #endif
 
@@ -606,7 +606,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_constants(
 	service_descriptor.client_certificate_sss_ref.has_object_id = true;
 	service_descriptor.client_certificate_sss_ref.object_id = client_cert_object_id;
 	}
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	else {
 		  size_t certificate_buffer_size = sizeof(client_certificate_buffer.bytes);
 		  agent_status = iot_agent_utils_create_self_signed_edgelock2go_certificate(keystore,
@@ -616,7 +616,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_constants(
 		  service_descriptor.client_certificate = (pb_bytes_array_t*) &client_certificate_buffer;
 	}
 #endif
-#if NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE
+#if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
 	// Put the server certificates into the service descriptor.
 	service_descriptor.server_certificate = (pb_bytes_array_t*) iot_agent_trusted_root_ca_certificates;
 #endif
@@ -997,7 +997,7 @@ bool iot_agent_get_endpoint_info(void* context, void* endpoint_information)
 	additional_data.has_serviceDescriptorVersion = true;
 	additional_data.serviceDescriptorVersion = nxp_iot_ServiceDescriptorVersion_PROTOBUF;
 
-#if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
+#if defined(NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO) && (NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO == 1)
 	additional_data.has_requestCrl = true;
 	additional_data.requestCrl = true;
 #endif
@@ -1024,8 +1024,8 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 	const pb_field_t* message_type, void *context)
 {
 	bool return_status = false;
-#if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO) && (NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO == 1)
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
 	iot_agent_time_context_t iot_agent_crl_time = { 0 };
 #endif
 #endif
@@ -1063,9 +1063,9 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 		return_status = true;
 		goto exit;
 	}
-#if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
+#if defined(NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO) && (NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO == 1)
 	else if (message_type == nxp_iot_AgentCrlRequest_fields) {
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
         iot_agent_time_init_measurement(&iot_agent_crl_time);
 #endif
 		nxp_iot_AgentCrlRequest request = nxp_iot_AgentCrlRequest_init_default;
@@ -1098,7 +1098,7 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 			dispatcher_context->closed = true;
 		}
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 		{
 			int network_status = network_openssl_engine_session_disconnect((openssl_network_context_t*)dispatcher_context->network_context);
 			if (network_status != NETWORK_STATUS_OK) {
@@ -1135,7 +1135,7 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 			return_status = false;
 			goto exit;
 		}
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
         iot_agent_time_conclude_measurement(&iot_agent_crl_time);
 		iot_agent_time.crl_time = iot_agent_time_get_measurement(&iot_agent_crl_time);
 #endif
@@ -1144,8 +1144,8 @@ bool iot_agent_handle_request(pb_istream_t *istream, pb_ostream_t *ostream,
 #endif
 
 exit:
-#if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO) && (NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO == 1)
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
         iot_agent_time_free_measurement_ctx(&iot_agent_crl_time);
 #endif
 #endif

@@ -1,4 +1,4 @@
-/* Copyright 2022-2024 NXP
+/* Copyright 2022-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,8 +7,8 @@
 #include "nxp_iot_agent.h"
 #include "nxp_iot_agent_common.h"
 
-#if NXP_IOT_AGENT_HAVE_PSA
-#if !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
+#if !(defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW == 1))
 
  // TODO: remove that once the import_key_wrap hack is removed!
 #undef psa_import_key
@@ -454,5 +454,5 @@ exit:
     return agent_status;
 }
 
-#endif // !NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW
-#endif // NXP_IOT_AGENT_HAVE_PSA
+#endif //#if !(defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW == 1))
+#endif //#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)

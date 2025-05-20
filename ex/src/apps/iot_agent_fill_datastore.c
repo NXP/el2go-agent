@@ -1,4 +1,4 @@
-/* Copyright 2020-2021,2024 NXP
+/* Copyright 2020-2021,2024-2025 NXP
 *
 * SPDX-License-Identifier: Apache-2.0
 */
@@ -21,9 +21,9 @@
 #include <nxp_iot_agent_keystore.h>
 #include <nxp_iot_agent_platform.h>
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 #include <openssl/pem.h>
-#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#elif defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include <mbedtls/x509_crt.h>
 #endif
 
@@ -35,7 +35,7 @@ static void print_usage()
 {
 	printf("Fill a datastore_fs with one service descriptor assembled from commandline parameters:\n");
 	printf("usage: \n");
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	printf("       nxp_iot_agent_fill_datastore [HOST] [PORT] [CA_FILE] [FILE KEYSTORE_ID] [SSS_CONNECTSTRING]\n");
 #else
 	printf("       nxp_iot_agent_fill_datastore [HOST] [PORT] [CA_FILE] [FILE KEYSTORE_ID]\n");
@@ -58,7 +58,7 @@ static void print_usage()
 	printf("    KEYSTORE_ID: The keystore id as it is registered in the agent.\n");
 	printf("        If omitted, 0x%08xx is used.\n", EDGELOCK2GO_KEYSTORE_ID);
 	printf("\n");
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	printf("    SSS_CONNECTSTRING: The string to connect to the SSS keystore (JRCP_HOSTNAME, JRCP_PORT \n");
 	printf("        or VCOM number). The tool will try to find the objectid for key and\n");
 	printf("        client certificate on the SSS keystore (ECC preferred, else RSA).\n");
@@ -212,7 +212,7 @@ int main(int argc, const char *argv[])
 		keystore_id = (uint32_t)strtoul(argv[6], NULL, 0);
 	}
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	if (strcmp("-", argv[7]) != 0) {
 		agent_status = iot_agent_platform_init(argc, argv, &platform_context);
 		AGENT_SUCCESS_OR_EXIT();

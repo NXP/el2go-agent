@@ -490,7 +490,7 @@ iot_agent_status_t iot_agent_claimcode_encrypt(const char *claimcode,
         return IOT_AGENT_FAILURE;
     }
 
-        ceil_to_aes_blocksize(plain_claimcode_len + 1U /* padding adds at least one byte */);
+    encrypted_claimcode_len = ceil_to_aes_blocksize(plain_claimcode_len + 1U /* padding adds at least one byte */);
 
     // clang-format off
     size_t claimcode_blob_len = 0U

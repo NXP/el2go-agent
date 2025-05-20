@@ -253,7 +253,7 @@ int main(void)
     if (IOT_AGENT_SUCCESS != agent_status)
     {
         LOG("iot_agent_claimcode_encrypt failed: 0x%08x", agent_status);
-        while (1)
+        while (true)
             ;
     }
 
@@ -261,20 +261,20 @@ int main(void)
     if (IOT_AGENT_SUCCESS != agent_status)
     {
         LOG("write_claimcode_blob_to_flash failed: 0x%08x", agent_status);
-        while (1)
+        while (true)
             ;
     }
 
     if(memcmp((uint8_t *)CLAIM_CODE_INFO_ADDRESS, claimcode_blob_indicator, sizeof(claimcode_blob_indicator)) != 0)
     {
         LOG("claimcode indicator was not found in flash");
-        while (1)
+        while (true)
             ;
     }
 
     LOG("\r\nclaimcode information written to flash at address 0x%08x\r\n", CLAIM_CODE_INFO_ADDRESS);
 
-    while (1)
+    while (true)
     {
 #ifdef __ZEPHYR__
         k_sleep(K_FOREVER);

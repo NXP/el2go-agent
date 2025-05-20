@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 NXP
+ * Copyright 2023-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -170,7 +170,7 @@ int main(void)
            ((u8_t *)&netif_gw)[2], ((u8_t *)&netif_gw)[3]);
     PRINTF("************************************************\r\n");
 
-    while (1)
+    while (true)
     {
         ethernetif_input(&netif); /* Poll the driver, get any outstanding frames */
         sys_check_timeouts(); /* Handle all system timeouts for all core protocols */

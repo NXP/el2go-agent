@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 NXP
+ * Copyright 2018-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -24,7 +24,7 @@
 #include "pb_encode.h"
 #include "pb_decode.h"
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 #include <nxp_iot_agent_keystore_sss_se05x.h>
 #include "nxp_iot_agent_macros_sss.h"
 #include <nxp_iot_agent_session.h>
@@ -35,7 +35,7 @@
 #include "sm_apdu.h"
 #include <ex_sss_boot.h>
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 #include <nxp_iot_agent_keystore_psa.h>
 #include "nxp_iot_agent_macros_psa.h"
 #include "psa_init_utils.h"
@@ -82,17 +82,17 @@
 #include <iot_agent_osal_freertos.h>
 #endif
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 // Includes in case of MBED TLS
 #include <mbedtls/version.h>
 #include <iot_agent_mqtt_freertos.h>
 #endif
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 #include <fsl_sss_mbedtls_apis.h>
 #endif
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 #include <unistd.h>
 #include <iot_agent_mqtt_paho.h>
 #ifdef _MSC_VER
@@ -101,7 +101,8 @@
 #define ACCESS access
 #endif
 #endif
-#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
+#if ((defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)) || \
+    (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
 #define OBJECT_ID_SIZE 10U
 #define COMMON_NAME_MAX_SIZE 256
 #define COS_OVER_RTP_CERT_SIZE 2048
@@ -148,7 +149,7 @@
 #define RPC_RESPONSE_STATE_ERROR	1U
 
 
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 #define RPC_ARGUMENT_POS_PSA_OPERATION	1
 #define RPC_ARGUMENT_POS_PSA_OBJECT_ID	2
 #define RPC_ARGUMENT_POS_PSA_ALGORITHM	3
@@ -187,7 +188,7 @@
 #    endif
 #endif
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 // global variables declaration
 static ex_sss_boot_ctx_t gex_sss_boot_ctx;
 #endif
@@ -216,7 +217,7 @@ extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
 
 bool getRespString(char *str, uint8_t *buffer, size_t buffer_len);
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 static iot_agent_status_t execute_write_pem_test(sss_key_store_t* sss_context, const char* object_id)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
@@ -573,7 +574,7 @@ bool getRespString(char *str, uint8_t *buffer, size_t buffer_len)
 	return true;
 }
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 
 // this function sends an APDU to device and checks response
 static iot_agent_status_t send_apdu_to_device(void)
@@ -662,9 +663,9 @@ exit:
 	return agent_status;
 }
 
-#endif //NXP_IOT_AGENT_HAVE_SSS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 // this function sends an APDU to device and checks response
 static iot_agent_status_t import_device_cmd(void)
 {
@@ -687,7 +688,7 @@ static iot_agent_status_t import_device_cmd(void)
 exit:
 	return agent_status;
 }
-#endif // NXP_IOT_AGENT_HAVE_PSA
+#endif //#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 
 static iot_agent_status_t parse_send_cmd_length_command(nxp_iot_RpcRequest* pRpcRequest)
 {
@@ -727,10 +728,10 @@ static iot_agent_status_t parse_send_cmd_command(nxp_iot_RpcRequest* pRpcRequest
 	memcpy(cmd_ptr, pRpcRequest->arg[command_index].payload.data.string_arg, command_length);
 	if (((size_t)(cmd_ptr - start_cmd_ptr) + command_length) == cmd_length)
 	{
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 		send_apdu_to_device();
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 		import_device_cmd();
 #endif
 		free(start_cmd_ptr);
@@ -821,7 +822,7 @@ exit:
 	return agent_status;
 }
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 // This function executes the factory reset on the secure element
 static iot_agent_status_t execute_factory_reset(ex_sss_boot_ctx_t *pCtx)
 {
@@ -1097,11 +1098,11 @@ static iot_agent_status_t execute_connect_to_services(iot_agent_context_t *iot_a
 		AGENT_SUCCESS_OR_EXIT();
 
 		agent_status = iot_agent_verify_mqtt_connection_for_service(iot_agent_context, &service_descriptor);
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 		write_log(TEST_LOG_ID_CONNECTED_SERVICE, "{ service_id: '%" PRIu64 "', status: '%d' }",
 			service_descriptor.identifier, agent_status);
 #endif
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 		write_log(TEST_LOG_ID_CONNECTED_SERVICE, "{ service_id: '%d', status: '%d' }",
 			(uint32_t) service_descriptor.identifier, agent_status);
 #endif
@@ -1114,10 +1115,11 @@ exit:
 	iot_agent_free_service_descriptor(&service_descriptor);
 	return agent_status;
 }
-#endif //NXP_IOT_AGENT_HAVE_SSS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 
 
-#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
+#if ((defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)) || \
+    (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
 static iot_agent_status_t execute_cos_over_rtp_connection(iot_agent_context_t *iot_agent_context, char* serviceDescriptorId) {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
@@ -1187,11 +1189,11 @@ static iot_agent_status_t execute_cos_over_rtp_connection(iot_agent_context_t *i
 	}
 
 exit:
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 	write_log(TEST_LOG_ID_CONNECTED_SERVICE, "{ service_id: '%" PRIu64 "', status: '%d' }",
 		service_descriptor.identifier, agent_status);
 #endif
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 	write_log(TEST_LOG_ID_CONNECTED_SERVICE, "{ service_id: '%d', status: '%d' }",
 		(uint32_t)service_descriptor.identifier, agent_status);
 #endif
@@ -1201,7 +1203,7 @@ exit:
 #endif
 
 
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 typedef struct psa_api_context {
 	uint32_t object_id;
 	psa_algorithm_t algorithm;
@@ -1596,12 +1598,12 @@ static void write_status_report_log(const nxp_iot_UpdateStatusReport* status_rep
 		if (status_report->has_cspStatus) {
 			buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), ", csp_status: { status: %d, details: [ ", status_report->cspStatus.status);
 			for (size_t i = 0U; i < status_report->cspStatus.details_count; i++) {
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 				buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), "%s { endpoint_id: %d, service_id: %" PRIu64 ", status: %d }",
 					i == 0U ? "" : ",",
 					status_report->cspStatus.details[i].endpointId, status_report->cspStatus.details[i].serviceId, status_report->cspStatus.details[i].status);
 #endif
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 				buffer_ptr += snprintf(buffer_ptr, buffer_sz - (size_t)(buffer_ptr - start_buffer_ptr), "%s { endpoint_id: %d, service_id: %d, status: %d }",
 					i == 0U ? "" : ",",
 					status_report->cspStatus.details[i].endpointId, (uint32_t)status_report->cspStatus.details[i].serviceId, status_report->cspStatus.details[i].status);
@@ -1676,10 +1678,10 @@ exit:
 static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_agent_context,
 	iot_agent_datastore_t* edgelock2go_datastore, iot_agent_datastore_t* datastore, iot_agent_keystore_t* keystore, char* log)
 {
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	AX_UNUSED_ARG(log);
 #endif
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
     iot_agent_time_context_t iot_agent_init_time = { 0 };
     iot_agent_time_init_measurement(&iot_agent_init_time);
 #endif
@@ -1688,14 +1690,14 @@ static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_
 	agent_status = iot_agent_init(pst_iot_agent_context);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in agent initialization\n");
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	agent_status = iot_agent_keystore_sss_se05x_init(keystore, EDGELOCK2GO_KEYSTORE_ID, &gex_sss_boot_ctx, true);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in keystore initialization\n");
 
 	agent_status = iot_agent_register_keystore(pst_iot_agent_context, keystore);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in keystore registration\n");
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	agent_status = iot_agent_keystore_psa_init(keystore, EDGELOCK2GO_KEYSTORE_ID);
 	AGENT_SUCCESS_OR_EXIT();
 
@@ -1721,7 +1723,7 @@ static iot_agent_status_t initialize_nxp_iot_agent(iot_agent_context_t* pst_iot_
 
 	agent_status = iot_agent_set_edgelock2go_datastore(pst_iot_agent_context, edgelock2go_datastore);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in datastore setting\n");
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
     iot_agent_time_conclude_measurement(&iot_agent_init_time);
     iot_agent_time.init_time = iot_agent_time_get_measurement(&iot_agent_init_time);
     iot_agent_time_free_measurement_ctx(&iot_agent_init_time);
@@ -1809,7 +1811,7 @@ static iot_agent_status_t execute_nxp_iot_agent_service_prov(iot_agent_context_t
 		AGENT_SUCCESS_OR_EXIT_MSG("Error in service selection\n");
 
 		char* client_certificate_str = pb_bytes_array_to_hex_str(service_descriptor.client_certificate);
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 		//write to files - end
 		if (service_descriptor.service_type == nxp_iot_ServiceType_AZURESERVICE) {
 			write_log(TEST_LOG_ID_PROVISIONED_SERVICE, "{ service_id: '%" PRIu64 "', hostname: '%s', port: %d, client_cert: '%s' }",
@@ -1819,7 +1821,7 @@ static iot_agent_status_t execute_nxp_iot_agent_service_prov(iot_agent_context_t
 					service_descriptor.identifier, service_descriptor.hostname, service_descriptor.port, client_certificate_str);
 		}
 #endif
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 		if (service_descriptor.service_type == nxp_iot_ServiceType_AZURESERVICE) {
 			write_log(TEST_LOG_ID_PROVISIONED_SERVICE, "{ service_id: '%d', hostname: '%s', port: %d, client_cert: '%s' }",
 					(uint32_t)service_descriptor.identifier, "global.azure-devices-provisioning.net", 8883, client_certificate_str);
@@ -1829,7 +1831,7 @@ static iot_agent_status_t execute_nxp_iot_agent_service_prov(iot_agent_context_t
 		}
 #endif
 #ifdef _WIN32
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 		// this is just used to test the function for coverage purpose
 		char keyref_filename[] = "temp_file";
 		if (IOT_AGENT_SUCCESS != iot_agent_utils_write_key_ref_service_pem(pst_iot_agent_context, keyref_filename))
@@ -1858,17 +1860,18 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	size_t offset = 0U;
 	size_t size = 0U;
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 	char* object_id;
 #endif
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	iot_agent_keystore_sss_se05x_context_t* se05x_context = NULL;
 	sss_se05x_session_t* se05x_session = NULL;
 #endif
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
 	iot_agent_time_context_t iot_agent_total_time = { 0 };
 #endif
-#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
+#if ((defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)) || \
+    (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
 	char* serviceDescriptorId = NULL;
 #endif
 	ASSERT_OR_EXIT_MSG(pRpcRequest->id == RPC_ID, "Wrong ID\n");
@@ -1889,24 +1892,24 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
         build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
         break;
     case RPC_REQUEST_CMD_START_PROVISIONING_CLIENT:
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
         iot_agent_session_disconnect(&gex_sss_boot_ctx);
         agent_status = remote_provisioning_start("127.0.0.1", "7050");
         AGENT_SUCCESS_OR_EXIT_MSG("Offline Provisioning Fail, Check logs");
         agent_status = iot_agent_session_connect(&gex_sss_boot_ctx);
         AGENT_SUCCESS_OR_EXIT_MSG("Reconnect failed, Check logs");
-#endif //NXP_IOT_AGENT_HAVE_SSS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
         build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
         break;
     case RPC_REQUEST_CMD_START:
         start_log_ptr = local_buffer;
         log_ptr = start_log_ptr;
 
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
         iot_agent_time_init_measurement(&iot_agent_total_time);
 #endif
         agent_status = execute_nxp_iot_agent_service_prov(pAgentContext);
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
         iot_agent_time_conclude_measurement(&iot_agent_total_time);
         iot_agent_time.total_time = iot_agent_time_get_measurement(&iot_agent_total_time) + iot_agent_time.init_time;
         iot_agent_time_free_measurement_ctx(&iot_agent_total_time);
@@ -1914,13 +1917,13 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
         if (agent_status != IOT_AGENT_SUCCESS)
         {
             IOT_AGENT_ERROR("Error in agent execution\n");
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
             agent_status = iot_agent_session_init(argc, argv, &gex_sss_boot_ctx);
             AGENT_SUCCESS_OR_EXIT_MSG("Critical error: restart the Remote Runner\n");
-#endif //NXP_IOT_AGENT_HAVE_SSS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
         }
 
-#if IOT_AGENT_TIME_MEASUREMENT_ENABLE
+#if defined(IOT_AGENT_TIME_MEASUREMENT_ENABLE) && (IOT_AGENT_TIME_MEASUREMENT_ENABLE == 1)
         write_log(TEST_LOG_ID_PERFORMANCE, "{ entireTime: %ld, initTime: %ld, prepareTlsTime: %ld, networkConnectTime: %ld, processProvisionTime: %ld}",
             iot_agent_time.total_time, iot_agent_time.init_time, iot_agent_time.prepare_tls_time, iot_agent_time.network_connect_time, iot_agent_time.process_provision_time);
 #endif
@@ -1966,7 +1969,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		FPRINTF("Is running Command received successfully\n");
 		build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
 		break;
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 	case RPC_REQUEST_CMD_WRITE_PEM:
 		FPRINTF("Write PEM Command received successfully\n");
 		object_id = malloc((size_t)(OBJECT_ID_SIZE + 1U));
@@ -1998,7 +2001,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 #endif
 	case RPC_REQUEST_CMD_FACTORY_RESET:
 		FPRINTF("Factory Reset Command received successfully\n");
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 		// TODO: this is always using the first keystore, so be careful when triggering this.
 		// Eventually, it needs an additional parameter for the keystore index or id.
 		// This is SE05x specific, so the keystore must have the right type!
@@ -2010,7 +2013,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		}
 		se05x_context = (iot_agent_keystore_sss_se05x_context_t*)pAgentContext->keystores[0]->context;
 		execute_factory_reset(se05x_context->boot_context);
-#endif //NXP_IOT_AGENT_HAVE_SSS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 		build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
 		break;
 	case RPC_REQUEST_CMD_GET_RESP_LENGTH:
@@ -2024,7 +2027,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		build_rpc_response_get_string(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS, offset, size, resp_apdu_ptr);
 		break;
 	case RPC_REQUEST_CMD_SET_ECC_CURVE:
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 		// TODO: this is always using the first keystore, so be careful when triggering this.
 		// Eventually, it needs an additional parameter for the keystore index or id.
 		// This is SE05x specific, so the keystore must have the right type!
@@ -2042,18 +2045,18 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		agent_status = parse_set_ecc_curve_command(pRpcRequest, se05x_session);
 		AGENT_SUCCESS_OR_EXIT_MSG("Error in parsing command\n");
 		FPRINTF("Set Ecc curver received successfully\n");
-#endif //NXP_IOT_AGENT_HAVE_SSS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 		build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
 		break;
 	case RPC_REQUEST_CMD_CONNECT_SERVICES:
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 		if (execute_connect_to_services(pAgentContext) != IOT_AGENT_SUCCESS) {
 			IOT_AGENT_ERROR("Error in connection to services\n");
 		} else {
 			IOT_AGENT_INFO("Connection to services was successfull\n");
 		}
 		FPRINTF("RPC_REQUEST_CMD_CONNECT_SERVICES received successfully\n");
-#endif //NXP_IOT_AGENT_HAVE_SSS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 		build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
 		break;
 	case RPC_REQUEST_CMD_ENDPOINT_REQUEST:
@@ -2061,7 +2064,8 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		AGENT_SUCCESS_OR_EXIT_MSG("Error in handle_endpoint_request command\n");
 		// Note, the response is assembled in the handler already, no build_rpc_response_status required here!
 		break;
-#if ((NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) || (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
+#if ((defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)) || \
+    (AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1))
 	case RPC_REQUEST_CMD_COS_OVER_RTP:
 		serviceDescriptorId = malloc((size_t)(OBJECT_ID_SIZE + 1U));
 		memset(serviceDescriptorId, 0, (size_t)(OBJECT_ID_SIZE + 1U));
@@ -2077,7 +2081,7 @@ static iot_agent_status_t dispatch_rpc_request(int argc, const char *argv[], iot
 		build_rpc_response_status(pRpcResponse, RPC_RESPONSE_STATE_SUCCESS);
 		break;
 #endif
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	case RPC_REQUEST_CMD_EXECUTE_PSA_API:
 		IOT_AGENT_INFO("Execution of PSA API");
 		agent_status = parse_execute_psa_api(pRpcRequest, pRpcResponse);
@@ -2367,7 +2371,7 @@ int main(int argc, const char *argv[])
         (tskIDLE_PRIORITY),
         NULL) != pdPASS) {
         IOT_AGENT_INFO("Task creation failed!.\r\n");
-        while (1)
+        while (true)
             ;
     }
 
@@ -2386,14 +2390,14 @@ iot_agent_status_t remote_runner_start(int argc, const char *argv[])
 {
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
     agent_status = iot_agent_session_init(argc, argv, &gex_sss_boot_ctx);
 	if (agent_status != IOT_AGENT_SUCCESS)
 	{
 		IOT_AGENT_ERROR("Critical error: restart the Remote Runner\n");
 		return agent_status;
 	}
-#endif //NXP_IOT_AGENT_HAVE_SSS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
     // socket file descriptor
 	int socket_fd = 0;
 	int socket_accept_conn_fd = 0;
@@ -2413,7 +2417,7 @@ iot_agent_status_t remote_runner_start(int argc, const char *argv[])
 
 	size_t cmd;
 
-#if NXP_IOT_AGENT_HAVE_PSA
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 	psa_status_t psa_status = PSA_SUCCESS;
 	psa_status = psa_crypto_init();
 	PSA_SUCCESS_OR_EXIT_MSG("Error in the initialization of the command\n");
@@ -2434,7 +2438,7 @@ iot_agent_status_t remote_runner_start(int argc, const char *argv[])
 	agent_status = initialize_server_connection(gserver_port, &socket_fd);
 	AGENT_SUCCESS_OR_EXIT_MSG("Error in server initialization\n");
 
-	while (1)
+	while (true)
 	{
 		printf("******************************************************************************\n");
 		printf("Waiting client connection on port %s...\n", gserver_port);
@@ -2478,7 +2482,7 @@ iot_agent_status_t remote_runner_start(int argc, const char *argv[])
         cmd = 0U;
 
 		// this is the receive-dispatch-transmit loop
-		while (1)
+		while (true)
 		{
 			if ((cmd == RPC_REQUEST_CMD_STOP) || (cmd == RPC_REQUEST_CMD_STOP_AND_CLOSE))
 			{

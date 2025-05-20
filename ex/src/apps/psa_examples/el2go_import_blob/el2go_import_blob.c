@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -110,8 +110,8 @@ int main(void)
     ecc_sign_test(PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1), ECC_KEY_PAIR_ID, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
 
 #endif  /* VALIDATE_PSA_IMPORT_OPERATION */ 
-    while(1);
+    while(true);
     exit:
   	LOG("\r\n#### Import blob(s) from flash failed ####\r\n");
-        while(1);
+        while(true);
 }

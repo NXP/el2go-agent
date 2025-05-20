@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 NXP
+ * Copyright 2020-2021,2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -121,7 +121,7 @@ TEST_TEAR_DOWN(AgentDispatcher)
 
 TEST(AgentDispatcher, InvalidMessageBeforeCrlVerification)
 {
-#if NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO
+#if defined(NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO) && (NXP_IOT_AGENT_REQUEST_CRL_FROM_EDGELOCK_2GO == 1)
 
 	uint8_t buffer[64];
 	size_t sz = sizeof(buffer);

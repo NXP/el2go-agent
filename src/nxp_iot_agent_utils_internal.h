@@ -14,11 +14,11 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 #include <fsl_sss_api.h>
 #endif
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 #include <openssl/ossl_typ.h>
 #include <openssl/engine.h>
 #include <network_openssl.h>
@@ -28,7 +28,7 @@ pb_ostream_t ostream_from_socket(void* network_context);
 pb_istream_t istream_from_socket(void* network_context);
 
 
-#if NXP_IOT_AGENT_HAVE_SSS
+#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 /**@ brief Start of the range of keys to use for keys of cloud services provisioned by EdgeLock 2GO. */
 #define EDGELOCK2GO_MANAGED_SERVICE_KEY_MIN	0x80000000U
 
@@ -55,7 +55,7 @@ pb_istream_t istream_from_socket(void* network_context);
 #define EDGELOCK2GO_ATTESTATION_KEY_ECC         0xF0000012U
 #define EDGELOCK2GO_ATTESTATION_KEY_RSA         0xF0000010U
 
-#elif NXP_IOT_AGENT_HAVE_PSA
+#elif defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 
 // TODO: Agree on all of these ids!
 
@@ -68,7 +68,7 @@ pb_istream_t istream_from_socket(void* network_context);
 /**
  * @brief The keyid on the PSA API to use for connecting to the EdgeLock 2GO cloud service.
  */
-#if NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL || defined(NXP_IOT_AGENT_ENABLE_LITE)
+#if (defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_SIMUL == 1)) || defined(NXP_IOT_AGENT_ENABLE_LITE)
 #define EDGELOCK2GO_KEYID_ECC              0x3fff0201U
 #else
 #define EDGELOCK2GO_KEYID_ECC              0x7FFF816CU
@@ -109,7 +109,7 @@ pb_istream_t istream_from_socket(void* network_context);
 #endif
 
 
-#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 
 /*! @brief Create an EC key reference.
 * The function is used when OpenSSL crypto is selected to generate the Open SSL key reference using the key
