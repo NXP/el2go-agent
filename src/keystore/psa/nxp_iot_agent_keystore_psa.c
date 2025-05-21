@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 NXP
+ * Copyright 2021-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -198,6 +198,15 @@ bool iot_agent_keystore_psa_handle_request(pb_istream_t *istream,
             HAS_FIELD_OR_EXIT(request.command.destroy_key.has_identifier);
             destroy_key_id = request.command.destroy_key.identifier;
             psa_status = psa_destroy_key(destroy_key_id);
+#if defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW == 1)
+            // on SMW targets the PSA implementation layer is not  able to handle the destruction
+            // of RAW data secure objects via the psa_destroy_key API, which will in this case
+            // return PSA_ERROR_INVALID_HANDLE. In case of such return code Agent will force the removal via
+            // the psa_its_remove API
+            if (psa_status == PSA_ERROR_INVALID_HANDLE) {
+                psa_status = psa_its_remove(destroy_key_id);
+            }
+#endif
             if (psa_status == PSA_ERROR_INVALID_HANDLE) {
                 psa_status = PSA_ERROR_DOES_NOT_EXIST;
             }
