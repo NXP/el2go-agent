@@ -13,8 +13,8 @@ static bool copy_bytes_to_buffer(pb_istream_t *stream, buffer_t *read_buffer)
 {
     size_t len = stream->bytes_left;
     if (len > read_buffer->len) {
-        IOT_AGENT_ERROR("received byte stream is too long [%lu bytes] to "
-            "fit in buffer with size [%lu bytes]", len, read_buffer->len);
+        IOT_AGENT_ERROR("received byte stream is too long [%zu bytes] to "
+            "fit in buffer with size [%zu bytes]", len, read_buffer->len);
         return false;
     }
     if (!pb_read(stream, (pb_byte_t*)(read_buffer->buf), len)) {
