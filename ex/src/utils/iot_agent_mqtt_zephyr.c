@@ -1,5 +1,5 @@
 /* 
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -383,7 +383,7 @@ static iot_agent_status_t connectMQTTClient(struct mqtt_client *client, char* se
         else
         {
             IOT_AGENT_ERROR("No CONNACK event received");
-            mqtt_disconnect(client);
+            mqtt_disconnect(client, NULL);
         }
     }
 
@@ -445,7 +445,7 @@ static iot_agent_status_t awsPubMqttMessage(const nxp_iot_ServiceDescriptor* ser
     ASSERT_OR_EXIT_MSG(publish_fails < (MQTT_PUBLISH_ATTEMPTS / 2U), "More than or equal to %d publish attempts failed (%d)", (MQTT_PUBLISH_ATTEMPTS / 2U), publish_fails);
 
 exit:
-    mqtt_disconnect(&client_ctx);
+    mqtt_disconnect(&client_ctx, NULL);
     cleanupMQTTClient(&client_ctx);
     return agent_status;
 }
@@ -643,7 +643,7 @@ static iot_agent_status_t azureRegister(const nxp_iot_ServiceDescriptor* service
     ASSERT_OR_EXIT_MSG(reg_info->state == ASSIGNED, "Error waiting for device state 'ASSIGNED'");
 
 exit:
-    mqtt_disconnect(&client_ctx);
+    mqtt_disconnect(&client_ctx, NULL);
     cleanupMQTTClient(&client_ctx);
     return agent_status;
 }
@@ -722,7 +722,7 @@ static iot_agent_status_t azurePub(const nxp_iot_ServiceDescriptor* service_desc
     ASSERT_OR_EXIT_MSG(publish_fails < (MQTT_PUBLISH_ATTEMPTS / 2U), "More than or equal to %d publish attempts failed (%d)", (MQTT_PUBLISH_ATTEMPTS / 2U), publish_fails);
 
 exit:
-    mqtt_disconnect(&client_ctx);
+    mqtt_disconnect(&client_ctx, NULL);
     cleanupMQTTClient(&client_ctx);
     return agent_status;
 }
