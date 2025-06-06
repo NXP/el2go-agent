@@ -51,7 +51,7 @@ Prepare the Demo
     ``#define NXP_IOT_AGENT_CLAIMCODE_KEY_AGREEMENT_PUBLIC_KEY_PROD
     #define NXP_IOT_AGENT_CLAIMCODE_KEY_AGREEMENT_PUBLIC_KEY_PROD_SIZE``
 
-3.  [Optional] The flash address where the claim code will be written to is set to 0x084A000 by default.
+3.  [Optional] The flash address where the claim code will be written to is set to 0x084A0000 by default.
     The location can be changed by altering the following variable (make sure to keep it aligned with
     the address configured in the EL2GO Agent sample):
 
@@ -78,8 +78,7 @@ Prepare the Demo
     - One stop bit
     - No flow control
 
-8.  Flash the application to the board. In case the image is signed, the base address needs to be adjusted
-    to 0x08001000.
+8.  Flash the application to the board using west flash command.
 
 Building, Flashing and Running
 ******************************
