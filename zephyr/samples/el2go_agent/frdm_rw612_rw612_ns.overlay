@@ -1,0 +1,38 @@
+/*
+ * Copyright 2025 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		zephyr,code-partition = &slot0_ns_partition;
+	};
+};
+&w25q512jvfiq {
+	/delete-node/ partitions;
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			
+			slot0_ns_partition: partition@080A0000 {
+				label = "image-0-non-secure";
+				reg = <0x080A0000 0x00300000>;  // 3 MB
+			};
+			
+			/* This partition is reserved for connectivity firmwares storage
+  			 * and shouldn't be moved.
+  			 */
+  			fw_storage: partition@400000 {
+  				label = "fw_storage";
+  				reg = <0x400000 0x280000>;
+  				read-only;
+  			};
+	};
+};
+
+&flexspi {
+	reg = <0x40134000 0x1000>, <0x080A0000 DT_SIZE_M(3)>;
+};
+
