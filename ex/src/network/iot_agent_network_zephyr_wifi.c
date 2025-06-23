@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -31,7 +31,7 @@ static K_SEM_DEFINE(dhcp_address, 0, 1);
 static struct net_mgmt_event_callback wifi_callback;
 static struct net_mgmt_event_callback ipv4_callback;
 
-static void net_mgmt_event_handler(struct net_mgmt_event_callback *callback, uint32_t event, struct net_if *interface)
+static void net_mgmt_event_handler(struct net_mgmt_event_callback *callback, uint64_t event, struct net_if *interface)
 {
     switch (event)
     {
