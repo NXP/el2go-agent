@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-/* Copyright 2021-2024 NXP
+/* Copyright 2021-2025 NXP
  */
 
 /* clang-format off */

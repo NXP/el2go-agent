@@ -75,7 +75,7 @@ static void print_usage()
 iot_agent_status_t iot_agent_read_certificates(const char* filename, pb_bytes_array_t** certificates)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-#if SSS_HAVE_HOSTCRYPTO_OPENSSL
+#if NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL
 	FILE* fp = NULL;
 	long sz = 0;
 	uint8_t* buffer = NULL;
@@ -121,7 +121,7 @@ exit:
 	}
 	return agent_status;
 
-#elif SSS_HAVE_HOSTCRYPTO_MBEDTLS
+#elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 	mbedtls_x509_crt cert = { 0 };
 	int ret = 0;
 	size_t size = 0U;
@@ -243,6 +243,9 @@ int main(int argc, const char *argv[])
 	if (ca_file != NULL) {
 		agent_status = iot_agent_read_certificates(ca_file, &root_certificates);
 		AGENT_SUCCESS_OR_EXIT();
+		if (root_certificates != NULL) {
+			root_certificates_ref = root_certificates;
+		}
 	}
 	if (client_cert_file != NULL) {
 		agent_status = iot_agent_read_certificates(client_cert_file, &client_certificate);
@@ -250,7 +253,7 @@ int main(int argc, const char *argv[])
 	}
 
 	agent_status = iot_agent_utils_write_edgelock2go_datastore(&keystore, &datastore, hostname, port, 
-		root_certificates_ref, client_certificate);
+		(iot_agent_array_t*)root_certificates_ref, (iot_agent_array_t*)client_certificate);
 	AGENT_SUCCESS_OR_EXIT();
 
 exit:

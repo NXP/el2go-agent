@@ -35,6 +35,18 @@ extern "C" {
   */
 #define NXP_IOT_AGENT_EDGELOCK2GO_CLIENT_CERTIFICATE_BUFFER_SIZE 4096
 
+/**
+ * @brief Macro which can be used to initialize a iot_agent_array_t structure of specific size.
+ */
+#define IOT_AGENT_BYTES_ARRAY_T(n) struct { uint32_t size; uint_least8_t bytes[n]; }
+
+/**
+ * @brief The structure to be used for writing the certificates to the datastore.
+ */
+typedef struct iot_agent_array_t {
+	uint32_t size;
+	uint_least8_t bytes[1];
+}iot_agent_array_t;
 
 /*! @brief Create a PEM file containing a key.
  *
@@ -271,7 +283,7 @@ iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
  */
 iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystore_t *keystore,
 	iot_agent_datastore_t* datastore, const char* hostname, uint32_t port,
-	const pb_bytes_array_t* trusted_root_ca_certificates, const pb_bytes_array_t* client_certificate);
+	const iot_agent_array_t* trusted_root_ca_certificates, const iot_agent_array_t* client_certificate);
 
 /** @brief Assemble a service descriptor for the connection to EdgeLock 2GO cloud service
  * and write it to a datastore.
@@ -300,7 +312,7 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
  *
  */
 iot_agent_status_t iot_agent_utils_configure_edgelock2go_datastore(iot_agent_keystore_t *keystore,
-	iot_agent_datastore_t* datastore, const pb_bytes_array_t* trusted_root_ca_certificates,
+	iot_agent_datastore_t* datastore, const iot_agent_array_t* trusted_root_ca_certificates,
 	int argc, const char *argv[]);
 
 /**
