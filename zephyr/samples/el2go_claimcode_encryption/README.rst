@@ -17,8 +17,8 @@ The source code for this sample application can be found at:
 Requirements
 ************
 
-- FRDM-RW612 or RD-RW61X-BGA board
-- USB-C (FRDM-RW612) or Micro-USB (RD-RW61X-BGA) cable
+- FRDM-RW612 or RD-RW612-BGA board
+- USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable
 - Personal Computer
 
 Prerequisites
@@ -45,7 +45,7 @@ Prepare the Demo
     ``#define IOT_AGENT_CLAIMCODE_STRING "insert_claimcode_from_el2go";``
 
 2.  Provide the EdgeLock 2GO claim code public key as read from EdgeLock 2GO service
-    (in the format of a hexadecimal byte array): 
+    (in the format of a hexadecimal byte array):
 
     in :zephyr_file:`modules/lib/nxp_iot_agent/inc/nxp_iot_agent_config_credentials.h`
     ``#define NXP_IOT_AGENT_CLAIMCODE_KEY_AGREEMENT_PUBLIC_KEY_PROD
@@ -68,8 +68,8 @@ Prepare the Demo
 
 5.  Build the application.
 
-6.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW61X-BGA) cable to the PC host and the MCU-Link USB port
-    (J10 [FRDM-RW612] or J7 [RD-RW61X-BGA]) on the board.
+6.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable to the PC host and the MCU-Link USB port
+    (J10 [FRDM-RW612] or J7 [RD-RW612-BGA]) on the board.
 
 7.  Open a serial terminal with the following settings:
     - 115200 baud rate

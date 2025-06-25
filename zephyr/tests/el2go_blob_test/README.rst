@@ -19,8 +19,8 @@ The source code for this application can be found at:
 Requirements
 ************
 
-- FRDM-RW612 or RD-RW61X-BGA board
-- USB-C (FRDM-RW612) or Micro-USB (RD-RW61X-BGA) cable
+- FRDM-RW612 or RD-RW612-BGA board
+- USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable
 - Personal Computer
 
 Prerequisites
@@ -93,15 +93,15 @@ Prepare the Tests
     ``CONFIG_EL2GO_SIGN_USING_NXPIMAGE=y``
     ``CONFIG_EL2GO_PRIVATE_KEY="PATH_TO_YOUR_KEY_PEM_FILE"``
     ``CONFIG_EL2GO_CERT_BLOCK="PATH_TO_YOUR_CERTIFICATE_YML_FILE"``
-    2. If not set in prj.conf file, then set as environment variable using the same names: 
+    2. If not set in prj.conf file, then set as environment variable using the same names:
        CONFIG_EL2GO_PRIVATE_KEY,CONFIG_EL2GO_CERT_BLOCK,CONFIG_EL2GO_SIGN_USING_NXPIMAGE.
        Please set them to same value as you would in prj.conf file.
     In case both are set, the variables in the prj.conf will take precedence.
 
 5.  Build the application.
 
-6.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW61X-BGA) cable to the PC host and the MCU-Link USB port
-    (J10 [FRDM-RW612] or J7 [RD-RW61X-BGA]) on the board.
+6.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable to the PC host and the MCU-Link USB port
+    (J10 [FRDM-RW612] or J7 [RD-RW612-BGA]) on the board.
 
 7.  Open a serial terminal with the following settings:
     - 115200 baud rate
@@ -138,35 +138,35 @@ Test Output
     Booting TF-M v1.8.0
     [INF][Crypto] Provisioning entropy seed... complete.
     *** Booting Zephyr OS build zephyr-v3.5.0-5365-g9d2cefa7fd2f ***
-    
+
     #### Start EL2GO blob tests ####
     Running test suite INTERNAL (EL2GO_BLOB_TEST_INTERNAL_10XX)
-    > Executing test EL2GO_BLOB_TEST_INTERNAL_1000 
+    > Executing test EL2GO_BLOB_TEST_INTERNAL_1000
       Description: 'Internal AES128 CIPHER CTR'
       Placeholder blob
       Test EL2GO_BLOB_TEST_INTERNAL_1000 - SKIPPED
     [...]
-    > Executing test EL2GO_BLOB_TEST_INTERNAL_1031 
+    > Executing test EL2GO_BLOB_TEST_INTERNAL_1031
       Description: 'Internal HMAC256 KDF HKDFSHA256'
       Placeholder blob
       Test EL2GO_BLOB_TEST_INTERNAL_1031 - SKIPPED
     15 of 15 SKIPPED
     Test suite INTERNAL (EL2GO_BLOB_TEST_INTERNAL_10XX) - PASSED
     Running test suite EXTERNAL (EL2GO_BLOB_TEST_EXTERNAL_2XXX)
-    > Executing test EL2GO_BLOB_TEST_EXTERNAL_2000 
+    > Executing test EL2GO_BLOB_TEST_EXTERNAL_2000
       Description: 'External BIN1B EXPORT NONE'
       Placeholder blob
       Test EL2GO_BLOB_TEST_EXTERNAL_2000 - SKIPPED
     [...]
-    > Executing test EL2GO_BLOB_TEST_EXTERNAL_219D 
+    > Executing test EL2GO_BLOB_TEST_EXTERNAL_219D
       Description: 'External RSA4096 NONE NONE'
       Placeholder blob
       Test EL2GO_BLOB_TEST_EXTERNAL_219D - SKIPPED
     190 of 190 SKIPPED
     Test suite EXTERNAL (EL2GO_BLOB_TEST_EXTERNAL_2XXX) - PASSED
-    
+
     #### Summary ####
     Test suite INTERNAL (EL2GO_BLOB_TEST_INTERNAL_10XX) - PASSED
     Test suite EXTERNAL (EL2GO_BLOB_TEST_EXTERNAL_2XXX) - PASSED
-    
+
     #### EL2GO blob tests finished ####

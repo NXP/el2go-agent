@@ -22,8 +22,8 @@ The source code for this application can be found at:
 Requirements
 ************
 
-- FRDM-RW612 or RD-RW61X-BGA board
-- USB-C (FRDM-RW612) or Micro-USB (RD-RW61X-BGA) cable
+- FRDM-RW612 or RD-RW612-BGA board
+- USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable
 - Personal Computer
 
 Prerequisites
@@ -98,15 +98,15 @@ Prepare the Demo
     ``CONFIG_EL2GO_SIGN_USING_NXPIMAGE=y``
     ``CONFIG_EL2GO_PRIVATE_KEY="PATH_TO_YOUR_KEY_PEM_FILE"``
     ``CONFIG_EL2GO_CERT_BLOCK="PATH_TO_YOUR_CERTIFICATE_YML_FILE"``
-    2. If not set in prj.conf file, then set as environment variable using the same names: 
+    2. If not set in prj.conf file, then set as environment variable using the same names:
        CONFIG_EL2GO_PRIVATE_KEY,CONFIG_EL2GO_CERT_BLOCK,CONFIG_EL2GO_SIGN_USING_NXPIMAGE.
        Please set them to same value as you would in prj.conf file.
     In case both are set, the variables in the prj.conf will take precedence.
 
 4.  Build the application.
 
-5.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW61X-BGA) cable to the PC host and the MCU-Link USB port
-    (J10 [FRDM-RW612] or J7 [RD-RW61X-BGA]) on the board.
+5.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable to the PC host and the MCU-Link USB port
+    (J10 [FRDM-RW612] or J7 [RD-RW612-BGA]) on the board.
 
 6.  Open a serial terminal with the following settings:
     - 115200 baud rate
@@ -144,7 +144,7 @@ Sample Output
     Wi-Fi cau temperature : 34
     MAC Address: MY_MAC_ADDRESS
     PKG_TYPE: BGA
-    Set BGA tx power table data 
+    Set BGA tx power table data
     *** Booting Zephyr OS build b9f5bf039849 ***
     Connecting to SSID 'WIFI SSID' ...
     Using WIFI 6 (802.11ax/HE) @ 5GHz (Channel 149, -52 dBm)

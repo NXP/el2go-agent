@@ -28,8 +28,8 @@ The source code for this application can be found at:
 Requirements
 ************
 
-- FRDM-RW612 or RD-RW61X-BGA board
-- USB-C (FRDM-RW612) or Micro-USB (RD-RW61X-BGA) cable
+- FRDM-RW612 or RD-RW612-BGA board
+- USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable
 - Personal Computer
 
 Prerequisites
@@ -67,7 +67,7 @@ Prepare the Demo
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/network/iot_agent_network_zephyr_wifi.c`
     ``#define AP_SSID``
     ``#define AP_PASSWORD``
-    
+
     These values can optionally also be set in the prj.conf like this:
     ``CONFIG_AP_SSID="YOUR_SSID"``
     ``CONFIG_AP_PASSWORD="YOUR_PASSWORD"``
@@ -158,15 +158,15 @@ Prepare the Demo
     ``CONFIG_EL2GO_SIGN_USING_NXPIMAGE=y``
     ``CONFIG_EL2GO_PRIVATE_KEY="PATH_TO_YOUR_KEY_PEM_FILE"``
     ``CONFIG_EL2GO_CERT_BLOCK="PATH_TO_YOUR_CERTIFICATE_YML_FILE"``
-    2. If not set in prj.conf file, then set as environment variable using the same names: 
+    2. If not set in prj.conf file, then set as environment variable using the same names:
        CONFIG_EL2GO_PRIVATE_KEY,CONFIG_EL2GO_CERT_BLOCK,CONFIG_EL2GO_SIGN_USING_NXPIMAGE.
        Please set them to same value as you would in prj.conf file.
     In case both are set, the variables in the prj.conf will take precedence.
 
 7.  Build the application.
 
-8.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW61X-BGA) cable to the PC host and the MCU-Link USB port
-    (J10 [FRDM-RW612] or J7 [RD-RW61X-BGA]) on the board.
+8.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable to the PC host and the MCU-Link USB port
+    (J10 [FRDM-RW612] or J7 [RD-RW612-BGA]) on the board.
 
 9.  Open a serial terminal with the following settings:
     - 115200 baud rate
@@ -204,11 +204,11 @@ Sample Output
     Wi-Fi cau temperature : 27
     MAC Address: MY_MAC_ADDRESS
     PKG_TYPE: BGA
-    Set BGA tx power table data 
+    Set BGA tx power table data
     *** Booting Zephyr OS build b9f5bf039849 ***
     Connecting to SSID 'WIFI SSID' ...
     PKG_TYPE: BGA
-    Set BGA tx power table data 
+    Set BGA tx power table data
     Using WIFI 4 (802.11n/HT) @ 2.4GHz (Channel 6, -66 dBm)
     Using IPv4 address 172.20.10.4 @ Gateway 172.20.10.1 (DHCP)
     Successfully connected to WIFI
