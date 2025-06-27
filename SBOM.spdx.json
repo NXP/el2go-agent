@@ -1,0 +1,116 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "spdxVersion": "SPDX-2.3",
+  "creationInfo": {
+    "created": "2025-06-27T13:23:46Z",
+    "creators": [
+      "Organization: NXP"
+    ],
+    "licenseListVersion": "3.20"
+  },
+  "name": "el2go-agent-v25.09.00_pvw1",
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://nxp.com/spdx/550e032c-ea85-4742-bf86-3b154cd8b12d",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d",
+      "name": "el2go-agent",
+      "versionInfo": "v25.09.00_pvw1",
+      "licenseConcluded": "(Apache-2.0)",
+      "licenseDeclared": "(Apache-2.0)",
+      "downloadLocation": "https://github.com/NXP/el2go-agent",
+      "originator": "Organization: NXP",
+      "supplier": "NOASSERTION",
+      "externalRefs": [],
+      "filesAnalyzed": false
+    },
+    {
+      "SPDXID": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e",
+      "name": "Dirent API for Microsoft Visual Studio",
+      "versionInfo": "1.25",
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "homepage": "https://github.com/tronkko/dirent",
+      "downloadLocation": "NOASSERTION",
+      "originator": "Organization: Dirent API for Microsoft Visual Studio",
+      "supplier": "NOASSERTION",
+      "externalRefs": [],
+      "filesAnalyzed": false
+    },
+    {
+      "SPDXID": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3",
+      "name": "mbed TLS",
+      "versionInfo": "3.6.2",
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "homepage": "https://www.trustedfirmware.org/",
+      "downloadLocation": "NOASSERTION",
+      "originator": "Organization: mbed TLS",
+      "supplier": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:mbed:mbedtls:3.6.2:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        }
+      ],
+      "filesAnalyzed": false
+    },
+    {
+      "SPDXID": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd",
+      "name": "nanopb",
+      "versionInfo": "0.3.9.8",
+      "licenseConcluded": "Zlib",
+      "licenseDeclared": "Zlib",
+      "homepage": "https://github.com/nanopb/nanopb",
+      "downloadLocation": "NOASSERTION",
+      "originator": "Organization: nanopb",
+      "supplier": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:github/nanopb/nanopb@0.3.9.8",
+          "referenceType": "purl"
+        },
+        {
+          "referenceCategory": "OTHER",
+          "referenceLocator": "7a599fbe-604d-4665-a0d6-c327e6eb0251",
+          "referenceType": "BlackDuck-ComponentOrigin"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:nanopb_project:nanopb:0.3.9.8:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:pypi_package:nanopb:0.3.9.8:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        }
+      ],
+      "filesAnalyzed": false
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT",
+      "relationshipType": "DESCRIBES",
+      "relatedSpdxElement": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d"
+    },
+    {
+      "spdxElementId": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3"
+    },
+    {
+      "spdxElementId": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd"
+    },
+    {
+      "spdxElementId": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e"
+    }
+  ]
+}
