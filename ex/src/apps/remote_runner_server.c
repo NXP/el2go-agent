@@ -1662,7 +1662,7 @@ static iot_agent_status_t write_edgelock2go_datastore_from_env(iot_agent_keystor
 	}
 
     agent_status = iot_agent_utils_write_edgelock2go_datastore(keystore, datastore, hostname, port,
-		iot_agent_trusted_root_ca_certificates, NULL);
+		(iot_agent_array_t*)iot_agent_trusted_root_ca_certificates, NULL);
     AGENT_SUCCESS_OR_EXIT();
 
 exit:
