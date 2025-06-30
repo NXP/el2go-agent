@@ -435,7 +435,7 @@ int network_connect(void* opaque_ctx)
 	if (SSL_connect(ssl) != 1)
 	{
 		long verify_result = SSL_get_verify_result(ssl);
-		if ((verify_result < 0) || (verify_result > UINT32_MAX)) {
+		if ((verify_result < 0) || (verify_result > INT32_MAX)) {
 			IOT_AGENT_ERROR("SSL_connect failed");
 		}
 		else {
