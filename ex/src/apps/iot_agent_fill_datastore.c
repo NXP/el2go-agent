@@ -119,7 +119,6 @@ exit:
 		free(*certificates);
 		*certificates = NULL;
 	}
-	return agent_status;
 
 #elif NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS
 	mbedtls_x509_crt cert = { 0 };
