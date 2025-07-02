@@ -15,26 +15,22 @@ def parse_bytes_tlv(data: bytes, tag_size: int = 1) -> dict[int, int]:
 
     default_length = 1
     next_addr = 0
-    while True:
+    count = 0
+    while count < 7:
         tag = int.from_bytes(data[next_addr:next_addr+tag_size], "big")
 
         length_bytes = default_length
         temp = (next_addr + tag_size + default_length)
         length = int.from_bytes(data[next_addr+tag_size:temp], "big")
 
-        if(length > 128):
-            length_bytes = (length & 0x0f)
-            length = int.from_bytes(data[temp:temp+length_bytes], "big")
-
         val_addr = (temp + length_bytes - default_length)
         next_addr = (val_addr + length)
 
-        if(length > 0):
+        if length > 0:
             value = data[val_addr:next_addr]
             result[tag] = value
 
-        if(next_addr >= len(data)):
-            break
+        count+=1
 
     return result
 
