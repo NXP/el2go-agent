@@ -82,7 +82,13 @@ phy_rtl8211f_resource_t g_phy_resource_agent;
 #define EXAMPLE_PHY_RESOURCE &g_phy_resource_agent
 #endif // LPC_ENET
 
+// The MAC_ADDRESS_FROM_SILICON_ID will be defined on the targets/boards able to read
+// MAC address using the APIs available in Silicon ID driver
+#ifdef MAC_ADDRESS_FROM_SILICON_ID
+#include "fsl_silicon_id.h"
+#else
 #define configMAC_ADDR {0x04, 0x12, 0x13, 0xB1, 0x11, 0x90}
+#endif
 
 /* Address of PHY interface. */
 
@@ -148,7 +154,7 @@ iot_agent_status_t network_init(void)
                                             .phyOps      = EXAMPLE_PHY_OPS,
                                             .phyResource = EXAMPLE_PHY_RESOURCE,
                                             .srcClockHz  = EXAMPLE_CLOCK_FREQ,
-#ifdef configMAC_ADDR
+#ifndef MAC_ADDRESS_FROM_SILICON_ID
                                             .macAddress = configMAC_ADDR
 #endif
     };
@@ -156,7 +162,7 @@ iot_agent_status_t network_init(void)
     g_phy_resource_agent.read  = MDIO_Read;
     g_phy_resource_agent.write = MDIO_Write;
 	    /* Set MAC address. */
-#ifndef configMAC_ADDR
+#ifdef MAC_ADDRESS_FROM_SILICON_ID
     (void)SILICONID_ConvertToMacAddr(&fsl_enet_config0.macAddress);
 #endif
 
