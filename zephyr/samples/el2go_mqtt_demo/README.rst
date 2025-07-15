@@ -50,6 +50,15 @@ Prepare the Demo
     ``CONFIG_$SERVER$_SERVICE_KEY_PAIR_ID=0x081000``
     ``CONFIG_$SERVER$_SERVICE_DEVICE_CERT_ID=0x080100``
 
+    When creating the secure objects on EdgeLock 2GO, Custom policies should be chosen.
+    Additionally for the ECC key pair following options should be selected:
+    - Device Lifecycle should match the lifecycle of the device on which the application will run
+    - Permitted algorithm should be set to ECDSA SHA 256
+    - SIGN HASH usage should be selected
+    For the X.509 certificate following options should be selected:
+    - Device Lifecycle should match the lifecycle of the device on which the application will run
+    - EXPORT usage should be selected
+
 2.  Provide the Wi-Fi access point credentials:
 
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/network/iot_agent_network_zephyr_wifi.c`
