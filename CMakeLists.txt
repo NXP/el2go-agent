@@ -9,7 +9,7 @@ PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.3.0)
 
 #define some variables which will be used in different places
 set(exported_targets el2go_agent-targets)
-set(config_install_dir lib/cmake/el2go_agent)
+set(config_install_dir ${CMAKE_INSTALL_LIBDIR}/cmake/el2go_agent)
 set(input_config_file ${CMAKE_CURRENT_SOURCE_DIR}/el2go_agent-config.cmake.in)
 set(config_file ${CMAKE_CURRENT_BINARY_DIR}/el2go_agent-config.cmake)
 set(version_config_file ${CMAKE_CURRENT_BINARY_DIR}/el2go_agent-config-version.cmake)
@@ -345,7 +345,7 @@ IF(SSS_HAVE_HOST_LINUX_LIKE OR NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
     INSTALL(
         TARGETS ${PROJECT_NAME}
         EXPORT ${exported_targets}
-        DESTINATION lib
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 
     INSTALL(FILES ${NXP_IOT_AGENT_PUBLIC_FILES} DESTINATION ${agent_include_install_dir})
