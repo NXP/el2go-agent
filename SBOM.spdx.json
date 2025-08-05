@@ -2,20 +2,20 @@
   "SPDXID": "SPDXRef-DOCUMENT",
   "spdxVersion": "SPDX-2.3",
   "creationInfo": {
-    "created": "2025-06-27T13:23:46Z",
+    "created": "2025-08-04T04:52:49Z",
     "creators": [
       "Organization: NXP"
     ],
     "licenseListVersion": "3.20"
   },
-  "name": "el2go-agent-v25.09.00_pvw1",
+  "name": "el2go-agent-v25.09.00-pvw2",
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://nxp.com/spdx/550e032c-ea85-4742-bf86-3b154cd8b12d",
+  "documentNamespace": "https://nxp.com/spdx/677db2b5-b2a5-4ad2-aec7-7c26aac73683",
   "packages": [
     {
-      "SPDXID": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d",
+      "SPDXID": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683",
       "name": "el2go-agent",
-      "versionInfo": "v25.09.00_pvw1",
+      "versionInfo": "v25.09.00-pvw2",
       "licenseConcluded": "(Apache-2.0)",
       "licenseDeclared": "(Apache-2.0)",
       "downloadLocation": "https://github.com/NXP/el2go-agent",
@@ -50,7 +50,27 @@
       "externalRefs": [
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:mbed:mbedtls:3.6.2:*:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls-doc:3.6.2:3:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls21:3.6.2:3:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:arm:mbed_tls:3.6.2:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls-dev:3.6.2:3:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedcrypto16:3.6.2:3:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         }
       ],
@@ -68,24 +88,24 @@
       "supplier": "NOASSERTION",
       "externalRefs": [
         {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceLocator": "pkg:github/nanopb/nanopb@0.3.9.8",
-          "referenceType": "purl"
-        },
-        {
-          "referenceCategory": "OTHER",
-          "referenceLocator": "7a599fbe-604d-4665-a0d6-c327e6eb0251",
-          "referenceType": "BlackDuck-ComponentOrigin"
-        },
-        {
           "referenceCategory": "SECURITY",
           "referenceLocator": "cpe:2.3:a:nanopb_project:nanopb:0.3.9.8:*:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         },
         {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:github/nanopb/nanopb@0.3.9.8",
+          "referenceType": "purl"
+        },
+        {
           "referenceCategory": "SECURITY",
           "referenceLocator": "cpe:2.3:a:pypi_package:nanopb:0.3.9.8:*:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "OTHER",
+          "referenceLocator": "7a599fbe-604d-4665-a0d6-c327e6eb0251",
+          "referenceType": "BlackDuck-ComponentOrigin"
         }
       ],
       "filesAnalyzed": false
@@ -95,20 +115,20 @@
     {
       "spdxElementId": "SPDXRef-DOCUMENT",
       "relationshipType": "DESCRIBES",
-      "relatedSpdxElement": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d"
+      "relatedSpdxElement": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683"
     },
     {
-      "spdxElementId": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d",
+      "spdxElementId": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3"
     },
     {
-      "spdxElementId": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d",
+      "spdxElementId": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd"
     },
     {
-      "spdxElementId": "SPDXRef-package-550e032c-ea85-4742-bf86-3b154cd8b12d",
+      "spdxElementId": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e"
     }
