@@ -7,6 +7,10 @@
 
 #include "el2go_import_blob.h"
 
+#if defined(SECURE_STORAGE)
+#include "secure_storage.h"
+#endif /* SECURE_STORAGE */
+
 #ifndef __ZEPHYR__
 #include "app.h"
 #endif
@@ -83,8 +87,20 @@ int main(void)
 #ifndef __ZEPHYR__
     BOARD_InitHardware();
 #endif
-    
-    psa_status_t psa_status = psa_crypto_init();
+
+    psa_status_t psa_status = PSA_SUCCESS;
+      
+#if defined(SECURE_STORAGE)
+    /* Init secure storage */
+    psa_status = secure_storage_its_initialize();
+    if ( psa_status != PSA_SUCCESS)
+    {
+        LOG("\r\n secure_storage_its_initialize failed! \r\n");
+        goto exit;
+    }
+#endif /* SECURE_STORAGE */
+
+    psa_status = psa_crypto_init();
     if ( psa_status != PSA_SUCCESS)
     {
         LOG("\r\n psa_crypto_init failed! \r\n");

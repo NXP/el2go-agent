@@ -9,6 +9,10 @@
 #include "el2go_blob_test_reader.h"
 #include "el2go_blob_test_parser.h"
 
+#if defined(SECURE_STORAGE)
+#include "secure_storage.h"
+#endif /* SECURE_STORAGE */
+
 #ifdef __ZEPHYR__
 #include <zephyr/kernel.h>
 #else
@@ -183,6 +187,17 @@ int main(void)
     BOARD_InitHardware();
     SysTick_Config(CLOCK_GetCoreSysClkFreq() / 1000U);
 #endif
+
+#if defined(SECURE_STORAGE)
+    /* Init secure storage */
+    psa_status_t psa_status = secure_storage_its_initialize();
+    if ( psa_status != PSA_SUCCESS)
+    {
+        LOG("\r\n secure_storage_its_initialize failed! \r\n");
+        while(true);
+    }
+#endif /* SECURE_STORAGE */
+
     LOG_SET_COLOR(YELLOW);
     LOG("\r\n#### Start EL2GO blob tests ####\r\n");
 
