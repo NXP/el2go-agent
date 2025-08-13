@@ -24,7 +24,7 @@ required_rw61x_product_based_path = workspace.joinpath("required_data.json")
 
 
 def wrap_blobs(raw_blobs, blhost_args, args, blob_flash_address, blobs_total_size, user_config=None ) -> bytes:
-    if args.provisioning_flow == 'proxy_mode':
+    if args.provisioning_flow == 'proxy':
         if user_config:
             with open(user_config_path, "wb") as user_config_file:
                 user_config_file.write(user_config)
@@ -32,7 +32,7 @@ def wrap_blobs(raw_blobs, blhost_args, args, blob_flash_address, blobs_total_siz
             with open(raw_blobs_path, "wb") as raw_blobs_file:
                 raw_blobs_file.write(raw_blobs)
 
-            subprocess.run(["nxpdebugmbox", "ispmode", "-m", "1"], check=True)
+            subprocess.run(["nxpdebugmbox", "cmd", "-f", args.soc, "ispmode", "-m", "1"], check=True)
 
             subprocess.run(blhost_args + ["write-memory", "0x20000000", user_config_path], check=True)
             subprocess.run(blhost_args + ["write-memory", "0x20000100", raw_blobs_path], check=True)
@@ -76,7 +76,7 @@ def wrap_blobs(raw_blobs, blhost_args, args, blob_flash_address, blobs_total_siz
     with open(wrapped_blobs_path, "rb") as wrapped_blobs_file:
         wrapped_blobs = wrapped_blobs_file.read()
 
-    if args.provisioning_flow == 'proxy_mode' and user_config:
+    if args.provisioning_flow == 'proxy' and user_config:
         os.remove(user_config_path)
     os.remove(raw_blobs_path)
     os.remove(wrapped_blobs_path)
