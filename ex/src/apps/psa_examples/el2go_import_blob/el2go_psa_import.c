@@ -117,7 +117,7 @@ static int get_len(const unsigned char **p, const unsigned char *end_ptr, size_t
     return (0);
 }
 
-static int get_tag(const unsigned char **p, const unsigned char *end_ptr, size_t *len, int tag)
+static int get_tag(const unsigned char **p, const unsigned char *end_ptr, size_t *len, uint8_t tag)
 {
     if ((end_ptr - *p) < 1)
     {

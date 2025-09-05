@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -97,7 +97,7 @@ static int get_len(const unsigned char **p, const unsigned char *end_ptr, size_t
     return (0);
 }
 
-static int get_tag(const unsigned char **p, const unsigned char *end_ptr, size_t *len, int tag)
+static int get_tag(const unsigned char **p, const unsigned char *end_ptr, size_t *len, uint8_t tag)
 {
     if ((end_ptr - *p) < 1)
         return (PSA_ERROR_INVALID_ARGUMENT);
