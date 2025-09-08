@@ -2,20 +2,20 @@
   "SPDXID": "SPDXRef-DOCUMENT",
   "spdxVersion": "SPDX-2.3",
   "creationInfo": {
-    "created": "2025-08-04T04:52:49Z",
+    "created": "2025-08-05T12:22:45Z",
     "creators": [
       "Organization: NXP"
     ],
     "licenseListVersion": "3.20"
   },
-  "name": "el2go-agent-v25.09.00-pvw2",
+  "name": "el2go-agent-v6.4.0",
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://nxp.com/spdx/677db2b5-b2a5-4ad2-aec7-7c26aac73683",
+  "documentNamespace": "https://nxp.com/spdx/e4391664-b093-4bbe-8590-49eae4c6abee",
   "packages": [
     {
-      "SPDXID": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683",
+      "SPDXID": "SPDXRef-package-e4391664-b093-4bbe-8590-49eae4c6abee",
       "name": "el2go-agent",
-      "versionInfo": "v25.09.00-pvw2",
+      "versionInfo": "v6.4.0",
       "licenseConcluded": "(Apache-2.0)",
       "licenseDeclared": "(Apache-2.0)",
       "downloadLocation": "https://github.com/NXP/el2go-agent",
@@ -55,7 +55,7 @@
         },
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls21:3.6.2:3:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls-dev:3.6.2:3:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         },
         {
@@ -65,12 +65,12 @@
         },
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls-dev:3.6.2:3:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedcrypto16:3.6.2:3:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         },
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedcrypto16:3.6.2:3:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls21:3.6.2:3:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         }
       ],
@@ -89,16 +89,6 @@
       "externalRefs": [
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:nanopb_project:nanopb:0.3.9.8:*:*:*:*:*:*:*",
-          "referenceType": "cpe23Type"
-        },
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceLocator": "pkg:github/nanopb/nanopb@0.3.9.8",
-          "referenceType": "purl"
-        },
-        {
-          "referenceCategory": "SECURITY",
           "referenceLocator": "cpe:2.3:a:pypi_package:nanopb:0.3.9.8:*:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         },
@@ -106,6 +96,16 @@
           "referenceCategory": "OTHER",
           "referenceLocator": "7a599fbe-604d-4665-a0d6-c327e6eb0251",
           "referenceType": "BlackDuck-ComponentOrigin"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:nanopb_project:nanopb:0.3.9.8:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:github/nanopb/nanopb@0.3.9.8",
+          "referenceType": "purl"
         }
       ],
       "filesAnalyzed": false
@@ -115,20 +115,30 @@
     {
       "spdxElementId": "SPDXRef-DOCUMENT",
       "relationshipType": "DESCRIBES",
-      "relatedSpdxElement": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683"
+      "relatedSpdxElement": "SPDXRef-package-e4391664-b093-4bbe-8590-49eae4c6abee"
     },
     {
-      "spdxElementId": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3"
-    },
-    {
-      "spdxElementId": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683",
+      "spdxElementId": "SPDXRef-package-e4391664-b093-4bbe-8590-49eae4c6abee",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd"
     },
     {
-      "spdxElementId": "SPDXRef-package-677db2b5-b2a5-4ad2-aec7-7c26aac73683",
+      "spdxElementId": "SPDXRef-package-e4391664-b093-4bbe-8590-49eae4c6abee",
+      "relationshipType": "DYNAMIC_LINK",
+      "relatedSpdxElement": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3"
+    },
+    {
+      "spdxElementId": "SPDXRef-package-e4391664-b093-4bbe-8590-49eae4c6abee",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3"
+    },
+    {
+      "spdxElementId": "SPDXRef-package-e4391664-b093-4bbe-8590-49eae4c6abee",
+      "relationshipType": "DYNAMIC_LINK",
+      "relatedSpdxElement": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e"
+    },
+    {
+      "spdxElementId": "SPDXRef-package-e4391664-b093-4bbe-8590-49eae4c6abee",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e"
     }
