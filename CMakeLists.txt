@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.4.0)
+PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.4.1)
 
 #define some variables which will be used in different places
 set(exported_targets el2go_agent-targets)

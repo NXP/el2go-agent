@@ -12,7 +12,7 @@ v_major  = "06"
 
 v_minor  = "04"
 
-v_dev    = "00"
+v_dev    = "01"
 
 v_meta   = ""
 
