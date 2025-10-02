@@ -7,6 +7,10 @@ cmake_minimum_required(VERSION 3.5)
 
 PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.4.1)
 
+IF(SSS_HAVE_HOST_LINUX_LIKE OR NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
+    include(GNUInstallDirs)
+ENDIF()
+
 #define some variables which will be used in different places
 set(exported_targets el2go_agent-targets)
 set(config_install_dir ${CMAKE_INSTALL_LIBDIR}/cmake/el2go_agent)
