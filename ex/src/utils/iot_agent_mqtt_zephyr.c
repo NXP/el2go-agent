@@ -257,8 +257,6 @@ static void cleanupMQTTClient(struct mqtt_client *client)
     mbedtls_network_config_t* network_config = &network_ctx->network_config;
     mbedtls_x509_crt_free(&network_config->clicert);
     mbedtls_x509_crt_free(&network_config->ca_chain);
-    free(network_config);
-    network_config = NULL;
     network_free(network_ctx);
     network_ctx = NULL;
 }
@@ -346,6 +344,7 @@ static iot_agent_status_t setupMQTTClient(struct mqtt_client *client, void* cb, 
 
 exit:
     free(client_cert);
+	free(network_config);
 
     if (agent_status != IOT_AGENT_SUCCESS)
     {
