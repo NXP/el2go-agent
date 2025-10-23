@@ -19,3 +19,21 @@ tests:
         - "2 blob\\(s\\) imported from flash successfully"
         - Cipher encrypt passed!
         - ECC sign passed!
+
+sample.nxp_iot_agent.el2go_import_blob_product_based:
+    extra_args:
+      - OVERLAY_CONFIG="overlay-el2go-rw61x.conf"
+    tags:
+      - el2go
+      - trusted-firmware-m
+    platform_allow:
+      - rd_rw612_bga/rw612/ns
+      - frdm_rw612/rw612/ns
+    harness: console
+    harness_config:
+      fixture: fixture_el2go
+      type: multi_line
+      regex:
+        - "2 blob\\(s\\) imported from flash successfully"
+        - Cipher encrypt passed!
+        - ECC sign passed!
