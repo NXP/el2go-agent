@@ -33,7 +33,7 @@ tests:
         - "Successfully published"
         - "EL2GO MQTT Client successfully finished"
 
-sample.nxp_iot_agent.el2go_mqtt_demo_product_based:
+  sample.nxp_iot_agent.el2go_mqtt_demo_product_based:
     extra_args:
       - OVERLAY_CONFIG="overlay-el2go-rw61x.conf"
     tags:
