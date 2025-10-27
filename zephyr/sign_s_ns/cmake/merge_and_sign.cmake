@@ -28,7 +28,7 @@ function(merge_and_sign)
               name: TF-M (NS Part)
               path: ${TFM_NS_BIN}
               offset: ${FLASH_S_SIZE}")
-    execute_process(COMMAND nxpimage -vv utils binary-image merge
+    execute_process(COMMAND nxpimage -vv utils binary-image export
         -c ${TFM_MERGE_YML}
         -o ${TFM_MERGED_HEADERLESS_BIN}
         OUTPUT_VARIABLE NXPIMAGE_OUTPUT
@@ -47,8 +47,7 @@ function(merge_and_sign)
         inputImageFile: ${TFM_MERGED_HEADERLESS_BIN}
         outputImageExecutionAddress: ${OUTPUT_IMAGE_EXECUTION_ADDRESS}
         certBlock: ${CONFIG_EL2GO_CERT_BLOCK}
-        signPrivateKey: ${CONFIG_EL2GO_PRIVATE_KEY}
-        enableTrustZone: true")
+        signer: type=file;file_path=${CONFIG_EL2GO_PRIVATE_KEY}")
 
     execute_process(COMMAND nxpimage -vv mbi export
         -c ${TFM_SIGN_YML}
@@ -76,7 +75,7 @@ function(merge_and_sign)
               path: ${TFM_MERGED_HEADERLESS_SIGNED_BIN}
               offset: ${OFFSET}")
 
-    execute_process(COMMAND nxpimage -vv utils binary-image merge
+    execute_process(COMMAND nxpimage -vv utils binary-image export
         -c ${SB_MERGE_YML}
         -o ${SIGNED_OUTPUT_BIN}
         OUTPUT_VARIABLE NXPIMAGE_OUTPUT
