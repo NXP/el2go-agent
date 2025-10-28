@@ -16,8 +16,6 @@ tests:
         - "\\#\\#\\#\\# Start EL2GO blob tests \\#\\#\\#\\#"
         - "Test suite GENERIC \\((.+)\\) - PASSED"
         - "\\#\\#\\#\\# EL2GO blob tests finished \\#\\#\\#\\#"
-
-tests:
   nxp_iot_agent.el2go_blob_test_product_based:
     tags:
       - crypto
