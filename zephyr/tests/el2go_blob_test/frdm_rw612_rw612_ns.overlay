@@ -15,7 +15,12 @@
 			compatible = "fixed-partitions";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			
+
+			slot0_partition: partition@1000 {
+				label = "image-0";
+				reg = <0x1000 DT_SIZE_K(636)>;
+			};
+
 			slot0_ns_partition: partition@080A0000 {
 				label = "image-0-non-secure";
 				reg = <0x080A0000 0x00300000>;  // 3 MB
