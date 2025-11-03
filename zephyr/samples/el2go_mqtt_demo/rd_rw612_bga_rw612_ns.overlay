@@ -22,9 +22,9 @@
 				reg = <0x1000 DT_SIZE_K(636)>;
 			};
 
-			slot0_ns_partition: partition@080A0000 {
+			slot0_ns_partition: partition@A0000 {
 				label = "image-0-non-secure";
-				reg = <0x080A0000 0x00300000>;  // 3 MB
+				reg = <0xA0000 DT_SIZE_M(3)>;  // 3 MB
 			};
 			
 			/* This partition is reserved for connectivity firmwares storage
@@ -37,8 +37,3 @@
   			};
 	};
 };
-
-&flexspi {
-	reg = <0x40134000 0x1000>, <0x080A0000 DT_SIZE_M(3)>;
-};
-
