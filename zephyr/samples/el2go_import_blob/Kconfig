@@ -1,9 +1,19 @@
-# Copyright 2024 NXP
+# Copyright 2024-2025 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 source "Kconfig.zephyr"
 
-config VALIDATE_PSA_IMPORT_OPERATION
-    bool "Validate imported blob"
+config VALIDATE_PSA_IMPORT_MASTER_KEY
+    bool "If the imported blobs should be validated by PSA operations for Master key operations"
     help
-        Validate imported blob fetched from flash.
+        Validate master key imported blob from flash
+
+config VALIDATE_PSA_IMPORT_KEY_PAIR
+    bool "Config can be used if the imported blobs need to be validated by KEY pair operations"
+    help
+        Validate Key pair imported blob from flash
+
+config VALIDATE_PSA_IMPORT_CERT
+    bool "Config can be used if the imported blobs need to parse the x509 certificate"
+    help
+        Validate x509 certificate imported blob from flash, it must have VALIDATE_PSA_IMPORT_KEY_PAIR enabled

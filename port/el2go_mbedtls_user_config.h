@@ -62,8 +62,8 @@ void * pvPortCalloc( size_t xNum,
                      size_t xSize );
 void vPortFree( void * pv );
 #define MBEDTLS_PLATFORM_MEMORY
-#define MBEDTLS_PLATFORM_CALLOC_MACRO pvPortCalloc
-#define MBEDTLS_PLATFORM_FREE_MACRO vPortFree
+#define MBEDTLS_PLATFORM_CALLOC_MACRO calloc
+#define MBEDTLS_PLATFORM_FREE_MACRO free
 
 
 #if !defined(MBEDTLS_ECP_DP_SECP192R1_ENABLED)

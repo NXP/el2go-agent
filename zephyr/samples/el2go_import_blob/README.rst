@@ -38,26 +38,35 @@ Prepare the Demo
 1.  [Optional] By default the validation of the blobs is disabled. It can be enabled with the corresponding macro:
 
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/apps/psa_examples/el2go_import_blob/el2go_import_blob.h`
-    ``#define VALIDATE_PSA_IMPORT_OPERATION 1`
+    ``#define VALIDATE_PSA_IMPORT_MASTER_KEY 1`
+    ``#define VALIDATE_PSA_IMPORT_KEY_PAIR 1`
+    ``#define VALIDATE_PSA_IMPORT_CERT 1`
 
     This value can optionally also be set in the prj.conf like this:
-    ``CONFIG_VALIDATE_PSA_IMPORT_OPERATION=y``
+    ``CONFIG_VALIDATE_PSA_IMPORT_MASTER_KEY=y``
+    ``CONFIG_VALIDATE_PSA_IMPORT_KEY_PAIR=y``
+    ``CONFIG_VALIDATE_PSA_IMPORT_CERT=y``
     If its set in the prj.conf to true, then it will override the value of define
     in :zephyr_file:`modules/lib/nxp_iot_agent/ex/src/apps/psa_examples/el2go_import_blob/el2go_import_blob.h`.
 
-    This provides an example on how the imported blobs can be used. Specifically, the example demonstrates:
-    - AES-ECB message encryption with a 256-bit key.
-    - ECDSA SHA 256 message signing.
+    This provides an example of how the imported blobs can be used. Specifically, the example demonstrates:
+    - AES-ECB message encryption with a 256 bit key
+    - ECDSA SHA-256 message signing
+    - x509 certificate parsing and extracting public key
 
-    When creating the secure objects on EdgeLock 2GO, Custom policies should be chosen.
-    Additionally for the AES key following options should be selected:
-    - Device Lifecycle should match the lifecycle of the device on which the application will run
-    - Permitted algorithm should be set to ECB NO PADDING
-    - ENCRYPT usage should be selected
-    For the ECC key pair following options should be selected:
-    - Device Lifecycle should match the lifecycle of the device on which the application will run
-    - Permitted algorithm should be set to ECDSA SHA 256
-    - SIGN MESSAGE usage should be selected
+    #### Import note:
+    - When creating the secure objects on EdgeLock 2GO, select Custom policies.
+    - For the AES key, ensure:
+        - Permitted algorithm is set to ECB NO PADDING.
+        - Device Lifecycle matches the target device’s lifecycle.
+        - ENCRYPT usage is enabled
+    - For the ECC key pair following options should be selected:
+        - Device Lifecycle matches the target device’s lifecycle.
+        - Permitted algorithm should be set to ECDSA SHA 256
+        - SIGN MESSAGE usage should be selected
+    - For the Certificate, ensure:
+        - Device Lifecycle matches the target device’s lifecycle.
+        - Certificate validation is only possible if key pair validation is also enabled.
 
 2.  [Optional] In order to maximize the TF-M ITS performance, the maximum supported blob size is set to 2908 bytes. In case
     you want to support bigger blobs (8K is the maximum size supported by PSA), you need to change the following three variables:
@@ -145,10 +154,15 @@ Sample Output
     Booting TF-M v2.0.0
     [INF][Crypto] Provisioning entropy seed... complete.
     *** Booting Zephyr OS build RW-v3.6.0-502-g01bce12e50d6 ***
-    2 blob(s) imported from flash successfully
+    3 blob(s) imported from flash successfully
 
     Validate imported blobs
 
      Cipher encrypt passed!
 
      ECC sign passed!
+     Certificate in DER format: 3082018B30820132A003020102020708E07700000000300A06082A8648CE3D0403023073310C300A060355040A0C034E5850312A3028060355040B0C21456467654C6F636B32476F52656D6F74655470506C7567416E64547275737443413137303506035504030C2E783530395F696D5F63615F6E31312D303030303030303030303030326130322D30303030303030302D7645323030301E170D3235313131333137333035365A170D3335313131333137333035365A30143112301006035504030C096E313174656D70636E3059301306072A8648CE3D020106082A8648CE3D030107034200042BE9224D4C89CE5CD99CFCEC8E521394DE94B4D2A3F90BC54EE9289B2B86560397482446FD9CAB433A4ED8A5A5DD453F80CAD7A38466A66F2EFC99C950C39AC7A310300E300C0603551D130101FF04023000300A06082A8648CE3D040302034700304402200D2DFE0763A2567BFE11B793AABE5EF313D57ED59035A081881882B156A01AC3022024DAAC7FBFFE400979E6C66B8F17BAD848F72D1C7AAB6579691B0A4F2FC213C4
+     Subject field in certificate is:CN=test_cn
+     Issuer field in certificate is:O=NXP, OU=EdgeLock2GoRemoteTpPlugAndTrustCA, CN=x509_IC_-0000000000002a02-00000000-vE200
+     Public_key: 042BE9224D4C89CE5CD99CFCEC8E521394DE94B4D2A3F90BC54EE9289B2B86560397482446FD9CAB433A4ED8A5A5DD453F80CAD7A38466A66F2EFC99C950C39AC7
+
