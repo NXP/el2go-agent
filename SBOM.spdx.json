@@ -2,20 +2,20 @@
   "SPDXID": "SPDXRef-DOCUMENT",
   "spdxVersion": "SPDX-2.3",
   "creationInfo": {
-    "created": "2025-10-02T14:10:51Z",
+    "created": "2025-11-26T07:53:27Z",
     "creators": [
       "Organization: NXP"
     ],
     "licenseListVersion": "3.20"
   },
-  "name": "el2go-agent-v6.4.1",
+  "name": "el2go-agent-v6.4.2",
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://nxp.com/spdx/247024e4-80d9-4bcb-af9e-57fd8d581524",
+  "documentNamespace": "https://nxp.com/spdx/34e42c1a-2be9-4197-b089-87faf1a947af",
   "packages": [
     {
-      "SPDXID": "SPDXRef-package-247024e4-80d9-4bcb-af9e-57fd8d581524",
+      "SPDXID": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af",
       "name": "el2go-agent",
-      "versionInfo": "v6.4.1",
+      "versionInfo": "v6.4.2",
       "licenseConcluded": "(Apache-2.0)",
       "licenseDeclared": "(Apache-2.0)",
       "downloadLocation": "https://github.com/NXP/el2go-agent",
@@ -25,16 +25,27 @@
       "filesAnalyzed": false
     },
     {
-      "SPDXID": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e",
-      "name": "Dirent API for Microsoft Visual Studio",
-      "versionInfo": "1.25",
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "homepage": "https://github.com/tronkko/dirent",
+      "SPDXID": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd",
+      "name": "nanopb",
+      "versionInfo": "0.3.9.8",
+      "licenseConcluded": "Zlib",
+      "licenseDeclared": "Zlib",
+      "homepage": "https://github.com/nanopb/nanopb",
       "downloadLocation": "NOASSERTION",
-      "originator": "Organization: Dirent API for Microsoft Visual Studio",
+      "originator": "Organization: nanopb",
       "supplier": "NOASSERTION",
-      "externalRefs": [],
+      "externalRefs": [
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:pypi_package:nanopb:0.3.9.8:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:nanopb_project:nanopb:0.3.9.8:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        }
+      ],
       "filesAnalyzed": false
     },
     {
@@ -77,27 +88,16 @@
       "filesAnalyzed": false
     },
     {
-      "SPDXID": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd",
-      "name": "nanopb",
-      "versionInfo": "0.3.9.8",
-      "licenseConcluded": "Zlib",
-      "licenseDeclared": "Zlib",
-      "homepage": "https://github.com/nanopb/nanopb",
+      "SPDXID": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e",
+      "name": "Dirent API for Microsoft Visual Studio",
+      "versionInfo": "1.25",
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "homepage": "https://github.com/tronkko/dirent",
       "downloadLocation": "NOASSERTION",
-      "originator": "Organization: nanopb",
+      "originator": "Organization: Dirent API for Microsoft Visual Studio",
       "supplier": "NOASSERTION",
-      "externalRefs": [
-        {
-          "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:pypi_package:nanopb:0.3.9.8:*:*:*:*:*:*:*",
-          "referenceType": "cpe23Type"
-        },
-        {
-          "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:nanopb_project:nanopb:0.3.9.8:*:*:*:*:*:*:*",
-          "referenceType": "cpe23Type"
-        }
-      ],
+      "externalRefs": [],
       "filesAnalyzed": false
     }
   ],
@@ -105,20 +105,20 @@
     {
       "spdxElementId": "SPDXRef-DOCUMENT",
       "relationshipType": "DESCRIBES",
-      "relatedSpdxElement": "SPDXRef-package-247024e4-80d9-4bcb-af9e-57fd8d581524"
+      "relatedSpdxElement": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af"
     },
     {
-      "spdxElementId": "SPDXRef-package-247024e4-80d9-4bcb-af9e-57fd8d581524",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3"
-    },
-    {
-      "spdxElementId": "SPDXRef-package-247024e4-80d9-4bcb-af9e-57fd8d581524",
+      "spdxElementId": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd"
     },
     {
-      "spdxElementId": "SPDXRef-package-247024e4-80d9-4bcb-af9e-57fd8d581524",
+      "spdxElementId": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3"
+    },
+    {
+      "spdxElementId": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e"
     }
