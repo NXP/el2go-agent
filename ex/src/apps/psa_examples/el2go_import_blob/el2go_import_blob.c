@@ -14,7 +14,6 @@
 #if defined(VALIDATE_PSA_IMPORT_CERT) && VALIDATE_PSA_IMPORT_CERT
 #include "mbedtls/x509.h"
 #include "mbedtls/x509_crt.h"
-#include "pkwrite.h"
 #endif /* VALIDATE_PSA_IMPORT_CERT */
 
 #ifndef __ZEPHYR__
@@ -91,6 +90,9 @@ static void export_cert(size_t certificate_id)
 {
     uint8_t cert_buffer[2048] = {0U};
     mbedtls_x509_crt client_cert = {0};
+#ifndef MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES /*(mbedtls/library/pkwrite.h)*/
+#define MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES (30 + 2 * MBEDTLS_ECP_MAX_BYTES)
+#endif
     uint8_t temp_buf[MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES] = {0U};
     char outBuf[128] = {'\0'};
     psa_status_t psa_status = PSA_SUCCESS;
@@ -109,7 +111,7 @@ static void export_cert(size_t certificate_id)
     LOG("Certificate in DER format: ");
     for (size_t i=0; i< cert_len; i++) 
     {
-        PRINTF("%02X", *(cert_buffer + i));
+        LOG("%02X", *(cert_buffer + i));
     }
     LOG("\r\n");
 
