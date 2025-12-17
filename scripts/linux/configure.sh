@@ -1,0 +1,153 @@
+# SPDX-License-Identifier: Apache-2.0 */
+#
+# Copyright 2026 NXP
+#
+
+set -e
+
+function pr_err()
+{
+    printf "\033[1;31m\n"
+    printf "%s" "$@"
+    printf "\033[0m\n"
+}
+
+function pr_success()
+{
+    printf "\033[0;32m\n"
+    printf "%s" "$@"
+    printf "\033[0m\n"
+}
+
+function check_directory()
+{
+    declare -n mydir=$1
+    mydir="${mydir/\~/$HOME}"
+
+    if [[ ! -d "${mydir}" ]]; then
+        pr_err "${mydir} is not a directory"
+    fi
+}
+
+function usage()
+{
+    cat << EOF
+
+    **********************************************************
+    * Usage of EL2GO Agent configure script *
+    **********************************************************
+
+    The script is configuring the EL2GO Agent by
+    installing the external dependencies.
+
+    CAUTION: This script must be executed from the EL2GO Agent directory.
+    The dependency sources should be located as sibling directories at the
+    same level as the project folder:
+
+    Expected folder structure:
+      parent-folder/
+      ├── smw/  (EL2GO Agent dependency)
+      |── optee-client  (smw dependency)
+      |── optee-os  (smw dependency)
+      |── secure_enclave  (smw dependency)
+      └── simw-devicelink/  ((run script from here))
+
+    $(basename "$0") <dir> <platform> toolpath=[dir]
+      <dir>      : Output build directory
+      <platform> : i.MX platform name (imx91evk, imx8ulpevk, imx93evk)
+      <toolpath> : [Optional] Toolchain installation path
+
+EOF
+    exit 1
+}
+
+if [[ $# -lt 2 ]]; then
+    usage
+fi
+
+out=$1
+platform="$2"
+shift 2
+# change to absolute path to avoid relative path issues
+out=$(realpath -m "$out")
+
+supported_platforms=("imx91evk" "imx8ulpevk" "imx93evk")
+
+
+# Check if the platform is in the supported list
+
+if [[ ! " ${supported_platforms[@]} " =~ " ${platform} " ]]; then
+    pr_err "Error: Invalid platform '${platform}'. Supported platforms are: ${supported_platforms[*]}"
+    exit 1
+fi
+
+readonly smw_out="${out}/smw-build"
+readonly smw_export_dir="${out}/export-smw"
+readonly export_dir="${out}/export"
+
+opt_toolpath="toolpath=/toolchains"
+for arg in "$@"
+do
+    case ${arg} in
+        toolpath=*)
+            opt_toolpath="${arg#*=}"
+            check_directory opt_toolpath
+            opt_toolpath="toolpath=${opt_toolpath}"
+            ;;
+        *)
+            pr_err "Unknown argument \"${arg}\""
+            usage
+            ;;
+    esac
+done
+
+readonly smw_config="${smw_export_dir}/usr/lib/cmake"
+readonly mbedtls_config="${export_dir}/usr/local/el2go/lib/cmake/MbedTLS"
+#
+# Build/Prepare external dependencies
+#
+function build_component() {
+    local component="$1"
+    shift
+    printf "Executing: %s %s\n" "$component" "$*"
+
+    if ! ./scripts/linux/build.sh "$component" "$@"; then
+        pr_err "Failed to build ${component}"
+        exit 1
+    fi
+    pr_success "${component} build completed"
+}
+
+# Set default source directories
+MBEDTLS_SRC_DIR="${MBEDTLS_SRC_DIR:-../mbedtls}"
+SMW_SRC_DIR="${SMW_SRC_DIR:-../smw}"
+
+# toolchain
+build_component "toolchain" "${opt_toolpath}"
+
+# MbedTLS
+build_component "mbedtls" \
+    "export=${export_dir}" \
+    "src=${MBEDTLS_SRC_DIR}" \
+    "out=${out}" \
+    "${opt_toolpath}"
+
+# SMW
+build_component "smw" \
+    "export=${smw_export_dir}" \
+    "out=${smw_out}" \
+    "src=${SMW_SRC_DIR}" \
+    "${opt_toolpath}" \
+    "platform=${platform}"
+
+# Build configuration options
+conf_opts_array=(
+    "${opt_toolpath}"
+    "smw=${smw_config}"
+    "mbedtls=${mbedtls_config}"
+)
+
+# Configure build targets
+build_component "configure" \
+    "out=${out}" \
+    "${conf_opts_array[@]}"
