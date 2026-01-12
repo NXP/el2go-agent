@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021, 2023-2025 NXP
+ * Copyright 2018-2021, 2023-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -80,7 +80,9 @@ static void network_debug(void *ctx, int level, const char *file, int line, cons
 	mbedtls_printf("MBEDTLS: %s", str);
 }
 #endif
-
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
+extern int mbedtls_entropy_func_3_X(void *data, unsigned char *output, size_t len);
+#endif
 int network_configure(void* opaque_ctx, void* opaque_network_config) {
 
 	int ret = 0;
@@ -101,11 +103,20 @@ int network_configure(void* opaque_ctx, void* opaque_network_config) {
 #endif
 
 	mbedtls_entropy_init(&(network_ctx->entropy));
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
+	if ((ret = mbedtls_ctr_drbg_seed(&(network_ctx->ctr_drbg),
+		&mbedtls_entropy_func_3_X, &(network_ctx->entropy),
+		(const unsigned char *)pers, strlen(pers))) != 0) {
+		return 1;
+	}
+#else
+
 	if ((ret = mbedtls_ctr_drbg_seed(&(network_ctx->ctr_drbg),
 		mbedtls_entropy_func, &(network_ctx->entropy),
 		(const unsigned char *)pers, strlen(pers))) != 0) {
 		return 1;
 	}
+#endif
 
 	network_ctx->network_config = *network_config;
 	return ret;

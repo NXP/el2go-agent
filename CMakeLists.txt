@@ -1,4 +1,4 @@
-# Copyright 2019-2021, 2024-2025 NXP
+# Copyright 2019-2021, 2024-2026 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -36,6 +36,21 @@ IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS)
     add_definitions(-DNXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1)
     IF(SSS_HAVE_MBEDTLS_ALT_SSS)
         add_definitions(-DNXP_IOT_AGENT_HAVE_SSS=1)
+        IF(SSS_HAVE_MBEDTLS_3_X)
+            # in case of mbedtls 3x based project, the mbedtls config file
+            # of the external mbedtls project must point to the agent one
+            add_definitions(-DNXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X=1)
+            TARGET_COMPILE_OPTIONS(
+                mbedtls
+                PRIVATE
+                -UMBEDTLS_CONFIG_FILE
+                -DMBEDTLS_CONFIG_FILE=\"el2go_mbedtls3x_config.h\"
+            )
+            TARGET_INCLUDE_DIRECTORIES(
+                mbedtls
+                PUBLIC ${SIMW_TOP_DIR}/nxp_iot_agent/port
+            )
+	    ENDIF()
     ELSEIF(SSS_HAVE_MBEDTLS_ALT_PSA)
         add_definitions(-DNXP_IOT_AGENT_HAVE_PSA=1)
         IF(NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)

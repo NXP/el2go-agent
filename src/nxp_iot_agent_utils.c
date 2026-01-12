@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2025 NXP
+ * Copyright 2018-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -1508,6 +1508,60 @@ iot_agent_status_t iot_agent_pad_iso7816d4(uint8_t *data, size_t data_size,
 exit:
     return agent_status;
 }
+
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
+
+#define SSS_MAGIC_NUMBER (0xA5A6B5B6)
+#define SSS_MAGIC_NUMBER_OFFSET1 (58)
+#define SSS_MAGIC_NUMBER_OFFSET2 (62)
+#define SSS_KEY_ID_IN_REFKEY_OFFSET (54)
+
+iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_context, uint32_t keyId)
+{
+	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
+	int ret = 0;
+	uint8_t nist256_keyPair_refKey[] = {
+	    0x30, 0x81, 0x87,
+		0x02, 0x01, 0x00,
+		0x30, 0x13,
+		0x06, 0x07, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x02, 0x01,
+		0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07,
+		0x04, 0x6D,
+		0x30, 0x6B,
+		0x02, 0x01, 0x01,
+		0x04, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	    0xA1, 0x44,
+		0x03, 0x42, 0x00, 0x04, 0x47, 0xB9, 0x07, 0x45, 0x55, 0xD9,	0xEC, 0x40, 0xAC, 0x6E, 0x5B, 0x30, 0x80, 0x57,
+		0x6C, 0x21, 0x67, 0x8E, 0xB3, 0x16, 0x72, 0x1B,	0x77, 0x07, 0x50, 0xB8, 0x6C, 0x98, 0xD8, 0x29,	0x27, 0x4E,
+		0x82, 0xA0, 0xAE, 0xD5, 0x81, 0x5D,	0x2E, 0x09, 0x41, 0x4C, 0x04, 0xB2, 0xA7, 0x19,	0x78, 0x35, 0x15, 0x4A,
+		0xE1, 0x19, 0x45, 0x0D,	0x14, 0x36, 0x0F, 0x09, 0x90, 0x0A, 0x98, 0xC9,	0xF1, 0x3A
+	};
+
+	// generate the key reference with specific object ID
+	nist256_keyPair_refKey[SSS_KEY_ID_IN_REFKEY_OFFSET] = (uint8_t)(keyId >> 24) & 0xFFU;
+	nist256_keyPair_refKey[SSS_KEY_ID_IN_REFKEY_OFFSET + 1]  = (uint8_t)(keyId >> 16) & 0xFFU;
+	nist256_keyPair_refKey[SSS_KEY_ID_IN_REFKEY_OFFSET + 2]  = (uint8_t)(keyId >> 8) & 0xFFU;
+	nist256_keyPair_refKey[SSS_KEY_ID_IN_REFKEY_OFFSET + 3]  = (uint8_t)(keyId >> 0) & 0xFFU;
+	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET1] = (uint8_t)(SSS_MAGIC_NUMBER >> 24) & 0xFFU;
+	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET1 + 1]  = (uint8_t)(SSS_MAGIC_NUMBER>> 16) & 0xFFU;
+	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET1 + 2]  = (uint8_t)(SSS_MAGIC_NUMBER >> 8) & 0xFFU;
+	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET1 + 3]  = (uint8_t)(SSS_MAGIC_NUMBER >> 0) & 0xFFU;
+	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET2] = (uint8_t)(SSS_MAGIC_NUMBER >> 24) & 0xFFU;
+	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET2 + 1]  = (uint8_t)(SSS_MAGIC_NUMBER>> 16) & 0xFFU;
+	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET2 + 2]  = (uint8_t)(SSS_MAGIC_NUMBER >> 8) & 0xFFU;
+	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET2 + 3]  = (uint8_t)(SSS_MAGIC_NUMBER >> 0) & 0xFFU;
+
+	ret = mbedtls_pk_parse_key(pk_context,
+					           nist256_keyPair_refKey,
+							   sizeof(nist256_keyPair_refKey), NULL, 0, NULL, NULL);
+	ASSERT_OR_EXIT_MSG(ret == 0, "Error in parsing the key reference");
+exit:
+	return agent_status;
+}
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3X == 1)
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 
 #ifdef NXP_IOT_AGENT_ENABLE_LITE
 

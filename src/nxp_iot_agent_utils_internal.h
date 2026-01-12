@@ -1,5 +1,5 @@
 /* 
- * Copyright 2024-2025 NXP
+ * Copyright 2024-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -23,6 +23,12 @@
 #include <openssl/engine.h>
 #include <network_openssl.h>
 #endif
+
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
+#include <mbedtls/pk.h>
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3X == 1)
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 
 pb_ostream_t ostream_from_socket(void* network_context);
 pb_istream_t istream_from_socket(void* network_context);
@@ -155,6 +161,12 @@ iot_agent_status_t iot_agent_utils_gen_key_ref_rsa(sss_key_store_t *keyStore, ss
 	iot_agent_keystore_key_ref_t* gen_key_ref);
 
 #endif
+
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
+iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_context, uint32_t keyId);
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3X == 1)
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 
 #ifdef NXP_IOT_AGENT_ENABLE_LITE
 /**

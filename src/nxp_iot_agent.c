@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2025 NXP
+ * Copyright 2018-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -39,7 +39,11 @@
 
 #if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
+#if !(defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1))
 #include "sss_mbedtls.h"
+#else
+extern void sss_mbedtls_set_keystore_ecdsa_sign(sss_key_store_t *ssskeystore);
+#endif //#if !defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3X) || !(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3X == 1)
 #endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include "fsl_sss_api.h"
 #endif //#if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
@@ -400,8 +404,18 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	if (false) {}
 #if defined(NXP_IOT_AGENT_HAVE_SSS) && (NXP_IOT_AGENT_HAVE_SSS == 1)
 	else if (keystore->type == IOT_AGENT_KS_SSS_SE05X) {
+#if !(defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1))
 		network_status = sss_mbedtls_associate_keypair(&((mbedtls_network_context_t*)dispatcher_context.network_context)->pkey, &private_key);
 		ASSERT_OR_EXIT_MSG(network_status == 0, "sss_mbedtls_associate_keypair failed with 0x%08x", network_status);
+#else
+		agent_status = iot_agent_utils_gen_key_ref_mbedtls3x(&((mbedtls_network_context_t*)dispatcher_context.network_context)->pkey,
+				service_descriptor->client_key_sss_ref.object_id);
+		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_gen_key_ref failed: 0x%08x.", agent_status);
+		sss_key_store_t* sss_keystore = NULL;
+		agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_keystore);
+		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);
+		sss_mbedtls_set_keystore_ecdsa_sign(sss_keystore);
+#endif //#if !(defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1))
 	}
 #endif
 #if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
