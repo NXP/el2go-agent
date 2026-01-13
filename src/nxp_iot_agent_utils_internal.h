@@ -164,7 +164,16 @@ iot_agent_status_t iot_agent_utils_gen_key_ref_rsa(sss_key_store_t *keyStore, ss
 
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
-iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_context, uint32_t keyId);
+/*! @brief Create a key reference for mbedtls3x.
+
+* @param[out]    pk_context Publick key context to which the key reference will be associated
+* @param[in]     keystore Key store context
+* @param[in]     key_id The key id identifying the key for which the reference will be created
+
+* @retval IOT_AGENT_SUCCESS upon success
+* @retval IOT_AGENT_FAILURE upon failure
+*/
+iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_context, const iot_agent_keystore_t* keystore, uint32_t key_id);
 #endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3X == 1)
 #endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 

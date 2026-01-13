@@ -4,6 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  */
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3X == 1)
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 
 #include <nxp_iot_agent_utils.h>
 #include <nxp_iot_agent_utils_internal.h>
@@ -84,6 +89,8 @@ extern const key_recipe_t recipe_el2goconn_auth_prk;
 
 extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
 
+#define MAX_ECC_PUB_KEY_BUFFER_LEN     (1 + 2 * 96)
+
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 
 extern void print_openssl_errors(char* function);
@@ -102,7 +109,6 @@ const uint8_t prime256v1_private_key_template[] = {
 
 #define MAX_ECC_PRIV_KEY_TEMPLATE_LEN  (32)
 
-#define MAX_ECC_PUB_KEY_BUFFER_LEN     (1 + 2 * 96)
 
 typedef struct key_ref_ecc_template_t
 {
@@ -1512,51 +1518,54 @@ exit:
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
 
-#define SSS_MAGIC_NUMBER (0xA5A6B5B6)
-#define SSS_MAGIC_NUMBER_OFFSET1 (58)
-#define SSS_MAGIC_NUMBER_OFFSET2 (62)
-#define SSS_KEY_ID_IN_REFKEY_OFFSET (54)
+#define SSS_KEY_ID_IN_REFKEY_OFFSET (18)
+#define SSS_PUBKEY_LENGTH (66)
 
-iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_context, uint32_t keyId)
+iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_context, const iot_agent_keystore_t* keystore, uint32_t key_id)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	int ret = 0;
-	uint8_t nist256_keyPair_refKey[] = {
-	    0x30, 0x81, 0x87,
-		0x02, 0x01, 0x00,
-		0x30, 0x13,
-		0x06, 0x07, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x02, 0x01,
-		0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07,
-		0x04, 0x6D,
-		0x30, 0x6B,
-		0x02, 0x01, 0x01,
-		0x04, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	    0xA1, 0x44,
-		0x03, 0x42, 0x00, 0x04, 0x47, 0xB9, 0x07, 0x45, 0x55, 0xD9,	0xEC, 0x40, 0xAC, 0x6E, 0x5B, 0x30, 0x80, 0x57,
-		0x6C, 0x21, 0x67, 0x8E, 0xB3, 0x16, 0x72, 0x1B,	0x77, 0x07, 0x50, 0xB8, 0x6C, 0x98, 0xD8, 0x29,	0x27, 0x4E,
-		0x82, 0xA0, 0xAE, 0xD5, 0x81, 0x5D,	0x2E, 0x09, 0x41, 0x4C, 0x04, 0xB2, 0xA7, 0x19,	0x78, 0x35, 0x15, 0x4A,
-		0xE1, 0x19, 0x45, 0x0D,	0x14, 0x36, 0x0F, 0x09, 0x90, 0x0A, 0x98, 0xC9,	0xF1, 0x3A
-	};
+    uint8_t key_ref[] = {0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    					 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5, 0xA6, 0xB5, 0xB6, 0xA5, 0xA6, 0xB5, 0xB6, 0x00, 0x00};
+	sss_status_t sss_status;
+	sss_key_store_t* sss_keystore = NULL;
+	sss_object_t key = { 0 };
+	uint8_t buffer[MAX_ECC_PUB_KEY_BUFFER_LEN] = {0U};
+	size_t buffer_size = sizeof(buffer);
+	size_t public_key_length_bits = 0U;
 
-	// generate the key reference with specific object ID
-	nist256_keyPair_refKey[SSS_KEY_ID_IN_REFKEY_OFFSET] = (uint8_t)(keyId >> 24) & 0xFFU;
-	nist256_keyPair_refKey[SSS_KEY_ID_IN_REFKEY_OFFSET + 1]  = (uint8_t)(keyId >> 16) & 0xFFU;
-	nist256_keyPair_refKey[SSS_KEY_ID_IN_REFKEY_OFFSET + 2]  = (uint8_t)(keyId >> 8) & 0xFFU;
-	nist256_keyPair_refKey[SSS_KEY_ID_IN_REFKEY_OFFSET + 3]  = (uint8_t)(keyId >> 0) & 0xFFU;
-	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET1] = (uint8_t)(SSS_MAGIC_NUMBER >> 24) & 0xFFU;
-	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET1 + 1]  = (uint8_t)(SSS_MAGIC_NUMBER>> 16) & 0xFFU;
-	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET1 + 2]  = (uint8_t)(SSS_MAGIC_NUMBER >> 8) & 0xFFU;
-	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET1 + 3]  = (uint8_t)(SSS_MAGIC_NUMBER >> 0) & 0xFFU;
-	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET2] = (uint8_t)(SSS_MAGIC_NUMBER >> 24) & 0xFFU;
-	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET2 + 1]  = (uint8_t)(SSS_MAGIC_NUMBER>> 16) & 0xFFU;
-	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET2 + 2]  = (uint8_t)(SSS_MAGIC_NUMBER >> 8) & 0xFFU;
-	nist256_keyPair_refKey[SSS_MAGIC_NUMBER_OFFSET2 + 3]  = (uint8_t)(SSS_MAGIC_NUMBER >> 0) & 0xFFU;
+	ASSERT_OR_EXIT_MSG(keystore != NULL, "keystore is NULL.");
+	ASSERT_OR_EXIT_MSG(pk_context != NULL, "pk_context is NULL.");
 
-	ret = mbedtls_pk_parse_key(pk_context,
-					           nist256_keyPair_refKey,
-							   sizeof(nist256_keyPair_refKey), NULL, 0, NULL, NULL);
-	ASSERT_OR_EXIT_MSG(ret == 0, "Error in parsing the key reference");
+	agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_keystore);
+	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);
+
+	sss_status = sss_key_object_init(&key, sss_keystore);
+	SSS_SUCCESS_OR_EXIT_MSG("sss_key_object_init failed: 0x%04x.", sss_status);
+
+	sss_status = sss_key_object_get_handle(&key, key_id);
+	SSS_SUCCESS_OR_EXIT_MSG("sss_key_object_get_handle failed: 0x%04x [object id: 0x%04x].", sss_status, key.keyId);
+	// read the public key out from the SE:
+
+	sss_status = sss_key_store_get_key(sss_keystore, &key, buffer, &buffer_size, &public_key_length_bits);
+	SSS_SUCCESS_OR_EXIT_MSG("sss_key_store_get_key failed: 0x%04x [object id: 0x%04x].", sss_status, key.keyId);
+
+	ASSERT_OR_EXIT_MSG(buffer_size >= SSS_PUBKEY_LENGTH, "Issue in reading the key.");
+
+	ret = mbedtls_pk_parse_public_key(pk_context, buffer, buffer_size);
+	ASSERT_OR_EXIT_MSG(ret == 0, "Error in parsing publick key");
+
+    // load the key reference with correct object ID in the place of the private key
+	mbedtls_ecp_keypair *ec = mbedtls_pk_ec(*pk_context);
+	mbedtls_mpi_free(&ec->d);
+    mbedtls_mpi_init(&ec->d);
+	key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET] = (uint8_t)(key_id >> 24) & 0xFFU;
+	key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 1]  = (uint8_t)(key_id >> 16) & 0xFFU;
+	key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 2]  = (uint8_t)(key_id >> 8) & 0xFFU;
+	key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 3]  = (uint8_t)(key_id >> 0) & 0xFFU;
+    ret = mbedtls_mpi_read_binary(&ec->MBEDTLS_PRIVATE(d), key_ref, sizeof(key_ref));
+    ASSERT_OR_EXIT_MSG(ret == 0, "Error in parsing the key reference");
+
 exit:
 	return agent_status;
 }

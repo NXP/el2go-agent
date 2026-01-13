@@ -409,7 +409,7 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 		ASSERT_OR_EXIT_MSG(network_status == 0, "sss_mbedtls_associate_keypair failed with 0x%08x", network_status);
 #else
 		agent_status = iot_agent_utils_gen_key_ref_mbedtls3x(&((mbedtls_network_context_t*)dispatcher_context.network_context)->pkey,
-				service_descriptor->client_key_sss_ref.object_id);
+				keystore, service_descriptor->client_key_sss_ref.object_id);
 		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_gen_key_ref failed: 0x%08x.", agent_status);
 		sss_key_store_t* sss_keystore = NULL;
 		agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_keystore);
