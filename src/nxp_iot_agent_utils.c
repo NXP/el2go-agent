@@ -89,7 +89,9 @@ extern const key_recipe_t recipe_el2goconn_auth_prk;
 
 extern const pb_bytes_array_t* iot_agent_trusted_root_ca_certificates;
 
-#define MAX_ECC_PUB_KEY_BUFFER_LEN     (1 + 2 * 96)
+#define MAX_ECC_PUB_KEY_BUFFER_LEN     (1U + 2U * 96U)
+#define MAX_RSA_2048_PUB_KEY_BUFFER_LEN   512U
+#define MAX_RSA_PUB_KEY_BUFFER_LEN        MAX_RSA_2048_PUB_KEY_BUFFER_LEN
 
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 
@@ -261,8 +263,6 @@ exit:
 	return agent_status;
 }
 
-#define MAX_RSA_2048_PUB_KEY_BUFFER_LEN   512
-#define MAX_RSA_PUB_KEY_BUFFER_LEN        MAX_RSA_2048_PUB_KEY_BUFFER_LEN
 
 iot_agent_status_t iot_agent_utils_gen_key_ref_rsa(sss_key_store_t *keyStore, sss_object_t *keyObject,
 	iot_agent_keystore_key_ref_t* gen_key_ref)
@@ -1518,8 +1518,10 @@ exit:
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
 
-#define SSS_KEY_ID_IN_REFKEY_OFFSET (18)
-#define SSS_PUBKEY_LENGTH (66)
+extern void sss_mbedtls_set_keystore_ecdsa_sign(sss_key_store_t *ssskeystore);
+extern void sss_mbedtls_set_keystore_rsa(sss_key_store_t *ssskeystore);
+
+#define SSS_KEY_ID_IN_REFKEY_OFFSET (18U)
 
 iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_context, const iot_agent_keystore_t* keystore, uint32_t key_id)
 {
@@ -1527,10 +1529,12 @@ iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_
 	int ret = 0;
     uint8_t key_ref[] = {0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     					 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5, 0xA6, 0xB5, 0xB6, 0xA5, 0xA6, 0xB5, 0xB6, 0x00, 0x00};
-	sss_status_t sss_status;
+    uint8_t magic[] = {0xA5, 0xA6, 0xB5, 0xB6};
+    uint8_t key_id_buffer[4] = {0x00U};
+	sss_status_t sss_status = kStatus_SSS_Fail;
 	sss_key_store_t* sss_keystore = NULL;
 	sss_object_t key = { 0 };
-	uint8_t buffer[MAX_ECC_PUB_KEY_BUFFER_LEN] = {0U};
+	uint8_t buffer[MAX(MAX_ECC_PUB_KEY_BUFFER_LEN, MAX_RSA_PUB_KEY_BUFFER_LEN)] = {0U};
 	size_t buffer_size = sizeof(buffer);
 	size_t public_key_length_bits = 0U;
 
@@ -1545,27 +1549,54 @@ iot_agent_status_t iot_agent_utils_gen_key_ref_mbedtls3x(mbedtls_pk_context* pk_
 
 	sss_status = sss_key_object_get_handle(&key, key_id);
 	SSS_SUCCESS_OR_EXIT_MSG("sss_key_object_get_handle failed: 0x%04x [object id: 0x%04x].", sss_status, key.keyId);
-	// read the public key out from the SE:
 
 	sss_status = sss_key_store_get_key(sss_keystore, &key, buffer, &buffer_size, &public_key_length_bits);
 	SSS_SUCCESS_OR_EXIT_MSG("sss_key_store_get_key failed: 0x%04x [object id: 0x%04x].", sss_status, key.keyId);
 
-	ASSERT_OR_EXIT_MSG(buffer_size >= SSS_PUBKEY_LENGTH, "Issue in reading the key.");
-
 	ret = mbedtls_pk_parse_public_key(pk_context, buffer, buffer_size);
 	ASSERT_OR_EXIT_MSG(ret == 0, "Error in parsing publick key");
 
-    // load the key reference with correct object ID in the place of the private key
-	mbedtls_ecp_keypair *ec = mbedtls_pk_ec(*pk_context);
-	mbedtls_mpi_free(&ec->d);
-    mbedtls_mpi_init(&ec->d);
-	key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET] = (uint8_t)(key_id >> 24) & 0xFFU;
-	key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 1]  = (uint8_t)(key_id >> 16) & 0xFFU;
-	key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 2]  = (uint8_t)(key_id >> 8) & 0xFFU;
-	key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 3]  = (uint8_t)(key_id >> 0) & 0xFFU;
-    ret = mbedtls_mpi_read_binary(&ec->MBEDTLS_PRIVATE(d), key_ref, sizeof(key_ref));
-    ASSERT_OR_EXIT_MSG(ret == 0, "Error in parsing the key reference");
-
+    // load the key reference with correct object ID in the place of the private key;
+	// the keystore used and open in agent needs to be provided to the ALT layer
+	// to avoid double opening the session to SE05x
+	switch (key.cipherType)
+	{
+		case kSSS_CipherType_EC_NIST_P:
+			// in the ECC key reference the key ID is set at offset 18 of the private key,
+			// while the magic is at offset 22 and is already included in the local array initialization
+			mbedtls_ecp_keypair *ec = mbedtls_pk_ec(*pk_context);
+			mbedtls_mpi_free(&ec->d);
+		    mbedtls_mpi_init(&ec->d);
+			key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET] = (uint8_t)(key_id >> 24) & 0xFFU;
+			key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 1]  = (uint8_t)(key_id >> 16) & 0xFFU;
+			key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 2]  = (uint8_t)(key_id >> 8) & 0xFFU;
+			key_ref[SSS_KEY_ID_IN_REFKEY_OFFSET + 3]  = (uint8_t)(key_id >> 0) & 0xFFU;
+		    ret = mbedtls_mpi_read_binary(&ec->MBEDTLS_PRIVATE(d), key_ref, sizeof(key_ref));
+		    ASSERT_OR_EXIT_MSG(ret == 0, "Error in parsing the key reference");
+			sss_mbedtls_set_keystore_ecdsa_sign(sss_keystore);
+			break;
+		case kSSS_CipherType_RSA:
+		case kSSS_CipherType_RSA_CRT:
+			// in the RSA key reference the key ID is set in the Q prime number of CRT representation,
+			// while the magic is at QP modular inverse
+			mbedtls_rsa_context *rsa = mbedtls_pk_rsa(*pk_context);
+			mbedtls_mpi_free(&rsa->QP);
+			mbedtls_mpi_init(&rsa->QP);
+		    ret = mbedtls_mpi_read_binary(&rsa->MBEDTLS_PRIVATE(QP), magic, sizeof(magic));
+			mbedtls_mpi_free(&rsa->Q);
+			mbedtls_mpi_init(&rsa->Q);
+			key_id_buffer[0] = (uint8_t)(key_id >> 24) & 0xFFU;
+			key_id_buffer[1] = (uint8_t)(key_id >> 16) & 0xFFU;
+			key_id_buffer[2] = (uint8_t)(key_id >> 8) & 0xFFU;
+			key_id_buffer[3] = (uint8_t)(key_id >> 0) & 0xFFU;
+		    ret = mbedtls_mpi_read_binary(&rsa->MBEDTLS_PRIVATE(Q), key_id_buffer, sizeof(key_id_buffer));
+		    sss_mbedtls_set_keystore_rsa(sss_keystore);
+			break;
+		default:
+			IOT_AGENT_ERROR("Unsupported key cipherType [%u]", key.cipherType);
+			agent_status = IOT_AGENT_FAILURE;
+			break;
+	}
 exit:
 	return agent_status;
 }
