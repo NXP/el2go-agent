@@ -20,7 +20,7 @@
  *
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
-/* Copyright 2021 NXP
+/* Copyright 2021, 2026 NXP
  */
 #if defined(USE_RTOS) && USE_RTOS == 1
 
@@ -30,7 +30,6 @@
 #include "task.h"
 
 #include "board.h"
-#include "ksdk_mbedtls.h"
 #include "nxLog_App.h"
 
 #include "fsl_device_registers.h"
@@ -46,7 +45,7 @@
 #include "wifi_config.h"
 #include "serial_mwm.h"
 #endif // defined(LPC_WIFI)
-#include "mbedtls/net.h"
+#include "mbedtls/net_sockets.h"
 
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018, 2020-2021 NXP
+ * Copyright 2018, 2020-2021, 2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -7,10 +7,6 @@
 #include "board.h"
 #include "fsl_gpio.h"
 #include "pin_mux.h"
-
-#if defined(MBEDTLS)
-#include "ksdk_mbedtls.h"
-#endif
 
 #ifndef INC_FREERTOS_H /* Header guard of FreeRTOS */
 #include "FreeRTOS.h"

@@ -690,7 +690,7 @@
  *
  * Enable Xor-encrypt-xor with ciphertext stealing mode (XTS) for AES.
  */
-#define MBEDTLS_CIPHER_MODE_XTS
+//#define MBEDTLS_CIPHER_MODE_XTS
 
 /**
  * \def MBEDTLS_CIPHER_NULL_CIPHER
@@ -1493,7 +1493,7 @@
  *
  * Enable the checkup functions (*_self_test).
  */
-#define MBEDTLS_SELF_TEST
+//#define MBEDTLS_SELF_TEST
 
 /**
  * \def MBEDTLS_SHA256_SMALLER
@@ -1557,7 +1557,7 @@
  *
  * Uncomment to enable the Connection ID extension.
  */
-#define MBEDTLS_SSL_DTLS_CONNECTION_ID
+//#define MBEDTLS_SSL_DTLS_CONNECTION_ID
 
 /**
  * \def MBEDTLS_SSL_DTLS_CONNECTION_ID_COMPAT
@@ -1579,7 +1579,7 @@
  *
  * Requires: MBEDTLS_SSL_DTLS_CONNECTION_ID
  */
-#define MBEDTLS_SSL_DTLS_CONNECTION_ID_COMPAT 0
+//#define MBEDTLS_SSL_DTLS_CONNECTION_ID_COMPAT 0
 
 /**
  * \def MBEDTLS_SSL_ASYNC_PRIVATE
@@ -2455,7 +2455,7 @@
  *      MBEDTLS_TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256
  *      MBEDTLS_TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256
  */
-#define MBEDTLS_CAMELLIA_C
+//#define MBEDTLS_CAMELLIA_C
 
 /**
  * \def MBEDTLS_ARIA_C
@@ -2507,7 +2507,7 @@
  *      MBEDTLS_TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256
  *      MBEDTLS_TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384
  */
-#define MBEDTLS_ARIA_C
+//#define MBEDTLS_ARIA_C
 
 /**
  * \def MBEDTLS_CCM_C
@@ -2531,7 +2531,7 @@
  *
  * Module:  library/chacha20.c
  */
-#define MBEDTLS_CHACHA20_C
+//#define MBEDTLS_CHACHA20_C
 
 /**
  * \def MBEDTLS_CHACHAPOLY_C
@@ -2542,7 +2542,7 @@
  *
  * This module requires: MBEDTLS_CHACHA20_C, MBEDTLS_POLY1305_C
  */
-#define MBEDTLS_CHACHAPOLY_C
+//#define MBEDTLS_CHACHAPOLY_C
 
 /**
  * \def MBEDTLS_CIPHER_C
@@ -2619,7 +2619,7 @@
  *
  * This module provides debugging functions.
  */
-#define MBEDTLS_DEBUG_C
+//#define MBEDTLS_DEBUG_C
 
 /**
  * \def MBEDTLS_DES_C
@@ -2714,7 +2714,7 @@
  * \warning If using a hash that is only provided by PSA drivers, you must
  * call psa_crypto_init() before doing any EC J-PAKE operations.
  */
-#define MBEDTLS_ECJPAKE_C
+//#define MBEDTLS_ECJPAKE_C
 
 /**
  * \def MBEDTLS_ECP_C
@@ -2812,7 +2812,7 @@
  *
  * Uncomment to enable the LMS verification algorithm and public key operations.
  */
-#define MBEDTLS_LMS_C
+//#define MBEDTLS_LMS_C
 
 /**
  * \def MBEDTLS_LMS_PRIVATE
@@ -2837,7 +2837,7 @@
  *
  * Requires: MBEDTLS_AES_C and MBEDTLS_CIPHER_C
  */
-#define MBEDTLS_NIST_KW_C
+//#define MBEDTLS_NIST_KW_C
 
 /**
  * \def MBEDTLS_MD_C
@@ -3130,7 +3130,7 @@
  * Module:  library/poly1305.c
  * Caller:  library/chachapoly.c
  */
-#define MBEDTLS_POLY1305_C
+//#define MBEDTLS_POLY1305_C
 
 /**
  * \def MBEDTLS_PSA_CRYPTO_C
@@ -3145,7 +3145,7 @@
  *           or MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG.
  *
  */
-#define MBEDTLS_PSA_CRYPTO_C
+//#define MBEDTLS_PSA_CRYPTO_C
 
 /**
  * \def MBEDTLS_PSA_CRYPTO_SE_C
@@ -3197,7 +3197,7 @@
  * Caller:  library/md.c
  *
  */
-#define MBEDTLS_RIPEMD160_C
+//#define MBEDTLS_RIPEMD160_C
 
 /**
  * \def MBEDTLS_RSA_C
@@ -3364,7 +3364,7 @@
  *
  * This module adds support for SHA3.
  */
-#define MBEDTLS_SHA3_C
+//#define MBEDTLS_SHA3_C
 
 /**
  * \def MBEDTLS_SHA512_USE_A64_CRYPTO_IF_PRESENT
@@ -3483,7 +3483,7 @@
  *
  * This module is required for SSL/TLS server support.
  */
-#define MBEDTLS_SSL_SRV_C
+//#define MBEDTLS_SSL_SRV_C
 
 /**
  * \def MBEDTLS_SSL_TLS_C
