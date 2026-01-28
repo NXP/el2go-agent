@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/nxp_iot_agent-targets.cmake")
+
+check_required_components(nxp_iot_agent)
