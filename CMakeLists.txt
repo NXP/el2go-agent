@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.15)
-project(NXPIotAgent VERSION 1.0.0 LANGUAGES C)
-
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+project(NXPIotAgent VERSION 0.1 LANGUAGES C)
 
 # Include standard installation directories
 include(GNUInstallDirs)
 
 # Build shared library by default
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+
+# Option to build applications
+option(BUILD_APPLICATIONS "Build applications" ON)
 
 # Enable compiler warnings
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
@@ -19,6 +19,10 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     endif()
 endif()
 
-# Add subdirectories
-add_subdirectory(src)
-add_subdirectory(examples)
+# Add library subdirectory
+add_subdirectory(lib)
+
+# Add applications if enabled
+if(BUILD_APPLICATIONS)
+    add_subdirectory(applications)
+endif()

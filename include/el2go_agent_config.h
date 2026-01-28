@@ -1,36 +1,35 @@
+/* SPDX-License-Identifier: Apache-2.0 */
 /*
  * Copyright 2018-2026 NXP
- *
- * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef __IOT_AGENT_CONFIG_H__
-#define __IOT_AGENT_CONFIG_H__
+#ifndef __EL2GO_AGENT_CONFIG_H__
+#define __EL2GO_AGENT_CONFIG_H__
 
 /*
  * Maximum number of datastores and keystores
  * Can be configured at compile time
  */
-#ifndef IOT_AGENT_MAX_DATASTORES
-#define IOT_AGENT_MAX_DATASTORES 1
+#ifndef EL2GO_AGENT_MAX_DATASTORES
+#define EL2GO_AGENT_MAX_DATASTORES 1
 #endif
 
-#ifndef IOT_AGENT_MAX_KEYSTORES
-#define IOT_AGENT_MAX_KEYSTORES 1
+#ifndef EL2GO_AGENT_MAX_KEYSTORES
+#define EL2GO_AGENT_MAX_KEYSTORES 1
 #endif
 
 /*
- * IOT_AGENT_DATASTORE_EDGELOCK_ID - Special datastore for EdgeLock 2GO server connection
+ * EL2GO_AGENT_DATASTORE_EDGELOCK_ID - Special datastore for EdgeLock 2GO server connection
  *
  * This is a reserved datastore identifier used to store EdgeLock 2GO server
  * connection information including hostname, port, TLS certificates.
  * The datastore holds the configuration required to establish secure
  * communication with the EdgeLock 2GO cloud service during device provisioning.
  */
-#define IOT_AGENT_DATASTORE_EDGELOCK_ID 0x70000000
+#define EL2GO_AGENT_DATASTORE_EDGELOCK_ID 0x70000000
 
 /*
- * IOT_AGENT_EDGELOCK2GO_KEYSTORE_ID - Keystore for EdgeLock 2GO credentials
+ * EL2GO_AGENT_EDGELOCK2GO_KEYSTORE_ID - Keystore for EdgeLock 2GO credentials
  *
  * When connecting to the EdgeLock 2GO cloud service, for the client
  * authentication a private key is required. This key is expected to be in a
@@ -44,6 +43,6 @@
  * connection information, it does assume that the private key for the client
  * authentication is stored in a keystore that is registered with this ID.
  */
-#define IOT_AGENT_EDGELOCK2GO_KEYSTORE_ID                 0x70000010U
+#define EL2GO_AGENT_EDGELOCK2GO_KEYSTORE_ID                 0x70000010U
 
-#endif /* __IOT_AGENT_CONFIG_H__ */
+#endif /* __EL2GO_AGENT_CONFIG_H__ */
