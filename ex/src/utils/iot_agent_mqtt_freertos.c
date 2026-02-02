@@ -39,6 +39,8 @@
 #if (defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)) && \
     !(defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1))
 #include "sss_mbedtls.h"
+#else
+#include "nxp_iot_agent_utils_internal.h"
 #endif //#if (defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)) &&
        //   !(defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
 #include "ex_sss_boot.h"
@@ -356,6 +358,11 @@ iot_agent_status_t associateKeyPair(mbedtls_pk_context *pk, sss_object_t* servic
     !(defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1))
     ret = sss_mbedtls_associate_keypair(pk, service_private_key);
     ASSERT_OR_EXIT_MSG(ret == 0, "sss_mbedtls_associate_keypair failed with 0x%08x.", ret)
+#else
+	agent_status = iot_agent_utils_gen_key_ref_mbedtls3x(pk, keystore, key_id);
+	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_utils_gen_key_ref failed_mbedtls3x: 0x%08x.", agent_status);
+	agent_status = iot_agent_keystore_sss_se05x_get_sss_key_store(keystore->context, &sss_keystore);
+	AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_keystore_sss_se05x_get_sss_key_store failed: 0x%08x", agent_status);
 #endif //#if (defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)) &&
        //   !(defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
 
