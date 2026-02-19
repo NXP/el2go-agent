@@ -1,0 +1,10 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+source "Kconfig.zephyr"
+
+config CLAIM_CODE_INFO_ADDRESS
+    hex "Claim code address"
+    default 0x088A0000
+    help
+        Address where the claim code blob will be written.

@@ -1,4 +1,4 @@
-# Copyright 2024-2025 NXP
+# Copyright 2024-2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.20.0)
@@ -25,4 +25,11 @@ if(CONFIG_VALIDATE_PSA_IMPORT_KEY_PAIR)
 endif()
 if(CONFIG_VALIDATE_PSA_IMPORT_CERT)
     target_compile_definitions(app PRIVATE VALIDATE_PSA_IMPORT_CERT=1)
+
+if(CONFIG_BLOB_AREA)
+    target_compile_definitions(app PRIVATE BLOB_AREA=${CONFIG_BLOB_AREA})
+endif()
+
+if(CONFIG_BLOB_AREA_SIZE)
+    target_compile_definitions(app PRIVATE BLOB_AREA_SIZE=${CONFIG_BLOB_AREA_SIZE})
 endif()

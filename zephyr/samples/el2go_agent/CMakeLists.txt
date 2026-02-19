@@ -1,4 +1,4 @@
-# Copyright 2024 NXP
+# Copyright 2024,2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.20.0)
@@ -49,6 +49,10 @@ endif()
 
 if(CONFIG_IOT_AGENT_CLAIMCODE_INJECT_ENABLE)
     target_compile_definitions(app PRIVATE IOT_AGENT_CLAIMCODE_INJECT_ENABLE=1)
+endif()
+
+if(CONFIG_CLAIM_CODE_INFO_ADDRESS)
+    target_compile_definitions(app PRIVATE CLAIM_CODE_INFO_ADDRESS=${CONFIG_CLAIM_CODE_INFO_ADDRESS})
 endif()
 
 if(CONFIG_IOT_AGENT_MQTT_ENABLE)

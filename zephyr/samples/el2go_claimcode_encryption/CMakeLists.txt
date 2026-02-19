@@ -1,4 +1,4 @@
-# Copyright 2024-2025 NXP
+# Copyright 2024-2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.20.0)
@@ -28,3 +28,7 @@ zephyr_include_directories(
     ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/nboot
     ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/bootloader
 )
+
+if(CONFIG_CLAIM_CODE_INFO_ADDRESS)
+    target_compile_definitions(app PRIVATE CLAIM_CODE_INFO_ADDRESS=${CONFIG_CLAIM_CODE_INFO_ADDRESS})
+endif()

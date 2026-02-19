@@ -1,4 +1,4 @@
-# Copyright 2024-2025 NXP
+# Copyright 2024-2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 source "Kconfig.zephyr"
@@ -17,3 +17,15 @@ config VALIDATE_PSA_IMPORT_CERT
     bool "Config can be used if the imported blobs need to parse the x509 certificate"
     help
         Validate x509 certificate imported blob from flash, it must have VALIDATE_PSA_IMPORT_KEY_PAIR enabled
+
+config BLOB_AREA
+    hex "Area where blobs are located"
+    default 0x088B0000
+    help
+        Locate the Flash area where the blobs are located.
+
+config BLOB_AREA_SIZE
+    hex "Size of area where blobs are located"
+    default 0x2000
+    help
+        Define the Flash area size where the blobs are located.

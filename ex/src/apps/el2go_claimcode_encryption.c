@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2025 NXP
+ * Copyright 2023-2026 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -39,7 +39,9 @@
 
 #define FLASH_ADDRESS           (0x08000000U)
 #define FCB_ADDRESS             (FLASH_ADDRESS + 0x00000400U)
-#define CLAIM_CODE_INFO_ADDRESS (FLASH_ADDRESS + 0x004a0000U)
+#ifndef CLAIM_CODE_INFO_ADDRESS
+#define CLAIM_CODE_INFO_ADDRESS (0x084A0000U)
+#endif
 #define FLEXSPI_INSTANCE        (0U)
 #define FLASH_OPTION_QSPI_SDR   (0xc0000004U)
 

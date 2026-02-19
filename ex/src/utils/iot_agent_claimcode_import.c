@@ -1,4 +1,4 @@
-/* Copyright 2023-2025 NXP
+/* Copyright 2023-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -15,8 +15,9 @@
 #include "psa/crypto.h"
 #include "psa_crypto_its.h"
 
-#define FLASH_ADDRESS           (0x08000000U)
-#define CLAIM_CODE_INFO_ADDRESS (FLASH_ADDRESS + 0x004a0000U)
+#ifndef CLAIM_CODE_INFO_ADDRESS
+#define CLAIM_CODE_INFO_ADDRESS (0x084A0000U)
+#endif
 
 // An indicator to be able to make a fast and easy decision whether there is
 // a claimcode blob at a particular address in Flash

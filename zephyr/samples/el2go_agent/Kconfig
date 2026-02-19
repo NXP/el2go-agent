@@ -1,4 +1,4 @@
-# Copyright 2024 NXP
+# Copyright 2024,2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 source "Kconfig.zephyr"
@@ -12,6 +12,12 @@ config IOT_AGENT_CLAIMCODE_INJECT_ENABLE
     bool "Claimcode enable flag"
     help
         Flag for enabling provisioning through claimcode.
+
+config CLAIM_CODE_INFO_ADDRESS
+    hex "Claim code address"
+    default 0x088A0000
+    help
+        Address from where the claim code will be read.
 
 config IOT_AGENT_MQTT_ENABLE
     bool "Claimcode enable flag"
