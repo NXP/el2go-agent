@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def test_el2go_claimcode_encryption(dut: DeviceAdapter, shell: Shell):
     devmem_addresses_as_str = ''
     for i in range(167):
-        line = shell.exec_command(f'devmem {hex(int("084A0008", 16) + int(str(i)))} 8')
+        line = shell.exec_command(f'devmem {hex(int("088A0008", 16) + int(str(i)))} 8')
         value = line[2].split()[2].replace('0x', '')
         devmem_addresses_as_str += '0' + value if len(value) == 1 else value
 

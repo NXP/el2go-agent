@@ -51,7 +51,7 @@ Prepare the Demo
     ``#define NXP_IOT_AGENT_CLAIMCODE_KEY_AGREEMENT_PUBLIC_KEY_PROD
     #define NXP_IOT_AGENT_CLAIMCODE_KEY_AGREEMENT_PUBLIC_KEY_PROD_SIZE``
 
-3.  [Optional] The flash address where the claim code will be written to is set to 0x084A0000 by default.
+3.  [Optional] The flash address where the claim code will be written to is set to 0x088A0000 by default.
     The location can be changed by altering the following variable (make sure to keep it aligned with
     the address configured in the EL2GO Agent sample):
 

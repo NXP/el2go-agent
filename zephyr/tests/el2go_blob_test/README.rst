@@ -13,6 +13,9 @@ The application is based on the Trusted Firmware-M (TF-M) project which allows t
 The example is split in two parts: TF-M core and RootOfTrust services are runnig in Secure Processing Environment (SPE),
 while the application itself is running in Non-secure Processing Environment (NSPE).
 
+The example supports both BL2 enabled and BL2 disabled bootloader modes. More information can be found in the BL2‑related section below
+or in the TF-M documentation at the following link (https://trustedfirmware-m.readthedocs.io/en/latest/design_docs/booting/tfm_secure_boot.html).
+
 The source code for this application can be found at:
 :zephyr_file:`modules/lib/nxp_iot_agent/tst/el2go_blob_test`.
 
@@ -59,7 +62,18 @@ Prepare the Tests
 
     Afterwards, you can set ``CONFIG_LARGE_BLOBS_ENABLED=y`` in proj.conf.
 
-4.  To properly derive die-individual encryption and authentication keys used for provisioning of EdgeLock 2GO Secure Objects,
+4.  [Optional] EdgeLock 2GO applications support two boot modes:
+    - BL2 enabled (default): The ROM bootloader first jumps to the BL2 image, which authenticates the signed SPE and NSPE images
+    - BL2 disabled: The ROM bootloader jumps directly to the SPE image
+
+    To select the BL2 disabled mode, additional configuration options must be passed to the command line when building the application:
+    - CONFIG_TFM_BL2: Indicates whether the BL2 build is enabled or disabled; should be set to 'n'
+    - CONFIG_FLASH_BASE_ADDRESS: Must point to the address where the NSPE starts. For BL2 disabled, this should be set to 0x080A0000
+    - DTC_OVERLAY_FILE: Should point to the board-specific overlay file provided in the nxp_iot_agent repository
+    For example for the rd_rw612_bga board, use the following arguments:
+    -DCONFIG_TFM_BL2=n -DCONFIG_FLASH_BASE_ADDRESS=0x080A0000 -DDTC_OVERLAY_FILE="$ZephryRootDir$/modules/lib/nxp_iot_agent/zephyr/overlay/rd_rw612_bga_rw612_ns.overlay".
+    
+5.  To properly derive die-individual encryption and authentication keys used for provisioning of EdgeLock 2GO Secure Objects,
     the secure boot mode should be enabled and the hash of the OEM FW Authentication key (RKTH) loaded in the One Time Programming (OTP) fuses
     of the device. The enablement of secure boot requires the application image downloaded to the chip to be signed with the OEM FW Authentication key.
     Additionaly, if the example is supposed to run in the OEM CLOSED life cycle (typical for production SW),
@@ -98,25 +112,29 @@ Prepare the Tests
        Please set them to same value as you would in prj.conf file.
     In case both are set, the variables in the prj.conf will take precedence.
 
-5.  Build the application.
+    The automated image signing process supports both BL2 enabled and BL2 disabled modes.
+    When BL2 is enabled, the signature is calculated and appended by the SPSDK image tool to the merged image, which includes the BL2, SPE, and NSPE images.
+    When BL2 is disabled, only the SPE and NSPE images are merged before the signature is computed and appended.
 
-6.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable to the PC host and the MCU-Link USB port
+6.  Build the application.
+
+7.  Connect the USB-C (FRDM-RW612) or Micro-USB (RD-RW612-BGA) cable to the PC host and the MCU-Link USB port
     (J10 [FRDM-RW612] or J7 [RD-RW612-BGA]) on the board.
 
-7.  Open a serial terminal with the following settings:
+8.  Open a serial terminal with the following settings:
     - 115200 baud rate
     - 8 data bits
     - No parity
     - One stop bit
     - No flow control
 
-8.  Flash the application to the board: as explained in the section 4, in typical production use case the example is encrypted
+9.  Flash the application to the board: as explained in the section 4, in typical production use case the example is encrypted
     in a SB3.1 container. Follow the Application note AN13813 "Secure boot on RW61x" to check how to dowload the container to the device.
 
     In case the example is running on a device in OEM OPEN lifecycle the merged and signed image can be downloaded west flash command through JLink.
     An alterantive is the usage of the SPSDK blhost application which is decoumented under https://spsdk.readthedocs.io/en/stable/examples/blhost/blhost.html.
 
-9.  [Optional] If you capure the console output of the test application, you can feed it into the postprocessor to recieve the results in the JUnit format:
+10.  [Optional] If you capure the console output of the test application, you can feed it into the postprocessor to recieve the results in the JUnit format:
     :zephyr_file:`modules/lib/nxp_iot_agent/tst/el2go_blob_test/scripts/el2go_blob_test_post.py` [CONSOLE_OUTPUT_PATH] [JUNIT_OUT_PATH]
 
 Building, Flashing and Running
