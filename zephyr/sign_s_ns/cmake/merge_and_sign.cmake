@@ -1,33 +1,61 @@
-# Copyright 2024 NXP
+# Copyright 2024,2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 function(merge_and_sign)
     message(STATUS "Merge TF-M SPE and NSPE image")
-    set(FLASH_S_SIZE "0x9F000")
+    set(FLASH_NS_LOC "")
     set(FLASH_START_ADDRESS "0x8000000")
     set(TFM_MERGED_HEADERLESS_BIN
         "${CMAKE_BINARY_DIR}/../tfm/bin/tfm_merged_headerless.bin")
     set(SIGNED_OUTPUT_BIN "${CMAKE_BINARY_DIR}/zephyr.bin")
-    set(TFM_NS_BIN "${CMAKE_BINARY_DIR}/zephyr.bin")
+
+    if(NOT CONFIG_TFM_BL2)
+        set(TFM_S_BIN "${CMAKE_BINARY_DIR}/../tfm/bin/tfm_s.bin")
+        set(TFM_NS_BIN "${CMAKE_BINARY_DIR}/zephyr.bin")
+    else()
+        set(TFM_S_BIN "${CMAKE_BINARY_DIR}/../tfm/bin/tfm_s_signed.bin")
+        set(TFM_NS_BIN "${CMAKE_BINARY_DIR}/zephyr_ns_signed.bin")
+    endif()
     set(TFM_MERGED_HEADERLESS_SIGNED_BIN
         "${CMAKE_BINARY_DIR}/../tfm/bin/tfm_merged_headerless_signed.bin")
     set(TFM_MERGE_YML "${CMAKE_BINARY_DIR}/../tfm/tfm_merge.yml")
     set(TFM_SIGN_YML "${CMAKE_BINARY_DIR}/../tfm/tfm_sign.yml")
     set(SB_MERGE_YML "${CMAKE_BINARY_DIR}/../tfm/sb_merge.yml")
 
-    # Merge s and ns image
-    file(WRITE ${TFM_MERGE_YML}
-        "
-        name: TF-M Merged
-        pattern: zeros
-        regions:
-          - binary_file:
-              name: TF-M (S Part)
-              path: ${TFM_S_HEADERLESS_BIN}
-          - binary_file:
-              name: TF-M (NS Part)
-              path: ${TFM_NS_BIN}
-              offset: ${FLASH_S_SIZE}")
+    if(NOT CONFIG_TFM_BL2)
+        # Merge s and ns image
+        file(WRITE ${TFM_MERGE_YML}
+            "
+            name: TF-M Merged
+            pattern: zeros
+            regions:
+              - binary_file:
+                  name: TF-M (S Part)
+                  path: ${HEADERLESS_BIN}
+              - binary_file:
+                  name: TF-M (NS Part)
+                  path: ${TFM_NS_BIN}
+                  offset: 0x9F000")
+    else()
+        # Merge BL2, s and ns image
+        file(WRITE ${TFM_MERGE_YML}
+            "
+            name: TF-M Merged
+            pattern: zeros
+            regions:
+              - binary_file:
+                  name: TF-M (S Part)
+                  path: ${HEADERLESS_BIN}
+              - binary_file:
+                  name: TF-M (NS Part)
+                  path: ${TFM_S_BIN}
+                  offset: 0x1F000
+              - binary_file:
+                  name: TF-M (NS Part)
+                  path: ${TFM_NS_BIN}
+                  offset: 0xBF000")
+    endif()
+
     execute_process(COMMAND nxpimage -vv utils binary-image export
         -c ${TFM_MERGE_YML}
         -o ${TFM_MERGED_HEADERLESS_BIN}

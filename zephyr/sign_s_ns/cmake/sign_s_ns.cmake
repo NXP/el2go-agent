@@ -1,4 +1,4 @@
-# Copyright 2024 NXP
+# Copyright 2024,2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 # This file includes extra build system logic that is enabled when
@@ -57,14 +57,15 @@ function(sign_s_ns)
 
     # Paths
     set(FCB_BIN "${CMAKE_BINARY_DIR}/tfm/bin/fcb.bin")
-    set(TFM_S_HEADERLESS_BIN "${CMAKE_BINARY_DIR}/tfm/bin/tfm_s_headerless.bin")
+    set(HEADERLESS_BIN "${CMAKE_BINARY_DIR}/tfm/bin/tfm_s_headerless.bin")
 
     set_property(GLOBAL APPEND PROPERTY extra_post_build_commands
         COMMAND ${CMAKE_COMMAND}
         -DFCB_SIZE:INTERNAL=${FCB_SIZE}
         -DPADDING_SIZE:INTERNAL=${PADDING_SIZE}
         -DFCB_BIN:INTERNAL=${FCB_BIN}
-        -DTFM_S_HEADERLESS_BIN:INTERNAL=${TFM_S_HEADERLESS_BIN}
+        -DHEADERLESS_BIN:INTERNAL=${HEADERLESS_BIN}
+        -DCONFIG_TFM_BL2:INTERNAL=${CONFIG_TFM_BL2}
         -P ${CMAKE_CURRENT_LIST_DIR}/extract_boot_header.cmake)
 
     set_property(GLOBAL APPEND PROPERTY extra_post_build_commands
@@ -72,9 +73,10 @@ function(sign_s_ns)
         -DFCB_SIZE:INTERNAL=${FCB_SIZE}
         -DPADDING_SIZE:INTERNAL=${PADDING_SIZE}
         -DFCB_BIN:INTERNAL=${FCB_BIN}
-        -DTFM_S_HEADERLESS_BIN:INTERNAL=${TFM_S_HEADERLESS_BIN}
+        -DHEADERLESS_BIN:INTERNAL=${HEADERLESS_BIN}
         -DCONFIG_EL2GO_PRIVATE_KEY:INTERNAL=${PRIVATE_KEY}
         -DCONFIG_EL2GO_CERT_BLOCK:INTERNAL=${CERT_BLOCK}
+        -DCONFIG_TFM_BL2:INTERNAL=${CONFIG_TFM_BL2}
         -P ${CMAKE_CURRENT_LIST_DIR}/merge_and_sign.cmake)
 
     set_property(GLOBAL APPEND PROPERTY extra_post_build_commands
