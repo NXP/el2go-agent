@@ -42,7 +42,7 @@ IF(SSS_HAVE_HOSTCRYPTO_MBEDTLS)
             add_definitions(-DNXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X=1)
             TARGET_COMPILE_OPTIONS(
                 mbedtls
-                PRIVATE
+                PUBLIC
                 -UMBEDTLS_CONFIG_FILE
                 -DMBEDTLS_CONFIG_FILE=\"el2go_mbedtls3x_config.h\"
             )
