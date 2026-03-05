@@ -1,0 +1,15 @@
+#!/bin/bash
+set -eu
+
+# Get the Git Top level directory
+function get_toplevel() {
+	local topdir
+	topdir=$(git rev-parse --show-toplevel)
+	echo "$topdir"
+}
+
+# Get the git root directory
+GIT_TOPLEVEL=$(get_toplevel)
+TOOL_SH="$GIT_TOPLEVEL"/scripts/check-copyright.sh
+
+$TOOL_SH --cached

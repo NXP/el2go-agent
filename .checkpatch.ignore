@@ -1,0 +1,4 @@
+doc
+scripts
+lib/protobuf/nanopb
+*.sh
