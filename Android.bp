@@ -28,6 +28,7 @@ cc_defaults {
     cflags: [
         "-Wall",
         "-Werror",
+        "-Wno-error=format",
         "-DNXP_IOT_AGENT_HAVE_PSA=1",
         "-DNXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS=1",
         "-DNXP_IOT_AGENT_HAVE_PSA_IMPL_SMW=1",
