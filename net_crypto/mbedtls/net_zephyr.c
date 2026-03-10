@@ -2,11 +2,13 @@
  *  TCP/IP or UDP/IP networking functions
  *
  *  Copyright The Mbed TLS Contributors
- *  Copyright 2024 NXP
+ *  Copyright 2024, 2026 NXP
  *  SPDX-License-Identifier: Apache-2.0
  */
 
 #include <zephyr/net/socket.h>
+#include <zephyr/posix/sys/socket.h>
+#include <zephyr/posix/netdb.h>
 
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/error.h"
@@ -224,8 +226,8 @@ int mbedtls_net_accept(mbedtls_net_context *bind_ctx,
 #if defined(__socklen_t_defined) || defined(_SOCKLEN_T) ||  \
     defined(_SOCKLEN_T_DECLARED) || defined(__DEFINED_socklen_t) || \
     defined(socklen_t) || (defined(_POSIX_VERSION) && _POSIX_VERSION >= 200112L)
-    socklen_t n = (socklen_t) sizeof(client_addr);
-    socklen_t type_len = (socklen_t) sizeof(type);
+    net_socklen_t n = (net_socklen_t) sizeof(client_addr);
+    net_socklen_t type_len = (net_socklen_t) sizeof(type);
 #else
     int n = (int) sizeof(client_addr);
     int type_len = (int) sizeof(type);
@@ -241,13 +243,13 @@ int mbedtls_net_accept(mbedtls_net_context *bind_ctx,
     if (type == SOCK_STREAM) {
         /* TCP: actual accept() */
         ret = client_ctx->fd = (int) accept(bind_ctx->fd,
-                                            (struct sockaddr *) &client_addr, &n);
+                                            (struct net_sockaddr *) &client_addr, &n);
     } else {
         /* UDP: wait for a message, but keep it in the queue */
         char buf[1] = { 0 };
 
         ret = (int) recvfrom(bind_ctx->fd, buf, sizeof(buf), MSG_PEEK,
-                             (struct sockaddr *) &client_addr, &n);
+                             (struct net_sockaddr *) &client_addr, &n);
     }
 
     if (ret < 0) {
@@ -264,7 +266,7 @@ int mbedtls_net_accept(mbedtls_net_context *bind_ctx,
         struct sockaddr_storage local_addr;
         int one = 1;
 
-        if (connect(bind_ctx->fd, (struct sockaddr *) &client_addr, n) != 0) {
+        if (connect(bind_ctx->fd, (struct net_sockaddr *) &client_addr, n) != 0) {
             return MBEDTLS_ERR_NET_ACCEPT_FAILED;
         }
 
@@ -273,7 +275,7 @@ int mbedtls_net_accept(mbedtls_net_context *bind_ctx,
 
         n = sizeof(struct sockaddr_storage);
         if (getsockname(client_ctx->fd,
-                        (struct sockaddr *) &local_addr, &n) != 0 ||
+                        (struct net_sockaddr *) &local_addr, &n) != 0 ||
             (bind_ctx->fd = (int) socket(local_addr.ss_family,
                                          SOCK_DGRAM, IPPROTO_UDP)) < 0 ||
             setsockopt(bind_ctx->fd, SOL_SOCKET, SO_REUSEADDR,
@@ -281,7 +283,7 @@ int mbedtls_net_accept(mbedtls_net_context *bind_ctx,
             return MBEDTLS_ERR_NET_SOCKET_FAILED;
         }
 
-        if (bind(bind_ctx->fd, (struct sockaddr *) &local_addr, n) != 0) {
+        if (bind(bind_ctx->fd, (struct net_sockaddr *) &local_addr, n) != 0) {
             return MBEDTLS_ERR_NET_BIND_FAILED;
         }
     }

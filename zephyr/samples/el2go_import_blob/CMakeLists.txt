@@ -25,7 +25,7 @@ if(CONFIG_VALIDATE_PSA_IMPORT_KEY_PAIR)
 endif()
 if(CONFIG_VALIDATE_PSA_IMPORT_CERT)
     target_compile_definitions(app PRIVATE VALIDATE_PSA_IMPORT_CERT=1)
-
+endif()
 if(CONFIG_BLOB_AREA)
     target_compile_definitions(app PRIVATE BLOB_AREA=${CONFIG_BLOB_AREA})
 endif()
