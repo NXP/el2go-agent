@@ -1,0 +1,314 @@
+/*--------------------------------------------------------------------------*/
+/* Copyright 2026 NXP                                                       */
+/*                                                                          */
+/* NXP Confidential and Proprietary. This software is owned or controlled   */
+/* by NXP and may only be used strictly in accordance with the applicable   */
+/* license terms. By expressly accepting such terms or by downloading,      */
+/* installing, activating and/or otherwise using the software, you are      */
+/* agreeing that you have read, and that you agree to comply with and are   */
+/* bound by, such license terms. If you do not agree to be bound by the     */
+/* applicable license terms, then you may not retain, install, activate     */
+/* or otherwise use the software.                                           */
+/*--------------------------------------------------------------------------*/
+#include "el2go_csr_tlv_parser.h"
+
+const size_t integrity_algo_value_size_map[NR_OF_ALGOS-1] = {
+    4U // CRC_32 produces 4 bytes
+};
+
+/*! @brief Extract number of bytes from BER encoded length field.
+ *
+ * This function is used to extract the length field from a BER-encoded TLV structure.
+ * 
+ * @param[in] buf: Pointer to buffer containing BER-encoded length field.
+ * @param[in] offset: Pointer to current offset in buffer, will be updated after parsing.
+ * @retval Returns the extracted length value from the BER-encoded length field.
+ */
+static size_t parse_ber_length(const uint8_t *buf, size_t *offset)
+{
+    size_t length = 0u;
+    uint8_t first_byte = 0u; 
+    
+    if (!buf || !offset)
+    {
+        return 0u;
+    }
+
+    first_byte = (size_t)buf[(*offset)++];
+    
+    if ((first_byte & 0x80u) == 0u)
+    {
+        // Short form: length is 0-127
+        length = first_byte;
+    }
+    else
+    {
+        // Long form: bits 0-6 indicate number of subsequent length bytes
+        uint8_t num_length_bytes = first_byte & 0x7Fu;
+        
+        for (uint8_t i = 0u; i < num_length_bytes; i++)
+        {
+            length = (length << 8) | (size_t)buf[(*offset)++];
+        }
+    }
+
+    return length;
+}
+
+/*! @brief Parse buffer to spot EL2GO config block used for CSR generation.
+ *
+ * This internal function is parsing buffer and fills up a the the configuration 
+ * block context used for CSR generation.
+ * 
+ * @param[in, out] csr_gen_ctx: Structure to be filled with parsed configuration data.
+ * @param[in] conf_buf_ptr: Pointer base address of the configuration block.
+ * @retval kStatus_CSR_Success Upon success.
+ */
+static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx, 
+    const uint8_t *conf_buf_ptr)
+{
+    uint8_t tag = 0u;
+    uint8_t nr_tlv_fields = 0u; 
+    size_t  offset = 0u;
+    size_t  length = 0u;
+
+    if (!csr_gen_ctx || !conf_buf_ptr)
+    {
+        return kStatus_CSR_INVALID_PARAM;
+    }
+
+    nr_tlv_fields = 1 + (CSR_GEN_TAG_INTEGRITY_VALUE - CSR_GEN_TAG_MAGIC);
+
+    for (uint8_t i = 0u; i < nr_tlv_fields; i++)
+    {
+        uint8_t current_tag = i + CSR_GEN_TAG_MAGIC;
+
+        tag = conf_buf_ptr[offset++];
+        
+        if (tag != current_tag)
+        {
+            return kStatus_CSR_INVALID_FORMAT;
+        }
+        
+        length = parse_ber_length(conf_buf_ptr, &offset);
+
+        switch (tag)
+        {
+            case CSR_GEN_TAG_MAGIC:
+                csr_gen_ctx->magic = &conf_buf_ptr[offset];
+                break;
+
+            case CSR_GEN_TAG_VERSION:
+                if (length != sizeof(uint16_t)) 
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                csr_gen_ctx->version = (uint16_t)conf_buf_ptr[offset] << 8 | 
+                                       ((uint16_t)conf_buf_ptr[offset + 1]);
+                break;
+
+            case CSR_GEN_TAG_DEVICE_OPERATION:
+                if (length != sizeof(uint8_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                csr_gen_ctx->device_operation = conf_buf_ptr[offset];
+                break;
+
+            case CSR_GEN_TAG_KEY_ID:
+                if (length != sizeof(uint32_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                csr_gen_ctx->key_id = ((uint32_t)conf_buf_ptr[offset] << 24) | 
+                                      ((uint32_t)conf_buf_ptr[offset + 1] << 16) |
+                                      ((uint32_t)conf_buf_ptr[offset + 2] << 8) |
+                                      (uint32_t)conf_buf_ptr[offset + 3];
+                break;
+
+            case CSR_GEN_TAG_CSR_DEST_ADDR:
+                if (length != sizeof(uint32_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                csr_gen_ctx->destination_addr = ((uint32_t)conf_buf_ptr[offset] << 24) | 
+                                      ((uint32_t)conf_buf_ptr[offset + 1] << 16) |
+                                      ((uint32_t)conf_buf_ptr[offset + 2] << 8) |
+                                      (uint32_t)conf_buf_ptr[offset + 3];
+                break;
+
+            case CSR_GEN_TAG_INTEGRITY_ALGORTIHM:
+                if (length != sizeof(uint32_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                csr_gen_ctx->integrity_algorithm = (integrity_algorithms_t)(((uint32_t)conf_buf_ptr[offset] << 24) | 
+                                      ((uint32_t)conf_buf_ptr[offset + 1] << 16) |
+                                      ((uint32_t)conf_buf_ptr[offset + 2] << 8) |
+                                      (uint32_t)conf_buf_ptr[offset + 3]);
+                
+                if (!csr_gen_ctx->integrity_algorithm || csr_gen_ctx->integrity_algorithm >= NR_OF_ALGOS)
+                {
+                    return kStatus_CSR_NOT_SUPPORTED;
+                }
+                break;
+
+            case CSR_GEN_TAG_INTEGRITY_VALUE:
+                csr_gen_ctx->integrity_value = &conf_buf_ptr[offset];
+                break;
+
+            default:
+                return kStatus_CSR_INVALID_FORMAT;
+        }
+
+        offset += length;
+    }
+
+    return kStatus_CSR_SUCCESS;
+}
+
+/*! @brief Parse buffer to spot EL2GO config block used for x.509 certificate storage.
+ *
+ * This internal function is parsing buffer and fills up a the the configuration 
+ * block context used for x.509 certificate storage. 
+ * 
+ * @param[in, out] cert_storage_ctx: Structure to be filled with parsed configuration data.
+ * @param[in] conf_buf_ptr: Pointer base address of the configuration block.
+ * @retval kStatus_CSR_Success Upon success.
+ */
+static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storage_ctx, 
+    const uint8_t *conf_buf_ptr)
+{
+    uint8_t tag = 0u;
+    uint8_t nr_tlv_fields = 0u; 
+    size_t  offset = 0u;
+    size_t  length = 0u;
+
+    if (!cert_storage_ctx || !conf_buf_ptr)
+    {
+        return kStatus_CSR_INVALID_PARAM;
+    }
+
+    nr_tlv_fields = 1 + (CERT_STORAGE_TAG_INTEGRITY_VALUE - CERT_STORAGE_TAG_MAGIC);
+
+    for (uint8_t i = 0u; i < nr_tlv_fields; i++)
+    {
+        uint8_t current_tag = i + CERT_STORAGE_TAG_MAGIC;
+
+        tag = conf_buf_ptr[offset++];
+        
+        if (tag != current_tag)
+        {
+            return kStatus_CSR_INVALID_FORMAT;
+        }
+
+        length = parse_ber_length(conf_buf_ptr, &offset);
+
+        switch (tag)
+        {
+            case CERT_STORAGE_TAG_MAGIC:
+                cert_storage_ctx->magic = &conf_buf_ptr[offset];
+                break;
+
+            case CERT_STORAGE_TAG_VERSION:
+                if (length != sizeof(uint16_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                cert_storage_ctx->version = (uint16_t)conf_buf_ptr[offset] << 8 | 
+                                            ((uint16_t)conf_buf_ptr[offset + 1]);
+                break;
+
+            case CERT_STORAGE_TAG_DEVICE_OPERATION:
+                if (length != sizeof(uint8_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                cert_storage_ctx->device_operation = conf_buf_ptr[offset];
+                break;
+
+            case CERT_STORAGE_TAG_KEY_ID:
+                if (length != sizeof(uint32_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                cert_storage_ctx->key_id = ((uint32_t)conf_buf_ptr[offset] << 24)| 
+                                           ((uint32_t)conf_buf_ptr[offset + 1] << 16) |
+                                           ((uint32_t)conf_buf_ptr[offset + 2] << 8) |
+                                           ((uint32_t)conf_buf_ptr[offset + 3]);
+                break;
+
+            case CERT_STORAGE_TAG_CERT_SRC_ADDR:
+                if (length != sizeof(uint32_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                cert_storage_ctx->cert_source_addr = ((uint32_t)conf_buf_ptr[offset] << 24) | 
+                                                     ((uint32_t)conf_buf_ptr[offset + 1] << 16) |
+                                                     ((uint32_t)conf_buf_ptr[offset + 2] << 8) |
+                                                     ((uint32_t)conf_buf_ptr[offset + 3]);
+                break;
+
+            case CERT_STORAGE_TAG_CERT_SRC_ADDR_SIZE:
+                if (length != sizeof(uint32_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                cert_storage_ctx->cert_source_addr_size = (size_t)(((uint32_t)conf_buf_ptr[offset] << 24) | 
+                                                                   ((uint32_t)conf_buf_ptr[offset + 1] << 16) |
+                                                                   ((uint32_t)conf_buf_ptr[offset + 2] << 8) |
+                                                                   ((uint32_t)conf_buf_ptr[offset + 3]));
+                break;
+
+            case CERT_STORAGE_TAG_INTEGRITY_ALGORTIHM:
+                if (length != sizeof(uint32_t))
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
+                cert_storage_ctx->integrity_algorithm = (integrity_algorithms_t)(((uint32_t)conf_buf_ptr[offset] << 24) | 
+                                      ((uint32_t)conf_buf_ptr[offset + 1] << 16) |
+                                      ((uint32_t)conf_buf_ptr[offset + 2] << 8) |
+                                      (uint32_t)conf_buf_ptr[offset + 3]);
+                
+                if (!cert_storage_ctx->integrity_algorithm || cert_storage_ctx->integrity_algorithm >= NR_OF_ALGOS)
+                {
+                    return kStatus_CSR_NOT_SUPPORTED;
+                }
+                break;
+
+            case CERT_STORAGE_TAG_INTEGRITY_VALUE:
+                cert_storage_ctx->integrity_value = &conf_buf_ptr[offset];
+                break;
+
+            default:
+                return kStatus_CSR_INVALID_FORMAT;
+        }
+
+        offset += length;
+    }
+
+    return kStatus_CSR_SUCCESS;
+}
+
+csr_parser_status_t parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx, 
+    cert_storage_context_t *cert_storage_ctx, const uint8_t *conf_buf_ptr)
+{
+    if ( (!csr_gen_ctx && !cert_storage_ctx) || !conf_buf_ptr ) 
+    {
+        return kStatus_CSR_INVALID_PARAM;
+    }
+
+    // Check the device operation field in the TLV protocol, to determine which context to populate
+    uint8_t device_op = conf_buf_ptr[19];
+
+    if (device_op == 0x01u) // CSR generation 
+    {
+        return parse_buffer_csr(csr_gen_ctx, conf_buf_ptr);
+    } 
+    else if (device_op == 0x02u) // x.509 certificate storage
+    {
+        return parse_buffer_cert(cert_storage_ctx, conf_buf_ptr);
+    }
+    
+    return kStatus_CSR_INVALID_FORMAT;
+}
