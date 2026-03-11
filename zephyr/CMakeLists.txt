@@ -1,4 +1,4 @@
-# Copyright 2024 NXP
+# Copyright 2024,2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
 if(CONFIG_EL2GO_COMMON)
@@ -109,7 +109,7 @@ endif()
 # Sign image using SPSDK 'nxpimage' tool
 if(CONFIG_EL2GO_SIGN_USING_NXPIMAGE OR(DEFINED ENV{CONFIG_EL2GO_SIGN_USING_NXPIMAGE}
     AND $ENV{CONFIG_EL2GO_SIGN_USING_NXPIMAGE} STREQUAL "y")
-    AND("${BOARD}${BOARD_QUALIFIERS}" STREQUAL "rd_rw612_bga/rw612/ns"
-    OR "${BOARD}${BOARD_QUALIFIERS}" STREQUAL "frdm_rw612/rw612/ns"))
+    AND("${BOARD}/${BOARD_QUALIFIERS}" STREQUAL "rd_rw612_bga/rw612/ns"
+    OR "${BOARD}/${BOARD_QUALIFIERS}" STREQUAL "frdm_rw612/rw612/ns"))
     include(${CMAKE_CURRENT_LIST_DIR}/sign_s_ns/cmake/sign_s_ns.cmake)
 endif()
