@@ -13,7 +13,8 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
-
+#include <string.h>
+  
 // Tags used in TLV parsing for CSR generation 
 #define CSR_GEN_TAG_MAGIC                   (0x40u)
 #define CSR_GEN_TAG_VERSION                 (0x41u)

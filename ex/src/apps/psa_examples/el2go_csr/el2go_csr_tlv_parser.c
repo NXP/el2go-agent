@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  */
+
 #include "el2go_csr_tlv_parser.h"
 
 const size_t integrity_algo_value_size_map[NR_OF_ALGOS-1] = {
@@ -114,6 +115,10 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
         switch (tag)
         {
             case CSR_GEN_TAG_MAGIC:
+                if (length != sizeof(CSR_GEN_MAGIC_VALUE)-1)
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
                 csr_gen_ctx->magic = &conf_buf_ptr[offset];
                 break;
 
@@ -122,7 +127,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                csr_gen_ctx->version = get_uint16_val(conf_buf_ptr[offset]); 
+                csr_gen_ctx->version = get_uint16_val(&conf_buf_ptr[offset]); 
                 break;
 
             case CSR_GEN_TAG_DEVICE_OPERATION:
@@ -138,7 +143,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                csr_gen_ctx->key_id = get_uint32_val(conf_buf_ptr[offset]); 
+                csr_gen_ctx->key_id = get_uint32_val(&conf_buf_ptr[offset]); 
                 break;
 
             case CSR_GEN_TAG_CSR_DEST_ADDR:
@@ -146,7 +151,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                csr_gen_ctx->destination_addr = get_uint32_val(conf_buf_ptr[offset]); 
+                csr_gen_ctx->destination_addr = get_uint32_val(&conf_buf_ptr[offset]); 
                 break;
 
             case CSR_GEN_TAG_INTEGRITY_ALGORTIHM:
@@ -154,7 +159,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                csr_gen_ctx->integrity_algorithm = (integrity_algorithms_t)(get_uint32_val(conf_buf_ptr[offset]));
+                csr_gen_ctx->integrity_algorithm = (integrity_algorithms_t)(get_uint32_val(&conf_buf_ptr[offset]));
                 
                 if (!csr_gen_ctx->integrity_algorithm || csr_gen_ctx->integrity_algorithm >= NR_OF_ALGOS)
                 {
@@ -216,6 +221,10 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
         switch (tag)
         {
             case CERT_STORAGE_TAG_MAGIC:
+                if (length != sizeof(CERT_STORAGE_MAGIC_VALUE)-1) 
+                {
+                    return kStatus_CSR_INVALID_FORMAT;
+                }
                 cert_storage_ctx->magic = &conf_buf_ptr[offset];
                 break;
 
@@ -224,7 +233,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                cert_storage_ctx->version = get_uint16_val(conf_buf_ptr[offset]); 
+                cert_storage_ctx->version = get_uint16_val(&conf_buf_ptr[offset]); 
                 break;
 
             case CERT_STORAGE_TAG_DEVICE_OPERATION:
@@ -240,7 +249,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                cert_storage_ctx->key_id = get_uint32_val(conf_buf_ptr[offset]); 
+                cert_storage_ctx->key_id = get_uint32_val(&conf_buf_ptr[offset]); 
                 break;
 
             case CERT_STORAGE_TAG_CERT_SRC_ADDR:
@@ -248,7 +257,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                cert_storage_ctx->cert_source_addr = get_uint32_val(conf_buf_ptr[offset]); 
+                cert_storage_ctx->cert_source_addr = get_uint32_val(&conf_buf_ptr[offset]); 
                 break;
 
             case CERT_STORAGE_TAG_CERT_SRC_ADDR_SIZE:
@@ -256,7 +265,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                cert_storage_ctx->cert_source_addr_size = get_uint32_val(conf_buf_ptr[offset]); 
+                cert_storage_ctx->cert_source_addr_size = get_uint32_val(&conf_buf_ptr[offset]); 
                 break;
 
             case CERT_STORAGE_TAG_INTEGRITY_ALGORTIHM:
@@ -264,7 +273,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                cert_storage_ctx->integrity_algorithm = (integrity_algorithms_t)(get_uint32_val(conf_buf_ptr[offset]));
+                cert_storage_ctx->integrity_algorithm = (integrity_algorithms_t)(get_uint32_val(&conf_buf_ptr[offset]));
                 
                 if (!cert_storage_ctx->integrity_algorithm || cert_storage_ctx->integrity_algorithm >= NR_OF_ALGOS)
                 {
@@ -295,7 +304,7 @@ csr_parser_status_t parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx,
     }
 
     // Check the magic field in the TLV protocol, to determine which context to populate
-    const char* magic_val_start = (const char*)(conf_buf_ptr+1); // The first byte is the tag, therefore we skip it
+    const char* magic_val_start = (const char*)(conf_buf_ptr+2); // skipping meta data fields
 
     if (!memcmp(magic_val_start, CSR_GEN_MAGIC_VALUE, sizeof(CSR_GEN_MAGIC_VALUE)-1)) // CSR generation 
     {
