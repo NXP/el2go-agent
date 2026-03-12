@@ -56,11 +56,11 @@ extern "C" {
 
 typedef enum _csr_parser_status
 {
-    kStatus_CSR_SUCCESS             = 0,
-    kStatus_CSR_INVALID_PARAM       = 1,
-    kStatus_CSR_INVALID_FORMAT      = 2, 
-    kStatus_CSR_NOT_SUPPORTED       = 3,
-    kStatus_CSR_CONF_BUF_SIZE_ERR   = 4,
+    kStatus_CSR_SUCCESS             = 0x5A5A5A5A,
+    kStatus_CSR_INVALID_PARAM       = 0x78D87C72,
+    kStatus_CSR_INVALID_FORMAT      = 0x33D978FF, 
+    kStatus_CSR_NOT_SUPPORTED       = 0xA8093E10,
+    kStatus_CSR_CONF_BUF_SIZE_ERR   = 0x39274EFA,
 } csr_parser_status_t; 
 
 typedef enum _integrity_algorithms
