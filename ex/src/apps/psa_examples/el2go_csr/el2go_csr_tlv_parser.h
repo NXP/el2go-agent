@@ -38,12 +38,29 @@ extern "C" {
 #define CSR_GEN_MAGIC_VALUE "el2gocsrgen"
 #define CERT_STORAGE_MAGIC_VALUE "el2gocertstr"
 
+// Lengths of TLV fields for certificate storage and CSR genration
+#define CSR_GEN_MAGIC_VALUE_LEN                 (sizeof(CSR_GEN_MAGIC_VALUE) - 1u)
+#define CSR_GEN_VERSION_LEN                     (sizeof(uint16_t))
+#define CSR_GEN_DEVICE_OPERATION_LEN            (sizeof(uint8_t))
+#define CSR_GEN_KEY_ID_LEN                      (sizeof(uint32_t))
+#define CSR_GEN_CSR_DEST_ADDR_LEN               (sizeof(uint32_t))
+#define CSR_GEN_INTEGRITY_ALGORITHM_LEN         (sizeof(uint32_t))
+
+#define CERT_STORAGE_MAGIC_VALUE_LEN            (sizeof(CERT_STORAGE_MAGIC_VALUE) - 1u)
+#define CERT_STORAGE_VERSION_LEN                (sizeof(uint16_t))
+#define CERT_STORAGE_DEVICE_OPERATION_LEN       (sizeof(uint8_t))
+#define CERT_STORAGE_KEY_ID_LEN                 (sizeof(uint32_t))
+#define CERT_STORAGE_CERT_SRC_ADDR_LEN          (sizeof(uint32_t))
+#define CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN     (sizeof(uint32_t))
+#define CERT_STORAGE_INTEGRITY_ALGORITHM_LEN    (sizeof(uint32_t))
+
 typedef enum _csr_parser_status
 {
-    kStatus_CSR_SUCCESS           = 0,
-    kStatus_CSR_INVALID_PARAM     = 1,
-    kStatus_CSR_INVALID_FORMAT    = 2, 
-    kStatus_CSR_NOT_SUPPORTED     = 3,
+    kStatus_CSR_SUCCESS             = 0,
+    kStatus_CSR_INVALID_PARAM       = 1,
+    kStatus_CSR_INVALID_FORMAT      = 2, 
+    kStatus_CSR_NOT_SUPPORTED       = 3,
+    kStatus_CSR_CONF_BUF_SIZE_ERR   = 4,
 } csr_parser_status_t; 
 
 typedef enum _integrity_algorithms
@@ -89,10 +106,12 @@ typedef struct __attribute__((packed)) cert_storage_context
  * @param[in, out] csr_gen_ctx: Structure to be filled with parsed with CSR gen configuration data.
  * @param[in, out] cert_storage_ctx: Structure to be filled with parsed x.509 cert storage configuration data. 
  * @param[in] conf_buf_ptr: Pointer base address of the configuration block.
+ * @param[in] conf_buf_ptr_size: Size of the configuration block in bytes.
  * @retval kStatus_CSR_Success Upon success.
  */
 csr_parser_status_t 
-parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx, cert_storage_context_t *cert_storage_ctx, const uint8_t *conf_buf_ptr);
+parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx, cert_storage_context_t *cert_storage_ctx, 
+    const uint8_t *conf_buf_ptr, size_t conf_buf_ptr_size);
 
 #ifdef __cplusplus
 }

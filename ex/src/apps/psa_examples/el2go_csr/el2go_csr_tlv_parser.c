@@ -36,6 +36,7 @@ static uint32_t get_uint32_val(const uint8_t *input)
     }
     return output;
 }
+
 /*! @brief Extract number of bytes from BER encoded length field.
  *
  * This function is used to extract the length field from a BER-encoded TLV structure.
@@ -82,10 +83,11 @@ static size_t parse_ber_length(const uint8_t *buf, size_t *offset)
  * 
  * @param[in, out] csr_gen_ctx: Structure to be filled with parsed configuration data.
  * @param[in] conf_buf_ptr: Pointer base address of the configuration block.
+ * @param[in] conf_buf_ptr_size: Size of the configuration block buffer.
  * @retval kStatus_CSR_Success Upon success.
  */
 static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx, 
-    const uint8_t *conf_buf_ptr)
+    const uint8_t *conf_buf_ptr, size_t conf_buf_ptr_size)
 {
     uint8_t tag = 0u;
     uint8_t nr_tlv_fields = 0u; 
@@ -99,6 +101,8 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
 
     nr_tlv_fields = 1 + (CSR_GEN_TAG_INTEGRITY_VALUE - CSR_GEN_TAG_MAGIC);
 
+    // Validate buffer size is sufficient for parsing
+    if (conf_buf_ptr_size )
     for (uint8_t i = 0u; i < nr_tlv_fields; i++)
     {
         uint8_t current_tag = i + CSR_GEN_TAG_MAGIC;
@@ -115,7 +119,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
         switch (tag)
         {
             case CSR_GEN_TAG_MAGIC:
-                if (length != sizeof(CSR_GEN_MAGIC_VALUE)-1)
+                if (length != CSR_GEN_MAGIC_VALUE_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -123,7 +127,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 break;
 
             case CSR_GEN_TAG_VERSION:
-                if (length != sizeof(uint16_t)) 
+                if (length != CSR_GEN_VERSION_LEN) 
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -131,7 +135,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 break;
 
             case CSR_GEN_TAG_DEVICE_OPERATION:
-                if (length != sizeof(uint8_t))
+                if (length != CSR_GEN_DEVICE_OPERATION_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -139,7 +143,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 break;
 
             case CSR_GEN_TAG_KEY_ID:
-                if (length != sizeof(uint32_t))
+                if (length != CSR_GEN_KEY_ID_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -147,7 +151,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 break;
 
             case CSR_GEN_TAG_CSR_DEST_ADDR:
-                if (length != sizeof(uint32_t))
+                if (length != CSR_GEN_CSR_DEST_ADDR_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -155,7 +159,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 break;
 
             case CSR_GEN_TAG_INTEGRITY_ALGORTIHM:
-                if (length != sizeof(uint32_t))
+                if (length != CSR_GEN_INTEGRITY_ALGORITHM_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -176,6 +180,10 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
         }
 
         offset += length;
+        if (offset > conf_buf_ptr_size)
+        {
+            return kStatus_CSR_CONF_BUF_SIZE_ERR;
+        }
     }
 
     return kStatus_CSR_SUCCESS;
@@ -188,10 +196,11 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
  * 
  * @param[in, out] cert_storage_ctx: Structure to be filled with parsed configuration data.
  * @param[in] conf_buf_ptr: Pointer base address of the configuration block.
+ * @param[in] conf_buf_ptr_size: Size of the configuration block buffer.
  * @retval kStatus_CSR_Success Upon success.
  */
 static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storage_ctx, 
-    const uint8_t *conf_buf_ptr)
+    const uint8_t *conf_buf_ptr, size_t conf_buf_ptr_size)
 {
     uint8_t tag = 0u;
     uint8_t nr_tlv_fields = 0u; 
@@ -221,7 +230,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
         switch (tag)
         {
             case CERT_STORAGE_TAG_MAGIC:
-                if (length != sizeof(CERT_STORAGE_MAGIC_VALUE)-1) 
+                if (length != CERT_STORAGE_MAGIC_VALUE_LEN) 
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -229,7 +238,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 break;
 
             case CERT_STORAGE_TAG_VERSION:
-                if (length != sizeof(uint16_t))
+                if (length != CERT_STORAGE_VERSION_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -237,7 +246,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 break;
 
             case CERT_STORAGE_TAG_DEVICE_OPERATION:
-                if (length != sizeof(uint8_t))
+                if (length != CERT_STORAGE_DEVICE_OPERATION_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -245,7 +254,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 break;
 
             case CERT_STORAGE_TAG_KEY_ID:
-                if (length != sizeof(uint32_t))
+                if (length != CERT_STORAGE_KEY_ID_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -253,7 +262,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 break;
 
             case CERT_STORAGE_TAG_CERT_SRC_ADDR:
-                if (length != sizeof(uint32_t))
+                if (length != CERT_STORAGE_CERT_SRC_ADDR_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -261,7 +270,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 break;
 
             case CERT_STORAGE_TAG_CERT_SRC_ADDR_SIZE:
-                if (length != sizeof(uint32_t))
+                if (length != CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -269,7 +278,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 break;
 
             case CERT_STORAGE_TAG_INTEGRITY_ALGORTIHM:
-                if (length != sizeof(uint32_t))
+                if (length != CERT_STORAGE_INTEGRITY_ALGORITHM_LEN)
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
@@ -290,13 +299,17 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
         }
 
         offset += length;
+        if (offset > conf_buf_ptr_size)
+        {
+            return kStatus_CSR_CONF_BUF_SIZE_ERR;
+        }
     }
 
     return kStatus_CSR_SUCCESS;
 }
 
 csr_parser_status_t parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx, 
-    cert_storage_context_t *cert_storage_ctx, const uint8_t *conf_buf_ptr)
+    cert_storage_context_t *cert_storage_ctx, const uint8_t *conf_buf_ptr, size_t conf_buf_ptr_size)
 {
     if ( (!csr_gen_ctx && !cert_storage_ctx) || !conf_buf_ptr ) 
     {
@@ -306,13 +319,13 @@ csr_parser_status_t parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx,
     // Check the magic field in the TLV protocol, to determine which context to populate
     const char* magic_val_start = (const char*)(conf_buf_ptr+2); // skipping meta data fields
 
-    if (!memcmp(magic_val_start, CSR_GEN_MAGIC_VALUE, sizeof(CSR_GEN_MAGIC_VALUE)-1)) // CSR generation 
+    if (!memcmp(magic_val_start, CSR_GEN_MAGIC_VALUE, CSR_GEN_MAGIC_VALUE_LEN)) // CSR generation 
     {
-        return parse_buffer_csr(csr_gen_ctx, conf_buf_ptr);
+        return parse_buffer_csr(csr_gen_ctx, conf_buf_ptr, conf_buf_ptr_size);
     } 
-    else if (!memcmp(magic_val_start, CERT_STORAGE_MAGIC_VALUE, sizeof(CERT_STORAGE_MAGIC_VALUE)-1)) // x.509 certificate storage
+    else if (!memcmp(magic_val_start, CERT_STORAGE_MAGIC_VALUE, CERT_STORAGE_MAGIC_VALUE_LEN)) // x.509 certificate storage
     {
-        return parse_buffer_cert(cert_storage_ctx, conf_buf_ptr);
+        return parse_buffer_cert(cert_storage_ctx, conf_buf_ptr, conf_buf_ptr_size);
     }
     
     return kStatus_CSR_INVALID_FORMAT;
