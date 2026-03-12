@@ -1,16 +1,9 @@
-/*--------------------------------------------------------------------------*/
-/* Copyright 2026 NXP                                                       */
-/*                                                                          */
-/* NXP Confidential and Proprietary. This software is owned or controlled   */
-/* by NXP and may only be used strictly in accordance with the applicable   */
-/* license terms. By expressly accepting such terms or by downloading,      */
-/* installing, activating and/or otherwise using the software, you are      */
-/* agreeing that you have read, and that you agree to comply with and are   */
-/* bound by, such license terms. If you do not agree to be bound by the     */
-/* applicable license terms, then you may not retain, install, activate     */
-/* or otherwise use the software.                                           */
-/*--------------------------------------------------------------------------*/
-
+/*
+ * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ */
 #ifndef _EL2GO_CSR_TLV_PARSER_H_
 #define _EL2GO_CSR_TLV_PARSER_H_
 
@@ -39,6 +32,10 @@ extern "C" {
 #define CERT_STORAGE_TAG_CERT_SRC_ADDR_SIZE      (0x55u)
 #define CERT_STORAGE_TAG_INTEGRITY_ALGORTIHM     (0x56u)
 #define CERT_STORAGE_TAG_INTEGRITY_VALUE         (0x57u)
+
+// Magic values for CSR and CERT storage
+#define CSR_GEN_MAGIC_VALUE "el2gocsrgen"
+#define CERT_STORAGE_MAGIC_VALUE "el2gocertstr"
 
 typedef enum _csr_parser_status
 {
