@@ -148,6 +148,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
     size_t length = 0U; // the length of the current TLV
     const uint8_t *cmd_ptr = conf_buf_ptr;
     const uint8_t *end     = cmd_ptr + conf_buf_ptr_size;
+    size_t fields_present_cntr = 0; 
 
     while ((cmd_ptr + 1) < end)
     {
@@ -156,7 +157,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
 
         if (status != kStatus_CSR_SUCCESS)
         {
-            return kStatus_CSR_INVALID_FORMAT;
+            return status; 
         }
 
         switch (tag)
@@ -167,6 +168,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 csr_gen_ctx->magic = cmd_ptr;
+                fields_present_cntr |= CSR_FIELD_MAGIC;
                 break;
 
             case CSR_GEN_TAG_VERSION:
@@ -175,6 +177,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 csr_gen_ctx->version = get_uint16_val(cmd_ptr); 
+                fields_present_cntr |= CSR_FIELD_VERSION;
                 break;
 
             case CSR_GEN_TAG_DEVICE_OPERATION:
@@ -183,6 +186,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 csr_gen_ctx->device_operation = *cmd_ptr;
+                fields_present_cntr |= CERT_FIELD_DEVICE_OP;
                 break;
 
             case CSR_GEN_TAG_KEY_ID:
@@ -191,6 +195,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 csr_gen_ctx->key_id = get_uint32_val(cmd_ptr); 
+                fields_present_cntr |= CSR_FIELD_KEY_ID;
                 break;
 
             case CSR_GEN_TAG_CSR_DEST_ADDR:
@@ -199,6 +204,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 csr_gen_ctx->destination_addr = get_uint32_val(cmd_ptr); 
+                fields_present_cntr |= CSR_FIELD_DEST_ADDR;
                 break;
 
             case CSR_GEN_TAG_INTEGRITY_ALGORTIHM:
@@ -212,16 +218,24 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
                 {
                     return kStatus_CSR_NOT_SUPPORTED;
                 }
+                fields_present_cntr |= CSR_FIELD_INTEGRITY_ALGO;
                 break;
 
             case CSR_GEN_TAG_INTEGRITY_VALUE:
                 csr_gen_ctx->integrity_value = cmd_ptr;
+                fields_present_cntr |= CSR_FIELD_INTEGRITY_VALUE;
                 break;
 
             default:
                 return kStatus_CSR_INVALID_FORMAT;
         }
         cmd_ptr += length;
+    }
+
+    // Check if all required fields are present
+    if ((fields_present_cntr & CSR_ALL_REQUIRED_FIELDS) != CSR_ALL_REQUIRED_FIELDS)
+    {
+        return kStatus_CSR_TLV_FIELD_MISSING;
     }
 
     return kStatus_CSR_SUCCESS;
@@ -245,6 +259,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
     size_t length = 0U; // the length of the current TLV
     const uint8_t *cmd_ptr = conf_buf_ptr;
     const uint8_t *end     = conf_buf_ptr + conf_buf_ptr_size;
+    size_t fields_present_cntr = 0; 
 
     while ((cmd_ptr + 1) < end)
     {
@@ -253,7 +268,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
 
         if (status != kStatus_CSR_SUCCESS)
         {
-            return kStatus_CSR_INVALID_FORMAT;
+            return status;
         }
         switch (tag)
         {
@@ -262,6 +277,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
+                fields_present_cntr |= CERT_FIELD_MAGIC;
                 cert_storage_ctx->magic = cmd_ptr;
                 break;
 
@@ -270,7 +286,8 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 {
                     return kStatus_CSR_INVALID_FORMAT;
                 }
-                cert_storage_ctx->version = get_uint16_val(cmd_ptr); 
+                cert_storage_ctx->version = get_uint16_val(cmd_ptr);
+                fields_present_cntr |= CERT_FIELD_VERSION;
                 break;
 
             case CERT_STORAGE_TAG_DEVICE_OPERATION:
@@ -279,6 +296,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 cert_storage_ctx->device_operation = *cmd_ptr;
+                fields_present_cntr |= CERT_FIELD_DEVICE_OP;
                 break;
 
             case CERT_STORAGE_TAG_KEY_ID:
@@ -287,6 +305,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 cert_storage_ctx->key_id = get_uint32_val(cmd_ptr); 
+                fields_present_cntr |= CERT_FIELD_KEY_ID;
                 break;
 
             case CERT_STORAGE_TAG_CERT_SRC_ADDR:
@@ -295,6 +314,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 cert_storage_ctx->cert_source_addr = get_uint32_val(cmd_ptr); 
+                fields_present_cntr |= CERT_FIELD_SRC_ADDR;
                 break;
 
             case CERT_STORAGE_TAG_CERT_SRC_ADDR_SIZE:
@@ -303,6 +323,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                     return kStatus_CSR_INVALID_FORMAT;
                 }
                 cert_storage_ctx->cert_source_addr_size = get_uint32_val(cmd_ptr); 
+                fields_present_cntr |= CERT_FIELD_SRC_ADDR_SIZE;
                 break;
 
             case CERT_STORAGE_TAG_INTEGRITY_ALGORTIHM:
@@ -316,16 +337,24 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 {
                     return kStatus_CSR_NOT_SUPPORTED;
                 }
+                fields_present_cntr |= CERT_FIELD_INTEGRITY_ALGO;
                 break;
 
             case CERT_STORAGE_TAG_INTEGRITY_VALUE:
                 cert_storage_ctx->integrity_value = cmd_ptr;
+                fields_present_cntr |= CERT_FIELD_INTEGRITY_VALUE;
                 break;
 
             default:
                 return kStatus_CSR_INVALID_FORMAT;
         }
         cmd_ptr += length;
+    }
+
+    // Check if all required fields are present
+    if ((fields_present_cntr & CERT_ALL_REQUIRED_FIELDS) != CERT_ALL_REQUIRED_FIELDS)
+    {
+        return kStatus_CSR_TLV_FIELD_MISSING;
     }
 
     return kStatus_CSR_SUCCESS;

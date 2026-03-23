@@ -54,6 +54,29 @@ extern "C" {
 #define CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN     (sizeof(uint32_t))
 #define CERT_STORAGE_INTEGRITY_ALGORITHM_LEN    (sizeof(uint32_t))
 
+// Bitmask flags for REQUIRED CSR and CERT storage fields
+#define CSR_FIELD_MAGIC             (1U << 0)
+#define CSR_FIELD_VERSION           (1U << 1)
+#define CSR_FIELD_DEVICE_OP         (1U << 2)
+#define CSR_FIELD_KEY_ID            (1U << 3)
+#define CSR_FIELD_DEST_ADDR         (1U << 4)
+#define CSR_FIELD_INTEGRITY_ALGO    (1U << 5)
+#define CSR_FIELD_INTEGRITY_VALUE   (1U << 6)
+#define CSR_ALL_REQUIRED_FIELDS     (CSR_FIELD_MAGIC | CSR_FIELD_VERSION | CSR_FIELD_DEVICE_OP | \
+                                     CSR_FIELD_KEY_ID | CSR_FIELD_DEST_ADDR | \
+                                     CSR_FIELD_INTEGRITY_ALGO | CSR_FIELD_INTEGRITY_VALUE)
+
+#define CERT_FIELD_MAGIC            (1U << 0)
+#define CERT_FIELD_VERSION          (1U << 1)
+#define CERT_FIELD_DEVICE_OP        (1U << 2)
+#define CERT_FIELD_KEY_ID           (1U << 3)
+#define CERT_FIELD_SRC_ADDR         (1U << 4)
+#define CERT_FIELD_SRC_ADDR_SIZE    (1U << 5)
+#define CERT_FIELD_INTEGRITY_ALGO   (1U << 6)
+#define CERT_FIELD_INTEGRITY_VALUE  (1U << 7)
+#define CERT_ALL_REQUIRED_FIELDS    (CERT_FIELD_MAGIC | CERT_FIELD_VERSION | CERT_FIELD_DEVICE_OP | \
+                                     CERT_FIELD_KEY_ID | CERT_FIELD_SRC_ADDR | CERT_FIELD_SRC_ADDR_SIZE | \
+                                     CERT_FIELD_INTEGRITY_ALGO | CERT_FIELD_INTEGRITY_VALUE)                                     
 typedef enum _csr_parser_status
 {
     kStatus_CSR_SUCCESS             = 0x5A5A5A5A,
@@ -61,6 +84,7 @@ typedef enum _csr_parser_status
     kStatus_CSR_INVALID_FORMAT      = 0x33D978FF, 
     kStatus_CSR_NOT_SUPPORTED       = 0xA8093E10,
     kStatus_CSR_CONF_BUF_SIZE_ERR   = 0x39274EFA,
+    kStatus_CSR_TLV_FIELD_MISSING   = 0x6B1F4A82,
 } csr_parser_status_t; 
 
 typedef enum _integrity_algorithms
