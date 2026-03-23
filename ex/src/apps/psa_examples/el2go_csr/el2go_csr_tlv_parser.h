@@ -80,7 +80,6 @@ extern "C" {
 typedef enum _csr_parser_status
 {
     kStatus_CSR_SUCCESS             = 0x5A5A5A5A,
-    kStatus_CSR_INVALID_PARAM       = 0x78D87C72,
     kStatus_CSR_INVALID_FORMAT      = 0x33D978FF, 
     kStatus_CSR_NOT_SUPPORTED       = 0xA8093E10,
     kStatus_CSR_CONF_BUF_SIZE_ERR   = 0x39274EFA,
@@ -130,12 +129,10 @@ typedef struct __attribute__((packed)) cert_storage_context
  * @param[in, out] csr_gen_ctx: Structure to be filled with parsed with CSR gen configuration data.
  * @param[in, out] cert_storage_ctx: Structure to be filled with parsed x.509 cert storage configuration data. 
  * @param[in] conf_buf_ptr: Pointer base address of the configuration block.
- * @param[in] conf_buf_ptr_size: Size of the configuration block in bytes.
  * @retval kStatus_CSR_Success Upon success.
  */
 csr_parser_status_t 
-parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx, cert_storage_context_t *cert_storage_ctx, 
-    const uint8_t *conf_buf_ptr, size_t conf_buf_ptr_size);
+parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx, cert_storage_context_t *cert_storage_ctx, const uint8_t *conf_buf_ptr);
 
 #ifdef __cplusplus
 }
