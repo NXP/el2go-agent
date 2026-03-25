@@ -14,6 +14,7 @@ extern "C" {
 
 #include "psa/crypto.h"
 #include "el2go_csr_tlv_parser.h"
+#include "el2go_csr_memory.h"
 
 #ifdef __ZEPHYR__
 #include <stdbool.h>
