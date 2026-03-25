@@ -26,13 +26,14 @@ extern "C" {
 
 typedef enum _csr_mem_status
 {
-    kStatus_CSR_MEM_SUCCESS             = 0x5A5A5A5A,
-    kStatus_CSR_MEM_INVALID_ARG         = 0x9DD210C5,
-    kStatus_CSR_MEM_INIT_FAILED         = 0x7B2E4F91,
-    kStatus_CSR_MEM_SECTOR_LOCK_FAILED  = 0x3A1C6D47,
-    kStatus_CSR_MEM_ERASE_FAILED        = 0x8F5B2A3C,
-    kStatus_CSR_MEM_PROGRAM_FAILED      = 0x6E7D1B9A,
-    kStatus_CSR_MEM_FAILED              = 0x10F3DEAB,
+    kStatus_CSR_MEM_SUCCESS             = 0x5A5A5A5AU,
+    kStatus_CSR_MEM_INVALID_ARG         = 0x9DD210C5U,
+    kStatus_CSR_MEM_INIT_FAILED         = 0x7B2E4F91U,
+    kStatus_CSR_MEM_SECTOR_LOCK_FAILED  = 0x3A1C6D47U,
+    kStatus_CSR_MEM_ERASE_FAILED        = 0x8F5B2A3CU,
+    kStatus_CSR_MEM_PROGRAM_FAILED      = 0x6E7D1B9AU,
+    kStatus_CSR_MEM_OUT_OF_MEM          = 0xC4A92F5EU,
+    kStatus_CSR_MEM_FAILED              = 0x10F3DEABU,
 } csr_mem_status_t; 
 
 /*! @brief Read data from memory at specified address.

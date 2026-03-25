@@ -8,21 +8,11 @@
 #include "el2go_csr_memory.h"
 #include "fsl_c40_flash.h" 
 
-// Flash sector size for C40 flash 
-#define FLASH_SECTOR_SIZE       (8U * 1024U)
-
-// Flash phrase size (minimum program unit) for C40 flash on FRDMMCXE31B 
-#define FLASH_PHRASE_SIZE       (16U)
-
 // Singleton to track init status of memory device 
 static uint8_t s_memInitialized = 0U;
 
 // Flash driver configuration structure 
 static flash_config_t s_flashConfig;
-
-// Sector buffer for read-modify-write operations - ensure 4-byte alignment 
-static uint32_t s_sectorBufferAligned[FLASH_SECTOR_SIZE / sizeof(uint32_t)];
-#define s_sectorBuffer ((uint8_t *)s_sectorBufferAligned)
 
 // 8kB reserved section for EL2GO CSR configuration 
 #define EL2GO_CSR_CONF_SIZE  0x2000
@@ -83,7 +73,7 @@ static csr_mem_status_t flash_erase_sector(uint32_t sector_addr)
         }
     }
 
-    if (FLASH_Erase(&s_flashConfig, sector_addr, FLASH_SECTOR_SIZE, kFLASH_ApiEraseKey) != kStatus_FLASH_Success)
+    if (FLASH_Erase(&s_flashConfig, sector_addr, s_flashConfig.PFlashSectorSize, kFLASH_ApiEraseKey) != kStatus_FLASH_Success)
     {
         return kStatus_CSR_MEM_ERASE_FAILED;
     }
@@ -123,15 +113,18 @@ static csr_mem_status_t program_sector_rmw(uint32_t sector_addr,
                                    const uint8_t *data, 
                                    uint32_t data_size)
 {
-    uint32_t actual_sector_size;
+    // Sector buffer for read-modify-write operations 
+    uint8_t* s_sectorBuffer = malloc(s_flashConfig.PFlashSectorSize);
 
-    // Use actual sector size from flash config if available 
-    actual_sector_size = (s_flashConfig.PFlashSectorSize != 0U) ? 
-                          s_flashConfig.PFlashSectorSize : FLASH_SECTOR_SIZE;
+    if (s_sectorBuffer == NULL)
+    {
+        return kStatus_CSR_MEM_OUT_OF_MEM;
+    }
 
     // Step 1: Read entire sector into buffer 
-    if (flash_read(sector_addr, s_sectorBuffer, actual_sector_size) != kStatus_CSR_MEM_SUCCESS)
+    if (flash_read(sector_addr, s_sectorBuffer, s_flashConfig.PFlashSectorSize) != kStatus_CSR_MEM_SUCCESS)
     {
+        free(s_sectorBuffer);
         return kStatus_CSR_MEM_FAILED;
     }
 
@@ -141,15 +134,18 @@ static csr_mem_status_t program_sector_rmw(uint32_t sector_addr,
     // Step 3: Erase sector 
     if (flash_erase_sector(sector_addr) != kStatus_CSR_MEM_SUCCESS)
     {
+        free(s_sectorBuffer);
         return kStatus_CSR_MEM_FAILED;
     }
 
     // Step 4: Program entire sector 
-    if (flash_program(sector_addr, s_sectorBuffer, actual_sector_size) != kStatus_CSR_MEM_SUCCESS)
+    if (flash_program(sector_addr, s_sectorBuffer, s_flashConfig.PFlashSectorSize) != kStatus_CSR_MEM_SUCCESS)
     {
+        free(s_sectorBuffer);
         return kStatus_CSR_MEM_FAILED;
     }
 
+    free(s_sectorBuffer);
     return kStatus_CSR_MEM_SUCCESS;
 }
 
@@ -207,7 +203,6 @@ csr_mem_status_t mem_write(uint32_t addr, const uint8_t *buffer, uint32_t size)
     const uint8_t *data_ptr = buffer;
     uint32_t current_addr = addr;
     uint32_t remaining_size = size;
-    uint32_t actual_sector_size;
     
     if ((buffer == NULL) || (size == 0U)) 
     {
@@ -227,17 +222,13 @@ csr_mem_status_t mem_write(uint32_t addr, const uint8_t *buffer, uint32_t size)
         return kStatus_CSR_MEM_INVALID_ARG;
     }
 
-    // Use actual sector size from flash config 
-    actual_sector_size = (s_flashConfig.PFlashSectorSize != 0U) ? 
-                          s_flashConfig.PFlashSectorSize : FLASH_SECTOR_SIZE;
-
     // Process each affected sector 
     while (remaining_size > 0U)
     {
-        sector_addr = current_addr & ~(actual_sector_size - 1U);
+        sector_addr = current_addr & ~(s_flashConfig.PFlashSectorSize - 1U);
         offset_in_sector = current_addr - sector_addr;
 
-        bytes_to_write = actual_sector_size - offset_in_sector;
+        bytes_to_write = s_flashConfig.PFlashSectorSize - offset_in_sector;
         if (bytes_to_write > remaining_size)
         {
             bytes_to_write = remaining_size;
