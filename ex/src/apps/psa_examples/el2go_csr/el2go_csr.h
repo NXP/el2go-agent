@@ -15,20 +15,7 @@ extern "C" {
 #include "psa/crypto.h"
 #include "el2go_csr_tlv_parser.h"
 #include "el2go_csr_memory.h"
-
-#ifdef __ZEPHYR__
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#define LOG printf
-#else
-#include "app.h"
-#include "fsl_debug_console.h"
-#include "board.h"
-#define LOG PRINTF
-#endif
-
-
+#include "el2go_csr_console.h"
 
 #ifdef __cplusplus
 }

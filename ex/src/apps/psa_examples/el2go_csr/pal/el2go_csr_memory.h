@@ -13,15 +13,10 @@ extern "C" {
 #endif
 
 #ifdef __ZEPHYR__
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#define LOG printf
+#include <stdint.h>
 #else
 #include "app.h"
-#include "fsl_debug_console.h"
 #include "board.h"
-#define LOG PRINTF
 #endif
 
 typedef enum _csr_mem_status

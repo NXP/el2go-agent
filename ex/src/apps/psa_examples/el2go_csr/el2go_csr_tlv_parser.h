@@ -11,10 +11,13 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
+#ifdef __ZEPHYR__
 #include <stdint.h>
-#include <string.h>
-  
+#else
+#include "app.h"
+#include "board.h"
+#endif
+
 // Tags used in TLV parsing for CSR generation 
 #define CSR_GEN_TAG_MAGIC                   (0x40u)
 #define CSR_GEN_TAG_VERSION                 (0x41u)
