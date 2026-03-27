@@ -13,7 +13,7 @@ int main(void)
     BOARD_InitHardware();
 #endif
 
-    printc("\r\nHello from EL2GO CSR example.\r\n");
+    printc(LOG_INFO, "\r\nHello from EL2GO CSR example.\r\n");
 
     while (true)
     {
