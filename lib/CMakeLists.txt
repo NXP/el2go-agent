@@ -6,6 +6,7 @@ add_subdirectory(platforms)
 add_subdirectory(keystores)
 add_subdirectory(datastores)
 add_subdirectory(agent)
+add_subdirectory(osal/${OS})
 
 # Create main library combining all components
 add_library(${PROJECT_NAME}
@@ -13,6 +14,7 @@ add_library(${PROJECT_NAME}
     $<TARGET_OBJECTS:el2go_agent_keystore>
     $<TARGET_OBJECTS:el2go_agent_datastore>
     $<TARGET_OBJECTS:el2go_agent_core>
+    $<TARGET_OBJECTS:osal>
 )
 
 # Set library version
@@ -30,6 +32,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # Private include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/priv
+    ${CMAKE_SOURCE_DIR}/lib/osal/include
 )
 
 # Installation rules

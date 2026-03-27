@@ -4,11 +4,53 @@ project(NXPIotAgent VERSION 0.1 LANGUAGES C)
 # Include standard installation directories
 include(GNUInstallDirs)
 
+# Set default build type if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "Set default build type Release.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+else()
+    message(STATUS "Build type ${CMAKE_BUILD_TYPE}.")
+endif()
+
 # Build shared library by default
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 # Option to build applications
 option(BUILD_APPLICATIONS "Build applications" ON)
+
+# Verbosity level for tracing
+if(VERBOSE)
+    if(NOT VERBOSE MATCHES "^[0-9]$")
+        message(FATAL_ERROR "VERBOSE must be an integer")
+    endif()
+
+    if(NOT VERBOSE EQUAL 0)
+        add_definitions(-DENABLE_TRACE)
+    endif()
+
+    if(${VERBOSE} GREATER 5)
+        set(VERBOSE 5)
+    endif()
+
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        if(${VERBOSE} GREATER 2)
+            set(VERBOSE 2)
+        endif()
+    endif()
+
+    add_definitions(-DTRACE_LEVEL=${VERBOSE})
+    message(STATUS TRACE_LEVEL: ${VERBOSE})
+else()
+    set(VERBOSE 0)
+    add_definitions(-DTRACE_LEVEL=0)
+endif()
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Set default OS if not defined
+if(NOT DEFINED OS)
+    set(OS linux)
+endif()
 
 # Enable compiler warnings
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")

@@ -8,4 +8,5 @@ target_include_directories(el2go_agent_datastore
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/priv
+        ${CMAKE_SOURCE_DIR}/lib/osal/include
 )

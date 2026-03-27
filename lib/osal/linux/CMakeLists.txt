@@ -1,0 +1,16 @@
+# OSAL Linux implementation object library
+add_library(osal OBJECT
+        alloc.c
+        osal.c
+        print.c
+        file.c
+)
+
+target_include_directories(osal
+        PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+        PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/priv
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)

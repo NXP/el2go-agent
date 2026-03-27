@@ -9,6 +9,7 @@
 #include "el2go_agent.h"
 #include "el2go_agent_status.h"
 #include "compiler.h"
+#include "osal.h"
 
 __export el2go_agent_t el2go_agent_get_version(unsigned int *major,
 					       unsigned int *minor)
@@ -26,6 +27,9 @@ __export el2go_agent_t el2go_agent_init(el2go_agent_ctx_t **ctx)
 {
 	if (!ctx)
 		return EL2GO_AGENT_FAILURE;
+
+	/* Initialize OSAL subsystem */
+	osal_lib_init();
 
 	/* TODO: Implement initialization */
 
