@@ -3,9 +3,9 @@ project(el2go_agent VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 
 # IoT Agent demo
 add_executable(${PROJECT_NAME} src/iot_agent_demo.c)
-target_link_libraries(${PROJECT_NAME} PRIVATE el2go_agent_lib)
+target_link_libraries(${PROJECT_NAME}  PRIVATE el2go_rtp_agent)
 
 # Installation rules
 install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

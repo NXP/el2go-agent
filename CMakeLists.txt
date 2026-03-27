@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(NXPIotAgent VERSION 1.0 LANGUAGES C)
+project(EL2GOIotAgent VERSION 1.0 LANGUAGES C)
 
 # Include standard installation directories
 include(GNUInstallDirs)

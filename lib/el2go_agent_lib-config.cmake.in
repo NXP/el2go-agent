@@ -1,5 +1,0 @@
-@PACKAGE_INIT@
-
-include("${CMAKE_CURRENT_LIST_DIR}/el2go_agent_lib-targets.cmake")
-
-check_required_components(el2go_agent_lib)
