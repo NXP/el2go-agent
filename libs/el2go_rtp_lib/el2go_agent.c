@@ -99,6 +99,7 @@ __export el2go_agent_t el2go_agent_provision(el2go_agent_ctx_t *ctx,
 
 	return result;
 }
+
 __export el2go_agent_t
 el2go_agent_keystore_add(el2go_agent_ctx_t *ctx,
 			 el2go_agent_keystore_t *keystore_ctx)

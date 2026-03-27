@@ -35,7 +35,7 @@ endif()
 find_program(GCC_BINTOOL NAMES ${TOOLCHAIN_NAME}-gcc PATHS ${TOOLCHAIN_PATH}
              PATH_SUFFIXES ${TOOLCHAIN_SUBPATH})
 if(NOT GCC_BINTOOL AND FORCE_TOOLCHAIN_INSTALL)
-    include(${CMAKE_SOURCE_DIR}/scripts/Linux/install_toolchain.cmake)
+    include(${CMAKE_SOURCE_DIR}/scripts/linux/install_toolchain.cmake)
     find_program(GCC_BINTOOL NAMES ${TOOLCHAIN_NAME}-gcc PATHS ${TOOLCHAIN_PATH}
                  PATH_SUFFIXES ${TOOLCHAIN_SUBPATH})
 endif()

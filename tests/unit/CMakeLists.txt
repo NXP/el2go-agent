@@ -56,7 +56,7 @@ target_include_directories(${PUBLIC_TEST_EXECUTABLE}
 target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
     PRIVATE
         unit_test_framework
-        el2go_agent_lib
+        el2go_rtp
 )
 
 # ============================================================================
@@ -73,13 +73,13 @@ target_compile_definitions(${INTERNAL_TEST_EXECUTABLE}
 target_include_directories(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-	${CMAKE_SOURCE_DIR}/lib/agent
+	${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib
 )
 
 target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
         unit_test_framework
-        _el2go_agent_internal
+        _el2go_rtp_internal
 )
 
 # ============================================================================

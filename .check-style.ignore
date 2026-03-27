@@ -1,4 +1,4 @@
 *.sh.in
 *.py.in
 *.cmake.in
-lib/protobuf
+libs/protobuf*

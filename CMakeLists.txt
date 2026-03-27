@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(EL2GOIotAgent VERSION 1.0 LANGUAGES C)
+project(EL2GOAgents VERSION 1.0 LANGUAGES C)
 
 # Include standard installation directories
 include(GNUInstallDirs)
@@ -65,7 +65,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 # Add library subdirectory
-add_subdirectory(lib)
+add_subdirectory(libs)
 
 # Add applications if enabled
 if(BUILD_APPLICATIONS)

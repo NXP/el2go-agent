@@ -1,4 +1,4 @@
 doc
 scripts
-lib/protobuf/nanopb
+libs/protobuf
 *.sh

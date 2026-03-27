@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
-project(el2go_rtp_agent VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
+project(el2go_rtp VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 
 # ============================================================================
 # INTERNAL STATIC LIBRARY - FOR TESTING ONLY (NOT EXPORTED)
@@ -9,23 +9,30 @@ project(el2go_rtp_agent VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 # All symbols are visible for testing purposes
 # ============================================================================
 if(BUILD_TESTING)
-    add_library(_el2go_agent_internal STATIC
-        $<TARGET_OBJECTS:el2go_agent_platform>
-        $<TARGET_OBJECTS:el2go_agent_keystore>
-        $<TARGET_OBJECTS:el2go_agent_datastore>
-        $<TARGET_OBJECTS:el2go_agent_core>
-        $<TARGET_OBJECTS:osal>
+    set(INTERNAL_LIB_NAME _${PROJECT_NAME}_internal)
+
+    add_library(${INTERNAL_LIB_NAME} STATIC
+        el2go_agent.c
     )
 
     # Provide both public and private headers to tests
-    target_include_directories(_el2go_agent_internal PUBLIC
+    target_include_directories(${INTERNAL_LIB_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/priv>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/lib/osal/include>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/osal/include>
+    )
+
+    target_link_libraries(${INTERNAL_LIB_NAME}
+        PRIVATE
+            el2go_agent_platform
+            el2go_agent_keystore
+            el2go_agent_datastore
+            osal
+            el2go_protobuf
     )
 
     # All symbols visible in static library (no hiding)
-    set_target_properties(_el2go_agent_internal PROPERTIES
+    set_target_properties(${INTERNAL_LIB_NAME} PROPERTIES
         C_VISIBILITY_PRESET default
     )
 endif()
@@ -34,11 +41,7 @@ endif()
 # PUBLIC LIBRARY - THIS IS EXPORTED
 # ============================================================================
 add_library(${PROJECT_NAME}
-    $<TARGET_OBJECTS:el2go_agent_platform>
-    $<TARGET_OBJECTS:el2go_agent_keystore>
-    $<TARGET_OBJECTS:el2go_agent_datastore>
-    $<TARGET_OBJECTS:el2go_agent_core>
-    $<TARGET_OBJECTS:osal>
+    el2go_agent.c
 )
 
 # Set library version
@@ -58,7 +61,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # Private include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/priv
-    ${CMAKE_SOURCE_DIR}/lib/osal/include
+    ${CMAKE_SOURCE_DIR}/libs/osal/include
+)
+
+# Link to the component libraries
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        el2go_agent_platform
+        el2go_agent_keystore
+        el2go_agent_datastore
+        osal
+        el2go_protobuf
 )
 
 # ============================================================================
@@ -87,7 +100,7 @@ install(FILES
 # Export ONLY the public library target
 install(EXPORT ${PROJECT_NAME}-targets
     FILE ${PROJECT_NAME}-targets.cmake
-    NAMESPACE ${PROJECT_NAME}::
+    NAMESPACE el2go::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
@@ -95,7 +108,7 @@ install(EXPORT ${PROJECT_NAME}-targets
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/el2go_agent_lib-config.cmake.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}-config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
