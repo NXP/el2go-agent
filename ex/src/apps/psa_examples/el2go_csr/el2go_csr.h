@@ -12,10 +12,10 @@
 extern "C" {
 #endif
 
-#include "psa/crypto.h"
 #include "el2go_csr_tlv_parser.h"
 #include "el2go_csr_memory.h"
 #include "el2go_csr_console.h"
+#include "el2go_csr_psa_key.h"
 
 #ifdef __cplusplus
 }

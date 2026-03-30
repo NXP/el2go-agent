@@ -14,14 +14,19 @@ extern "C" {
 
 typedef enum _csr_log_level 
 {
-    LOG_INFO    = 0U,
-    LOG_ERROR   = 1U,
-    LOG_WARNING = 2U,
-    LOG_TRACE   = 3U,
-    LOG_DEBUG   = 4U
-} csr_log_level; 
+    LOG_ERROR   = 0U,
+    LOG_WARNING = 1U,
+    LOG_INFO    = 2U,
+    LOG_DEBUG   = 3U,
+    LOG_TRACE   = 4U // <-- can be used for verboose mode
+} csr_log_level;
 
-/* ANSI color codes */
+// Default log level
+#ifndef CSR_LOG_LEVEL
+#define CSR_LOG_LEVEL LOG_INFO
+#endif
+
+// ANSI color codes 
 #define ANSI_COLOR_RESET   "\033[0m"
 #define ANSI_COLOR_RED     "\033[31m"
 #define ANSI_COLOR_GREEN   "\033[32m"
@@ -40,24 +45,32 @@ typedef enum _csr_log_level
 #include <stdio.h>
 #define scanc(fmt_s, ...)  scanf(fmt_s, ##__VA_ARGS__)
 #define printc(log_lvl, fmt_s, ...) \
-    printf("%s" fmt_s ANSI_COLOR_RESET, \
-        (log_lvl) == LOG_INFO    ? LOG_PREFIX_INFO    : \
-        (log_lvl) == LOG_ERROR   ? LOG_PREFIX_ERROR   : \
-        (log_lvl) == LOG_WARNING ? LOG_PREFIX_WARNING : \
-        (log_lvl) == LOG_TRACE   ? LOG_PREFIX_TRACE   : \
-        (log_lvl) == LOG_DEBUG   ? LOG_PREFIX_DEBUG   : "[UNKNOWN] ", \
-        ##__VA_ARGS__)
+    do { \
+        if ((log_lvl) <= CSR_LOG_LEVEL) { \
+            printf("%s" fmt_s ANSI_COLOR_RESET, \
+                (log_lvl) == LOG_INFO    ? LOG_PREFIX_INFO    : \
+                (log_lvl) == LOG_ERROR   ? LOG_PREFIX_ERROR   : \
+                (log_lvl) == LOG_WARNING ? LOG_PREFIX_WARNING : \
+                (log_lvl) == LOG_TRACE   ? LOG_PREFIX_TRACE   : \
+                (log_lvl) == LOG_DEBUG   ? LOG_PREFIX_DEBUG   : "[UNKNOWN] ", \
+                ##__VA_ARGS__); \
+        } \
+    } while (0)
 #else
 #include "fsl_debug_console.h"
 #define scanc(fmt_s, ...)  SCANF(fmt_s, ##__VA_ARGS__)
 #define printc(log_lvl, fmt_s, ...) \
-    PRINTF("%s" fmt_s ANSI_COLOR_RESET, \
-        (log_lvl) == LOG_INFO    ? LOG_PREFIX_INFO    : \
-        (log_lvl) == LOG_ERROR   ? LOG_PREFIX_ERROR   : \
-        (log_lvl) == LOG_WARNING ? LOG_PREFIX_WARNING : \
-        (log_lvl) == LOG_TRACE   ? LOG_PREFIX_TRACE   : \
-        (log_lvl) == LOG_DEBUG   ? LOG_PREFIX_DEBUG   : "[UNKNOWN] ", \
-        ##__VA_ARGS__)
+    do { \
+        if ((log_lvl) <= CSR_LOG_LEVEL) { \
+            PRINTF("%s" fmt_s ANSI_COLOR_RESET, \
+                (log_lvl) == LOG_INFO    ? LOG_PREFIX_INFO    : \
+                (log_lvl) == LOG_ERROR   ? LOG_PREFIX_ERROR   : \
+                (log_lvl) == LOG_WARNING ? LOG_PREFIX_WARNING : \
+                (log_lvl) == LOG_TRACE   ? LOG_PREFIX_TRACE   : \
+                (log_lvl) == LOG_DEBUG   ? LOG_PREFIX_DEBUG   : "[UNKNOWN] ", \
+                ##__VA_ARGS__); \
+        } \
+    } while (0)
 #endif
 
 #ifdef __cplusplus

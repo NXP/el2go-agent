@@ -13,10 +13,16 @@ int main(void)
     BOARD_InitHardware();
 #endif
 
-    printc(LOG_INFO, "\r\nHello from EL2GO CSR example.\r\n");
-
-    while (true)
+    if(psa_crypto_init() != PSA_SUCCESS)
     {
-        /* Infinite loop */
+        printc(LOG_ERROR, "Initialization of crypto HW failed!\r\n");
+        goto exit; 
     }
+
+    printc(LOG_INFO, "\r\nHello from EL2GO CSR example.\r\n");
+    while (true);
+
+    exit:
+        printc(LOG_ERROR, "EL2GO CSR application failed!\r\n");
+        while(true);
 }
