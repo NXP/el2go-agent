@@ -23,6 +23,7 @@ int main(void)
     while (true);
 
     exit:
+        // mbedtls_psa_crypto_free(); // <-- need this?
         printc(LOG_ERROR, "EL2GO CSR application failed!\r\n");
         while(true);
 }

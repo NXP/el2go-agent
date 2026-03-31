@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  */
-/** @file */
+
 #ifndef _EL2GO_CSR_CONSOLE_H_
 #define _EL2GO_CSR_CONSOLE_H_
 
