@@ -11,12 +11,7 @@
 extern "C" {
 #endif
 
-#ifdef __ZEPHYR__
-#include <stdint.h>
-#else
-#include "app.h"
-#include "board.h"
-#endif
+#include "el2go_csr_osal_types.h"
 
 // Tags used in TLV parsing for CSR generation 
 #define CSR_GEN_TAG_MAGIC                   (0x40u)

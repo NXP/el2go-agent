@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+#include "el2go_csr_osal_types.h"
+
 typedef enum _csr_log_level 
 {
     LOG_ERROR   = 0U,
@@ -41,13 +43,10 @@ typedef enum _csr_log_level
 #define LOG_PREFIX_TRACE   ANSI_COLOR_MAGENTA "[TRACE] "
 #define LOG_PREFIX_DEBUG   ANSI_COLOR_CYAN    "[DEBUG] "
 
-#ifdef __ZEPHYR__
-#include <stdio.h>
-#define scanc(fmt_s, ...)  scanf(fmt_s, ##__VA_ARGS__)
-#define printc(log_lvl, fmt_s, ...) \
+#define LOG(log_lvl, fmt_s, ...) \
     do { \
         if ((log_lvl) <= CSR_LOG_LEVEL) { \
-            printf("%s" fmt_s ANSI_COLOR_RESET, \
+            printc("%s" fmt_s ANSI_COLOR_RESET, \
                 (log_lvl) == LOG_INFO    ? LOG_PREFIX_INFO    : \
                 (log_lvl) == LOG_ERROR   ? LOG_PREFIX_ERROR   : \
                 (log_lvl) == LOG_WARNING ? LOG_PREFIX_WARNING : \
@@ -57,21 +56,7 @@ typedef enum _csr_log_level
         } \
     } while (0)
 #else
-#include "fsl_debug_console.h"
-#define scanc(fmt_s, ...)  SCANF(fmt_s, ##__VA_ARGS__)
-#define printc(log_lvl, fmt_s, ...) \
-    do { \
-        if ((log_lvl) <= CSR_LOG_LEVEL) { \
-            PRINTF("%s" fmt_s ANSI_COLOR_RESET, \
-                (log_lvl) == LOG_INFO    ? LOG_PREFIX_INFO    : \
-                (log_lvl) == LOG_ERROR   ? LOG_PREFIX_ERROR   : \
-                (log_lvl) == LOG_WARNING ? LOG_PREFIX_WARNING : \
-                (log_lvl) == LOG_TRACE   ? LOG_PREFIX_TRACE   : \
-                (log_lvl) == LOG_DEBUG   ? LOG_PREFIX_DEBUG   : "[UNKNOWN] ", \
-                ##__VA_ARGS__); \
-        } \
-    } while (0)
-#endif
+
 
 #ifdef __cplusplus
 }

@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#include "el2go_csr_platform.h"
 #include "el2go_csr_tlv_parser.h"
 #include "el2go_csr_memory.h"
 #include "el2go_csr_console.h"

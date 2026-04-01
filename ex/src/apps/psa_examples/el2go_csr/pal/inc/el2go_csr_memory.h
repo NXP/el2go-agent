@@ -12,12 +12,7 @@
 extern "C" {
 #endif
 
-#ifdef __ZEPHYR__
-#include <stdint.h>
-#else
-#include "app.h"
-#include "board.h"
-#endif
+#include "el2go_csr_osal_types.h"
 
 typedef enum _csr_mem_status
 {
