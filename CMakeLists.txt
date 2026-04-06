@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(NXPIotAgent VERSION 0.1 LANGUAGES C)
+project(NXPIotAgent VERSION 1.0 LANGUAGES C)
 
 # Include standard installation directories
 include(GNUInstallDirs)
@@ -17,6 +17,9 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 # Option to build applications
 option(BUILD_APPLICATIONS "Build applications" ON)
+
+# Option to build tests
+option(BUILD_TESTING "Build tests" ON)
 
 # Verbosity level for tracing
 if(VERBOSE)
@@ -67,4 +70,9 @@ add_subdirectory(lib)
 # Add applications if enabled
 if(BUILD_APPLICATIONS)
     add_subdirectory(applications)
+endif()
+
+# Add tests if enabled
+if(BUILD_TESTING)
+    add_subdirectory(tests/unit)
 endif()
