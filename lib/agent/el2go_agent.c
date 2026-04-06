@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "el2go_agent.h"
+#include "el2go_agent_internal.h"
 #include "el2go_agent_status.h"
 #include "compiler.h"
 #include "osal.h"
@@ -25,24 +26,33 @@ __export el2go_agent_t el2go_agent_get_version(unsigned int *major,
 
 __export el2go_agent_t el2go_agent_init(el2go_agent_ctx_t **ctx)
 {
+	el2go_agent_ctx_t *agent_ctx = NULL;
+	el2go_agent_t status = EL2GO_AGENT_SUCCESS;
+
 	if (!ctx)
-		return EL2GO_AGENT_FAILURE;
+		return EL2GO_AGENT_INVALID_POINTER;
 
 	/* Initialize OSAL subsystem */
 	osal_lib_init();
 
-	/* TODO: Implement initialization */
+	/* Allocate memory for agent context */
+	agent_ctx =
+		(el2go_agent_ctx_t *)osal_calloc(1, sizeof(el2go_agent_ctx_t));
+	if (!agent_ctx)
+		return EL2GO_AGENT_ALLOCATION_ERROR;
 
-	return EL2GO_AGENT_SUCCESS;
+	*ctx = agent_ctx;
+
+	return status;
 }
 
 __export el2go_agent_t el2go_agent_free(el2go_agent_ctx_t **ctx)
 {
 	if (!ctx || !*ctx)
-		return EL2GO_AGENT_FAILURE;
+		return EL2GO_AGENT_INVALID_POINTER;
 
-	/* TODO: Implement cleanup */
-
+	/* Free the allocated context */
+	osal_free(*ctx);
 	*ctx = NULL;
 
 	return EL2GO_AGENT_SUCCESS;

@@ -18,6 +18,7 @@
  * @EL2GO_AGENT_FILE_CLOSE_ERROR: File close operation error
  * @EL2GO_AGENT_FILE_WRITE_ERROR: File write/flush operation error
  * @EL2GO_AGENT_INVALID_POINTER: A pointer is invalid
+ * @EL2GO_AGENT_ALLOCATION_ERROR: Memory allocation failed
  */
 typedef enum el2go_agent_t {
 	EL2GO_AGENT_SUCCESS = 0,
@@ -25,7 +26,8 @@ typedef enum el2go_agent_t {
 	EL2GO_AGENT_FILE_SEEK_ERROR,
 	EL2GO_AGENT_FILE_CLOSE_ERROR,
 	EL2GO_AGENT_FILE_WRITE_ERROR,
-	EL2GO_AGENT_INVALID_POINTER
+	EL2GO_AGENT_INVALID_POINTER,
+	EL2GO_AGENT_ALLOCATION_ERROR
 } el2go_agent_t;
 
 /**

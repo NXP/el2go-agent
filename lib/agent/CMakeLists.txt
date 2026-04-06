@@ -6,7 +6,7 @@ add_library(el2go_agent_core OBJECT
 target_include_directories(el2go_agent_core
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/priv
         ${CMAKE_SOURCE_DIR}/lib/osal/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
