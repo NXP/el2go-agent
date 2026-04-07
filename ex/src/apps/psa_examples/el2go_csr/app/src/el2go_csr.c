@@ -9,50 +9,6 @@
 
 extern uint8_t el2go_csr_conf_data[];
 
-// TEST BEGIN
-// crc verifcation block (no correct flash addr in block!)
-uint8_t test_data[] = {0x40,0x0B,0x65,0x6C,0x32,0x67,0x6F,0x63,0x73,0x72,0x67,0x65,0x6E,0x41,0x02,0x00,0x01,0x42,0x01,0x01,0x43,0x04,0x11,0x22,0x33,0x44,0x44,0x04,0x00,0x00,0x10,0x00,0x45,0x04,0x00,0x00,0x00,0x01,0x46,0x04,0x84,0x45,0xA2,0x83};
-
-static csr_mem_status_t test(void)
-{
-    // Write test block to memory <-- will be done by spsdk later
-    csr_mem_status_t status = kStatus_CSR_MEM_SUCCESS; 
-    
-    status = mem_write((uint32_t)&el2go_csr_conf_data, test_data, sizeof(test_data));
-    if (status != kStatus_CSR_MEM_SUCCESS)
-    {
-        LOG(LOG_TRACE, "Writing test conf block to memory failed!\r\n"); 
-    }
-    else 
-    {
-        LOG(LOG_TRACE, "Writing test conf block to memory successfully done...\r\n");
-        // Read back to check if its really correct
-        uint8_t read_buffer[sizeof(test_data)] = {0};
-        status = mem_read((uint32_t)&el2go_csr_conf_data, read_buffer, sizeof(test_data));
-        if (status != kStatus_CSR_MEM_SUCCESS)
-        {
-            LOG(LOG_TRACE, "Reading test conf block from memory failed!\r\n");
-        }
-        else
-        {
-            LOG(LOG_TRACE, "Reading test conf block from memory successfully done...\r\n");
-            // Verify read data matches written data
-            if (memcmp(read_buffer, test_data, sizeof(test_data)) == 0)
-            {
-                LOG(LOG_TRACE, "Data verification passed: read data matches written data.\r\n");
-            }
-            else
-            {
-                LOG(LOG_TRACE, "Data verification failed: read data does not match written data!\r\n");
-                status = kStatus_CSR_MEM_FAILED;
-            }
-        }
-    }
-
-    return status;
-}
-// TEST END
-
 /*! @brief Verify received x.509 certificate from CLI.
  * 
  * This function is  used to verify an x.509 certificate received from SPSDK/CLI with the 
@@ -168,15 +124,6 @@ int main(void)
         spsdk_status = (uint32_t)psa_status;
         goto exit; 
     }
-
-    // Delete this:
-    if (test() != kStatus_CSR_MEM_SUCCESS)
-    {
-        LOG(LOG_ERROR, "Memory test failed!\r\n");
-        spsdk_status = (uint32_t)kStatus_CSR_MEM_FAILED;
-        goto exit;
-    }
-
 
     csr_parser_status_t tlv_status = parse_buf_and_fill_context(&csr_gen_ctx, &cert_storage_ctx, el2go_csr_conf_data);
     if (tlv_status != kStatus_CSR_SUCCESS) 
