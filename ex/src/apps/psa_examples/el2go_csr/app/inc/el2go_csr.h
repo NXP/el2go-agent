@@ -22,7 +22,7 @@ extern "C" {
 
 #define MAX_X509_CERT_SIZE (4096U)
 #define MAX_CSR_SIZE (2048U)
-#define CLI_STATUS_CODE_SUCCESS (0x3BBBA12DU)
+#define SPSDK_STATUS_CODE_SUCCESS (0x3BBBA12DU)
 
 #ifdef __cplusplus
 }

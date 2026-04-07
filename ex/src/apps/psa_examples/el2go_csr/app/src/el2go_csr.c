@@ -153,7 +153,7 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
 
 int main(void)
 {
-    uint32_t cli_status = CLI_STATUS_CODE_SUCCESS;    
+    uint32_t spsdk_status = SPSDK_STATUS_CODE_SUCCESS;    
     csr_gen_context_t csr_gen_ctx = CSR_GEN_CONTEXT_INIT;
     cert_storage_context_t cert_storage_ctx = CERT_STORAGE_CONTEXT_INIT;
     bool is_csr_gen_enabled = false;
@@ -165,7 +165,7 @@ int main(void)
     if(psa_status != PSA_SUCCESS)
     {
         LOG(LOG_ERROR, "Initialization of crypto HW failed!\r\n");
-        cli_status = (uint32_t)psa_status;
+        spsdk_status = (uint32_t)psa_status;
         goto exit; 
     }
 
@@ -173,7 +173,7 @@ int main(void)
     if (test() != kStatus_CSR_MEM_SUCCESS)
     {
         LOG(LOG_ERROR, "Memory test failed!\r\n");
-        cli_status = (uint32_t)kStatus_CSR_MEM_FAILED;
+        spsdk_status = (uint32_t)kStatus_CSR_MEM_FAILED;
         goto exit;
     }
 
@@ -182,7 +182,7 @@ int main(void)
     if (tlv_status != kStatus_CSR_SUCCESS) 
     {
         LOG(LOG_ERROR, "Failed to parse configuration block data!\r\n");
-        cli_status = (uint32_t)tlv_status;
+        spsdk_status = (uint32_t)tlv_status;
         goto exit;
     }
 
@@ -194,7 +194,7 @@ int main(void)
     if (integrity_status != kStatus_CSR_INT_VERIFY_SUCCESS)
     {
         LOG(LOG_ERROR, "Configuration data integrity verification failed!\r\n");
-        cli_status = (uint32_t)integrity_status;
+        spsdk_status = (uint32_t)integrity_status;
         goto exit;
     }  
 
@@ -203,7 +203,7 @@ int main(void)
         psa_status = generate_cert_sign_req(&csr_gen_ctx);
         if (psa_status != PSA_SUCCESS)
         {
-            cli_status = (uint32_t)psa_status;
+            spsdk_status = (uint32_t)psa_status;
             goto exit;
         }
         LOG(LOG_INFO, "CSR generation completed successfully!\r\n");
@@ -213,7 +213,7 @@ int main(void)
         psa_status = verify_recv_x509_cert(&cert_storage_ctx);
         if (psa_status != PSA_SUCCESS)
         {
-            cli_status = (uint32_t)psa_status;
+            spsdk_status = (uint32_t)psa_status;
             goto exit;
         }
         LOG(LOG_INFO, "Certificate verification and storage completed successfully!\r\n");
@@ -226,10 +226,10 @@ exit:
     // Using the first 4 bytes of the config block address, as a 
     // status information for SPSDK. 
     LOG(LOG_DEBUG, "Returning status code of operation\r\n");
-    if (mem_write((uint32_t)&el2go_csr_conf_data, (const uint8_t *)&cli_status, sizeof(cli_status))  != kStatus_CSR_MEM_SUCCESS)
+    if (mem_write((uint32_t)&el2go_csr_conf_data, (const uint8_t *)&spsdk_status, sizeof(spsdk_status))  != kStatus_CSR_MEM_SUCCESS)
     {
         LOG(LOG_ERROR, "Writing status code to memory failed!\r\n");
     }
     LOG(LOG_INFO, "########### EdgeLock2GO Certificate Signing Request App. EXIT ###########\r\n");
-    return (int)cli_status;
+    return (int)spsdk_status;
 }

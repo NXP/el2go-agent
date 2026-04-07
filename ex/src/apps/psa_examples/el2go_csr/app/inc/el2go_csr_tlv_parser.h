@@ -37,7 +37,7 @@ extern "C" {
 #define CERT_STORAGE_MAGIC_VALUE "el2gocertstr"
 
 // Lengths of TLV fields for certificate storage and CSR genration
-#define CSR_GEN_MAGIC_VALUE_LEN                 (sizeof(CSR_GEN_MAGIC_VALUE) - 1u)
+#define CSR_GEN_MAGIC_VALUE_LEN                 (sizeof(CSR_GEN_MAGIC_VALUE) - 1u) // excluding null byte to 
 #define CSR_GEN_VERSION_LEN                     (sizeof(uint16_t))
 #define CSR_GEN_DEVICE_OPERATION_LEN            (sizeof(uint8_t))
 #define CSR_GEN_KEY_ID_LEN                      (sizeof(uint32_t))
@@ -46,7 +46,7 @@ extern "C" {
 #define CSR_GEN_TOTAL_FIXED_FIELDS_LEN          ((1u+CSR_GEN_MAGIC_VALUE_LEN)+CSR_GEN_VERSION_LEN+\
                                                 CSR_GEN_DEVICE_OPERATION_LEN+CSR_GEN_KEY_ID_LEN+\
                                                 CSR_GEN_CSR_DEST_ADDR_LEN+CSR_GEN_INTEGRITY_ALGORITHM_LEN+\
-                                                (2*(1u+CSR_GEN_TAG_INTEGRITY_VALUE-CSR_GEN_TAG_MAGIC))-1u) // tag + length fields and excluding null byte of magic string
+                                                (2u*(1u+CSR_GEN_TAG_INTEGRITY_VALUE-CSR_GEN_TAG_MAGIC))) // tag + length fields 
                                                                                                         
 
 #define CERT_STORAGE_MAGIC_VALUE_LEN            (sizeof(CERT_STORAGE_MAGIC_VALUE) - 1u)
@@ -56,11 +56,11 @@ extern "C" {
 #define CERT_STORAGE_CERT_SRC_ADDR_LEN          (sizeof(uint32_t))
 #define CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN     (sizeof(uint32_t))
 #define CERT_STORAGE_INTEGRITY_ALGORITHM_LEN    (sizeof(uint32_t))
-#define CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN     ((1+CERT_STORAGE_MAGIC_VALUE_LEN)+CERT_STORAGE_VERSION_LEN+\
+#define CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN     ((1u+CERT_STORAGE_MAGIC_VALUE_LEN)+CERT_STORAGE_VERSION_LEN+\
                                                 CERT_STORAGE_DEVICE_OPERATION_LEN+CERT_STORAGE_KEY_ID_LEN+\
                                                 CERT_STORAGE_CERT_SRC_ADDR_LEN+CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN+\
                                                 CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN+CERT_STORAGE_INTEGRITY_ALGORITHM_LEN+\
-                                                (2*(1u+CERT_STORAGE_TAG_INTEGRITY_VALUE-CERT_STORAGE_TAG_MAGIC))-1u) 
+                                                (2u*(1u+CERT_STORAGE_TAG_INTEGRITY_VALUE-CERT_STORAGE_TAG_MAGIC))) 
 
 // Bitmask flags for REQUIRED CSR and CERT storage fields
 #define CSR_FIELD_MAGIC             (1U << 0)
@@ -84,8 +84,7 @@ extern "C" {
 #define CERT_FIELD_INTEGRITY_VALUE  (1U << 7)
 #define CERT_ALL_REQUIRED_FIELDS    (CERT_FIELD_MAGIC | CERT_FIELD_VERSION | CERT_FIELD_DEVICE_OP | \
                                      CERT_FIELD_KEY_ID | CERT_FIELD_SRC_ADDR | CERT_FIELD_SRC_ADDR_SIZE | \
-                                     CERT_FIELD_INTEGRITY_ALGO | CERT_FIELD_INTEGRITY_VALUE)     
-                                     
+                                     CERT_FIELD_INTEGRITY_ALGO | CERT_FIELD_INTEGRITY_VALUE)                    
                                      
 typedef enum _csr_parser_status
 {
