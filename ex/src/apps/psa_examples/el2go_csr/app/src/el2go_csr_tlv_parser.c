@@ -6,36 +6,11 @@
  */
 
 #include "el2go_csr_tlv_parser.h"
+#include "byte_utils.h"
 
 const size_t integrity_algo_value_size_map[NR_OF_ALGOS-1] = {
     4U // CRC_32 produces 4 bytes
 };
-
-/** @brief Gets the 16-bit value from the value buffer.
- *
- */
-static uint16_t get_uint16_val(const uint8_t *input)
-{
-    uint16_t output = 0U;
-    output = *input;
-    output <<= 8;
-    output |= *(input + 1);
-    return output;
-}
-
-/** @brief Gets the 32-bit value from the value buffer.
- *
- */
-static uint32_t get_uint32_val(const uint8_t *input)
-{
-    uint32_t output = 0U;
-
-    for (int i = 0; i < 4; i++)
-    {
-        output = (output << 8) | input[i];
-    }
-    return output;
-}
 
 /*! @brief Extract number of bytes from BER encoded length field.
  *

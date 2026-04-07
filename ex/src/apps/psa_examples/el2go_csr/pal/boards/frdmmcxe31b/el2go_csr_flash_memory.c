@@ -15,7 +15,9 @@ static uint8_t s_memInitialized = 0U;
 static flash_config_t s_flashConfig;
 
 // 8kB reserved section for EL2GO CSR configuration 
+#ifndef EL2GO_CSR_CONF_SIZE
 #define EL2GO_CSR_CONF_SIZE  0x2000
+#endif
 __attribute__((section(".el2go_csr_conf")))
 uint8_t el2go_csr_conf_data[EL2GO_CSR_CONF_SIZE];
 
@@ -114,7 +116,7 @@ static csr_mem_status_t program_sector_rmw(uint32_t sector_addr,
                                    uint32_t data_size)
 {
     // Sector buffer for read-modify-write operations 
-    uint8_t* s_sectorBuffer = malloc(s_flashConfig.PFlashSectorSize);
+    uint8_t* s_sectorBuffer = (uint8_t*)malloc(s_flashConfig.PFlashSectorSize);
 
     if (s_sectorBuffer == NULL)
     {

@@ -9,6 +9,8 @@
 
 void platform_init(void)
 {
- // No additional initialization required for Zephyr platform
- // Zephyr kernel handles hardware initialization automatically
+    // No additional initialization required for Zephyr platform
+    // Zephyr kernel handles hardware initialization automatically
+    
+    __asm__ volatile("nop");
 }

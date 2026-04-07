@@ -12,10 +12,11 @@ psa_status_t fill_key_attributes(psa_key_attributes_t *attr, psa_key_id_t* key_i
     psa_status_t status = PSA_SUCCESS;
 
     if (!attr || !key_id || 
-        !(*key_id >= PSA_KEY_ID_USER_MIN && *key_id <= PSA_KEY_ID_USER_MAX || 
-          *key_id >= PSA_KEY_ID_VENDOR_MIN && *key_id <= PSA_KEY_ID_VENDOR_MAX))
+        !((*key_id >= PSA_KEY_ID_USER_MIN && *key_id <= PSA_KEY_ID_USER_MAX) || 
+          (*key_id >= PSA_KEY_ID_VENDOR_MIN && *key_id <= PSA_KEY_ID_VENDOR_MAX)))
     {
-        return PSA_ERROR_INVALID_ARGUMENT;
+        status = PSA_ERROR_INVALID_ARGUMENT;
+        goto exit;
     }   
 
     psa_set_key_id(attr, *key_id);
@@ -27,5 +28,11 @@ psa_status_t fill_key_attributes(psa_key_attributes_t *attr, psa_key_id_t* key_i
 
     status = psa_generate_key(attr, key_id);
 
+    if (status != PSA_SUCCESS)
+    {
+        goto exit;
+    }
+
+exit:
     return status;
 }

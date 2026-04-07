@@ -36,7 +36,7 @@ typedef enum _csr_log_level
 #define ANSI_COLOR_MAGENTA "\033[35m"
 #define ANSI_COLOR_CYAN    "\033[36m"
 
-/* Log level prefixes with colors */
+// Log level prefixes with colors 
 #define LOG_PREFIX_INFO    ANSI_COLOR_GREEN   "[INFO] "
 #define LOG_PREFIX_ERROR   ANSI_COLOR_RED     "[ERROR] "
 #define LOG_PREFIX_WARNING ANSI_COLOR_YELLOW  "[WARNING] "
