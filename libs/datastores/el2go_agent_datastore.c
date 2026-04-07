@@ -30,19 +30,6 @@ el2go_agent_datastore_init(uint32_t id,
 	return EL2GO_AGENT_SUCCESS;
 }
 
-__export el2go_agent_t
-el2go_agent_datastore_el2go(el2go_agent_datastore_t *datastore,
-			    el2go_agent_keystore_t *keystore_ctx,
-			    const el2go_agent_el2go_config_t *config)
-{
-	if (!datastore || !keystore_ctx || !config)
-		return EL2GO_AGENT_FAILURE;
-
-	/* TODO: Implement EdgeLock 2GO configuration */
-
-	return EL2GO_AGENT_SUCCESS;
-}
-
 __export void *
 el2go_agent_datastore_allocate(el2go_agent_datastore_t *datastore,
 			       size_t len)

@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "common/el2go_status.h"
-#include "common/el2go_keystore.h"
 
 /*
  * Datastore types
@@ -243,25 +242,6 @@ typedef struct {
 	const el2go_agent_buffer_t *certificate; /* Server certificate */
 } el2go_agent_el2go_config_t;
 /* clang-format on */
-
-/**
- * el2go_agent_datastore_el2go - Configure EdgeLock 2GO datastore
- * @datastore: Datastore
- * @keystore_ctx: Keystore context for secure operations
- * @config: EdgeLock 2GO configuration
- *
- * Configures the EdgeLock 2GO datastore with connection parameters.
- * If certificate is NULL or certificate->data is NULL, compile-time defaults
- * will be used for the server certificate. Missing hostname or port will also
- * use defaults.
- *
- * Return:
- * EL2GO_AGENT_SUCCESS on success, error code otherwise
- */
-el2go_agent_t
-el2go_agent_datastore_el2go(el2go_agent_datastore_t *datastore,
-			    el2go_agent_keystore_t *keystore_ctx,
-			    const el2go_agent_el2go_config_t *config);
 
 /**
  * el2go_agent_datastore_free - Free a datastore

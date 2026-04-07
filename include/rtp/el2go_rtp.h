@@ -137,4 +137,23 @@ el2go_agent_t el2go_agent_get_device_uuid(el2go_agent_ctx_t *ctx,
 					  char *uuid_buffer,
 					  size_t *buffer_size);
 
+/**
+ * el2go_agent_datastore_el2go - Configure EdgeLock 2GO datastore
+ * @datastore: Datastore
+ * @keystore_ctx: Keystore context for secure operations
+ * @config: EdgeLock 2GO configuration
+ *
+ * Configures the EdgeLock 2GO datastore with connection parameters.
+ * If certificate is NULL or certificate->data is NULL, compile-time defaults
+ * will be used for the server certificate. Missing hostname or port will also
+ * use defaults.
+ *
+ * Return:
+ * EL2GO_AGENT_SUCCESS on success, error code otherwise
+ */
+el2go_agent_t
+el2go_agent_datastore_el2go(el2go_agent_datastore_t *datastore,
+			    el2go_agent_keystore_t *keystore_ctx,
+			    const el2go_agent_el2go_config_t *config);
+
 #endif /* __EL2GO_RTP_H__ */
