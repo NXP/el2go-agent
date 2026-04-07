@@ -23,7 +23,15 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
     psa_status_t psa_status = PSA_SUCCESS;
     psa_key_id_t key_id =  (psa_key_id_t)ctx->key_id;
     uint8_t* cert_input_buf_imm = NULL;
-    uint32_t cert_size = ctx->cert_source_addr_size;
+    uint32_t cert_size = 0U; 
+
+    if (!ctx)
+    {
+        LOG(LOG_ERROR, "Invalid context for x.509 certificate storage verification provided!\r\n");
+        psa_status = PSA_ERROR_INVALID_ARGUMENT;
+        goto exit;
+    }
+    cert_size = ctx->cert_source_addr_size;
 
     if (cert_size > MAX_X509_CERT_SIZE)
     {
@@ -75,10 +83,18 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
 static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
 {
     psa_status_t psa_status = PSA_SUCCESS;
-    psa_key_id_t key_id = (psa_key_id_t)ctx->key_id;
+    psa_key_id_t key_id = PSA_KEY_ID_NULL; 
     psa_key_attributes_t key_attr = PSA_KEY_ATTRIBUTES_INIT;
     uint8_t csr_output_buf_imm[MAX_CSR_SIZE] = {0};
     size_t csr_output_len = 0U; 
+
+    if (!ctx)
+    {
+        LOG(LOG_ERROR, "Invalid context for CSR generation provided!\r\n");
+        psa_status = PSA_ERROR_INVALID_ARGUMENT;
+        goto exit;
+    }
+    key_id = (psa_key_id_t)ctx->key_id;
 
     psa_status = fill_key_attributes(&key_attr, &key_id);
     if (psa_status != PSA_SUCCESS)
