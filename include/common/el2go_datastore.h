@@ -1,16 +1,15 @@
+/* SPDX-License-Identifier: Apache-2.0 */
 /*
  * Copyright 2018-2026 NXP
- *
- * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef __EL2GO_AGENT_DATASTORE_H__
-#define __EL2GO_AGENT_DATASTORE_H__
+#ifndef __EL2GO_DATASTORE_H__
+#define __EL2GO_DATASTORE_H__
 
 #include <stdint.h>
 #include <stddef.h>
-#include "el2go_agent_status.h"
-#include "el2go_agent_keystore.h"
+#include "common/el2go_status.h"
+#include "common/el2go_keystore.h"
 
 /*
  * Datastore types
@@ -275,4 +274,4 @@ el2go_agent_datastore_el2go(el2go_agent_datastore_t *datastore,
  */
 el2go_agent_t el2go_agent_datastore_free(el2go_agent_datastore_t *datastore);
 
-#endif /* __EL2GO_AGENT_DATASTORE_H__ */
+#endif /* __EL2GO_DATASTORE_H__ */

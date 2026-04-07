@@ -3,10 +3,10 @@
  * Copyright 2018-2026 NXP
  */
 
-#ifndef __EL2GO_AGENT_PLATFORM_H__
-#define __EL2GO_AGENT_PLATFORM_H__
+#ifndef __EL2GO_PLATFORM_H__
+#define __EL2GO_PLATFORM_H__
 
-#include "el2go_agent_status.h"
+#include "common/el2go_status.h"
 
 /*
  * IoT Agent platform context
@@ -74,4 +74,4 @@ el2go_agent_t
 el2go_agent_claimcode_import(el2go_agent_platform_ctx_t *platform_ctx,
 			     const char *claimcode);
 
-#endif /* __EL2GO_AGENT_PLATFORM_H__ */
+#endif /* __EL2GO_PLATFORM_H__ */

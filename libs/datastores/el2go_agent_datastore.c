@@ -4,7 +4,7 @@
  */
 
 #include <stddef.h>
-#include "el2go_agent_datastore.h"
+#include "common/el2go_datastore.h"
 #include "compiler.h"
 
 __export el2go_agent_t

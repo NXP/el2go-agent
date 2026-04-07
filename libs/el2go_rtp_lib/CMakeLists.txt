@@ -85,18 +85,21 @@ install(TARGETS ${PROJECT_NAME}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-
-# Install public headers
+# Install public headers - common
 install(FILES
-    ${CMAKE_SOURCE_DIR}/include/el2go_agent.h
-    ${CMAKE_SOURCE_DIR}/include/el2go_agent_status.h
-    ${CMAKE_SOURCE_DIR}/include/el2go_agent_platform.h
-    ${CMAKE_SOURCE_DIR}/include/el2go_agent_datastore.h
-    ${CMAKE_SOURCE_DIR}/include/el2go_agent_keystore.h
-    ${CMAKE_SOURCE_DIR}/include/el2go_agent_config.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    ${CMAKE_SOURCE_DIR}/include/common/el2go_datastore.h
+    ${CMAKE_SOURCE_DIR}/include/common/el2go_keystore.h
+    ${CMAKE_SOURCE_DIR}/include/common/el2go_platform.h
+    ${CMAKE_SOURCE_DIR}/include/common/el2go_status.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/common
 )
 
+# Install public headers - rtp
+install(FILES
+    ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_config.h
+    ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtp
+)
 # Export ONLY the public library target
 install(EXPORT ${PROJECT_NAME}-targets
     FILE ${PROJECT_NAME}-targets.cmake

@@ -3,8 +3,8 @@
  * Copyright 2018-2026 NXP
  */
 
-#ifndef __EL2GO_AGENT_STATUS_H__
-#define __EL2GO_AGENT_STATUS_H__
+#ifndef __EL2GO_STATUS_H__
+#define __EL2GO_STATUS_H__
 
 /**
  * el2go_agent_status.h - Status and return types for IoT Agent
@@ -42,4 +42,4 @@ typedef enum {
 	EL2GO_AGENT_STATUS_ALWAYS
 } el2go_agent_verbosity_t;
 
-#endif /* __EL2GO_AGENT_STATUS_H__ */
+#endif /* __EL2GO_STATUS_H__ */

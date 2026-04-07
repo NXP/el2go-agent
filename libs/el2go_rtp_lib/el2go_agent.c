@@ -6,9 +6,10 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include "el2go_agent.h"
+#include "rtp/el2go_rtp.h"
+#include "common/el2go_status.h"
+
 #include "el2go_agent_internal.h"
-#include "el2go_agent_status.h"
 #include "compiler.h"
 #include "osal.h"
 

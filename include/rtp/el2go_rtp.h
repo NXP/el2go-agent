@@ -3,15 +3,15 @@
  * Copyright 2018-2026 NXP
  */
 
-#ifndef __EL2GO_AGENT_H__
-#define __EL2GO_AGENT_H__
+#ifndef __EL2GO_RTP_H__
+#define __EL2GO_RTP_H__
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "el2go_agent_status.h"
-#include "el2go_agent_datastore.h"
-#include "el2go_agent_keystore.h"
-#include "el2go_agent_platform.h"
+#include "common/el2go_status.h"
+#include "common/el2go_datastore.h"
+#include "common/el2go_keystore.h"
+#include "common/el2go_platform.h"
 
 /*
  * IoT Agent context
@@ -137,4 +137,4 @@ el2go_agent_t el2go_agent_get_device_uuid(el2go_agent_ctx_t *ctx,
 					  char *uuid_buffer,
 					  size_t *buffer_size);
 
-#endif /* __EL2GO_AGENT_H__ */
+#endif /* __EL2GO_RTP_H__ */

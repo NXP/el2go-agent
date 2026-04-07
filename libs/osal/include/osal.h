@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 
-#include "el2go_agent_status.h"
+#include "common/el2go_status.h"
 
 /* Debug levels */
 // clang-format off

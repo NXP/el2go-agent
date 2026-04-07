@@ -3,9 +3,9 @@
  * Copyright 2026 NXP
  */
 
+#include "rtp/el2go_rtp.h"
 #include "test_framework.h"
 #include "test_suites.h"
-#include "el2go_agent.h"
 #include "el2go_agent_internal.h"
 
 /* ========================================================================== */

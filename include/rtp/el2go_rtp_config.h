@@ -3,8 +3,8 @@
  * Copyright 2018-2026 NXP
  */
 
-#ifndef __EL2GO_AGENT_CONFIG_H__
-#define __EL2GO_AGENT_CONFIG_H__
+#ifndef __EL2GO_CONFIG_H__
+#define __EL2GO_CONFIG_H__
 
 /*
  * Maximum number of datastores and keystores
@@ -43,6 +43,6 @@
  * connection information, it does assume that the private key for the client
  * authentication is stored in a keystore that is registered with this ID.
  */
-#define EL2GO_AGENT_EDGELOCK2GO_KEYSTORE_ID                 0x70000010U
+#define EL2GO_AGENT_EDGELOCK2GO_KEYSTORE_ID 0x70000010U
 
-#endif /* __EL2GO_AGENT_CONFIG_H__ */
+#endif /* __EL2GO_CONFIG_H__ */

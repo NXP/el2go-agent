@@ -3,8 +3,8 @@
  * Copyright 2026 NXP
  */
 
+#include "rtp/el2go_rtp.h"
 #include "test_framework.h"
-#include "el2go_agent.h"
 #include "test_suites.h"
 
 static bool test_el2go_rtp_init_and_free(void *params)

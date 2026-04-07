@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "el2go_agent_status.h"
+#include "common/el2go_status.h"
 #include "osal.h"
 
 struct osal_file {

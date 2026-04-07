@@ -5,11 +5,10 @@
 
 #ifndef __EL2GO_AGENT_INTERNAL_H__
 #define __EL2GO_AGENT_INTERNAL_H__
-
-#include "el2go_agent.h"
-#include "el2go_agent_keystore.h"
-#include "el2go_agent_datastore.h"
-#include "el2go_agent_config.h"
+#include "rtp/el2go_rtp.h"
+#include "common/el2go_keystore.h"
+#include "common/el2go_datastore.h"
+#include "rtp/el2go_rtp_config.h"
 
 /* Agent context structure */
 /* clang-format off */

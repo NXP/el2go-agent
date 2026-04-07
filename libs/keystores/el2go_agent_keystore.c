@@ -2,7 +2,7 @@
 /*
  * Copyright 2018-2026 NXP
  */
-#include "el2go_agent_keystore.h"
+#include "common/el2go_keystore.h"
 
 el2go_agent_t
 el2go_agent_keystore_init(uint32_t id, el2go_agent_keystore_type_t type,

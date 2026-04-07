@@ -3,11 +3,11 @@
  * Copyright 2018-2026 NXP
  */
 
-#ifndef __EL2GO_AGENT_KEYSTORE_H__
-#define __EL2GO_AGENT_KEYSTORE_H__
+#ifndef __EL2GO_KEYSTORE_H__
+#define __EL2GO_KEYSTORE_H__
 
 #include <stdint.h>
-#include "el2go_agent_status.h"
+#include "common/el2go_status.h"
 
 typedef struct el2go_agent_platform_ctx el2go_agent_platform_ctx_t;
 
@@ -100,4 +100,4 @@ el2go_agent_keystore_open_session(el2go_agent_keystore_t *keystore);
 el2go_agent_t
 el2go_agent_keystore_close_session(el2go_agent_keystore_t *keystore);
 
-#endif /* __EL2GO_AGENT_KEYSTORE_H__ */
+#endif /* __EL2GO_KEYSTORE_H__ */

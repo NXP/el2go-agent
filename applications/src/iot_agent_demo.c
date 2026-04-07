@@ -4,11 +4,11 @@
  */
 
 #include <stdio.h>
-#include "el2go_agent.h"
-#include "el2go_agent_datastore.h"
-#include "el2go_agent_keystore.h"
-#include "el2go_agent_platform.h"
-#include "el2go_agent_config.h"
+#include "rtp/el2go_rtp.h"
+#include "common/el2go_datastore.h"
+#include "common/el2go_keystore.h"
+#include "common/el2go_platform.h"
+#include "rtp/el2go_rtp_config.h"
 
 #define DEVICEID_LENGTH 16U
 

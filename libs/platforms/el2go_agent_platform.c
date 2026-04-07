@@ -4,7 +4,8 @@
  */
 
 #include <stddef.h>
-#include "el2go_agent_platform.h"
+
+#include "common/el2go_platform.h"
 #include "compiler.h"
 
 __export el2go_agent_t
