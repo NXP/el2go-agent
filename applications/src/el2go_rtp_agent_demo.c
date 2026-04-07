@@ -16,32 +16,33 @@ int main(int argc, char **argv)
 {
 	unsigned int major = 0;
 	unsigned int minor = 0;
-	el2go_agent_t status;
-	el2go_agent_ctx_t *agent_ctx = NULL;
-	el2go_agent_platform_ctx_t *platform_ctx = NULL;
-	el2go_agent_keystore_t keystore_ctx = { 0 };
-	el2go_agent_datastore_t datastore_ctx = { 0 };
+	el2go_status_t status;
+	el2go_rtp_ctx_t *agent_ctx = NULL;
+	el2go_platform_ctx_t *platform_ctx = NULL;
+	el2go_keystore_t keystore_ctx = { 0 };
+	el2go_datastore_t datastore_ctx = { 0 };
 
-	printf("NXP IoT Agent Demo\n");
+	printf("EL2GO RTP Agent Demo\n");
 	printf("==================\n\n");
 
-	/* Initialize IoT Agent */
-	printf("Initializing IoT Agent...\n");
-	status = el2go_agent_init(&agent_ctx);
-	if (status != EL2GO_AGENT_SUCCESS) {
-		printf("Failed to initialize IoT Agent (status: %d)\n", status);
+	/* Initialize EL2GO RTP AgentAgent */
+	printf("Initializing EL2GO RTP Agent...\n");
+	status = el2go_rtp_init(&agent_ctx);
+	if (status != EL2GO_STATUS_SUCCESS) {
+		printf("Failed to initialize EL2GO RTP Agent (status: %d)\n",
+		       status);
 		return 1;
 	}
-	printf("IoT Agent initialized successfully\n\n");
+	printf("EL2GO RTP Agent initialized successfully\n\n");
 
-	/* Get and display IoT Agent version */
-	printf("Getting IoT Agent version...\n");
-	status = el2go_agent_get_version(&major, &minor);
+	/* Get and display EL2GO RTP Agent version */
+	printf("Getting EL2GO RTP Agent version...\n");
+	status = el2go_rtp_get_version(&major, &minor);
 
-	if (status == EL2GO_AGENT_SUCCESS) {
-		printf("IoT Agent Version: %u.%u\n\n", major, minor);
+	if (status == EL2GO_STATUS_SUCCESS) {
+		printf("EL2GO RTP Agent Version: %u.%u\n\n", major, minor);
 	} else {
-		printf("Failed to get IoT Agent version (status: %d)\n",
+		printf("Failed to get EL2GO RTP Agent version (status: %d)\n",
 		       status);
 		return 1;
 	}
@@ -55,10 +56,10 @@ int main(int argc, char **argv)
 	 * Other platforms do not require any parameters.
 	 */
 	printf("Initializing platform...\n");
-	el2go_agent_platform_config_t platform_config = { .param_count = argc,
-							  .param_list = argv };
-	status = el2go_agent_platform_init(&platform_config, &platform_ctx);
-	if (status != EL2GO_AGENT_SUCCESS) {
+	el2go_platform_config_t platform_config = { .param_count = argc,
+						    .param_list = argv };
+	status = el2go_platform_init(&platform_config, &platform_ctx);
+	if (status != EL2GO_STATUS_SUCCESS) {
 		printf("Failed to initialize platform (status: %d)\n", status);
 		goto cleanup_agent;
 	}
@@ -68,9 +69,8 @@ int main(int argc, char **argv)
 	printf("Getting device UUID...\n");
 	char device_uuid[DEVICEID_LENGTH] = { 0 };
 	size_t uuid_size = sizeof(device_uuid);
-	status =
-		el2go_agent_get_device_uuid(agent_ctx, device_uuid, &uuid_size);
-	if (status == EL2GO_AGENT_SUCCESS) {
+	status = el2go_rtp_get_device_uuid(agent_ctx, device_uuid, &uuid_size);
+	if (status == EL2GO_STATUS_SUCCESS) {
 		printf("Device UUID: %s (size: %zu)\n\n", device_uuid,
 		       uuid_size);
 	} else {
@@ -83,8 +83,8 @@ int main(int argc, char **argv)
 	printf("Importing claim code...\n");
 	const char *claimcode =
 		"AAAA-BBBB-CCCC-DDDD-EEEE-FFFF"; /* Example claim code */
-	status = el2go_agent_claimcode_import(platform_ctx, claimcode);
-	if (status != EL2GO_AGENT_SUCCESS) {
+	status = el2go_claimcode_import(platform_ctx, claimcode);
+	if (status != EL2GO_STATUS_SUCCESS) {
 		printf("Failed to import claim code (status: %d)\n", status);
 		goto cleanup_platform;
 	}
@@ -92,10 +92,10 @@ int main(int argc, char **argv)
 
 	/* Initialize keystore */
 	printf("Initializing keystore (PSA type)...\n");
-	status = el2go_agent_keystore_init(EL2GO_AGENT_DATASTORE_EDGELOCK_ID,
-					   EL2GO_AGENT_KEYSTORE_PSA,
-					   platform_ctx, &keystore_ctx);
-	if (status != EL2GO_AGENT_SUCCESS) {
+	status = el2go_keystore_init(EL2GO_RTP_DATASTORE_EDGELOCK_ID,
+				     EL2GO_KEYSTORE_PSA, platform_ctx,
+				     &keystore_ctx);
+	if (status != EL2GO_STATUS_SUCCESS) {
 		printf("Failed to initialize keystore (status: %d)\n", status);
 		goto cleanup_platform;
 	}
@@ -103,8 +103,8 @@ int main(int argc, char **argv)
 
 	/* Add keystore to agent */
 	printf("Adding keystore to agent...\n");
-	status = el2go_agent_keystore_add(agent_ctx, &keystore_ctx);
-	if (status != EL2GO_AGENT_SUCCESS) {
+	status = el2go_keystore_add(agent_ctx, &keystore_ctx);
+	if (status != EL2GO_STATUS_SUCCESS) {
 		printf("Failed to add keystore to agent (status: %d)\n",
 		       status);
 		goto cleanup_keystore_free;
@@ -113,12 +113,11 @@ int main(int argc, char **argv)
 
 	/* Initialize datastore */
 	printf("Initializing datastore (FS type)...\n");
-	status = el2go_agent_datastore_init(EL2GO_AGENT_DATASTORE_EDGELOCK_ID,
-					    "el2go_datastore",
-					    EL2GO_AGENT_DATASTORE_TYPE_FS,
-					    &datastore_ctx,
-					    NULL); /* No validator for now */
-	if (status != EL2GO_AGENT_SUCCESS) {
+	status = el2go_datastore_init(EL2GO_RTP_DATASTORE_EDGELOCK_ID,
+				      "el2go_datastore",
+				      EL2GO_DATASTORE_TYPE_FS, &datastore_ctx,
+				      NULL); /* No validator for now */
+	if (status != EL2GO_STATUS_SUCCESS) {
 		printf("Failed to initialize datastore (status: %d)\n", status);
 		goto cleanup_keystore;
 	}
@@ -126,8 +125,8 @@ int main(int argc, char **argv)
 
 	/* Add datastore to agent */
 	printf("Adding datastore to agent...\n");
-	status = el2go_agent_datastore_add(agent_ctx, &datastore_ctx);
-	if (status != EL2GO_AGENT_SUCCESS) {
+	status = el2go_datastore_add(agent_ctx, &datastore_ctx);
+	if (status != EL2GO_STATUS_SUCCESS) {
 		printf("Failed to add datastore to agent (status: %d)\n",
 		       status);
 		goto cleanup_datastore_free;
@@ -136,14 +135,14 @@ int main(int argc, char **argv)
 
 	/* Configure EdgeLock 2GO communication parameters */
 	printf("Configuring EdgeLock 2GO datastore...\n");
-	el2go_agent_el2go_config_t el2go_config = {
+	el2go_rtp_datastore_config_t el2go_config = {
 		.hostname = "edgelock2go.com",
 		.port = 443,
 		.certificate = NULL /* Use default certificate */
 	};
-	status = el2go_agent_datastore_el2go(&datastore_ctx, &keystore_ctx,
-					     &el2go_config);
-	if (status != EL2GO_AGENT_SUCCESS) {
+	status = el2go_datastore_el2go(&datastore_ctx, &keystore_ctx,
+				       &el2go_config);
+	if (status != EL2GO_STATUS_SUCCESS) {
 		printf("Failed to configure EdgeLock 2GO (status: %d)\n",
 		       status);
 		goto cleanup_datastore;
@@ -152,43 +151,43 @@ int main(int argc, char **argv)
 
 	/* Provision device from EdgeLock 2GO server */
 	printf("Provisioning device from EdgeLock 2GO server...\n");
-	status = el2go_agent_provision(agent_ctx, EL2GO_AGENT_STATUS_ALWAYS);
-	if (status != EL2GO_AGENT_SUCCESS) {
+	status = el2go_rtp_provision(agent_ctx, EL2GO_STATUS_ALWAYS);
+	if (status != EL2GO_STATUS_SUCCESS) {
 		printf("Failed to provision device (status: %d)\n", status);
 		goto cleanup_datastore;
 	}
 	printf("Device provisioned successfully\n\n");
 
-	/* Additional IoT Agent functionality will be added here */
+	/* Additional EL2GO RTP Agent functionality will be added here */
 
-	printf("IoT Agent demo completed successfully\n\n");
+	printf("EL2GO RTP Agent demo completed successfully\n\n");
 
 	/* Cleanup resources */
 cleanup_datastore:
 	printf("Removing datastore from agent...\n");
-	el2go_agent_datastore_remove(agent_ctx, &datastore_ctx);
+	el2go_datastore_remove(agent_ctx, &datastore_ctx);
 	goto cleanup_keystore;
 
 cleanup_datastore_free:
 	printf("Freeing datastore...\n");
-	el2go_agent_datastore_free(&datastore_ctx);
+	el2go_datastore_free(&datastore_ctx);
 
 cleanup_keystore:
 	printf("Removing keystore from agent...\n");
-	el2go_agent_keystore_remove(agent_ctx, &keystore_ctx);
+	el2go_keystore_remove(agent_ctx, &keystore_ctx);
 
 cleanup_keystore_free:
 	printf("Freeing keystore...\n");
-	el2go_agent_keystore_free(&keystore_ctx);
+	el2go_keystore_free(&keystore_ctx);
 
 cleanup_platform:
 	printf("Cleaning up platform...\n");
-	el2go_agent_platform_free(&platform_ctx);
+	el2go_platform_free(&platform_ctx);
 
 cleanup_agent:
-	printf("Cleaning up IoT Agent...\n");
-	el2go_agent_free(&agent_ctx);
+	printf("Cleaning up EL2GO RTP Agent...\n");
+	el2go_rtp_free(&agent_ctx);
 
 	printf("\nCleanup completed\n");
-	return (status == EL2GO_AGENT_SUCCESS) ? 0 : 1;
+	return (status == EL2GO_STATUS_SUCCESS) ? 0 : 1;
 }

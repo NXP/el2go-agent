@@ -13,11 +13,11 @@
 
 /* Agent context structure */
 /* clang-format off */
-struct el2go_agent_ctx {
-	el2go_agent_keystore_t keystores[EL2GO_AGENT_MAX_KEYSTORES];        /* Array of keystores */
-	el2go_agent_datastore_t datastores[EL2GO_AGENT_MAX_DATASTORES];     /* Array of datastores */
-	size_t num_keystores;                                               /* Number of active keystores */
-	size_t num_datastores;                                              /* Number of active datastores */
+struct el2go_rtp_ctx {
+	el2go_keystore_t keystores[EL2GO_RTP_MAX_KEYSTORES];         /* Array of keystores */
+	el2go_datastore_t datastores[EL2GO_RTP_MAX_DATASTORES];      /* Array of datastores */
+	size_t num_keystores;                                          /* Number of active keystores */
+	size_t num_datastores;                                         /* Number of active datastores */
 };
 
 /* clang-format on */

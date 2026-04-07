@@ -20,7 +20,7 @@ static FILE *stddebug;
 void set_log_file(void)
 {
 	FILE *f = NULL;
-	const char *file_name = getenv("EL2GO_AGENT_LOG_FILE");
+	const char *file_name = getenv("EL2GO_LOG_FILE");
 
 	stddebug = stderr;
 
@@ -38,7 +38,7 @@ void set_log_level(void)
 	const char *tmp_ptr = NULL;
 	unsigned long value = 0;
 
-	tmp_ptr = getenv("EL2GO_AGENT_LOG_LEVEL");
+	tmp_ptr = getenv("EL2GO_LOG_LEVEL");
 
 	if (tmp_ptr) {
 		(void)strncpy(level, tmp_ptr, sizeof(level) - 1);

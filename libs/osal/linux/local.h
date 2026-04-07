@@ -48,7 +48,7 @@
 /**
  * set_log_file() - Set log file from environment variable
  *
- * Reads EL2GO_AGENT_LOG_FILE environment variable and redirects logging
+ * Reads EL2GO_LOG_FILE environment variable and redirects logging
  * output to that file. Defaults to stderr if the variable is not set or
  * the file cannot be opened.
  */
@@ -57,7 +57,7 @@ void set_log_file(void);
 /**
  * set_log_level() - Set log level from environment variable
  *
- * Reads the EL2GO_AGENT_LOG_LEVEL environment variable and configures
+ * Reads the EL2GO_LOG_LEVEL environment variable and configures
  * the logging verbosity level accordingly for filtering log messages.
  */
 void set_log_level(void);

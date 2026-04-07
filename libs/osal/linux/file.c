@@ -35,18 +35,18 @@ exit:
 	return file;
 }
 
-el2go_agent_t osal_fclose(osal_file_t *file)
+el2go_status_t osal_fclose(osal_file_t *file)
 {
-	el2go_agent_t status = EL2GO_AGENT_SUCCESS;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
 	if (!file) {
-		status = EL2GO_AGENT_INVALID_POINTER;
+		status = EL2GO_STATUS_INVALID_POINTER;
 		goto exit;
 	}
 
 	if (file->fp) {
 		if (fclose(file->fp))
-			status = EL2GO_AGENT_FILE_CLOSE_ERROR;
+			status = EL2GO_STATUS_FILE_CLOSE_ERROR;
 		file->fp = NULL;
 	}
 
@@ -83,14 +83,14 @@ exit:
 	return result;
 }
 
-el2go_agent_t osal_fseek(osal_file_t *file, long offset,
-			 osal_seek_origin_t origin)
+el2go_status_t osal_fseek(osal_file_t *file, long offset,
+			  osal_seek_origin_t origin)
 {
-	el2go_agent_t status = EL2GO_AGENT_SUCCESS;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 	int whence = 0;
 
 	if (!file || !file->fp) {
-		status = EL2GO_AGENT_INVALID_POINTER;
+		status = EL2GO_STATUS_INVALID_POINTER;
 		goto exit;
 	}
 
@@ -105,12 +105,12 @@ el2go_agent_t osal_fseek(osal_file_t *file, long offset,
 		whence = SEEK_END;
 		break;
 	default:
-		status = EL2GO_AGENT_FILE_SEEK_ERROR;
+		status = EL2GO_STATUS_FILE_SEEK_ERROR;
 		goto exit;
 	}
 
 	if (fseek(file->fp, offset, whence)) {
-		status = EL2GO_AGENT_FILE_SEEK_ERROR;
+		status = EL2GO_STATUS_FILE_SEEK_ERROR;
 		goto exit;
 	}
 
@@ -131,17 +131,17 @@ exit:
 	return result;
 }
 
-el2go_agent_t osal_fflush(osal_file_t *file)
+el2go_status_t osal_fflush(osal_file_t *file)
 {
-	el2go_agent_t status = EL2GO_AGENT_SUCCESS;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
 	if (!file || !file->fp) {
-		status = EL2GO_AGENT_INVALID_POINTER;
+		status = EL2GO_STATUS_INVALID_POINTER;
 		goto exit;
 	}
 
 	if (fflush(file->fp))
-		status = EL2GO_AGENT_FILE_WRITE_ERROR;
+		status = EL2GO_STATUS_FILE_WRITE_ERROR;
 
 exit:
 	return status;

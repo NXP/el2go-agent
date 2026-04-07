@@ -111,7 +111,7 @@ osal_file_t *osal_fopen(const char *filename, const char *mode);
  * Return:
  * error code.
  */
-el2go_agent_t osal_fclose(osal_file_t *file);
+el2go_status_t osal_fclose(osal_file_t *file);
 
 /**
  * osal_fread - Read data from a file
@@ -151,8 +151,8 @@ size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
  * Return:
  * error code.
  */
-el2go_agent_t osal_fseek(osal_file_t *file, long offset,
-			 osal_seek_origin_t origin);
+el2go_status_t osal_fseek(osal_file_t *file, long offset,
+			  osal_seek_origin_t origin);
 
 /**
  * osal_ftell - Get current file position
@@ -172,7 +172,7 @@ long osal_ftell(osal_file_t *file);
  * Return:
  * error code.
  */
-el2go_agent_t osal_fflush(osal_file_t *file);
+el2go_status_t osal_fflush(osal_file_t *file);
 
 /**
  * osal_lib_init - Initialize OSAL subsystem
