@@ -6,7 +6,7 @@
 #include "rtp/el2go_rtp.h"
 #include "test_framework.h"
 #include "test_suites.h"
-#include "el2go_agent_internal.h"
+#include "el2go_rtp_internal.h"
 
 /* ========================================================================== */
 /* Simple Internal Test - Verify Agent Context Structure                     */

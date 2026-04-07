@@ -3,8 +3,9 @@
  * Copyright 2018-2026 NXP
  */
 
-#ifndef __EL2GO_AGENT_INTERNAL_H__
-#define __EL2GO_AGENT_INTERNAL_H__
+#ifndef __EL2GO_INTERNAL_H__
+#define __EL2GO_INTERNAL_H__
+
 #include "rtp/el2go_rtp.h"
 #include "common/el2go_keystore.h"
 #include "common/el2go_datastore.h"
@@ -21,4 +22,4 @@ struct el2go_agent_ctx {
 
 /* clang-format on */
 
-#endif /* __EL2GO_AGENT_INTERNAL_H__ */
+#endif /* __EL2GO_INTERNAL_H__ */

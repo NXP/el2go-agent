@@ -12,7 +12,7 @@ if(BUILD_TESTING)
     set(INTERNAL_LIB_NAME _${PROJECT_NAME}_internal)
 
     add_library(${INTERNAL_LIB_NAME} STATIC
-        el2go_agent.c
+        el2go_rtp.c
     )
 
     # Provide both public and private headers to tests
@@ -24,9 +24,9 @@ if(BUILD_TESTING)
 
     target_link_libraries(${INTERNAL_LIB_NAME}
         PRIVATE
-            el2go_agent_platform
-            el2go_agent_keystore
-            el2go_agent_datastore
+            el2go_platform
+            el2go_keystore
+            el2go_datastore
             osal
             el2go_protobuf
     )
@@ -41,7 +41,7 @@ endif()
 # PUBLIC LIBRARY - THIS IS EXPORTED
 # ============================================================================
 add_library(${PROJECT_NAME}
-    el2go_agent.c
+    el2go_rtp.c
 )
 
 # Set library version
@@ -67,9 +67,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Link to the component libraries
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        el2go_agent_platform
-        el2go_agent_keystore
-        el2go_agent_datastore
+        el2go_platform
+        el2go_keystore
+        el2go_datastore
         osal
         el2go_protobuf
 )

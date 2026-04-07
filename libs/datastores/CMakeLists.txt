@@ -1,9 +1,9 @@
 # Main datastore object library with common interface
-add_library(el2go_agent_datastore OBJECT
-    el2go_agent_datastore.c
+add_library(el2go_datastore OBJECT
+    el2go_datastore.c
 )
 
-target_include_directories(el2go_agent_datastore
+target_include_directories(el2go_datastore
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}
