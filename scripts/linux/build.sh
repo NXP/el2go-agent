@@ -284,13 +284,8 @@ function configure()
         ${opt_buildtype}
         ${opt_verbose}
         ${opt_test}
-        -DSSS_HAVE_HOSTCRYPTO_MBEDTLS=ON
-        -DNXP_IOT_AGENT_HAVE_PSA_IMPL_SMW=ON
-        -DSSS_HAVE_MBEDTLS_ALT_PSA=ON
-        -DSSS_HAVE_HOST_LINUX_LIKE=ON
         -DCMAKE_INSTALL_PREFIX="${el2go_agent_ROOT}/usr"
         -DCMAKE_INSTALL_LIBDIR=lib
-        -DCMAKE_C_FLAGS="-DMBEDTLS_USE_PSA_CRYPTO"
     )
 
     if [[ -n ${opt_smw} ]]; then
