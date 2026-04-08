@@ -12,6 +12,7 @@
 #include "el2go_rtp_internal.h"
 #include "compiler.h"
 #include "osal.h"
+#include "debug.h"
 
 __export el2go_status_t el2go_rtp_get_version(unsigned int *major,
 					      unsigned int *minor)
@@ -105,7 +106,7 @@ __export el2go_status_t el2go_keystore_add(el2go_rtp_ctx_t *ctx,
 		return EL2GO_STATUS_FAILURE;
 
 	/* TODO: Add keystore to agent's internal list */
-	printf("Adding keystore to agent (stub implementation)\n");
+	EL2GO_DBG_PRINTF(INFO, "Adding keystore to agent\n");
 
 	return EL2GO_STATUS_SUCCESS;
 }
@@ -117,7 +118,7 @@ __export el2go_status_t el2go_keystore_remove(el2go_rtp_ctx_t *ctx,
 		return EL2GO_STATUS_FAILURE;
 
 	/* TODO: Remove keystore from agent's internal list */
-	printf("Removing keystore from agent (stub implementation)\n");
+	EL2GO_DBG_PRINTF(INFO, "Removing keystore from agent\n");
 
 	return EL2GO_STATUS_SUCCESS;
 }
