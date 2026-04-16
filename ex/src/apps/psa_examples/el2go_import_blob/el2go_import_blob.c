@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 NXP
+ * Copyright 2024-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,9 @@
 #include "mbedtls/x509_crt.h"
 #endif /* VALIDATE_PSA_IMPORT_CERT */
 
-#ifndef __ZEPHYR__
+#ifdef __ZEPHYR__
+#include <zephyr/kernel.h>
+#else
 #include "app.h"
 #endif
 
@@ -85,15 +87,70 @@ void ecc_sign_test(psa_key_type_t key_type, size_t key_id, const psa_algorithm_t
 cleanup:
     free(signature);
 }
+
 #if defined(VALIDATE_PSA_IMPORT_CERT) && VALIDATE_PSA_IMPORT_CERT
+int extract_raw_ec_from_spki(
+    const mbedtls_x509_crt *crt,
+    unsigned char *out,
+    size_t out_size,
+    size_t *out_len
+)
+{
+    unsigned char *p = NULL;
+    const unsigned char *end = NULL;
+    size_t len = 0U;
+
+    if (!crt || !out || !out_len)
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+
+    p = crt->pk_raw.p;
+    end = p + crt->pk_raw.len;
+
+    // SubjectPublicKeyInfo
+    if (mbedtls_asn1_get_tag(
+            &p, end, &len,
+            MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE) != 0)
+        return MBEDTLS_ERR_X509_INVALID_FORMAT;
+
+    // AlgorithmIdentifier
+    if (mbedtls_asn1_get_tag(
+            &p, end, &len,
+            MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE) != 0)
+        return MBEDTLS_ERR_X509_INVALID_FORMAT;
+    p += len;
+
+    // Public key
+    if (mbedtls_asn1_get_tag(
+            &p, end, &len,
+            MBEDTLS_ASN1_BIT_STRING) != 0)
+        return MBEDTLS_ERR_X509_INVALID_FORMAT;
+
+    // First byte = unused bits (must be 0)
+    if (*p != 0x00)
+        return MBEDTLS_ERR_X509_INVALID_FORMAT;
+    p++;
+    len--;
+
+    // ECPoint must start with 0x04 (uncompressed)
+    if (len < 1 || p[0] != 0x04)
+        return MBEDTLS_ERR_X509_INVALID_FORMAT;
+
+    if (len > out_size)
+        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
+
+    memcpy(out, p, len);
+    *out_len = len;
+
+    return 0;
+}
+
 static void export_cert(size_t certificate_id)
 {
     uint8_t cert_buffer[2048] = {0U};
     mbedtls_x509_crt client_cert = {0};
-#ifndef MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES /*(mbedtls/library/pkwrite.h)*/
-#define MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES (30 + 2 * MBEDTLS_ECP_MAX_BYTES)
-#endif
-    uint8_t temp_buf[MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES] = {0U};
+    // In mbedtls 4.x the defines setting public key maximum size are not present anymore. Recommendation is
+    // to use a buffer of 200 bytes
+    uint8_t temp_buf[200] = {0U};
     char outBuf[128] = {'\0'};
     psa_status_t psa_status = PSA_SUCCESS;
 
@@ -134,16 +191,15 @@ static void export_cert(size_t certificate_id)
     }
     LOG("Issuer field in certificate is:%s\r\n", outBuf);
 
-    uint8_t *ptr = temp_buf + sizeof(temp_buf);
-    len = mbedtls_pk_write_pubkey(&ptr, temp_buf, &client_cert.pk);
-    if (len < 0) 
+    size_t pub_key_len = 0U;
+    if (extract_raw_ec_from_spki(&client_cert, temp_buf, sizeof(temp_buf), &pub_key_len) != 0)
     {
         LOG(" \r\nError in extracting the public key from certificate \r\n");
     }
     
     LOG("Public_key: ");
-    for (size_t i=0; i< len; i++) {
-        LOG("%02X", *(ptr + i));
+    for (size_t i=0; i< pub_key_len; i++) {
+        LOG("%02X", *(temp_buf + i));
     }
     LOG("\r\n");
 

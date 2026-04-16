@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024,2026 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -80,12 +80,32 @@ static void set_rgb_led(enum Color color)
 #endif
 }
 
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
+// Replacement for the mbedtls_oid_get_attr_short_name API which doesn't exist anymore
+// Compare an ASN.1 OID buffer against an mbedtls OID string literal
+static bool oid_equals(const mbedtls_asn1_buf *oid, const char *oid_str)
+{
+    size_t oid_str_len = MBEDTLS_OID_SIZE(oid_str);
+    return (oid->len == oid_str_len) &&
+           (memcmp(oid->p, oid_str, oid_str_len) == 0);
+}
+
+static const char *x509_attr_short_name_from_oid(const mbedtls_asn1_buf *oid)
+{
+    if (oid_equals(oid, MBEDTLS_OID_AT_CN))           return "CN";
+    if (oid_equals(oid, MBEDTLS_OID_AT_ORGANIZATION)) return "O";
+    if (oid_equals(oid, MBEDTLS_OID_AT_ORG_UNIT))     return "OU";
+    if (oid_equals(oid, MBEDTLS_OID_AT_COUNTRY))      return "C";
+    if (oid_equals(oid, MBEDTLS_OID_AT_SERIAL_NUMBER))return "serialNumber";
+    return NULL;
+}
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
+
 static iot_agent_status_t iot_agent_get_oid_value_in_subject(
     uint8_t *cert_buffer, size_t cert_len, char *oid, char *value, size_t max_size)
 {
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
     mbedtls_x509_crt client_cert    = {0};
-    char *oid_name                  = NULL;
     mbedtls_x509_name *oid_ptr;
     size_t len     = 0;
     bool oid_found = false;
@@ -105,7 +125,12 @@ static iot_agent_status_t iot_agent_get_oid_value_in_subject(
 
     while (oid_ptr != NULL)
     {
-        mbedtls_oid_get_attr_short_name((mbedtls_asn1_buf *)oid_ptr, (const char **)&oid_name);
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+        char* oid_name = NULL;
+        mbedtls_oid_get_attr_short_name((mbedtls_asn1_buf*)oid_ptr, (const char**)&oid_name);
+#else
+        const char* oid_name = x509_attr_short_name_from_oid(&oid_ptr->oid);
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
         if (strcmp(oid_name, oid) == 0)
         {
             len = oid_ptr->val.len;

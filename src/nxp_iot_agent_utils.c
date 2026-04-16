@@ -37,8 +37,10 @@
 #include <mbedtls/sha256.h>
 #include <mbedtls/oid.h>
 #include <mbedtls/x509_crt.h>
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 #include "psa_crypto_its.h"
 #endif
 
@@ -730,12 +732,32 @@ exit:
 
 #if	(AX_EMBEDDED && defined(USE_RTOS) && USE_RTOS == 1)
 
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
+// Replacement for the mbedtls_oid_get_attr_short_name API which doesn't exist anymore
+// Compare an ASN.1 OID buffer against an mbedtls OID string literal
+static bool oid_equals(const mbedtls_asn1_buf *oid, const char *oid_str)
+{
+    size_t oid_str_len = MBEDTLS_OID_SIZE(oid_str);
+    return (oid->len == oid_str_len) &&
+           (memcmp(oid->p, oid_str, oid_str_len) == 0);
+}
+
+static const char *x509_attr_short_name_from_oid(const mbedtls_asn1_buf *oid)
+{
+    if (oid_equals(oid, MBEDTLS_OID_AT_CN))           return "CN";
+    if (oid_equals(oid, MBEDTLS_OID_AT_ORGANIZATION)) return "O";
+    if (oid_equals(oid, MBEDTLS_OID_AT_ORG_UNIT))     return "OU";
+    if (oid_equals(oid, MBEDTLS_OID_AT_COUNTRY))      return "C";
+    if (oid_equals(oid, MBEDTLS_OID_AT_SERIAL_NUMBER))return "serialNumber";
+    return NULL;
+}
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
+
 static iot_agent_status_t iot_agent_utils_get_oid_value_in_subject(uint8_t* cert_buffer, size_t cert_len,
 	char* oid, char* value, size_t max_size)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	mbedtls_x509_crt client_cert = {0};
-	char* oid_name = NULL;
 	mbedtls_x509_name* oid_ptr;
 	size_t len = 0;
 	bool oid_found = false;
@@ -755,8 +777,13 @@ static iot_agent_status_t iot_agent_utils_get_oid_value_in_subject(uint8_t* cert
 
 	while (oid_ptr != NULL)
 	{
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+	    char* oid_name = NULL;
 		mbedtls_oid_get_attr_short_name((mbedtls_asn1_buf*)oid_ptr, (const char**)&oid_name);
-		if(strcmp(oid_name, oid) == 0)
+#else
+		const char* oid_name = x509_attr_short_name_from_oid(&oid_ptr->oid);
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+		if(oid_name && strcmp(oid_name, oid) == 0)
 		{
 			len = oid_ptr->val.len;
 			if (len > max_size)
@@ -978,7 +1005,6 @@ exit:
 }
 #endif
 
-
 iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
 	iot_agent_keystore_t* keystore, uint8_t* certificate_buffer,
 	size_t* certificate_buffer_size)
@@ -995,15 +1021,21 @@ iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
 
 	mbedtls_x509write_cert crt;
 	mbedtls_mpi serial;
+
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	mbedtls_entropy_context entropy;
 	mbedtls_ctr_drbg_context ctr_drbg;
 	const char *pers = "edglock2go_self_signed_cert";
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+
 	char* pos = issuer_name + strlen(issuer_prefix);
 	size_t uuid_len = 0U;
 
 	mbedtls_x509write_crt_init(&crt);
 	mbedtls_pk_init(&loaded_issuer_key);
 	mbedtls_mpi_init(&serial);
+
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	mbedtls_ctr_drbg_init(&ctr_drbg);
 	mbedtls_entropy_init(&entropy);
 
@@ -1011,6 +1043,8 @@ iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
 		(const unsigned char *)pers,
 		strlen(pers));
 	ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_ctr_drbg_seed failed: 0x%x", ret);
+
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 
 	uuid_len = sizeof(uuid);
 	agent_status = iot_agent_utils_get_device_id(uuid, &uuid_len);
@@ -1037,8 +1071,8 @@ iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
 	ASSERT_OR_EXIT_MSG(psa_status == PSA_SUCCESS || psa_status == PSA_ERROR_ALREADY_EXISTS, "psa_import_key failed: 0x%x", psa_status);
 #endif
 
-	ret = mbedtls_pk_setup_opaque(&loaded_issuer_key, EDGELOCK2GO_KEYID_ECC);
-	ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_pk_setup_opaque failed: 0x%x", ret);
+	ret = network_pk_wrap_psa_key(&loaded_issuer_key, EDGELOCK2GO_KEYID_ECC);
+	ASSERT_OR_EXIT_MSG(ret == 0, "network_pk_wrap_psa_key failed: 0x%x", ret);
 
 	mbedtls_x509write_crt_set_subject_key(&crt, &loaded_issuer_key);
 	mbedtls_x509write_crt_set_issuer_key(&crt, &loaded_issuer_key);
@@ -1057,10 +1091,16 @@ iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
 	}
 	mbedtls_x509write_crt_set_md_alg(&crt, md_alg);
 
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	ret = mbedtls_mpi_read_binary(&serial, serial_bytes, sizeof(serial_bytes));
 	ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_mpi_read_binary failed with 0x%08x", ret);
 	ret = mbedtls_x509write_crt_set_serial(&crt, &serial);
 	ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_x509write_crt_set_serial failed with 0x%08x", ret);
+#else
+    // In mbedtls 4.x mbedtls_x509write_crt_set_serial_raw is the only API to handle X.509 serial
+	ret = mbedtls_x509write_crt_set_serial_raw(&crt, serial_bytes, sizeof(serial_bytes));
+	ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_x509write_crt_set_serial_raw failed with 0x%08x", ret);
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 
 	ret = mbedtls_x509write_crt_set_validity(&crt, "20220101000000", "99991231235959");
 	ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_x509write_crt_set_validity failed with 0x%08x", ret);
@@ -1071,8 +1111,12 @@ iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
 	ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_x509write_crt_set_key_usage failed with 0x%08x", ret);
 
 	// Note: mbedtls_x509write_crt_der writes the cert to the end of the buffer!
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	ret = mbedtls_x509write_crt_der(&crt, certificate_buffer, *certificate_buffer_size,
 		mbedtls_ctr_drbg_random, &ctr_drbg);
+#else
+	ret = mbedtls_x509write_crt_der(&crt, certificate_buffer, *certificate_buffer_size);
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	ASSERT_OR_EXIT_MSG(ret > 0, "mbedtls_x509write_crt_der failed with 0x%08x", ret);
 	memmove(certificate_buffer, certificate_buffer + *certificate_buffer_size - ret, ret);
 	*certificate_buffer_size = ret;
@@ -1081,8 +1125,12 @@ exit:
 	mbedtls_x509write_crt_free(&crt);
 	mbedtls_pk_free(&loaded_issuer_key);
 	mbedtls_mpi_free(&serial);
+
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	mbedtls_ctr_drbg_free(&ctr_drbg);
 	mbedtls_entropy_free(&entropy);
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+
 #endif
 	return agent_status;
 }
@@ -1208,6 +1256,7 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
 	ASSERT_OR_EXIT_MSG(success == 1, "Header checksum calculation failed.");
 #elif defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 	ASSERT_OR_EXIT_MSG(total_size >= sizeof(header->checksum), "Buffer overflow in SHA calculation.");
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	mbedtls_sha256_context digest_context;
 	mbedtls_sha256_init(&digest_context);
 #if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x03010000)
@@ -1218,9 +1267,20 @@ iot_agent_status_t iot_agent_utils_write_edgelock2go_datastore(iot_agent_keystor
 	mbedtls_sha256_starts(&digest_context, 0);
 	failed |= mbedtls_sha256_update(&digest_context, &buffer[sizeof(header->checksum)], total_size - sizeof(header->checksum));
 	failed |= mbedtls_sha256_finish(&digest_context, header->checksum);
-#endif
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x03010000)
+#else
+	psa_hash_operation_t digest_operation = PSA_HASH_OPERATION_INIT;
+	psa_status_t psa_status = PSA_SUCCESS;
+	size_t hash_length = 0;
+	psa_status = psa_hash_setup(&digest_operation, PSA_ALG_SHA_256);
+	PSA_SUCCESS_OR_EXIT_MSG("psa_hash_setup failed");
+	psa_status = psa_hash_update(&digest_operation, &buffer[sizeof(header->checksum)], total_size - sizeof(header->checksum));
+	PSA_SUCCESS_OR_EXIT_MSG("psa_hash_update failed");
+	psa_status = psa_hash_finish(&digest_operation, header->checksum, sizeof(header->checksum), &hash_length);
+	PSA_SUCCESS_OR_EXIT_MSG("psa_hash_finish failed");
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	ASSERT_OR_EXIT_MSG(failed == 0, "Header checksum calculation failed.");
-#endif
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 
 	// Write everything to the datastore context.
 	agent_status = iot_agent_datastore_allocate(datastore, total_size);

@@ -11,6 +11,7 @@
 #include "mbedtls/debug.h"
 #endif
 
+#include <mbedtls/ssl.h>
 #include <nxp_iot_agent.h>
 #include <nxp_iot_agent_log.h>
 #include <nxp_iot_agent_common.h>
@@ -22,6 +23,22 @@
 #ifndef NETWORK_free
 #define NETWORK_free free
 #endif
+
+
+/* Wrap a PSA key into an mbedtls_pk_context.
+ * - Mbed TLS 4.x: mbedtls_pk_wrap_psa()
+ * - Older: mbedtls_pk_setup_opaque() (if available)
+ */
+int network_pk_wrap_psa_key(mbedtls_pk_context *pk,
+                                           mbedtls_svc_key_id_t key_id)
+{
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
+    return mbedtls_pk_wrap_psa(pk, key_id);
+#else
+    /* Older PSA-enabled Mbed TLS uses mbedtls_pk_setup_opaque() */
+    return mbedtls_pk_setup_opaque(pk, key_id);
+#endif
+}
 
 static void warn_crt_crl_period(uint32_t verify_result)
 {
@@ -42,12 +59,22 @@ static void network_lowlevel_disconnect(mbedtls_network_context_t* network_ctx)
 	}
 }
 
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 static const mbedtls_ecp_group_id supported_curves [] = {MBEDTLS_ECP_DP_SECP192R1,
-		MBEDTLS_ECP_DP_SECP224R1,
-		MBEDTLS_ECP_DP_SECP256R1,
-		MBEDTLS_ECP_DP_SECP384R1,
-		MBEDTLS_ECP_DP_SECP521R1,
-		MBEDTLS_ECP_DP_NONE};
+        MBEDTLS_ECP_DP_SECP224R1,
+        MBEDTLS_ECP_DP_SECP256R1,
+        MBEDTLS_ECP_DP_SECP384R1,
+        MBEDTLS_ECP_DP_SECP521R1,
+        MBEDTLS_ECP_DP_NONE};
+#else
+// In mbedtls 4x the curve definintions are replaced by the groups
+static const uint16_t supported_groups[] = {
+    MBEDTLS_SSL_IANA_TLS_GROUP_SECP256R1,
+    MBEDTLS_SSL_IANA_TLS_GROUP_SECP384R1,
+    MBEDTLS_SSL_IANA_TLS_GROUP_SECP521R1,
+    0
+};
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 
 void* network_new(void)
 {
@@ -66,9 +93,12 @@ void network_free(void* ctx)
 
 		network_lowlevel_disconnect(network_ctx);
 		mbedtls_ssl_config_free(&(network_ctx->conf));
-		mbedtls_ctr_drbg_free(&(network_ctx->ctr_drbg));
 		mbedtls_pk_free(&(network_ctx->pkey));
-		mbedtls_entropy_free(&network_ctx->entropy);
+
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+        mbedtls_ctr_drbg_free(&(network_ctx->ctr_drbg));
+        mbedtls_entropy_free(&network_ctx->entropy);
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 
 		NETWORK_free(ctx);
 	}
@@ -86,14 +116,12 @@ extern int mbedtls_entropy_func_3_X(void *data, unsigned char *output, size_t le
 int network_configure(void* opaque_ctx, void* opaque_network_config) {
 
 	int ret = 0;
-	const char *pers = "aws_iot_tls_wrapper";
 
 	mbedtls_network_context_t* network_ctx = (mbedtls_network_context_t*)opaque_ctx;
 	mbedtls_network_config_t* network_config = (mbedtls_network_config_t*)opaque_network_config;
 
 	mbedtls_ssl_init(&(network_ctx->ssl));
 	mbedtls_ssl_config_init(&(network_ctx->conf));
-	mbedtls_ctr_drbg_init(&(network_ctx->ctr_drbg));
 	mbedtls_pk_init(&(network_ctx->pkey));
 	mbedtls_net_init(&network_ctx->server_fd);
 
@@ -102,21 +130,27 @@ int network_configure(void* opaque_ctx, void* opaque_network_config) {
 	mbedtls_debug_set_threshold(4);
 #endif
 
-	mbedtls_entropy_init(&(network_ctx->entropy));
-#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
-	if ((ret = mbedtls_ctr_drbg_seed(&(network_ctx->ctr_drbg),
-		&mbedtls_entropy_func_3_X, &(network_ctx->entropy),
-		(const unsigned char *)pers, strlen(pers))) != 0) {
-		return 1;
-	}
-#else
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+    /* Legacy path (Mbed TLS 3.x style) */
+    const char *pers = "aws_iot_tls_wrapper";
+    mbedtls_ctr_drbg_init(&(network_ctx->ctr_drbg));
+    mbedtls_entropy_init(&(network_ctx->entropy));
 
-	if ((ret = mbedtls_ctr_drbg_seed(&(network_ctx->ctr_drbg),
-		mbedtls_entropy_func, &(network_ctx->entropy),
-		(const unsigned char *)pers, strlen(pers))) != 0) {
-		return 1;
-	}
-#endif
+#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
+    if ((ret = mbedtls_ctr_drbg_seed(&(network_ctx->ctr_drbg),
+        &mbedtls_entropy_func_3_X, &(network_ctx->entropy),
+        (const unsigned char *)pers, strlen(pers))) != 0) {
+        return 1;
+    }
+#else
+    if ((ret = mbedtls_ctr_drbg_seed(&(network_ctx->ctr_drbg),
+        mbedtls_entropy_func, &(network_ctx->entropy),
+        (const unsigned char *)pers, strlen(pers))) != 0) {
+        return 1;
+    }
+#endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS_3_X == 1)
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+
 
 	network_ctx->network_config = *network_config;
 	return ret;
@@ -154,29 +188,33 @@ int network_connect(void* opaque_ctx)
 
 	{
 #if defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM == 1)
-		static int allowed_ciphersuites_sha_256[] = {
-			MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-			MBEDTLS_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256,
-			MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-			MBEDTLS_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256,
-			MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			MBEDTLS_TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256,
-			MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			MBEDTLS_TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,
-			0
-		};
-#endif
-		static int allowed_ciphersuites_sha_384[] = {
-			MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
-			MBEDTLS_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384,
-			MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-			MBEDTLS_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384,
-			MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			MBEDTLS_TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384,
-			MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			MBEDTLS_TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384,
-			0
-		};
+    static int allowed_ciphersuites_sha_256[] = {
+        MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+        MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+        MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+        MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+        MBEDTLS_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256,
+        MBEDTLS_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256,
+        MBEDTLS_TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256,
+        MBEDTLS_TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+        0
+    };
+#endif //#if defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM == 1)
+    static int allowed_ciphersuites_sha_384[] = {
+        MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
+        MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+        MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+        MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+        MBEDTLS_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384,
+        MBEDTLS_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384,
+        MBEDTLS_TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384,
+        MBEDTLS_TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384,
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+        0
+    };
 		switch (mbedtls_pk_get_bitlen(&network_context->pkey))
 		{
 #if defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM) && (NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM == 1)
@@ -220,10 +258,10 @@ int network_connect(void* opaque_ctx)
 			goto disconnect;
 		}
 	}
-
-	mbedtls_ssl_conf_rng(&(network_context->conf), mbedtls_ctr_drbg_random,
-		&(network_context->ctr_drbg));
-
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+    // In mbedtls 4.x the RNG is configured via PSA APIs inside TLS layer 
+    mbedtls_ssl_conf_rng(&(network_context->conf), mbedtls_ctr_drbg_random, &(network_context->ctr_drbg));
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	if ((ret = mbedtls_ssl_conf_own_cert(&(network_context->conf),
 		&network_context->network_config.clicert, &(network_context->pkey))) != 0) {
 		goto disconnect;
@@ -241,8 +279,13 @@ int network_connect(void* opaque_ctx)
 	mbedtls_ssl_set_bio(&network_context->ssl, &network_context->server_fd,
 		mbedtls_net_send, mbedtls_net_recv, NULL );
 
-	mbedtls_ssl_conf_curves(&(network_context->conf), supported_curves);
-
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+    mbedtls_ssl_conf_curves(&(network_context->conf), supported_curves);
+#else
+    // In mbedtls 4.x the groups needs to be configured instead of the curves
+    mbedtls_ssl_conf_groups(&(network_context->conf), supported_groups);
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+	
 	while ((ret = mbedtls_ssl_handshake(&(network_context->ssl))) != 0) {
 		if (ret != MBEDTLS_ERR_SSL_WANT_READ
 			&& ret != MBEDTLS_ERR_SSL_WANT_WRITE) {

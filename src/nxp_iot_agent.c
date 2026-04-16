@@ -419,9 +419,9 @@ iot_agent_status_t iot_agent_update_device_configuration_from_service_descriptor
 	else if(keystore->type == IOT_AGENT_KS_PSA) {
 		service_descriptor->client_key_sss_ref.object_id = EDGELOCK2GO_KEYID_ECC;
 
-		network_status = mbedtls_pk_setup_opaque(&((mbedtls_network_context_t*)dispatcher_context.network_context)->pkey,
+		network_status = network_pk_wrap_psa_key(&((mbedtls_network_context_t*)dispatcher_context.network_context)->pkey,
 			service_descriptor->client_key_sss_ref.object_id);
-		ASSERT_OR_EXIT_MSG(network_status == 0, "mbedtls_pk_setup_opaque failed with 0x%08x", network_status);
+		ASSERT_OR_EXIT_MSG(network_status == 0, "network_pk_wrap_psa_key failed with 0x%08x", network_status);
 	}
 #endif
 

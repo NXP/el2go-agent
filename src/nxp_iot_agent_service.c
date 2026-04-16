@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021,2023-2025 NXP
+ * Copyright 2018-2021,2023-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -21,6 +21,10 @@
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include <mbedtls/version.h>
 #include <mbedtls/sha256.h>
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
+#include <nxp_iot_agent_macros_psa.h>
+#include <psa/crypto.h>
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
 #endif
 
 #include <string.h>
@@ -148,7 +152,7 @@ static iot_agent_status_t iot_agent_service_calculate_configuration_checksum(con
 	if (!failed) {
 		failed |= mbedtls_sha256_finish_ret(&digest_context, &calculated_checksum[0]);
 	}
-#else
+#elif defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 	mbedtls_sha256_context digest_context;
 	mbedtls_sha256_init(&digest_context);
 
@@ -167,7 +171,38 @@ static iot_agent_status_t iot_agent_service_calculate_configuration_checksum(con
 	if (failed == 0) {
 		failed |= mbedtls_sha256_finish(&digest_context, &calculated_checksum[0]);
 	}
-#endif
+#else
+	psa_hash_operation_t digest_operation = PSA_HASH_OPERATION_INIT;
+	psa_status_t psa_status = PSA_SUCCESS;
+	psa_status = psa_hash_setup(&digest_operation, PSA_ALG_SHA_256);
+	PSA_SUCCESS_OR_EXIT_MSG("psa_hash_setup failed");
+
+	while ((failed == 0) && (remaining > 0U))
+	{
+		size_t chunk_size = remaining < sizeof(buffer) ? remaining : sizeof(buffer);
+
+		iot_agent_service_read_buffer(ctx, offset, &buffer[0], chunk_size);
+
+		psa_status = psa_hash_update(&digest_operation,
+							&buffer[0],
+							chunk_size);
+		PSA_SUCCESS_OR_EXIT_MSG("psa_hash_update failed");
+
+		remaining -= chunk_size;
+		offset += chunk_size;
+	}
+
+	if (failed == 0) {
+		size_t hash_length = 0;
+
+		psa_status = psa_hash_finish(&digest_operation,
+							&calculated_checksum[0],
+							32,
+							&hash_length);
+		PSA_SUCCESS_OR_EXIT_MSG("psa_hash_finish failed");
+		ASSERT_OR_EXIT_MSG((hash_length == 32), "Hash length mismatch");
+	}
+ #endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x03010000)
 	ASSERT_OR_EXIT_MSG((failed == 0), "Error in checksum calculation");
 exit:
 	return agent_status;

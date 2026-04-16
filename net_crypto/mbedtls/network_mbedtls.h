@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021, 2023-2025 NXP
+ * Copyright 2018-2021, 2023-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -22,12 +22,14 @@ typedef psa_key_id_t mbedtls_svc_key_id_t;
 
 #include <mbedtls/platform.h>
 #include <mbedtls/ssl.h>
-#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h>
 #include <mbedtls/error.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/version.h>
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,12 +50,17 @@ typedef struct mbedtls_network_context_t
     mbedtls_network_config_t network_config;
 	mbedtls_ssl_context ssl;
 	mbedtls_ssl_config conf;
-	mbedtls_ctr_drbg_context ctr_drbg;
 	mbedtls_pk_context	pkey;
 	mbedtls_net_context server_fd;
-	mbedtls_entropy_context entropy;
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_entropy_context entropy;
+#endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+
 } mbedtls_network_context_t;
 
+int network_pk_wrap_psa_key(mbedtls_pk_context *pk,
+                                           mbedtls_svc_key_id_t key_id);
 
 #ifdef __cplusplus
 }
