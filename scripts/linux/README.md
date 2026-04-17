@@ -1,18 +1,21 @@
 # Table of Contents
 
-1. [Introduction](#1-introduction)
-2. [Toolchain](#2-toolchain)
-   - 2.1. [Install in a default path](#21-install-in-a-default-path)
-   - 2.2. [Install in a custom path](#22-install-in-a-custom-path)
-   - 2.3. [Additional toolchain options](#23-additional-toolchain-options)
-3. [External dependencies](#3-external-dependencies)
-   - 3.1. [Building MbedTLS](#31-building-mbedtls)
-   - 3.2. [Building SMW](#32-building-smw)
-4. [Project configuration and compilation](#4-project-configuration-and-compilation)
-5. [Useful scripts](#5-useful-scripts)
-   - 5.1. [Configure script](#51-configure-script)
-   - 5.2. [Build script](#52-build-script)
-   - 5.3. [Example of configuring and building the project](#53-example-of-configuring-and-building-the-project)
+- [Table of Contents](#table-of-contents)
+  - [1. Introduction](#1-introduction)
+  - [2. Toolchain](#2-toolchain)
+    - [2.1. Install in a default path](#21-install-in-a-default-path)
+    - [2.2. Install in a custom path](#22-install-in-a-custom-path)
+    - [2.3. Additional toolchain options](#23-additional-toolchain-options)
+  - [3. External dependencies](#3-external-dependencies)
+    - [3.1. Building MbedTLS](#31-building-mbedtls)
+    - [3.2. Building SMW](#32-building-smw)
+  - [4. Project configuration and compilation](#4-project-configuration-and-compilation)
+  - [5. Useful scripts](#5-useful-scripts)
+    - [5.1. Configure script](#51-configure-script)
+    - [5.2. Build script](#52-build-script)
+    - [5.3. Example of configuring and building the project](#53-example-of-configuring-and-building-the-project)
+
+
 ## 1. Introduction
 
 This guide outlines the steps to build the __EdgeLock 2GO Agent__, including dependencies, configuration, compilation, and installation on i.MX MPU 64-bit platforms. The EdgeLock 2GO Agent can be built for other platforms, but these scripts target only i.MX MPU, 64-bit, Linux-based platforms.
@@ -133,7 +136,7 @@ The EdgeLock 2GO Agent uses the __Security Middleware (SMW) library__ to execute
 Alternatively, you can use the provided script to build the SMW library and its dependencies:
 
 ```bash
-./scripts/linux/build.sh smw toolpath=[tool path] out=[smw build folder path] src=[source path] platform=[imx93evk/imx91evk/imx8ulpevk] export=[smw export path]
+./scripts/linux/build.sh smw toolpath=[tool path] out=[smw build folder path] src=[source path] subsystem=[smw subsystem] export=[smw export path]
 ```
 
 The script assumes that the SMW is available in the __[source path]__ together with the needed dependencies (see <a href="https://github.com/nxp-imx/imx-smw">Security Middleware Library (SMW) Documentation</a>).
@@ -207,19 +210,19 @@ This shell script builds the project dependencies and configures the EdgeLock 2G
 **Usage:**
 
 ```bash
-./scripts/linux/configure.sh [build directory] [platform] toolpath=[path/to/toolpath]
+./scripts/linux/configure.sh [build directory] [smw_subsystem] toolpath=[path/to/toolpath]
 ```
 
 **Parameters:**
 
 - `[build directory]` - The directory where the build artifacts will be placed
-- `[platform]` - Target i.MX platform: `imx91evk`, `imx8ulpevk`, or `imx93evk`
+- `[smw_subsystem]` - SMW subsystem(s) to build. See the SMW documentation for additional details.
 - `toolpath=[path/to/toolpath]` - (Optional) Path to the toolchain. If not specified, the script will use the default toolchain location at `/toolchains`
 
 **Description:**
 
 The configure script performs the following operations:
-1. Validates the target platform
+1. Validates the SMW subsystem
 2. Installs the toolchain (if needed)
 3. Downloads and builds MbedTLS
 4. Builds the SMW library and its dependencies
@@ -301,12 +304,12 @@ Ensure the required dependency sources are available:
 **Step 1: Configure the project**
 
 ```bash
-./scripts/linux/configure.sh [build directory] [architecture] toolpath=[path/to/toolpath]
+./scripts/linux/configure.sh [build directory] [smw_subsystem] toolpath=[path/to/toolpath]
 ```
 
 This command will:
 - Create the build directory at `[build directory]`
-- Configure for the `[architecture]` platform
+- Configure for the `[smw_subsystem]`
 - Use the toolchain located at `[path/to/toolpath]`
 - Build all required dependencies (MbedTLS, SMW)
 - Configure the CMake project

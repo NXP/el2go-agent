@@ -124,11 +124,18 @@ function usage_smw()
     printf "\n"
     printf "To build and install the SMW Library\n"
     printf "  %s smw export=[dir] src=[dir] out=[dir]" "${script_name}"
-    printf " toolpath=[dir] toolname=[name]\n"
-    printf "    export   = Export directory\n"
-    printf "    src      = Temporary directory where to install sources\n"
-    printf "    out      = Install directory\n"
-    printf "    toolpath = [optional] Toolchain installation path\n"
+    printf " toolpath=[dir] toolname=[name] subsystem=[subsystem]\n"
+    printf "    export     = Export directory\n"
+    printf "    src        = Temporary directory where to install sources\n"
+    printf "    out        = Install directory\n"
+    printf "    toolpath   = [optional] Toolchain installation path\n"
+    printf "    subsystem  = SMW subsystem(s) - comma-separated list (no spaces)\n"
+    printf "                 Valid combinations:\n"
+    printf "                   tee           : TEE Only\n"
+    printf "                   seco          : SECO Only\n"
+    printf "                   ele           : ELE Only\n"
+    printf "                   tee,seco      : SECO + TEE\n"
+    printf "                   tee,ele       : ELE + TEE\n"
     printf "\n"
 }
 
@@ -236,7 +243,7 @@ function smw()
     cmd_conf_script="./scripts/smw_configure.sh"
     cmd_build_script="./scripts/smw_build.sh"
 
-    if [[ -z ${opt_out} || -z ${opt_src} || -z ${opt_export} ]]; then
+    if [[ -z ${opt_out} || -z ${opt_src} || -z ${opt_export} || -z ${opt_subsystem} ]]; then
         usage_smw
         exit 1
     fi
@@ -249,7 +256,7 @@ function smw()
     cd "${opt_src}" || { echo "Failed to change directory to ${opt_src}"; exit 1; }
 
     cmd_conf_script="${cmd_conf_script} ${opt_out}"
-    cmd_conf_script="${cmd_conf_script} aarch64 ${opt_platform}"
+    cmd_conf_script="${cmd_conf_script} aarch64 ${opt_subsystem}"
     cmd_conf_script="${cmd_conf_script} toolpath=${opt_toolpath_raw}"
 
     cmd_build_script="${cmd_build_script} install out=${opt_out}"
@@ -400,8 +407,8 @@ do
             opt_mbedtls="${arg#*=}"
             check_directory opt_mbedtls
             ;;
-        platform=*)
-            opt_platform="${arg#*=}"
+        subsystem=*)
+            opt_subsystem="${arg#*=}"
             ;;
         out=*)
             opt_out="${arg#*=}"

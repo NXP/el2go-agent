@@ -52,10 +52,16 @@ function usage()
       |── secure_enclave  (smw dependency)
       └── simw-devicelink/  ((run script from here))
 
-    $(basename "$0") <dir> <platform> toolpath=[dir]
-      <dir>      : Output build directory
-      <platform> : i.MX platform name (imx91evk, imx8ulpevk, imx93evk)
-      <toolpath> : [Optional] Toolchain installation path
+    $(basename "$0") <dir> <smw_subsystem> toolpath=[dir]
+      <dir>           : Output build directory
+      <smw_subsystem> : SMW subsystem(s) - comma-separated list (no spaces)
+                        Valid combinations:
+                          tee           : TEE Only
+                          seco          : SECO Only
+                          ele           : ELE Only
+                          tee,seco      : SECO + TEE
+                          tee,ele       : ELE + TEE
+      <toolpath>      : [Optional] Toolchain installation path
 
 EOF
     exit 1
@@ -66,20 +72,10 @@ if [[ $# -lt 2 ]]; then
 fi
 
 out=$1
-platform="$2"
+smw_subsystem="$2"
 shift 2
 # change to absolute path to avoid relative path issues
 out=$(realpath -m "$out")
-
-supported_platforms=("imx91evk" "imx8ulpevk" "imx93evk")
-
-
-# Check if the platform is in the supported list
-
-if [[ ! " ${supported_platforms[@]} " =~ " ${platform} " ]]; then
-    pr_err "Error: Invalid platform '${platform}'. Supported platforms are: ${supported_platforms[*]}"
-    exit 1
-fi
 
 readonly smw_out="${out}/smw-build"
 readonly smw_export_dir="${out}/export-smw"
@@ -137,8 +133,8 @@ build_component "smw" \
     "export=${smw_export_dir}" \
     "out=${smw_out}" \
     "src=${SMW_SRC_DIR}" \
-    "${opt_toolpath}" \
-    "platform=${platform}"
+    "subsystem=${smw_subsystem}" \
+    "${opt_toolpath}"
 
 # Build configuration options
 conf_opts_array=(
