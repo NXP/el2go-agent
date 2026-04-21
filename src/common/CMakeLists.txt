@@ -1,9 +1,9 @@
-# Copyright 2019,2021,2023-2025 NXP
+# Copyright 2019,2021,2023-2026 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
 #
 
-PROJECT(nxp_iot_agent_common LANGUAGES C VERSION 6.4.2)
+PROJECT(nxp_iot_agent_common LANGUAGES C VERSION 6.5.0)
 
 #define some variables which will be used in different places
 set(exported_targets el2go_agent-targets)

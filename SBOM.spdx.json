@@ -2,20 +2,20 @@
   "SPDXID": "SPDXRef-DOCUMENT",
   "spdxVersion": "SPDX-2.3",
   "creationInfo": {
-    "created": "2025-11-26T07:53:27Z",
+    "created": "2026-04-21T12:05:26Z",
     "creators": [
       "Organization: NXP"
     ],
-    "licenseListVersion": "3.20"
+    "licenseListVersion": "3.26"
   },
-  "name": "el2go-agent-v6.4.2",
+  "name": "el2go-agent-v6.5.0",
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://nxp.com/spdx/34e42c1a-2be9-4197-b089-87faf1a947af",
+  "documentNamespace": "https://nxp.com/spdx/d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679",
   "packages": [
     {
-      "SPDXID": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af",
+      "SPDXID": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679",
       "name": "el2go-agent",
-      "versionInfo": "v6.4.2",
+      "versionInfo": "v6.5.0",
       "licenseConcluded": "(Apache-2.0)",
       "licenseDeclared": "(Apache-2.0)",
       "downloadLocation": "https://github.com/NXP/el2go-agent",
@@ -25,7 +25,7 @@
       "filesAnalyzed": false
     },
     {
-      "SPDXID": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd",
+      "SPDXID": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679---748643e9-5267-4018-961d-7e913ca90bbd",
       "name": "nanopb",
       "versionInfo": "0.3.9.8",
       "licenseConcluded": "Zlib",
@@ -37,19 +37,19 @@
       "externalRefs": [
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:pypi_package:nanopb:0.3.9.8:*:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:nanopb_project:nanopb:0.3.9.8:*:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         },
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:nanopb_project:nanopb:0.3.9.8:*:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:pypi_package:nanopb:0.3.9.8:*:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         }
       ],
       "filesAnalyzed": false
     },
     {
-      "SPDXID": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3",
+      "SPDXID": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679---93ff9297-b6b8-4bd5-ba66-054528427fa3",
       "name": "mbed TLS",
       "versionInfo": "3.6.2",
       "licenseConcluded": "Apache-2.0",
@@ -61,7 +61,7 @@
       "externalRefs": [
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls-doc:3.6.2:3:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedcrypto16:3.6.2:3:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         },
         {
@@ -71,7 +71,7 @@
         },
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:arm:mbed_tls:3.6.2:*:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls-doc:3.6.2:3:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         },
         {
@@ -81,14 +81,14 @@
         },
         {
           "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedcrypto16:3.6.2:3:*:*:*:*:*:*",
+          "referenceLocator": "cpe:2.3:a:arm:mbed_tls:3.6.2:*:*:*:*:*:*:*",
           "referenceType": "cpe23Type"
         }
       ],
       "filesAnalyzed": false
     },
     {
-      "SPDXID": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e",
+      "SPDXID": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679---f0db285c-7c92-4637-ae36-0f1aeb1e005e",
       "name": "Dirent API for Microsoft Visual Studio",
       "versionInfo": "1.25",
       "licenseConcluded": "MIT",
@@ -105,22 +105,22 @@
     {
       "spdxElementId": "SPDXRef-DOCUMENT",
       "relationshipType": "DESCRIBES",
-      "relatedSpdxElement": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af"
+      "relatedSpdxElement": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679"
     },
     {
-      "spdxElementId": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af",
+      "spdxElementId": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679",
       "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-package-748643e9-5267-4018-961d-7e913ca90bbd"
+      "relatedSpdxElement": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679---748643e9-5267-4018-961d-7e913ca90bbd"
     },
     {
-      "spdxElementId": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af",
+      "spdxElementId": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679",
       "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-package-93ff9297-b6b8-4bd5-ba66-054528427fa3"
+      "relatedSpdxElement": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679---93ff9297-b6b8-4bd5-ba66-054528427fa3"
     },
     {
-      "spdxElementId": "SPDXRef-package-34e42c1a-2be9-4197-b089-87faf1a947af",
+      "spdxElementId": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679",
       "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-package-f0db285c-7c92-4637-ae36-0f1aeb1e005e"
+      "relatedSpdxElement": "SPDXRef-package-d5f1fbb6-fbf9-4a7b-80c6-57389b6e8679---f0db285c-7c92-4637-ae36-0f1aeb1e005e"
     }
   ]
 }

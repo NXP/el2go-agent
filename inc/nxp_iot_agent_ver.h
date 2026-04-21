@@ -1,4 +1,4 @@
-/* Copyright 2019-2021,2024-2025 NXP
+/* Copyright 2019-2021,2024-2026 NXP
  * 
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -11,18 +11,18 @@
 
 /* clang-format off */
 #define NXP_IOT_AGENT_PROD_NAME          "nxp_iot_agent"
-#define NXP_IOT_AGENT_VER_STRING_NUM     "v06.04.02_20251125"
-#define NXP_IOT_AGENT_PROD_NAME_VER_FULL "nxp_iot_agent_v06.04.02_20251125"
+#define NXP_IOT_AGENT_VER_STRING_NUM     "v06.05.00_20260524"
+#define NXP_IOT_AGENT_PROD_NAME_VER_FULL "nxp_iot_agent_v06.05.00_20260524"
 #define NXP_IOT_AGENT_VER_MAJOR          (6u)
-#define NXP_IOT_AGENT_VER_MINOR          (4u)
-#define NXP_IOT_AGENT_VER_DEV            (2u)
+#define NXP_IOT_AGENT_VER_MINOR          (5u)
+#define NXP_IOT_AGENT_VER_DEV            (0u)
 
-/* v06.04 = 60004u */
+/* v06.05 = 60005u */
 #define NXP_IOT_AGENT_VER_MAJOR_MINOR ( 0 \
     | (NXP_IOT_AGENT_VER_MAJOR * 10000u)    \
     | (NXP_IOT_AGENT_VER_MINOR))
 
-/* v06.04.02 = 600040002ULL */
+/* v06.05.00 = 600050000ULL */
 #define NXP_IOT_AGENT_VER_MAJOR_MINOR_DEV ( 0 \
     | (NXP_IOT_AGENT_VER_MAJOR * 10000*10000u)    \
     | (NXP_IOT_AGENT_VER_MINOR * 10000u)    \
@@ -49,9 +49,9 @@
  * 
  * v_major  = "06"
  * 
- * v_minor  = "04"
+ * v_minor  = "05"
  * 
- * v_dev    = "02"
+ * v_dev    = "00"
  * 
  * v_meta   = ""
  * 
