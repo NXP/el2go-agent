@@ -63,7 +63,7 @@ extern "C" {
 #define CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN     (CERT_STORAGE_MAGIC_VALUE_LEN+CERT_STORAGE_VERSION_LEN+\
                                                 CERT_STORAGE_DEVICE_OPERATION_LEN+CERT_STORAGE_KEY_ID_LEN+\
                                                 CERT_STORAGE_CERT_SRC_ADDR_LEN+CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN+\
-                                                CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN+CERT_STORAGE_INTEGRITY_ALGORITHM_LEN+\
+                                                +CERT_STORAGE_INTEGRITY_ALGORITHM_LEN+\
                                                 (2u*(1u+CERT_STORAGE_TAG_INTEGRITY_VALUE-CERT_STORAGE_TAG_MAGIC))) 
 
 // Bitmask flags for REQUIRED CSR and CERT storage fields
