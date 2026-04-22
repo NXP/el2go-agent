@@ -43,7 +43,7 @@ extern "C" {
 #define CSR_GEN_KEY_ID_LEN                      (sizeof(uint32_t))
 #define CSR_GEN_CSR_DEST_ADDR_LEN               (sizeof(uint32_t))
 #define CSR_GEN_INTEGRITY_ALGORITHM_LEN         (sizeof(uint32_t))
-#define CSR_GEN_TOTAL_FIXED_FIELDS_LEN          ((1u+CSR_GEN_MAGIC_VALUE_LEN)+CSR_GEN_VERSION_LEN+\
+#define CSR_GEN_TOTAL_FIXED_FIELDS_LEN          (CSR_GEN_MAGIC_VALUE_LEN+CSR_GEN_VERSION_LEN+\
                                                 CSR_GEN_DEVICE_OPERATION_LEN+CSR_GEN_KEY_ID_LEN+\
                                                 CSR_GEN_CSR_DEST_ADDR_LEN+CSR_GEN_INTEGRITY_ALGORITHM_LEN+\
                                                 (2u*(1u+CSR_GEN_TAG_INTEGRITY_VALUE-CSR_GEN_TAG_MAGIC))) // tag + length fields 
@@ -56,7 +56,7 @@ extern "C" {
 #define CERT_STORAGE_CERT_SRC_ADDR_LEN          (sizeof(uint32_t))
 #define CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN     (sizeof(uint32_t))
 #define CERT_STORAGE_INTEGRITY_ALGORITHM_LEN    (sizeof(uint32_t))
-#define CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN     ((1u+CERT_STORAGE_MAGIC_VALUE_LEN)+CERT_STORAGE_VERSION_LEN+\
+#define CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN     (CERT_STORAGE_MAGIC_VALUE_LEN+CERT_STORAGE_VERSION_LEN+\
                                                 CERT_STORAGE_DEVICE_OPERATION_LEN+CERT_STORAGE_KEY_ID_LEN+\
                                                 CERT_STORAGE_CERT_SRC_ADDR_LEN+CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN+\
                                                 CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN+CERT_STORAGE_INTEGRITY_ALGORITHM_LEN+\

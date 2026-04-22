@@ -55,6 +55,25 @@ typedef enum _csr_log_level
                 ##__VA_ARGS__); \
         } \
     } while (0)
+
+#define LOG_CHAR_BUFFER(log_lvl, buf, len, fmt_s, ...) \
+    do { \
+        if ((log_lvl) <= CSR_LOG_LEVEL) { \
+            printc("%s" fmt_s, \
+                (log_lvl) == LOG_INFO    ? LOG_PREFIX_INFO    : \
+                (log_lvl) == LOG_ERROR   ? LOG_PREFIX_ERROR   : \
+                (log_lvl) == LOG_WARNING ? LOG_PREFIX_WARNING : \
+                (log_lvl) == LOG_TRACE   ? LOG_PREFIX_TRACE   : \
+                (log_lvl) == LOG_DEBUG   ? LOG_PREFIX_DEBUG   : "[UNKNOWN] ", \
+                ##__VA_ARGS__); \
+            for (size_t i = 0; i < (len); i++) { \
+                printc("%c", ((unsigned char*)(buf))[i]); \
+            } \
+            printc(ANSI_COLOR_RESET "\n"); \
+        } \
+    } while (0)
+
+
 #else
 
 

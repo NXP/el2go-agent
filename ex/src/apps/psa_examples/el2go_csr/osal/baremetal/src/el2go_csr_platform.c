@@ -9,5 +9,5 @@
 
 void platform_init(void)
 {
-    BOARD_InitHardware(); 
+    BOARD_InitHardware();
 }

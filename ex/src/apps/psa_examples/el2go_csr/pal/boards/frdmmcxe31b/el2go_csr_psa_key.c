@@ -20,13 +20,22 @@ psa_status_t fill_key_attributes(psa_key_attributes_t *attr, psa_key_id_t* key_i
     }   
 
     psa_set_key_id(attr, *key_id);
-    psa_set_key_lifetime(attr, PSA_KEY_LIFETIME_PERSISTENT); 
-    psa_set_key_usage_flags(attr, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
+    psa_set_key_lifetime(attr, PSA_KEY_LIFETIME_VOLATILE); 
+    psa_set_key_usage_flags(attr, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_SIGN_MESSAGE);
     psa_set_key_algorithm(attr, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
     psa_set_key_type(attr, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
     psa_set_key_bits(attr, 256);
 
     status = psa_generate_key(attr, key_id);
+    if (status == PSA_ERROR_ALREADY_EXISTS)
+    {
+        status = psa_destroy_key(*key_id);
+        if (status != PSA_SUCCESS)
+        {
+            goto exit;
+        }
+        status = psa_generate_key(attr, key_id);
+    }
 
     if (status != PSA_SUCCESS)
     {

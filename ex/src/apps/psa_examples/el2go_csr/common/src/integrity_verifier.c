@@ -7,6 +7,7 @@
 
 #include "integrity_verifier.h"
 #include "byte_utils.h"
+#include "el2go_csr_console.h"
 
 // CRC-32 IEEE 802.3 polynomial 
 #define CRC32_POLYNOMIAL_REFLECTED  0xEDB88320U
@@ -67,6 +68,7 @@ csr_integrity_verifier_t crc32_verify(const uint8_t *data, size_t size, const ui
     }
     
     expected_crc_value = get_uint32_val(expected_crc);
+    LOG(LOG_DEBUG, "Computed CRC32: 0x%08X, Expected CRC32: 0x%08X\r\n", calculated_crc, expected_crc_value);
 
     if (calculated_crc != expected_crc_value)
     {

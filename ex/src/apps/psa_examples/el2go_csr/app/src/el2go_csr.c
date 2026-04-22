@@ -8,6 +8,7 @@
 #include "el2go_csr.h"
 
 extern uint8_t el2go_csr_conf_data[];
+extern uint32_t el2go_spsdk_status;
 
 /*! @brief Verify received x.509 certificate from CLI.
  * 
@@ -117,7 +118,9 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
         psa_status = PSA_ERROR_STORAGE_FAILURE;
         goto exit;
     }
-    
+
+    LOG_CHAR_BUFFER(LOG_DEBUG, csr_output_buf_imm, csr_output_len, "Generated CSR:");
+
     exit:
         LOG(LOG_TRACE, "Returning to main function from generate_cert_sign_req subroutine.\r\n");
         return psa_status;
@@ -185,11 +188,10 @@ int main(void)
 exit:
     // mbedtls_psa_crypto_free(); // <-- need this?
     // psa_destroy_key(key_id);
- 
-    // Using the first 4 bytes of the config block address, as a 
-    // status information for SPSDK. 
+
+    // write the status at the end of the configuration region to avoid overwriting the configuration data
     LOG(LOG_DEBUG, "Returning status code of operation\r\n");
-    if (mem_write((uint32_t)&el2go_csr_conf_data, (const uint8_t *)&spsdk_status, sizeof(spsdk_status))  != kStatus_CSR_MEM_SUCCESS)
+    if (mem_write(((uint32_t)&el2go_spsdk_status), (const uint8_t *)&spsdk_status, sizeof(spsdk_status))  != kStatus_CSR_MEM_SUCCESS)
     {
         LOG(LOG_ERROR, "Writing status code to memory failed!\r\n");
     }

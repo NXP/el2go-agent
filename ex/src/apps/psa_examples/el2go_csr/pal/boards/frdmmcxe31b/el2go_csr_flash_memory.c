@@ -16,10 +16,13 @@ static flash_config_t s_flashConfig;
 
 // 8kB reserved section for EL2GO CSR configuration 
 #ifndef EL2GO_CSR_CONF_SIZE
-#define EL2GO_CSR_CONF_SIZE  0x2000
+#define EL2GO_CSR_CONF_SIZE  0x2000 - 4 
 #endif
 __attribute__((section(".el2go_csr_conf")))
+// the section el2go_csr_conf is by default linked at Flash address 0x007d2000
 uint8_t el2go_csr_conf_data[EL2GO_CSR_CONF_SIZE];
+__attribute__((section(".el2go_csr_conf")))
+uint32_t el2go_spsdk_status;
 
 /**
  * @brief Initialize flash driver
