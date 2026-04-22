@@ -100,7 +100,7 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
     generate_new_key = (ctx->device_operation == CSR_GEN_DEVICEOP_NEWKEY) ? true : false;
 
     psa_status = generate_key(&key_attr, &key_id, generate_new_key);
-    if (psa_status != PSA_SUCCESS)
+    if (psa_status != PSA_SUCCESS && psa_status != PSA_ERROR_ALREADY_EXISTS)
     {
         LOG(LOG_ERROR, "PSA key generation failed!\r\n");
         goto exit;
