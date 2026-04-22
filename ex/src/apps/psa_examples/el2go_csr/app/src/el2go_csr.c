@@ -78,7 +78,7 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
  * and store the generated CSR to a specified memory location. The key id is extracted from the
  * configuration block and used to generate the CSR which is then written to the designated output address.
  * 
- * @param[in] ctx: Structure with filled x.509 cert storage configuration data.
+ * @param[in] ctx: Structure with filled CSR generation configuration data.
  * @retval PSA_SUCCESS Upon success.
  */
 static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
@@ -88,6 +88,7 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
     psa_key_attributes_t key_attr = PSA_KEY_ATTRIBUTES_INIT;
     uint8_t csr_output_buf_imm[MAX_CSR_SIZE] = {0};
     size_t csr_output_len = 0U; 
+    bool generate_new_key = false; 
 
     if (!ctx)
     {
@@ -96,11 +97,12 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
         goto exit;
     }
     key_id = (psa_key_id_t)ctx->key_id;
+    generate_new_key = (ctx->device_operation == CSR_GEN_DEVICEOP_NEWKEY) ? true : false;
 
-    psa_status = fill_key_attributes(&key_attr, &key_id);
+    psa_status = generate_key(&key_attr, &key_id, generate_new_key);
     if (psa_status != PSA_SUCCESS)
     {
-        LOG(LOG_ERROR, "PSA Key Attribute initialization failed!\r\n");
+        LOG(LOG_ERROR, "PSA key generation failed!\r\n");
         goto exit;
     }
 
@@ -186,8 +188,6 @@ int main(void)
     }
     
 exit:
-    // mbedtls_psa_crypto_free(); // <-- need this?
-    // psa_destroy_key(key_id);
 
     // write the status at the end of the configuration region to avoid overwriting the configuration data
     LOG(LOG_DEBUG, "Returning status code of operation\r\n");
