@@ -21,13 +21,13 @@ psa_status_t generate_key(psa_key_attributes_t *attr, psa_key_id_t* key_id, bool
     }   
 
     psa_set_key_id(attr, *key_id);
-    psa_set_key_lifetime(attr, PSA_KEY_LIFETIME_VOLATILE); 
+    psa_set_key_lifetime(attr, PSA_KEY_LIFETIME_PERSISTENT); 
     psa_set_key_usage_flags(attr, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_SIGN_MESSAGE);
     psa_set_key_algorithm(attr, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
     psa_set_key_type(attr, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
     psa_set_key_bits(attr, 256);
-
-    status = psa_generate_key(attr, key_id);
+    psa_key_id_t output_key_id = 0U;
+    status = psa_generate_key(attr, &output_key_id);
     
     if (regeneration_flag)
     {
@@ -42,7 +42,7 @@ psa_status_t generate_key(psa_key_attributes_t *attr, psa_key_id_t* key_id, bool
                 goto exit;
             }
             
-            status = psa_generate_key(attr, key_id);
+            status = psa_generate_key(attr, &output_key_id);
         }
     }
     else 

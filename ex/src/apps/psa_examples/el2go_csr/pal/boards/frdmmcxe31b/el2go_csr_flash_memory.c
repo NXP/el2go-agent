@@ -6,7 +6,7 @@
 */
 
 #include "el2go_csr_memory.h"
-#include "fsl_c40_flash.h" 
+#include "fsl_c40_flash.h"
 
 // Singleton to track init status of memory device 
 static uint8_t s_memInitialized = 0U;
