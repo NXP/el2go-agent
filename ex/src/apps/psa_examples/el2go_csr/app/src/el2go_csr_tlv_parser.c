@@ -155,7 +155,7 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx, cons
                 fields_present_cntr |= CSR_FIELD_DEST_ADDR;
                 break;
 
-            case CSR_GEN_TAG_INTEGRITY_ALGORTIHM:
+            case CSR_GEN_TAG_INTEGRITY_ALGORITHM:
                 length = parse_ber_length(conf_buf_ptr, &offset);
                 if (length != CSR_GEN_INTEGRITY_ALGORITHM_LEN)
                 {
@@ -319,7 +319,7 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
                 fields_present_cntr |= CERT_FIELD_SRC_ADDR_SIZE;
                 break;
 
-            case CERT_STORAGE_TAG_INTEGRITY_ALGORTIHM:
+            case CERT_STORAGE_TAG_INTEGRITY_ALGORITHM:
                 length = parse_ber_length(conf_buf_ptr, &offset);
                 if (length != CERT_STORAGE_INTEGRITY_ALGORITHM_LEN)
                 {

@@ -19,7 +19,7 @@ extern "C" {
 #define CSR_GEN_TAG_DEVICE_OPERATION        (0x42u)
 #define CSR_GEN_TAG_KEY_ID                  (0x43u)
 #define CSR_GEN_TAG_CSR_DEST_ADDR           (0x44u)
-#define CSR_GEN_TAG_INTEGRITY_ALGORTIHM     (0x47u)
+#define CSR_GEN_TAG_INTEGRITY_ALGORITHM     (0x47u)
 #define CSR_GEN_TAG_INTEGRITY_VALUE         (0x48u)
 
 // Tags used in TLV parsing for x.509 certificate storage
@@ -29,7 +29,7 @@ extern "C" {
 #define CERT_STORAGE_TAG_KEY_ID                  (0x43u)
 #define CERT_STORAGE_TAG_CERT_SRC_ADDR           (0x45u)
 #define CERT_STORAGE_TAG_CERT_SRC_ADDR_SIZE      (0x46u)
-#define CERT_STORAGE_TAG_INTEGRITY_ALGORTIHM     (0x47u)
+#define CERT_STORAGE_TAG_INTEGRITY_ALGORITHM     (0x47u)
 #define CERT_STORAGE_TAG_INTEGRITY_VALUE         (0x48u)
 
 // Magic values for CSR and CERT storage
