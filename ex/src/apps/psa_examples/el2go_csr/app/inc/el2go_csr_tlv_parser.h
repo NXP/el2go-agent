@@ -40,6 +40,10 @@ extern "C" {
 #define CSR_GEN_DEVICEOP_EXISTINGKEY           (0x01u)
 #define CSR_GEN_DEVICEOP_NEWKEY                (0x02u)
 
+// Number of fields present in the CSR GEN and CERT STORAGE
+#define CSR_GEN_NUMBER_OF_TLV_FIELDS            (0x07U)
+#define CERT_STORAGE_NUMBER_OF_TLV_FIELDS       (0x08U)
+
 // Lengths of TLV fields for certificate storage and CSR genration
 #define CSR_GEN_MAGIC_VALUE_LEN                 (sizeof(CSR_GEN_MAGIC_VALUE) - 1u) // excluding null byte too
 #define CSR_GEN_VERSION_LEN                     (sizeof(uint16_t))
@@ -50,7 +54,7 @@ extern "C" {
 #define CSR_GEN_TOTAL_FIXED_FIELDS_LEN          (CSR_GEN_MAGIC_VALUE_LEN+CSR_GEN_VERSION_LEN+\
                                                 CSR_GEN_DEVICE_OPERATION_LEN+CSR_GEN_KEY_ID_LEN+\
                                                 CSR_GEN_CSR_DEST_ADDR_LEN+CSR_GEN_INTEGRITY_ALGORITHM_LEN+\
-                                                (2u*(1u+CSR_GEN_TAG_INTEGRITY_VALUE-CSR_GEN_TAG_MAGIC))) // tag + length fields 
+                                                (2u*CSR_GEN_NUMBER_OF_TLV_FIELDS)) // tag + length fields 
                                                                                                         
 
 #define CERT_STORAGE_MAGIC_VALUE_LEN            (sizeof(CERT_STORAGE_MAGIC_VALUE) - 1u)
@@ -64,7 +68,7 @@ extern "C" {
                                                 CERT_STORAGE_DEVICE_OPERATION_LEN+CERT_STORAGE_KEY_ID_LEN+\
                                                 CERT_STORAGE_CERT_SRC_ADDR_LEN+CERT_STORAGE_CERT_SRC_ADDR_SIZE_LEN+\
                                                 +CERT_STORAGE_INTEGRITY_ALGORITHM_LEN+\
-                                                (2u*(1u+CERT_STORAGE_TAG_INTEGRITY_VALUE-CERT_STORAGE_TAG_MAGIC))) 
+                                                (2u*CERT_STORAGE_NUMBER_OF_TLV_FIELDS)) 
 
 // Bitmask flags for REQUIRED CSR and CERT storage fields
 #define CSR_FIELD_MAGIC             (1U << 0)

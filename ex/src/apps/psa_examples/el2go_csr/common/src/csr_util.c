@@ -58,13 +58,17 @@ exit:
 psa_status_t verify_certificate(psa_key_id_t key_id, const uint8_t *cert_buf, size_t cert_buf_size)
 {
     mbedtls_x509_crt cert = {0};
-    mbedtls_pk_context pk_from_cert = {0};
     psa_status_t status = PSA_SUCCESS;
     uint8_t hash[MAX_HASH_SIZE]= {0};
     size_t hash_len = 0U;
     uint8_t signature[MAX_SIG_RAW_SIZE]= {0};
     size_t signature_len = 0U;
     uint8_t challenge[CHALLENGE_SIZE]= {0};
+    uint8_t public_key_raw[65] = {0};  // 0x04 + 32 bytes X + 32 bytes Y for P256
+    size_t public_key_len = 0U;
+    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_key_id_t temp_key_id = 0;
+    mbedtls_ecp_keypair *ecp;
     
     if (!cert_buf || !cert_buf_size)
     {
@@ -72,7 +76,6 @@ psa_status_t verify_certificate(psa_key_id_t key_id, const uint8_t *cert_buf, si
     }
 
     mbedtls_x509_crt_init(&cert);
-    mbedtls_pk_init(&pk_from_cert);
     
     status = psa_generate_random(challenge, sizeof(challenge));
     if (status != PSA_SUCCESS)
@@ -100,15 +103,42 @@ psa_status_t verify_certificate(psa_key_id_t key_id, const uint8_t *cert_buf, si
         goto exit;
     }
 
-    if (mbedtls_pk_verify(&cert.pk, MBEDTLS_HASH_ALG, hash, hash_len, signature, signature_len))
+    // Extract raw public key from certificate (uncompressed format: 0x04 || X || Y)
+    ecp = mbedtls_pk_ec(cert.pk);
+    if (ecp == NULL)
     {
-        status = PSA_ERROR_INVALID_SIGNATURE;
+        status = PSA_ERROR_INVALID_ARGUMENT;
+        goto exit;
+    }
+    
+    if (mbedtls_ecp_point_write_binary(&ecp->private_grp, &ecp->private_Q,
+                                        MBEDTLS_ECP_PF_UNCOMPRESSED,
+                                        &public_key_len, public_key_raw,
+                                        sizeof(public_key_raw)) != 0)
+    {
+        status = PSA_ERROR_GENERIC_ERROR;
+        goto exit;
+    }
+    
+    // Import public key into PSA (raw format is directly supported)
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_VERIFY_HASH);
+    psa_set_key_algorithm(&attributes, PSA_SIG_ALG);
+    psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1));
+    
+    status = psa_import_key(&attributes, public_key_raw, public_key_len, &temp_key_id);
+    if (status != PSA_SUCCESS)
+    {
         goto exit;
     }
 
+    // Verify signature using PSA (both signature and key are in PSA format now)
+    status = psa_verify_hash(temp_key_id, PSA_SIG_ALG, hash, hash_len, signature, signature_len);
+    
+    psa_destroy_key(temp_key_id);
+
 exit:
+    psa_reset_key_attributes(&attributes);
     mbedtls_x509_crt_free(&cert);
-    mbedtls_pk_free(&pk_from_cert);
 
     return status;
 }
