@@ -56,6 +56,9 @@ int main(int argc, char **argv)
 	if (!suite || strcmp(suite, "el2go_rtp") == 0)
 		register_el2go_rtp_tests();
 
+	if (!suite || strcmp(suite, "datastore") == 0)
+		register_datastore_tests();
+
 	/* Run all registered tests */
 	return test_framework_run();
 }

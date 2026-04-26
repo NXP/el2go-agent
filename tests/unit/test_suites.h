@@ -12,4 +12,6 @@
  * Different implementations exist for public vs internal builds.
  */
 void register_el2go_rtp_tests(void);
+void register_datastore_tests(void);
+
 #endif /* __TEST_SUITES_H__ */
