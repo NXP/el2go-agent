@@ -20,7 +20,7 @@ osal_file_t *osal_fopen(const char *filename, const char *mode)
 	if (!filename || !mode)
 		goto exit;
 
-	file = malloc(sizeof(osal_file_t));
+	file = (osal_file_t *)calloc(1, sizeof(osal_file_t));
 	if (!file)
 		goto exit;
 

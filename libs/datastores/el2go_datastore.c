@@ -4,8 +4,23 @@
  */
 
 #include <stddef.h>
-#include "common/el2go_datastore.h"
+
 #include "compiler.h"
+#include "debug.h"
+#include "builtin_macros.h"
+
+#include "common/el2go_datastore.h"
+#include "el2go_datastore_plain.h"
+#include "el2go_datastore_fs.h"
+
+typedef el2go_status_t (*datastore_create_fn_t)(el2go_datastore_t *datastore,
+						const char *basename);
+
+static const datastore_create_fn_t datastore_create_functions[] = {
+	[EL2GO_DATASTORE_TYPE_FS] = el2go_datastore_fs_create,
+	[EL2GO_DATASTORE_TYPE_PLAIN] = el2go_datastore_plain_create,
+	[EL2GO_DATASTORE_TYPE_CUSTOM] = NULL,
+};
 
 __export el2go_status_t
 /* force clang format */
@@ -13,86 +28,146 @@ el2go_datastore_init(uint32_t id, const char *name, el2go_datastore_type_t type,
 		     el2go_datastore_t *datastore,
 		     el2go_datastore_validator_t validator)
 {
-	(void)id;
-	(void)name;
-	(void)type;
-	(void)validator;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
-	if (!name || !datastore)
-		return EL2GO_STATUS_FAILURE;
+	EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-	/* TODO: Allocate datastore context */
-	/* TODO: Initialize datastore with id, name, type */
-	/* TODO: Store validator function pointer */
-	/* TODO: Call validator if provided */
+	if (!datastore) {
+		status = EL2GO_STATUS_INVALID_PARAMETER;
+		goto exit;
+	}
 
-	return EL2GO_STATUS_SUCCESS;
+	datastore->id = id;
+	datastore->name = name;
+	datastore->type = type;
+	datastore->priv = NULL;
+
+	if (type >= ARRAY_SIZE(datastore_create_functions)) {
+		status = EL2GO_STATUS_INVALID_PARAMETER;
+		goto cleanup;
+	}
+
+	if (datastore_create_functions[type]) {
+		status = datastore_create_functions[type](datastore, name);
+		if (status != EL2GO_STATUS_SUCCESS)
+			goto exit;
+	}
+
+	if (!datastore->ops || !datastore->ops->init) {
+		status = EL2GO_STATUS_INVALID_POINTER;
+		goto cleanup;
+	}
+
+	status = datastore->ops->init(datastore->context, validator);
+	if (status == EL2GO_STATUS_SUCCESS)
+		goto exit;
+
+cleanup:
+	(void)el2go_datastore_free(datastore);
+
+exit:
+	EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+	return status;
 }
 
-__export void *el2go_datastore_allocate(el2go_datastore_t *datastore,
-					size_t len)
+__export el2go_status_t el2go_datastore_allocate(el2go_datastore_t *datastore,
+						 size_t len)
 {
-	(void)len;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
-	if (!datastore || len == 0)
-		return NULL;
+	EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-	/* TODO: Allocate len bytes in the datastore */
-	/* TODO: Handle allocation based on datastore type (FS or PLAIN) */
+	if (len == 0 || !datastore || !datastore->ops ||
+	    !datastore->ops->allocate) {
+		status = EL2GO_STATUS_INVALID_PARAMETER;
+		goto exit;
+	}
 
-	return NULL;
+	status = datastore->ops->allocate(datastore->context, len);
+
+exit:
+	EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+	return status;
 }
 
 __export el2go_status_t el2go_datastore_read(el2go_datastore_t *datastore,
 					     void *dest, size_t offset,
 					     size_t len)
 {
-	(void)offset;
-	(void)len;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
-	if (!datastore || !dest || len == 0)
-		return EL2GO_STATUS_FAILURE;
+	EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-	/* TODO: Read len bytes from datastore at offset into dest */
-	/* TODO: Handle read based on datastore type (FS or PLAIN) */
+	if (len == 0 || !dest || !datastore || !datastore->ops ||
+	    !datastore->ops->read) {
+		status = EL2GO_STATUS_INVALID_PARAMETER;
+		goto exit;
+	}
 
-	return EL2GO_STATUS_SUCCESS;
+	status = datastore->ops->read(datastore->context, dest, offset, len);
+
+exit:
+	EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+	return status;
 }
 
 __export el2go_status_t el2go_datastore_write(el2go_datastore_t *datastore,
 					      const void *src, size_t offset,
 					      size_t len)
 {
-	(void)offset;
-	(void)len;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
-	if (!datastore || !src || len == 0)
-		return EL2GO_STATUS_FAILURE;
+	EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-	/* TODO: Write len bytes from src to datastore at offset */
-	/* TODO: Handle write based on datastore type (FS or PLAIN) */
+	if (len == 0 || !src || !datastore || !datastore->ops ||
+	    !datastore->ops->write) {
+		status = EL2GO_STATUS_INVALID_PARAMETER;
+		goto exit;
+	}
 
-	return EL2GO_STATUS_SUCCESS;
+	status = datastore->ops->write(datastore->context, src, offset, len);
+
+exit:
+	EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+	return status;
 }
 
 __export el2go_status_t el2go_datastore_commit(el2go_datastore_t *datastore)
 {
-	if (!datastore)
-		return EL2GO_STATUS_FAILURE;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
-	/* TODO: Commit pending changes to datastore */
-	/* TODO: For FS type, flush buffers to disk */
-	/* TODO: For PLAIN type, finalize in-memory structures */
+	EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-	return EL2GO_STATUS_SUCCESS;
+	if (!datastore || !datastore->ops || !datastore->ops->commit) {
+		status = EL2GO_STATUS_INVALID_PARAMETER;
+		goto exit;
+	}
+
+	status = datastore->ops->commit(datastore->context);
+
+exit:
+	EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+	return status;
 }
 
 __export el2go_status_t el2go_datastore_free(el2go_datastore_t *datastore)
 {
-	if (!datastore || !datastore)
-		return EL2GO_STATUS_FAILURE;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
-	/* TODO: Free datastore resources */
+	EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-	return EL2GO_STATUS_SUCCESS;
+	if (!datastore) {
+		status = EL2GO_STATUS_INVALID_PARAMETER;
+		goto exit;
+	}
+
+	if (datastore->context && datastore->ops && datastore->ops->free)
+		status = datastore->ops->free(datastore->context);
+
+	datastore->context = NULL;
+	datastore->ops = NULL;
+
+exit:
+	EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+	return status;
 }

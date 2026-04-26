@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+
 #include "common/el2go_status.h"
 
 /*
@@ -26,9 +27,34 @@ typedef enum {
  */
 /* clang-format off */
 typedef struct {
-	const uint8_t *data;   /* Pointer to data */
+	uint8_t *data;         /* Pointer to data */
 	size_t len;            /* Length in bytes */
 } el2go_buffer_t;
+/* clang-format on */
+
+/* Forward declarations */
+typedef struct el2go_datastore el2go_datastore_t;
+typedef struct el2go_datastore_ops el2go_datastore_ops_t;
+
+/**
+ * Datastore validator function pointer type
+ *
+ * A validator function is called to verify the integrity and validity of
+ * datastore contents.
+ *
+ * The validator function receives the datastore and should perform
+ * any necessary checks on the datastore contents (e.g., checksum verification,
+ * format validation, etc).
+ *
+ * If no custom validator is provided (NULL), a default implementation will be used.
+ *
+ * @datastore: Datastore to validate
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS if validation passes, error code otherwise
+ */
+/* clang-format off */
+typedef el2go_status_t (*el2go_datastore_validator_t)(el2go_datastore_t *datastore);
 /* clang-format on */
 
 /* Function pointer types for datastore operations */
@@ -36,6 +62,7 @@ typedef struct {
 /**
  * el2go_datastore_init_t - Initialize the custom datastore
  * @context: User-provided context pointer
+ * @validator: Validator function pointer (can be NULL)
  *
  * This is called during datastore initialization to set up any
  * custom datastore resources (e.g., open files, establish connections,
@@ -43,7 +70,19 @@ typedef struct {
  *
  * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-typedef el2go_status_t (*el2go_datastore_init_t)(void *context);
+/* clang-format off */
+typedef el2go_status_t (*el2go_datastore_init_t)(void *context,
+	el2go_datastore_validator_t validator);
+/* clang-format on */
+
+/**
+ * el2go_datastore_allocate_t - Allocate memory in the datastore
+ * @context: User-provided context pointer
+ * @len: Number of bytes to allocate
+ *
+ * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+typedef el2go_status_t (*el2go_datastore_allocate_t)(void *context, size_t len);
 
 /**
  * el2go_datastore_read_t - Read data from the datastore
@@ -90,13 +129,14 @@ typedef el2go_status_t (*el2go_datastore_commit_t)(void *context);
 typedef el2go_status_t (*el2go_datastore_free_t)(void *context);
 
 /* clang-format off */
-typedef struct el2go_datastore_ops {
-	el2go_datastore_init_t init;      /* Initialize the custom datastore */
-	el2go_datastore_read_t read;      /* Read data from the datastore */
-	el2go_datastore_write_t write;    /* Write data to the datastore */
-	el2go_datastore_commit_t commit;  /* Commit pending changes */
-	el2go_datastore_free_t free;      /* Free datastore resources */
-} el2go_datastore_ops_t;
+struct el2go_datastore_ops {
+	el2go_datastore_init_t init;         /* Initialize the custom datastore */
+	el2go_datastore_allocate_t allocate; /* Allocate memory in datastore */
+	el2go_datastore_read_t read;         /* Read data from the datastore */
+	el2go_datastore_write_t write;       /* Write data to the datastore */
+	el2go_datastore_commit_t commit;     /* Commit pending changes */
+	el2go_datastore_free_t free;         /* Free datastore resources */
+};
 /* clang-format on */
 
 /**
@@ -112,34 +152,15 @@ typedef struct el2go_datastore_ops {
  * use only and must not be accessed or modified by users.
  */
 /* clang-format off */
-typedef struct el2go_datastore {
+struct el2go_datastore {
 	uint32_t id;                              /* Datastore identifier */
 	const char *name;                         /* Datastore name */
 	el2go_datastore_type_t type;              /* Datastore type */
 	const el2go_datastore_ops_t *ops;         /* Operations (for custom type) */
 	void *context;                            /* Data store context */
 	void *priv;                               /* Private data (do not access) */
-} el2go_datastore_t;
+};
 /* clang-format on */
-
-/**
- * Datastore validator function pointer type
- *
- * A validator function is called to verify the integrity and validity of
- * datastore contents.
- *
- * The validator function receives the datastore and should perform
- * any necessary checks on the datastore contents (e.g., checksum verification,
- * format validation, etc).
- *
- * If no custom validator is provided (NULL), a default implementation will be used.
- *
- * @datastore: Datastore to validate
- *
- * Return:
- * EL2GO_STATUS_SUCCESS if validation passes, error code otherwise
- */
-typedef el2go_status_t (*el2go_datastore_validator_t)(el2go_datastore_t *datastore);
 
 /**
  * el2go_datastore_init - Initialize a datastore
@@ -158,7 +179,7 @@ typedef el2go_status_t (*el2go_datastore_validator_t)(el2go_datastore_t *datasto
  * 1. Set datastore->ops to point to their el2go_datastore_ops_t structure
  * 2. Set datastore->context to their custom context (if needed)
  *
- * This function will then call datastore->ops->init(datastore->context) to
+ * This function will then call datastore->ops->init(datastore->context, validator) to
  * initialize the custom datastore.
  *
  * Return:
@@ -178,9 +199,10 @@ el2go_status_t el2go_datastore_init(uint32_t id, const char *name,
  * on the datastore type (FS or PLAIN).
  *
  * Return:
- * Pointer to allocated memory on success, NULL on failure
+ * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-void *el2go_datastore_allocate(el2go_datastore_t *datastore, size_t len);
+el2go_status_t el2go_datastore_allocate(el2go_datastore_t *datastore,
+					size_t len);
 
 /**
  * el2go_datastore_read - Read data from the datastore
@@ -228,7 +250,7 @@ el2go_status_t el2go_datastore_commit(el2go_datastore_t *datastore);
 
 /**
  * el2go_datastore_free - Free a datastore
- * @datastore: Pointer to datastore (will be set to NULL)
+ * @datastore: Pointer to datastore (internal fields will be reset)
  *
  * This function frees all datastore resources.
  *
