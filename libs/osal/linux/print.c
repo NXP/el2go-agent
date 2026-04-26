@@ -64,6 +64,21 @@ void osal_printf(unsigned int level, const char *fmt, ...)
 	(void)fflush(stddebug);
 }
 
+int osal_snprintf(char *str, size_t size, const char *format, ...)
+{
+	va_list args;
+	int ret = 0;
+
+	if (!str || !format || size == 0)
+		return -1;
+
+	va_start(args, format);
+	ret = vsnprintf(str, size, format, args);
+	va_end(args);
+
+	return ret;
+}
+
 void osal_hex_dump(unsigned int level, const void *buffer, size_t length)
 {
 	const unsigned char *buf = (const unsigned char *)buffer;

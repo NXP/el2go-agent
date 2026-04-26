@@ -81,6 +81,19 @@ void osal_free(void *ptr);
 void osal_printf(unsigned int level, const char *fmt, ...);
 
 /**
+ * osal_snprintf - Format string into buffer
+ *
+ * @str: Destination buffer
+ * @size: Size of destination buffer
+ * @format: Printf-style format string
+ * @...: Variable arguments for format string
+ *
+ * Return:
+ * Number of characters written (excluding null terminator), or negative on error
+ */
+int osal_snprintf(char *str, size_t size, const char *format, ...);
+
+/**
  * osal_hex_dump - Dump buffer hexadecimal contents on a single line
  *
  * @level: Log level for this message
