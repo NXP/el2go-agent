@@ -14,14 +14,21 @@ static uint8_t s_memInitialized = 0U;
 // Flash driver configuration structure 
 static flash_config_t s_flashConfig;
 
-// 8kB reserved section for EL2GO CSR configuration 
+// According to the Reference Manual, the application data flash
+// reduces from 128kB to 88kB if the HSE FW is installed, 
+// which is for this application the case. This leads to a max. 
+// flash range of 0x10010000-0x10015fff
+#define FLASH_END_ADDR (0x10016000U)
+
+// reserved section for configuration block 
 #ifndef EL2GO_CSR_CONF_SIZE
-#define EL2GO_CSR_CONF_SIZE  0x2000 - 4 
+#define EL2GO_CSR_CONF_SIZE  (124U) 
 #endif
-__attribute__((section(".el2go_csr_conf_1")))
-// the section el2go_csr_conf is by default linked at Flash address 0x007d2000
+
+__attribute__((section(".el2go_csr_conf")))
+// the section el2go_csr_conf is by default linked at Flash address 0x10015F80
 uint8_t el2go_csr_conf_data[EL2GO_CSR_CONF_SIZE];
-__attribute__((section(".el2go_csr_conf_2")))
+__attribute__((section(".el2go_csr_statuscode")))
 uint32_t el2go_spsdk_status;
 
 /**
@@ -163,11 +170,8 @@ static csr_mem_status_t program_sector_rmw(uint32_t sector_addr,
  * @retval false Address is out of range
  */
 static bool validate_flash_address(uint32_t addr, uint32_t size)
-{
-    uint32_t flash_start = s_flashConfig.PFlashBlockBase;
-    uint32_t flash_end = flash_start + s_flashConfig.PFlashTotalSize;
-    
-    return !((addr < flash_start) || ((addr + size) > flash_end));
+{   
+    return !((addr < s_flashConfig.DataFlashBase) || ((addr + size) > (uint32_t)FLASH_END_ADDR));
 }
 
 

@@ -189,12 +189,30 @@ int main(void)
     
 exit:
 
-    // write the status at the end of the configuration region to avoid overwriting the configuration data
+    // Before writing the status code to memory, read  the existing value to check if it needs updating
+    // to not perform unnecessary flash writes.
     LOG(LOG_DEBUG, "Returning status code of operation\r\n");
-    if (mem_write(((uint32_t)&el2go_spsdk_status), (const uint8_t *)&spsdk_status, sizeof(spsdk_status))  != kStatus_CSR_MEM_SUCCESS)
+    
+    uint32_t existing_status = 0U;
+    if (mem_read(((uint32_t)&el2go_spsdk_status), (uint8_t *)&existing_status, sizeof(existing_status)) == kStatus_CSR_MEM_SUCCESS)
     {
-        LOG(LOG_ERROR, "Writing status code to memory failed!\r\n");
+        if (existing_status != spsdk_status)
+        {
+            if (mem_write(((uint32_t)&el2go_spsdk_status), (const uint8_t *)&spsdk_status, sizeof(spsdk_status)) != kStatus_CSR_MEM_SUCCESS)
+            {
+                LOG(LOG_TRACE, "Writing status code to memory failed!\r\n");
+            }
+        }
+        else
+        {
+            LOG(LOG_DEBUG, "Status code already written to memory, skipping flash write.\r\n");
+        }
     }
+    else
+    {
+        LOG(LOG_ERROR, "Reading existing status code from memory failed!\r\n");
+    }
+    
     LOG(LOG_INFO, "########### EdgeLock2GO Certificate Signing Request App. EXIT ###########\r\n");
-    return (int)spsdk_status;
+    return (int)(spsdk_status == SPSDK_STATUS_CODE_SUCCESS); 
 }

@@ -20,7 +20,7 @@ extern "C" {
 #include "el2go_csr_console.h"
 #include "el2go_csr_psa_key.h"
 
-#define MAX_X509_CERT_SIZE (4096U)
+#define MAX_X509_CERT_SIZE (2048U)
 #define MAX_CSR_SIZE (2048U)
 #define SPSDK_STATUS_CODE_SUCCESS (0x3BBBA12DU)
 
