@@ -25,7 +25,7 @@ typedef enum _csr_log_level
 
 // Default log level
 #ifndef CSR_LOG_LEVEL
-#define CSR_LOG_LEVEL LOG_INFO
+#define CSR_LOG_LEVEL LOG_TRACE
 #endif
 
 // ANSI color codes 

@@ -16,24 +16,20 @@ extern "C" {
 #include "mbedtls/x509_csr.h"
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/pk.h"
-#include "el2go_csr_osal_types.h"
+#include "mbedtls/platform.h"
+
+#include "el2go_csr_console.h"
+#include "el2go_csr_challenge.h"
+#include "el2go_csr_pal_util.h"
+#include "el2go_csr_psa_key.h"
 
 // Default subject name components 
 #ifndef CSR_SUBJECT_NAME
 #define CSR_SUBJECT_CN          "FRDM-MCXE31B"
 #define CSR_SUBJECT_O           "NXP"
-#define CSR_SUBJECT_C           "GRATKORN"
+#define CSR_SUBJECT_C           "NL"
 #define CSR_SUBJECT_NAME        "CN=" CSR_SUBJECT_CN ",O=" CSR_SUBJECT_O ",C=" CSR_SUBJECT_C
 #endif 
-
-// Defintions for challenge-response mechanism to verify device authenticity
-#define CHALLENGE_SIZE            (32u)
-#define PSA_HASH_ALG              (PSA_ALG_SHA_256)
-#define MBEDTLS_HASH_ALG          (MBEDTLS_MD_SHA256) // has to be same as PSA_HASH_ALG
-#define PSA_SIG_ALG               (PSA_ALG_ECDSA(PSA_HASH_ALG))
-#define MAX_HASH_SIZE             (32u)   
-#define MAX_SIG_RAW_SIZE          (256u)  
-#define MAX_ECDSA_DER_SIG_SIZE    (160u)  
 
 /*! @brief Generate a Certificate Signing Request (CSR) using a PSA key.
  * 
@@ -55,6 +51,16 @@ generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t csr_output_buf
 */
 psa_status_t
 verify_certificate(psa_key_id_t key_id, const uint8_t *cert_buf, size_t cert_buf_size);
+
+/*! @brief Fill PSA key attributes and (re)-generate key for CSR operation.
+ * 
+ * @param[in,out] attr: Pointer to PSA key attributes structure to be filled.   
+ * @param[in] key_identifier: PSA key identifier to be used for the CSR operation.
+ * @param[in] regenration_flag: Boolean flag indicating whether to regenerate an existing key.
+ * @retval PSA_SUCCESS: PSA key attributes filled and key (re)-generated successfully.
+*/
+psa_status_t 
+generate_key(psa_key_attributes_t *attr, psa_key_id_t* key_id, bool regeneration_flag);
 
 #ifdef __cplusplus
 }

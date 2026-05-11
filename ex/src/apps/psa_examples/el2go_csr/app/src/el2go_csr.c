@@ -21,7 +21,7 @@ extern uint32_t* const el2go_spsdk_status;
  */
 static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
 {
-    psa_status_t psa_status = PSA_SUCCESS;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
     psa_key_id_t key_id =  (psa_key_id_t)ctx->key_id;
     uint8_t* cert_input_buf_imm = NULL;
     uint32_t cert_size = 0U; 
@@ -67,8 +67,11 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
 
     exit:
         LOG(LOG_TRACE, "Returning to main function from verify_recv_x509_cert subroutine.\r\n");
-        memset(cert_input_buf_imm, 0, sizeof(cert_size));
-        free(cert_input_buf_imm);
+        if (cert_input_buf_imm)
+        {
+            memset(cert_input_buf_imm, 0, cert_size);
+            free(cert_input_buf_imm);
+        }
         return psa_status;
 }
 
@@ -83,7 +86,7 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
  */
 static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
 {
-    psa_status_t psa_status = PSA_SUCCESS;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
     psa_key_id_t key_id = PSA_KEY_ID_NULL; 
     psa_key_attributes_t key_attr = PSA_KEY_ATTRIBUTES_INIT;
     uint8_t csr_output_buf_imm[MAX_CSR_SIZE] = {0};
@@ -130,12 +133,29 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
 
 int main(void)
 {
-    uint32_t spsdk_status = SPSDK_STATUS_CODE_SUCCESS;    
+    platform_status_t plat_init_status = kStatus_PLATFORM_INIT_FAILED;
+    os_status_t os_init_status = kStatus_OS_INIT_FAILED;
     csr_gen_context_t csr_gen_ctx = CSR_GEN_CONTEXT_INIT;
     cert_storage_context_t cert_storage_ctx = CERT_STORAGE_CONTEXT_INIT;
+    uint32_t spsdk_status = SPSDK_STATUS_CODE_INIT;    
     bool is_csr_gen_enabled = false;
 
-    platform_init();
+    plat_init_status = platform_init();
+    if (plat_init_status != kStatus_PLATFORM_INIT_SUCCESS) 
+    {
+        LOG(LOG_ERROR, "Platform initialization failed!\r\n");
+        spsdk_status = (uint32_t)plat_init_status;
+        goto exit;
+    }
+
+    os_init_status = os_init();
+    if (os_init_status != kStatus_OS_INIT_SUCCESS) 
+    {
+        LOG(LOG_ERROR, "OS initialization failed!\r\n");
+        spsdk_status = (uint32_t)os_init_status;
+        goto exit;
+    }
+
     LOG(LOG_INFO, "########### EdgeLock2GO Certificate Signing Request Application ###########\r\n");
 
     psa_status_t psa_status = psa_crypto_init();
@@ -186,7 +206,7 @@ int main(void)
         }
         LOG(LOG_INFO, "Certificate verification and storage completed successfully!\r\n");
     }
-    
+    spsdk_status = SPSDK_STATUS_CODE_SUCCESS;  
 exit:
 
     // Before writing the status code to memory, read  the existing value to check if it needs updating

@@ -14,15 +14,13 @@ extern "C" {
 
 #include "psa/crypto.h"
 
-/*! @brief Fill PSA key attributes and (re)-generate key for CSR operation.
+/*! @brief Fill platform specific PSA key attributes .
  * 
  * @param[in,out] attr: Pointer to PSA key attributes structure to be filled.   
- * @param[in] key_identifier: PSA key identifier to be used for the CSR operation.
- * @param[in] regenration_flag: Boolean flag indicating whether to regenerate an existing key.
- * @retval PSA_SUCCESS: PSA key attributes filled and key (re)-generated successfully.
+ * @param[in] key_id: Pointer to PSA key identifier to be used for the CSR operation.
+ * @retval None.
 */
-psa_status_t generate_key(psa_key_attributes_t *attr, psa_key_id_t* key_id, bool regeneration_flag);
-
+void fill_key_attributes(psa_key_attributes_t *attr, psa_key_id_t* key_id);
 
 #ifdef __cplusplus
 }
