@@ -52,8 +52,25 @@ if(NOT EXISTS "${OSAL_OS_DIR}")
     message(FATAL_ERROR "OS '${EL2GO_CSR_OS}' not found. Available: baremetal, zephyr")
 endif()
 
-if(NOT EXISTS "${EL2GO_CSR_MBEDTLS_PATH}")
-    message(FATAL_ERROR "MbedTLS not found at: ${EL2GO_CSR_MBEDTLS_PATH}")
+# --- MbedTLS Build ---
+if(EXISTS "${EL2GO_CSR_MBEDTLS_PATH}/CMakeLists.txt")
+    message(STATUS "Building MbedTLS from source: ${EL2GO_CSR_MBEDTLS_PATH}")
+
+    # Disable programs and tests
+    set(ENABLE_PROGRAMS OFF CACHE BOOL "Build MbedTLS programs" FORCE)
+    set(ENABLE_TESTING OFF CACHE BOOL "Build MbedTLS tests" FORCE)
+    
+    # Point to your custom config file
+    set(MBEDTLS_CONFIG_FILE 
+        "${PORT_DIR}/el2go_csr_mbedtls_user_config.h" 
+        CACHE FILEPATH "MbedTLS config" FORCE)
+
+    add_subdirectory(${EL2GO_CSR_MBEDTLS_PATH} ${CMAKE_BINARY_DIR}/mbedtls)
+else()
+    message(FATAL_ERROR 
+        "MbedTLS source not found at: ${EL2GO_CSR_MBEDTLS_PATH}\n"
+        "Please provide path to MbedTLS source directory."
+    )
 endif()
 
 # ==============================================================================
@@ -64,15 +81,31 @@ endif()
 #    - EL2GO_CSR_BOARD_INCLUDE_DIRS (PARENT_SCOPE) : board-specific include dirs
 # ==============================================================================
 
+# Pass common include paths to board CMakeLists
+set(EL2GO_CSR_MBEDTLS_PATH "${EL2GO_CSR_MBEDTLS_PATH}" CACHE INTERNAL "")
+set(EL2GO_CSR_COMMON_INCLUDES 
+    ${APP_DIR}/inc
+    ${COMMON_DIR}/inc
+    ${OSAL_DIR}/inc
+    ${OSAL_OS_DIR}/inc
+    ${PAL_DIR}/inc
+    ${PORT_DIR}
+    CACHE INTERNAL ""
+)
+
 add_subdirectory(${BOARD_DIR} ${CMAKE_BINARY_DIR}/board)
 
 if(NOT TARGET el2go_csr_board_sdk)
-    message(FATAL_ERROR "Board '${EL2GO_CSR_BOARD}' CMakeLists.txt must define an interface target.")
+    message(FATAL_ERROR "Board '${EL2GO_CSR_BOARD}' CMakeLists.txt must define el2go_csr_board_sdk target.")
 endif()
 
+# Add common includes to board SDK target
+target_include_directories(el2go_csr_board_sdk PUBLIC
+    ${EL2GO_CSR_COMMON_INCLUDES}
+    ${EL2GO_CSR_MBEDTLS_PATH}/include
+)
 
 # --- Library Target ---
-
 add_library(el2go_csr_lib STATIC)
 target_compile_features(el2go_csr_lib PUBLIC c_std_99)
 
@@ -99,12 +132,25 @@ target_include_directories(el2go_csr_lib PUBLIC
 )
 
 target_compile_definitions(el2go_csr_lib PUBLIC
-    MBEDTLS_CONFIG_FILE="${PORT_DIR}/el2go_csr_mbedtls_user_config.h"
+    EL2GO_CSR_LOG_LEVEL=${EL2GO_CSR_LOG_LEVEL}
 )
 
 target_link_libraries(el2go_csr_lib PUBLIC
-    el2go_csr_board_sdk
     mbedcrypto
     mbedtls
     mbedx509
+    el2go_csr_board_sdk
+)
+
+# ==============================================================================
+#  Executable Target 
+# ==============================================================================
+# If you want to unit test the library, add the test executable here
+# ==============================================================================
+add_executable(el2go_csr
+    ${APP_DIR}/src/el2go_csr.c
+)
+
+target_link_libraries(el2go_csr PRIVATE
+    el2go_csr_lib
 )

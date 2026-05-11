@@ -86,5 +86,8 @@ target_compile_definitions(el2go_csr_board_sdk PUBLIC
     # Add your board/chip-specific defines here
 )
 
-# --- 3d. Linker script (optional) ---
+# --- 3d. Linker script ---
 
+set_target_properties(el2go_csr_board_sdk PROPERTIES LINK_DEPENDS 
+    # Add your linker file here
+)
