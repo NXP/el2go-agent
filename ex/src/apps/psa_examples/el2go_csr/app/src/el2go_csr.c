@@ -7,8 +7,8 @@
 
 #include "el2go_csr.h"
 
-extern uint8_t el2go_csr_conf_data[];
-extern uint32_t el2go_spsdk_status;
+extern uint8_t* const el2go_csr_conf_data;
+extern uint32_t* const el2go_spsdk_status;
 
 /*! @brief Verify received x.509 certificate from CLI.
  * 
@@ -194,11 +194,11 @@ exit:
     LOG(LOG_DEBUG, "Returning status code of operation\r\n");
     
     uint32_t existing_status = 0U;
-    if (mem_read(((uint32_t)&el2go_spsdk_status), (uint8_t *)&existing_status, sizeof(existing_status)) == kStatus_CSR_MEM_SUCCESS)
+    if (mem_read(((uint32_t)el2go_spsdk_status), (uint8_t *)&existing_status, sizeof(existing_status)) == kStatus_CSR_MEM_SUCCESS)
     {
         if (existing_status != spsdk_status)
         {
-            if (mem_write(((uint32_t)&el2go_spsdk_status), (const uint8_t *)&spsdk_status, sizeof(spsdk_status)) != kStatus_CSR_MEM_SUCCESS)
+            if (mem_write(((uint32_t)el2go_spsdk_status), (const uint8_t *)&spsdk_status, sizeof(spsdk_status)) != kStatus_CSR_MEM_SUCCESS)
             {
                 LOG(LOG_TRACE, "Writing status code to memory failed!\r\n");
             }

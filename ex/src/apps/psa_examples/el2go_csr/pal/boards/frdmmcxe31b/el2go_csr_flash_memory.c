@@ -20,16 +20,15 @@ static flash_config_t s_flashConfig;
 // flash range of 0x10010000-0x10015fff
 #define FLASH_END_ADDR (0x10016000U)
 
-// reserved section for configuration block 
-#ifndef EL2GO_CSR_CONF_SIZE
-#define EL2GO_CSR_CONF_SIZE  (124U) 
-#endif
+// configuration block is written to this address by the Host Tool (default)
+// Please refer to the README.md for further information. 
+#define EL2GO_CSR_CONF_DATA_ADDR (0x10015F80U)
+#define EL2GO_CSR_APP_STATUSCODE_ADDR (0x10015FFCU)
+#define EL2GO_CSR_CONF_DATA_SIZE (124U) 
 
-__attribute__((section(".el2go_csr_conf")))
-// the section el2go_csr_conf is by default linked at Flash address 0x10015F80
-uint8_t el2go_csr_conf_data[EL2GO_CSR_CONF_SIZE];
-__attribute__((section(".el2go_csr_statuscode")))
-uint32_t el2go_spsdk_status;
+uint8_t* const el2go_csr_conf_data = (uint8_t*)EL2GO_CSR_CONF_DATA_ADDR;
+uint32_t* const el2go_spsdk_status = (uint32_t*)EL2GO_CSR_APP_STATUSCODE_ADDR;
+const uint32_t el2go_csr_conf_data_size = (uint32_t)EL2GO_CSR_CONF_DATA_SIZE;
 
 /**
  * @brief Initialize flash driver
