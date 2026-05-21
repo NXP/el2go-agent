@@ -137,8 +137,11 @@ int main(void)
     os_status_t os_init_status = kStatus_OS_INIT_FAILED;
     csr_gen_context_t csr_gen_ctx = CSR_GEN_CONTEXT_INIT;
     cert_storage_context_t cert_storage_ctx = CERT_STORAGE_CONTEXT_INIT;
+    csr_integrity_verifier_t integrity_status = kStatus_CSR_INT_VERIFY_FAILED;
+    integrity_algorithms_t integrity_alg = INIT;
     uint32_t spsdk_status = SPSDK_STATUS_CODE_INIT;    
-    bool is_csr_gen_enabled = false;
+    size_t data_verify_size = 0U;
+    const uint8_t* expected_crc = NULL;
 
     plat_init_status = platform_init();
     if (plat_init_status != kStatus_PLATFORM_INIT_SUCCESS) 
@@ -174,11 +177,11 @@ int main(void)
         goto exit;
     }
 
-    is_csr_gen_enabled = csr_gen_ctx.magic ? true : false;
-    size_t data_verify_size = is_csr_gen_enabled ? CSR_GEN_TOTAL_FIXED_FIELDS_LEN : CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN;
-    const uint8_t* expected_crc =  is_csr_gen_enabled ? csr_gen_ctx.integrity_value : cert_storage_ctx.integrity_value;
+    data_verify_size = csr_gen_ctx.magic ? CSR_GEN_TOTAL_FIXED_FIELDS_LEN : CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN;
+    expected_crc =  csr_gen_ctx.magic ? csr_gen_ctx.integrity_value : cert_storage_ctx.integrity_value;
+    integrity_alg = csr_gen_ctx.magic ? csr_gen_ctx.integrity_algorithm : cert_storage_ctx.integrity_algorithm;
 
-    csr_integrity_verifier_t integrity_status = crc32_verify(el2go_csr_conf_data, data_verify_size, expected_crc);
+    integrity_status = verify_integrity(el2go_csr_conf_data, data_verify_size, expected_crc, integrity_alg);
     if (integrity_status != kStatus_CSR_INT_VERIFY_SUCCESS)
     {
         LOG(LOG_ERROR, "Configuration data integrity verification failed!\r\n");
@@ -186,7 +189,7 @@ int main(void)
         goto exit;
     }  
 
-    if (is_csr_gen_enabled)
+    if (csr_gen_ctx.magic)
     {
         psa_status = generate_cert_sign_req(&csr_gen_ctx);
         if (psa_status != PSA_SUCCESS)

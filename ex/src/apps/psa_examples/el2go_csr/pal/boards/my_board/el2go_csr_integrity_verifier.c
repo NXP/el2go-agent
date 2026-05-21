@@ -5,16 +5,15 @@
  *
  */
 
-#include "integrity_verifier.h"
-#include "byte_utils.h"
+#include "el2go_csr_integrity_verifier.h"
 #include "el2go_csr_console.h"
+#include "byte_utils.h"
 
-// CRC-32 IEEE 802.3 polynomial 
 #define CRC32_POLYNOMIAL_REFLECTED  0xEDB88320U
 #define CRC32_INITIAL_VALUE         0xFFFFFFFFU
 #define CRC32_FINAL_XOR             0xFFFFFFFFU
 
-static csr_integrity_verifier_t crc32_calculate(const uint8_t *data, size_t size, uint32_t *crc)
+static csr_integrity_verifier_t crc32_calculate(uint8_t *data, size_t size, uint32_t *crc)
 {
     uint32_t crc_value = 0U;
     size_t i = 0U;
@@ -49,7 +48,7 @@ static csr_integrity_verifier_t crc32_calculate(const uint8_t *data, size_t size
     return kStatus_CSR_INT_VERIFY_SUCCESS;
 }
 
-csr_integrity_verifier_t crc32_verify(const uint8_t *data, size_t size, const uint8_t* expected_crc)
+csr_integrity_verifier_t crc32_verify_sw(uint8_t *data, size_t size, const uint8_t* expected_crc)
 {
     csr_integrity_verifier_t status = kStatus_CSR_INT_VERIFY_SUCCESS;
     uint32_t calculated_crc = 0U;
@@ -78,4 +77,22 @@ csr_integrity_verifier_t crc32_verify(const uint8_t *data, size_t size, const ui
 
 exit:
     return status;
+}
+
+csr_integrity_verifier_t 
+verify_integrity(uint8_t *data, size_t size, const uint8_t *checksum, integrity_algorithms_t algo)
+{
+    switch (algo)
+    {
+        case CRC_32:
+			LOG(LOG_TRACE, "Verifying data integrity using CRC-32 algorithm\r\n");
+            return crc32_verify_sw(data, size, checksum);
+        break; 
+
+        default:
+            LOG(LOG_TRACE, "Unsupported integrity algorithm: %d\r\n", algo);
+        break;
+    }
+
+    return kStatus_CSR_INT_VERIFY_FAILED;
 }

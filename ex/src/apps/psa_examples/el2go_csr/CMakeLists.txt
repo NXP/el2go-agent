@@ -81,7 +81,6 @@ target_sources(el2go_csr_lib PRIVATE
     ${APP_DIR}/src/el2go_csr_tlv_parser.c
     # Common
     ${COMMON_DIR}/src/csr_util.c
-    ${COMMON_DIR}/src/integrity_verifier.c
     # OSAL
     ${OSAL_OS_DIR}/src/el2go_csr_osal.c
     # Board

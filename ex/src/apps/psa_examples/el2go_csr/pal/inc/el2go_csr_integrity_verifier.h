@@ -21,15 +21,26 @@ typedef enum _csr_integrity_verifier
     kStatus_CSR_INT_VERIFY_FAILED              = 0xFDD7653AU,
 } csr_integrity_verifier_t; 
 
-/*! @brief Verify data integrity using CRC32 checksum.
- * 
+typedef enum _integrity_algorithms
+{
+    INIT = 0x0,
+    CRC_32 = 0x1,
+    // Add here further algo's if needed. 
+    // e.g. HMAC_SHA256 = 0x2, <-- count chronologically up!
+    
+    NR_OF_ALGOS // DO NOT insert any new entry below this line!
+} integrity_algorithms_t;
+
+/*! @brief Calculate data integrity checksum using specified algorithm.
+ *  
  * @param[in] data Pointer to the data buffer to be verified.
  * @param[in] size Size of the data buffer in bytes.
- * @param[in] expected_crc Pointer to the expected CRC32 value for verification.
- * @retval kStatus_CSR_INT_VERIFY_SUCCESS: Memory read operation successful.
+ * @param[in] checksum Pointer to the expected checksum value for verification.
+ * @param[in] algo Integrity algorithm to use for verification.
+ * @retval kStatus_CSR_INT_VERIFY_SUCCESS: Data integrity verification successful.
 */
 csr_integrity_verifier_t 
-crc32_verify(const uint8_t *data, size_t size, const uint8_t* expected_crc);
+verify_integrity(uint8_t *data, size_t size, const uint8_t *checksum, integrity_algorithms_t algo);
 
 #ifdef __cplusplus
 }

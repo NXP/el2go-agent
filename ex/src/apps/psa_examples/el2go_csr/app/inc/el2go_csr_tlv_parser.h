@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include "el2go_csr_osal_types.h"
+#include "el2go_csr_integrity_verifier.h"
 
 // Tags used in TLV parsing for CSR generation 
 #define CSR_GEN_TAG_MAGIC                   (0x40u)
@@ -102,15 +103,6 @@ typedef enum _csr_parser_status
     kStatus_CSR_CONF_BUF_SIZE_ERR   = 0x39274EFAU,
     kStatus_CSR_TLV_FIELD_MISSING   = 0x6B1F4A82U,
 } csr_parser_status_t; 
-
-typedef enum _integrity_algorithms
-{
-    CRC_32 = 0x1,
-    // Add here further algo's if needed. 
-    // e.g. HMAC_SHA256 = 0x2, <-- count chronologically up!
-    
-    NR_OF_ALGOS // DO NOT insert any new entry below this line!
-} integrity_algorithms_t;
 
 extern const size_t integrity_algo_value_size_map[NR_OF_ALGOS-1];
 

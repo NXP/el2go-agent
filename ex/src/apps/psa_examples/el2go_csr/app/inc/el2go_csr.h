@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 #include "csr_util.h"
-#include "integrity_verifier.h"
+#include "el2go_csr_integrity_verifier.h"
 #include "el2go_csr_tlv_parser.h"
 #include "el2go_csr_memory.h"
 #include "el2go_csr_console.h"
