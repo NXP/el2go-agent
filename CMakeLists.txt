@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.5.0)
+PROJECT(nxp_iot_agent LANGUAGES C VERSION 6.5.1)
 
 IF(SSS_HAVE_HOST_LINUX_LIKE OR NXP_IOT_AGENT_HAVE_PSA_IMPL_SMW)
     include(GNUInstallDirs)
