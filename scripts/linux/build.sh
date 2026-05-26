@@ -281,7 +281,11 @@ function configure()
         exit 1
     fi
 
-    export PKG_CONFIG_PATH="${opt_cyaml}"
+    if [[ -n ${opt_mbedtls} ]]; then
+        export PKG_CONFIG_PATH="${opt_mbedtls}:${PKG_CONFIG_PATH}"
+    fi
+
+    export PKG_CONFIG_PATH="${opt_cyaml}:${PKG_CONFIG_PATH}"
 
     # Build cmake command as an array
     local cmake_args=(
@@ -297,10 +301,6 @@ function configure()
 
     if [[ -n ${opt_smw} ]]; then
         cmake_args+=(-DNXP_SMW_DIR="${opt_smw}")
-    fi
-
-    if [[ -n ${opt_mbedtls} ]]; then
-        cmake_args+=(-DMbedTLS_DIR="${opt_mbedtls}")
     fi
 
     printf "Execute: cmake %s\n" "${cmake_args[*]}"

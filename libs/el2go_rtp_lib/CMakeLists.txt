@@ -28,11 +28,13 @@ if(BUILD_TESTING)
     target_link_libraries(${INTERNAL_LIB_NAME}
         PRIVATE
             $<TARGET_OBJECTS:el2go_platform>
+            $<TARGET_OBJECTS:net_crypto>
             el2go_keystore
             el2go_datastore
             osal
             el2go_protobuf
-            ${EXT_LIBS_STATIC}
+        PUBLIC
+            net_crypto  # This propagates the link dependencies
     )
 
     # All symbols visible in static library (no hiding)
@@ -75,11 +77,12 @@ target_link_libraries(${PROJECT_NAME} INTERFACE ${EXT_LIBS})
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         el2go_platform
+        el2go_platform
         el2go_keystore
         el2go_datastore
         osal
         el2go_protobuf
-        ${EXT_LIBS_STATIC}
+        net_crypto
 )
 
 # ============================================================================
@@ -105,6 +108,7 @@ install(FILES
 # Install public headers - rtp
 install(FILES
     ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_config.h
+    ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_certificates.h
     ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtp
 )

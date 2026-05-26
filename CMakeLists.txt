@@ -65,6 +65,12 @@ if(NOT DEFINED PLATFORM)
 endif()
 message(STATUS "Using platform: ${PLATFORM}")
 
+# Set crypto backend
+if(NOT DEFINED CRYPTO_BACKEND)
+    set(CRYPTO_BACKEND mbedtls)
+endif()
+message(STATUS "Using crypto backend: ${CRYPTO_BACKEND}")
+
 # Enable compiler warnings
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra)
