@@ -59,6 +59,12 @@ if(NOT DEFINED OS)
     set(OS linux)
 endif()
 
+# Set default platform if not defined
+if(NOT DEFINED PLATFORM)
+    set(PLATFORM smw)
+endif()
+message(STATUS "Using platform: ${PLATFORM}")
+
 # Enable compiler warnings
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra)

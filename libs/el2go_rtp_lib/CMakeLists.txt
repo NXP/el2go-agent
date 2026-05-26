@@ -22,13 +22,17 @@ if(BUILD_TESTING)
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/osal/include>
     )
 
+    # link to external libraries
+    target_link_libraries(${INTERNAL_LIB_NAME} INTERFACE ${EXT_LIBS})
+
     target_link_libraries(${INTERNAL_LIB_NAME}
         PRIVATE
-            el2go_platform
+            $<TARGET_OBJECTS:el2go_platform>
             el2go_keystore
             el2go_datastore
             osal
             el2go_protobuf
+            ${EXT_LIBS_STATIC}
     )
 
     # All symbols visible in static library (no hiding)
@@ -64,7 +68,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/libs/osal/include
 )
 
-# Link to the component libraries
+# link to external libraries
+target_link_libraries(${PROJECT_NAME} INTERFACE ${EXT_LIBS})
+
+# Link to internal object libraries
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         el2go_platform
@@ -72,6 +79,7 @@ target_link_libraries(${PROJECT_NAME}
         el2go_datastore
         osal
         el2go_protobuf
+        ${EXT_LIBS_STATIC}
 )
 
 # ============================================================================

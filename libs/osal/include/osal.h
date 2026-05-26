@@ -7,6 +7,7 @@
 #define __OSAL_H__
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdarg.h>
 
 #include "common/el2go_status.h"
@@ -29,9 +30,9 @@
  * @OSAL_SEEK_END: Seek from the end of the file
  */
 typedef enum {
-	OSAL_SEEK_SET = 0,
-	OSAL_SEEK_CUR,
-	OSAL_SEEK_END
+  OSAL_SEEK_SET = 0,
+  OSAL_SEEK_CUR,
+  OSAL_SEEK_END
 } osal_seek_origin_t;
 
 /* Opaque file handle */
@@ -79,6 +80,18 @@ void osal_free(void *ptr);
  * none.
  */
 void osal_printf(unsigned int level, const char *fmt, ...);
+
+/**
+ * osal_sprintf - Format string into buffer (unbounded)
+ *
+ * @str: Destination buffer (must be large enough to hold the result)
+ * @format: Printf-style format string
+ * @...: Variable arguments for format string
+ *
+ * Return:
+ * Number of characters written (excluding null terminator), or negative on error
+ */
+int osal_sprintf(char *str, const char *format, ...);
 
 /**
  * osal_snprintf - Format string into buffer
@@ -151,7 +164,7 @@ size_t osal_fread(void *ptr, size_t size, size_t nmemb, osal_file_t *file);
  * Number of elements successfully written
  */
 size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
-		   osal_file_t *file);
+       osal_file_t *file);
 
 /**
  * osal_fseek - Set file position indicator
@@ -165,7 +178,7 @@ size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
  * error code.
  */
 el2go_status_t osal_fseek(osal_file_t *file, long offset,
-			  osal_seek_origin_t origin);
+        osal_seek_origin_t origin);
 
 /**
  * osal_ftell - Get current file position
@@ -186,6 +199,18 @@ long osal_ftell(osal_file_t *file);
  * error code.
  */
 el2go_status_t osal_fflush(osal_file_t *file);
+
+/**
+ * osal_uuid - Retrieve the device UUID
+ *
+ * @uuid: Pointer to buffer where UUID will be stored
+ * @uuid_len: Pointer to size_t containing buffer size on input,
+ *            actual UUID length on output
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS on success, error on failure
+ */
+el2go_status_t osal_uuid(uint8_t **uuid, size_t *uuid_len);
 
 /**
  * osal_lib_init - Initialize OSAL subsystem

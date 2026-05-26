@@ -1,5 +1,12 @@
 @PACKAGE_INIT@
 
+# Find dependencies that are propagated to consumers
+include(CMakeFindDependencyMacro)
+
+# Find SMW - required dependency
+find_dependency(NXP_SMW REQUIRED)
+
+# Include the targets file
 include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@-targets.cmake")
 
 check_required_components(@PROJECT_NAME@)

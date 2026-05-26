@@ -64,6 +64,24 @@ void osal_printf(unsigned int level, const char *fmt, ...)
 	(void)fflush(stddebug);
 }
 
+int osal_sprintf(char *str, const char *format, ...)
+{
+	va_list args;
+	int ret = 0;
+
+	if (!str || !format)
+		return -1;
+
+	va_start(args, format);
+	ret = vsprintf(str, format, args);
+	va_end(args);
+
+	if (ret < 0)
+		return -1;
+
+	return ret;
+}
+
 int osal_snprintf(char *str, size_t size, const char *format, ...)
 {
 	va_list args;

@@ -5,45 +5,58 @@
 
 #include <stddef.h>
 
-#include "common/el2go_platform.h"
 #include "compiler.h"
+#include "osal.h"
 
-__export el2go_status_t
+#include "common/el2go_platform.h"
+#include "platform_priv.h"
+
+__export __weak el2go_status_t
 el2go_platform_init(const el2go_platform_config_t *config,
 		    el2go_platform_ctx_t **platform_ctx)
 {
 	if (!config || !platform_ctx)
-		return EL2GO_STATUS_FAILURE;
+		return EL2GO_STATUS_INVALID_PARAMETER;
 
-	/* TODO: Implement platform initialization */
-	/* TODO: Initialize HSM hardware */
-
-	return EL2GO_STATUS_SUCCESS;
+	/* platform specific code should provide implementation*/
+	return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
 
-__export el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platform_ctx)
+__export __weak el2go_status_t
+el2go_platform_free(el2go_platform_ctx_t **platform_ctx)
 {
 	if (!platform_ctx || !*platform_ctx)
-		return EL2GO_STATUS_FAILURE;
-
-	/* TODO: Cleanup HSM hardware */
-	/* TODO: Free platform resources */
+		return EL2GO_STATUS_INVALID_PARAMETER;
 
 	*platform_ctx = NULL;
 
-	return EL2GO_STATUS_SUCCESS;
+	/* platform specific code should provide implementation*/
+	return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
 
-__export el2go_status_t
+__export __weak el2go_status_t
 /* force clang format */
 el2go_claimcode_import(el2go_platform_ctx_t *platform_ctx,
 		       const char *claimcode)
 {
 	if (!platform_ctx || !claimcode)
-		return EL2GO_STATUS_FAILURE;
+		return EL2GO_STATUS_INVALID_PARAMETER;
 
-	/* TODO: Validate claim code format */
-	/* TODO: Store claim code in platform-specific secure storage */
-
+	/* this function is not mandatory for all platforms*/
 	return EL2GO_STATUS_SUCCESS;
+}
+
+__export __weak el2go_status_t el2go_platform_get_uuid(
+	el2go_platform_ctx_t *platform_ctx, uint8_t **uuid, size_t *uuid_len)
+{
+	(void)platform_ctx;
+
+	if (!uuid || !uuid_len)
+		return EL2GO_STATUS_INVALID_PARAMETER;
+
+	/* Default implementation delegates to OSAL layer.
+	 * Platform-specific implementations can override this to retrieve
+	 * UUID from hardware sources (HSM, OTP, eFuses, etc.)
+	 */
+	return osal_uuid(uuid, uuid_len);
 }

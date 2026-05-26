@@ -4,6 +4,7 @@ add_library(osal OBJECT
         osal.c
         print.c
         file.c
+        uuid.c
 )
 
 target_include_directories(osal

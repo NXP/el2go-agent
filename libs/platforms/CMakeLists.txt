@@ -1,12 +1,23 @@
-# Platform object library
-add_library(el2go_platform OBJECT
+# Platform-specific sources
+set(PLATFORM_SOURCES
     el2go_platform.c
+    plat_crypto_params.c
 )
 
+# Create platform library
+add_library(el2go_platform OBJECT ${PLATFORM_SOURCES})
+
+# Set platform-specific include directory
 target_include_directories(el2go_platform
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/${PLATFORM}
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/priv
-        ${CMAKE_SOURCE_DIR}/lib/osal/include
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/libs/osal/include
 )
+
+message(STATUS "EdgeLock 2GO Platform: ${PLATFORM}")
+add_subdirectory(${PLATFORM})
+
+set(EXT_LIBS ${EXT_LIBS} PARENT_SCOPE)
