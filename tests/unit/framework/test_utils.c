@@ -2,7 +2,8 @@
 /*
  * Copyright 2026 NXP
  */
-#include <string.h>
+#include "test_utils.h"
+#include "test_framework.h"
 #include "builtin_macros.h"
 #include "test_utils.h"
 
@@ -40,5 +41,33 @@ void init_datastores(el2go_datastore_t *datastores, size_t count,
 			id = base_id;
 
 		datastores[i].id = id;
+	}
+}
+
+void test_dump_hex(const char *label, const uint8_t *buf, size_t len)
+{
+	size_t i = 0;
+
+	TEST_PRINT_INFO("%s (%zu bytes):", label, len);
+	for (i = 0; i < len; i += 16) {
+		char hex_line[64] = { 0 };
+		char asc_line[20] = { 0 };
+		char *ph = hex_line;
+		char *pa = asc_line;
+		size_t j = 0;
+
+		for (j = i; j < len && j < i + 16; j++) {
+			uint8_t byte = buf[j];
+			char c = '.';
+
+			ph += sprintf(ph, "%02x ", byte);
+
+			/* Only printable ASCII characters (0x20-0x7E) */
+			if (byte >= 0x20 && byte < 0x7f)
+				c = (char)byte;
+			*pa++ = c;
+		}
+		*pa = '\0';
+		TEST_PRINT_INFO("  %04zx: %-48s %s", i, hex_line, asc_line);
 	}
 }

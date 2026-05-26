@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 NXP
+
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 project(el2go_unit_tests VERSION 1.0 LANGUAGES C)
 
@@ -9,6 +12,7 @@ enable_testing()
 # ============================================================================
 # Build the unit test framework first
 # ============================================================================
+# Unit test framework
 add_subdirectory(framework)
 
 # ============================================================================
@@ -21,19 +25,21 @@ set(INTERNAL_TEST_SOURCES "")
 
 # Collect public RTP tests
 add_subdirectory(public_rtp)
-list(APPEND PUBLIC_TEST_SOURCES ${PUBLIC_TEST_SOURCES})
 
 # Collect internal RTP tests
 add_subdirectory(internal_rtp)
-list(APPEND INTERNAL_TEST_SOURCES ${INTERNAL_TEST_SOURCES})
 
 # Collect public datastore tests
 add_subdirectory(public_datastore)
-list(APPEND PUBLIC_TEST_SOURCES ${PUBLIC_TEST_SOURCES})
 
 # Collect internal datastore tests
 add_subdirectory(internal_datastore)
-list(APPEND INTERNAL_TEST_SOURCES ${INTERNAL_TEST_SOURCES})
+
+# Collect public transport tests
+add_subdirectory(public_net_crypto)
+
+# Collect internal transport tests
+add_subdirectory(internal_net_crypto)
 
 # ============================================================================
 # Test sources organized by type
@@ -70,7 +76,6 @@ target_include_directories(${PUBLIC_TEST_EXECUTABLE}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/libs/osal/include
-        ${CMAKE_SOURCE_DIR}/priv
 )
 
 target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
@@ -94,10 +99,11 @@ target_include_directories(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib
-        ${CMAKE_SOURCE_DIR}/libs/datastores
+        ${CMAKE_SOURCE_DIR}/libs/net_crypto
+        ${CMAKE_SOURCE_DIR}/libs/platforms
+        ${CMAKE_SOURCE_DIR}/libs/platforms/${PLATFORM}
         ${CMAKE_SOURCE_DIR}/libs/datastores/plain
         ${CMAKE_SOURCE_DIR}/libs/datastores/fs
-        ${CMAKE_SOURCE_DIR}/libs/osal/include
 )
 
 target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
@@ -110,8 +116,8 @@ target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
 # TEST REGISTRATION
 # ============================================================================
 
-# Include test definitions
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/test_definitions.cmake)
+# Include test definitions (registers tests with CTest)
+include(cmake/test_definitions.cmake)
 
 # ============================================================================
 # INSTALLATION

@@ -5,6 +5,7 @@
 #include "builtin_macros.h"
 
 #include "test_framework.h"
+#include "builtin_macros.h"
 
 #define MAX_TESTS 256
 
@@ -47,14 +48,14 @@ void test_framework_set_suite_teardown(test_teardown_func_t teardown,
 
 void test_framework_register(const char *name, test_func_t func, void *params)
 {
-	if (test_count >= MAX_TESTS) {
-		TEST_PRINT_ERROR("Too many tests registered (max: %d)",
-				 MAX_TESTS);
+	if (!name || !func) {
+		TEST_PRINT_ERROR("Invalid test (NULL name or function)");
 		exit(1);
 	}
 
-	if (!name || !func) {
-		TEST_PRINT_ERROR("Invalid test (NULL name or function)");
+	if (test_count >= MAX_TESTS) {
+		TEST_PRINT_ERROR("Too many tests registered (max: %d)",
+				 MAX_TESTS);
 		exit(1);
 	}
 
@@ -75,56 +76,56 @@ int test_framework_run(void)
 		return 0;
 	}
 
-	TEST_PRINT(stdout, "\n");
-	TEST_PRINT(stdout, "========================================\n");
-	TEST_PRINT(stdout, "Running %ld tests\n", test_count);
-	TEST_PRINT(stdout, "========================================\n\n");
+	TEST_PRINT_RAW("\n");
+	TEST_PRINT_RAW("========================================");
+	TEST_PRINT_RAW("Running %ld tests", test_count);
+	TEST_PRINT_RAW("========================================\n");
 
 	if (suite_setup) {
-		TEST_PRINT(stdout, "[ SETUP  ] Running suite setup\n");
+		TEST_PRINT_INFO("Running suite setup\n");
 		suite_setup(suite_setup_params);
-		TEST_PRINT(stdout, "\n");
+		TEST_PRINT_RAW("");
 	}
 
-	for (; i < test_count; i++) {
-		TEST_PRINT(stdout, "[  RUN   ] %s\n", tests[i].name);
+	for (i = 0; i < test_count; i++) {
+		TEST_PRINT_INFO("[RUN] %s\n", tests[i].name);
 		(void)fflush(stdout);
 
 		bool result = tests[i].func(tests[i].params);
 
 		if (result) {
-			TEST_PRINT(stdout, "[  PASS  ] %s\n", tests[i].name);
+			TEST_PRINT_RESULT("PASS", tests[i].name);
 			if (INC_OVERFLOW(passed, 1)) {
-				TEST_PRINT_ERROR("Test count overflow");
-				exit(1);
+				TEST_PRINT_ERROR("Passed counter overflow");
+				return 1;
 			}
 		} else {
-			TEST_PRINT(stdout, "[  FAIL  ] %s\n", tests[i].name);
+			TEST_PRINT_RESULT("FAIL", tests[i].name);
 			if (INC_OVERFLOW(failed, 1)) {
-				TEST_PRINT_ERROR("Test count overflow");
-				exit(1);
+				TEST_PRINT_ERROR("Failed counter overflow");
+				return 1;
 			}
 		}
-		TEST_PRINT(stdout, "\n");
+		TEST_PRINT_RAW("");
 		(void)fflush(stdout);
 	}
 
 	if (suite_teardown) {
-		TEST_PRINT(stdout, "[TEARDOWN] Running suite teardown\n");
+		TEST_PRINT_INFO("Running suite teardown\n");
 		suite_teardown(suite_teardown_params);
-		TEST_PRINT(stdout, "\n");
+		TEST_PRINT_RAW("");
 	}
 
-	TEST_PRINT(stdout, "========================================\n");
-	TEST_PRINT(stdout, "Test Results:\n");
-	TEST_PRINT(stdout, "  Passed: %ld/%ld\n", passed, test_count);
-	TEST_PRINT(stdout, "  Failed: %ld/%ld\n", failed, test_count);
-	TEST_PRINT(stdout, "========================================\n");
+	TEST_PRINT_RAW("========================================");
+	TEST_PRINT_RAW("Test Results:");
+	TEST_PRINT_RAW("  Passed: %ld/%ld", passed, test_count);
+	TEST_PRINT_RAW("  Failed: %ld/%ld", failed, test_count);
+	TEST_PRINT_RAW("========================================");
 
 	if (failed > 0) {
-		TEST_PRINT(stdout, "\nFAILURE: %ld test(s) failed\n", failed);
+		TEST_PRINT(stdout, "FAILURE: %ld test(s) failed\n", failed);
 		return 1;
 	}
-	TEST_PRINT(stdout, "\nSUCCESS: All tests passed\n");
+	TEST_PRINT(stdout, "SUCCESS: All tests passed\n");
 	return 0;
 }
