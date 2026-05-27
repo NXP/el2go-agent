@@ -25,6 +25,7 @@ target_include_directories(unit_test_framework
         ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/priv
         ${CMAKE_SOURCE_DIR}/libs/osal/include
 )
 

@@ -70,6 +70,7 @@ target_include_directories(${PUBLIC_TEST_EXECUTABLE}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/libs/osal/include
+        ${CMAKE_SOURCE_DIR}/priv
 )
 
 target_link_libraries(${PUBLIC_TEST_EXECUTABLE}

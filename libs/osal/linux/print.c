@@ -76,6 +76,9 @@ int osal_snprintf(char *str, size_t size, const char *format, ...)
 	ret = vsnprintf(str, size, format, args);
 	va_end(args);
 
+	if (ret < 0)
+		return -1;
+
 	return ret;
 }
 

@@ -2,6 +2,7 @@
 /*
  * Copyright 2026 NXP
  */
+#include "builtin_macros.h"
 
 #include "test_framework.h"
 
@@ -14,7 +15,7 @@ typedef struct {
 } test_entry_t;
 
 static test_entry_t tests[MAX_TESTS];
-static int test_count;
+static size_t test_count;
 
 static test_setup_func_t suite_setup;
 static void *suite_setup_params;
@@ -65,58 +66,65 @@ void test_framework_register(const char *name, test_func_t func, void *params)
 
 int test_framework_run(void)
 {
-	int passed = 0;
-	int failed = 0;
+	size_t passed = 0;
+	size_t failed = 0;
+	size_t i = 0;
 
 	if (test_count == 0) {
 		TEST_PRINT_WARN("No tests registered");
 		return 0;
 	}
 
-	printf("\n");
-	printf("========================================\n");
-	printf("Running %d tests\n", test_count);
-	printf("========================================\n\n");
+	TEST_PRINT(stdout, "\n");
+	TEST_PRINT(stdout, "========================================\n");
+	TEST_PRINT(stdout, "Running %ld tests\n", test_count);
+	TEST_PRINT(stdout, "========================================\n\n");
 
 	if (suite_setup) {
-		printf("[ SETUP  ] Running suite setup\n");
+		TEST_PRINT(stdout, "[ SETUP  ] Running suite setup\n");
 		suite_setup(suite_setup_params);
-		printf("\n");
+		TEST_PRINT(stdout, "\n");
 	}
 
-	for (int i = 0; i < test_count; i++) {
-		printf("[  RUN   ] %s\n", tests[i].name);
-		fflush(stdout);
+	for (; i < test_count; i++) {
+		TEST_PRINT(stdout, "[  RUN   ] %s\n", tests[i].name);
+		(void)fflush(stdout);
 
 		bool result = tests[i].func(tests[i].params);
 
 		if (result) {
-			printf("[  PASS  ] %s\n", tests[i].name);
-			passed++;
+			TEST_PRINT(stdout, "[  PASS  ] %s\n", tests[i].name);
+			if (INC_OVERFLOW(passed, 1)) {
+				TEST_PRINT_ERROR("Test count overflow");
+				exit(1);
+			}
 		} else {
-			printf("[  FAIL  ] %s\n", tests[i].name);
-			failed++;
+			TEST_PRINT(stdout, "[  FAIL  ] %s\n", tests[i].name);
+			if (INC_OVERFLOW(failed, 1)) {
+				TEST_PRINT_ERROR("Test count overflow");
+				exit(1);
+			}
 		}
-		printf("\n");
-		fflush(stdout);
+		TEST_PRINT(stdout, "\n");
+		(void)fflush(stdout);
 	}
 
 	if (suite_teardown) {
-		printf("[TEARDOWN] Running suite teardown\n");
+		TEST_PRINT(stdout, "[TEARDOWN] Running suite teardown\n");
 		suite_teardown(suite_teardown_params);
-		printf("\n");
+		TEST_PRINT(stdout, "\n");
 	}
 
-	printf("========================================\n");
-	printf("Test Results:\n");
-	printf("  Passed: %d/%d\n", passed, test_count);
-	printf("  Failed: %d/%d\n", failed, test_count);
-	printf("========================================\n");
+	TEST_PRINT(stdout, "========================================\n");
+	TEST_PRINT(stdout, "Test Results:\n");
+	TEST_PRINT(stdout, "  Passed: %ld/%ld\n", passed, test_count);
+	TEST_PRINT(stdout, "  Failed: %ld/%ld\n", failed, test_count);
+	TEST_PRINT(stdout, "========================================\n");
 
 	if (failed > 0) {
-		printf("\nFAILURE: %d test(s) failed\n", failed);
+		TEST_PRINT(stdout, "\nFAILURE: %ld test(s) failed\n", failed);
 		return 1;
 	}
-	printf("\nSUCCESS: All tests passed\n");
+	TEST_PRINT(stdout, "\nSUCCESS: All tests passed\n");
 	return 0;
 }

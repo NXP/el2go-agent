@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 	} else {
 		printf("Failed to get EL2GO RTP Agent version (status: %d)\n",
 		       status);
-		return 1;
+		goto cleanup_agent;
 	}
 
 	/* Initialize platform
@@ -166,7 +166,6 @@ int main(int argc, char **argv)
 cleanup_datastore:
 	printf("Removing datastore from agent...\n");
 	el2go_datastore_remove(agent_ctx, &datastore_ctx);
-	goto cleanup_keystore;
 
 cleanup_datastore_free:
 	printf("Freeing datastore...\n");
@@ -186,7 +185,7 @@ cleanup_platform:
 
 cleanup_agent:
 	printf("Cleaning up EL2GO RTP Agent...\n");
-	el2go_rtp_free(&agent_ctx);
+	(void)el2go_rtp_free(&agent_ctx);
 
 	printf("\nCleanup completed\n");
 	return (status == EL2GO_STATUS_SUCCESS) ? 0 : 1;

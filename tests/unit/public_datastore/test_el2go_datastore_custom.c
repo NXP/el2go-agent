@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "builtin_macros.h"
+
 #include "test_framework.h"
 #include "test_el2go_datastore_common.h"
 
@@ -80,6 +82,7 @@ static el2go_status_t custom_datastore_read(void *context, void *dest,
 {
 	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 	custom_datastore_ctx_t *ctx = (custom_datastore_ctx_t *)context;
+	size_t end_offset = 0;
 
 	if (!ctx || !dest || len == 0) {
 		status = EL2GO_STATUS_INVALID_PARAMETER;
@@ -91,7 +94,12 @@ static el2go_status_t custom_datastore_read(void *context, void *dest,
 		goto exit;
 	}
 
-	if (offset + len > ctx->size) {
+	if (ADD_OVERFLOW(offset, len, &end_offset)) {
+		status = EL2GO_STATUS_ARITHMETIC_OVERFLOW;
+		goto exit;
+	}
+
+	if (end_offset > ctx->size) {
 		status = EL2GO_STATUS_BUFFER_TOO_SMALL;
 		goto exit;
 	}
@@ -107,6 +115,7 @@ static el2go_status_t custom_datastore_write(void *context, const void *src,
 {
 	el2go_status_t status = EL2GO_STATUS_SUCCESS;
 	custom_datastore_ctx_t *ctx = (custom_datastore_ctx_t *)context;
+	size_t end_offset = 0;
 
 	if (!ctx || !src || len == 0) {
 		status = EL2GO_STATUS_INVALID_PARAMETER;
@@ -118,7 +127,12 @@ static el2go_status_t custom_datastore_write(void *context, const void *src,
 		goto exit;
 	}
 
-	if (offset + len > ctx->temp_size) {
+	if (ADD_OVERFLOW(offset, len, &end_offset)) {
+		status = EL2GO_STATUS_ARITHMETIC_OVERFLOW;
+		goto exit;
+	}
+
+	if (end_offset > ctx->temp_size) {
 		status = EL2GO_STATUS_BUFFER_TOO_SMALL;
 		goto exit;
 	}

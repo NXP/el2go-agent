@@ -15,22 +15,25 @@
 static bool test_el2go_rtp_context_structure(void *params)
 {
 	el2go_rtp_ctx_t *ctx = NULL;
+	el2go_status_t status = EL2GO_STATUS_SUCCESS;
+	bool test_status = true;
 
-	/* params can be used if needed, otherwise ignore */
 	(void)params;
 
-	/* Initialize agent */
-	TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, el2go_rtp_init(&ctx));
-	TEST_ASSERT_NOT_NULL(ctx);
-	TEST_ASSERT_EQUAL(0, ctx->num_keystores);
-	TEST_ASSERT_EQUAL(0, ctx->num_datastores);
-	TEST_ASSERT_NOT_NULL(ctx);
+	status = el2go_rtp_init(&ctx);
+	TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+	TEST_ASSERT_NOT_NULL_GOTO(ctx, exit);
 
-	/* Clean up */
-	TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, el2go_rtp_free(&ctx));
+	TEST_ASSERT_EQUAL_GOTO(0, ctx->num_keystores, cleanup);
+	TEST_ASSERT_EQUAL_CONTINUE(0, ctx->num_datastores);
+
+cleanup:
+	status = el2go_rtp_free(&ctx);
+	TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 	TEST_ASSERT_NULL(ctx);
 
-	return true;
+exit:
+	return test_status;
 }
 
 void register_el2go_rtp_tests(void)

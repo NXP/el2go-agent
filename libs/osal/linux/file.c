@@ -58,29 +58,19 @@ exit:
 
 size_t osal_fread(void *ptr, size_t size, size_t nmemb, osal_file_t *file)
 {
-	size_t result = 0;
-
 	if (!file || !file->fp || !ptr)
-		goto exit;
+		return 0;
 
-	result = fread(ptr, size, nmemb, file->fp);
-
-exit:
-	return result;
+	return fread(ptr, size, nmemb, file->fp);
 }
 
 size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
 		   osal_file_t *file)
 {
-	size_t result = 0;
-
 	if (!file || !file->fp || !ptr)
-		goto exit;
+		return 0;
 
-	result = fwrite(ptr, size, nmemb, file->fp);
-
-exit:
-	return result;
+	return fwrite(ptr, size, nmemb, file->fp);
 }
 
 el2go_status_t osal_fseek(osal_file_t *file, long offset,
@@ -120,15 +110,10 @@ exit:
 
 long osal_ftell(osal_file_t *file)
 {
-	long result = -1;
-
 	if (!file || !file->fp)
-		goto exit;
+		return -1;
 
-	result = ftell(file->fp);
-
-exit:
-	return result;
+	return ftell(file->fp);
 }
 
 el2go_status_t osal_fflush(osal_file_t *file)
