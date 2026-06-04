@@ -14,7 +14,7 @@
 #include "common/el2go_platform.h"
 
 /*
- * IoT Agent context
+ * RTP Agent context
  *
  * This is an opaque structure. Users should not access its members directly.
  * The actual definition is in the implementation files.
@@ -33,7 +33,7 @@ typedef struct el2go_rtp_datastore_config {
 /* clang-format on */
 
 /**
- * el2go_rtp_get_version - Get IoT Agent version information
+ * el2go_rtp_get_version - Get RTP Agent version information
  * @major: Pointer to store major version number
  * @minor: Pointer to store minor version number
  *
@@ -43,7 +43,7 @@ typedef struct el2go_rtp_datastore_config {
 el2go_status_t el2go_rtp_get_version(unsigned int *major, unsigned int *minor);
 
 /**
- * el2go_rtp_init - Initialize and allocate IoT Agent context
+ * el2go_rtp_init - Initialize and allocate RTP Agent context
  * @ctx: Pointer to store allocated context
  *
  * Return:
@@ -52,7 +52,7 @@ el2go_status_t el2go_rtp_get_version(unsigned int *major, unsigned int *minor);
 el2go_status_t el2go_rtp_init(el2go_rtp_ctx_t **ctx);
 
 /**
- * el2go_rtp_free - Cleanup and free IoT Agent context
+ * el2go_rtp_free - Cleanup and free RTP Agent context
  * @ctx: Pointer to context (will be set to NULL)
  *
  * Return:
@@ -61,62 +61,79 @@ el2go_status_t el2go_rtp_init(el2go_rtp_ctx_t **ctx);
 el2go_status_t el2go_rtp_free(el2go_rtp_ctx_t **ctx);
 
 /**
- * el2go_keystore_add - Add a keystore to the agent
+ * el2go_rtp_keystore_add - Add a keystore to the RTP Agent
  * @ctx: RTP Agent context
  * @keystore_ctx: Keystore context to add
  *
- * Adds an initialized keystore to the RTP agent's list of keystores.
+ * Adds an initialized keystore to the RTP Agent's list of keystores.
  * The keystore must be initialized with el2go_keystore_init() first.
  *
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_keystore_add(el2go_rtp_ctx_t *ctx,
-				  el2go_keystore_t *keystore_ctx);
+el2go_status_t el2go_rtp_keystore_add(el2go_rtp_ctx_t *ctx,
+				      el2go_keystore_t *keystore_ctx);
 
 /**
- * el2go_keystore_remove - Remove a keystore from the RTP agent
- * @ctx: IoT Agent context
+ * el2go_rtp_keystore_remove - Remove a keystore from the RTP Agent
+ * @ctx: RTP Agent context
  * @keystore_ctx: Keystore context to remove
  *
- * Removes the keystore from the RTP agent's list. The keystore context itself
+ * Removes the keystore from the RTP Agent's list. The keystore context itself
  * should be freed separately using el2go_keystore_free().
  *
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_keystore_remove(el2go_rtp_ctx_t *ctx,
-				     el2go_keystore_t *keystore_ctx);
+el2go_status_t el2go_rtp_keystore_remove(el2go_rtp_ctx_t *ctx,
+					 el2go_keystore_t *keystore_ctx);
 
 /**
- * el2go_datastore_add - Add a datastore to the RTP agent
- * @ctx: IoT Agent context
+ * el2go_rtp_datastore_add - Add a datastore to the RTP Agent
+ * @ctx: RTP Agent context
  * @datastore: Datastore context to add
  *
- * Adds an initialized datastore to the RTP agent's list of datastores.
+ * Adds an initialized datastore to the RTP Agent's list of datastores.
  * The datastore must be initialized with el2go_datastore_init() first.
  *
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_datastore_add(el2go_rtp_ctx_t *ctx,
-				   el2go_datastore_t *datastore);
+el2go_status_t el2go_rtp_datastore_add(el2go_rtp_ctx_t *ctx,
+				       el2go_datastore_t *datastore);
 
 /**
- * el2go_datastore_remove - Remove a datastore from the RTP agent
- * @ctx: IoT Agent context
+ * el2go_rtp_datastore_remove - Remove a datastore from the RTP Agent
+ * @ctx: RTP Agent context
  * @datastore: Pointer to datastore context (will be set to NULL)
  *
- * Removes the datastore from the RTP agent's list and frees all resources.
+ * Removes the datastore from the RTP Agent's list and frees all resources.
  *
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_datastore_remove(el2go_rtp_ctx_t *ctx,
-				      el2go_datastore_t *datastore);
+el2go_status_t el2go_rtp_datastore_remove(el2go_rtp_ctx_t *ctx,
+					  el2go_datastore_t *datastore);
+
+/**
+ * el2go_rtp_get_datastore_by_id - Get a datastore by its identifier
+ * @ctx: RTP Agent context
+ * @id: Datastore identifier to search for
+ * @datastore: Pointer to store the found datastore
+ *
+ * This function searches through the registered datastores in the Agent context
+ * to find a datastore with the specified identifier. If found, the datastore is
+ * returned through the datastore parameter.
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+el2go_status_t el2go_rtp_get_datastore_by_id(el2go_rtp_ctx_t *ctx, uint32_t id,
+					     el2go_datastore_t **datastore);
+
 /**
   * el2go_rtp_provision - Provision keys and certificates from server
-  * @ctx: IoT Agent context
+  * @ctx: RTP Agent context
   * @verbosity: Status report verbosity level
   *
   * Connects to the EdgeLock 2GO server and provisions device keys and certificates.
@@ -131,9 +148,10 @@ el2go_status_t el2go_datastore_remove(el2go_rtp_ctx_t *ctx,
   */
 el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx,
 				   el2go_verbosity_t verbosity);
+
 /**
  * el2go_rtp_get_device_uuid - Get device UUID in hexadecimal format
- * @ctx: IoT Agent context
+ * @ctx: RTP Agent context
  * @uuid_buffer: Buffer to store UUID hex string
  * @buffer_size: Input: Size of the provided buffer, Output: Actual size written (including null terminator)
  *
@@ -149,7 +167,7 @@ el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx,
 					 size_t *buffer_size);
 
 /**
- * el2go_datastore_el2go - Configure EdgeLock 2GO datastore
+ * el2go_rtp_datastore_el2go - Configure EdgeLock 2GO datastore
  * @datastore: Datastore
  * @keystore_ctx: Keystore context for secure operations
  * @config: EdgeLock 2GO configuration
@@ -163,8 +181,8 @@ el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx,
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t
-el2go_datastore_el2go(el2go_datastore_t *datastore,
-		      el2go_keystore_t *keystore_ctx,
-		      const el2go_rtp_datastore_config_t *config);
+el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
+			  el2go_keystore_t *keystore_ctx,
+			  const el2go_rtp_datastore_config_t *config);
 
 #endif /* __EL2GO_RTP_H__ */

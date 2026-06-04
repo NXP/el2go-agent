@@ -7,11 +7,11 @@
 #define __EL2GO_STATUS_H__
 
 /**
- * el2go_agent_status.h - Status and return types for IoT Agent
+ * el2go_agent_status.h - Status and return types for RTP Agent
  */
 
 /**
- * enum el2go_status_t - IoT Agent return type
+ * enum el2go_status_t - RTP Agent return type
  * @EL2GO_STATUS_SUCCESS: Operation successful
  * @EL2GO_STATUS_FAILURE: Operation failed
  *
@@ -27,6 +27,9 @@
  * @EL2GO_STATUS_INVALID_PARAMETER: Invalid parameter provided
  * @EL2GO_STATUS_INVALID_STATE: Invalid state for operation
  * @EL2GO_STATUS_ARITHMETIC_OVERFLOW: Arithmetic overflow detected
+ * @EL2GO_STATUS_RESOURCE_LIMIT: Resource limit reached
+ * @EL2GO_STATUS_ALREADY_EXISTS: Resource already exists
+ * @EL2GO_STATUS_NOT_FOUND: Resource not found
  */
 typedef enum el2go_status_t {
 	EL2GO_STATUS_SUCCESS = 0,
@@ -41,7 +44,10 @@ typedef enum el2go_status_t {
 	EL2GO_STATUS_BUFFER_TOO_SMALL,
 	EL2GO_STATUS_INVALID_PARAMETER,
 	EL2GO_STATUS_INVALID_STATE,
-	EL2GO_STATUS_ARITHMETIC_OVERFLOW
+	EL2GO_STATUS_ARITHMETIC_OVERFLOW,
+	EL2GO_STATUS_RESOURCE_LIMIT,
+	EL2GO_STATUS_ALREADY_EXISTS,
+	EL2GO_STATUS_NOT_FOUND
 } el2go_status_t;
 
 /**

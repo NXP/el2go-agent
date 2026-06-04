@@ -140,7 +140,7 @@ struct el2go_datastore_ops {
 /* clang-format on */
 
 /**
- * IoT Agent datastore
+ * RTP Agent datastore
  *
  * This structure contains fields used to manage datastores. Some fields are
  * used by the datastore implementations (context) and others are used for
