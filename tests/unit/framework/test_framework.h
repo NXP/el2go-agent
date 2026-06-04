@@ -85,6 +85,15 @@
 		}                                                     \
 	} while (0)
 
+#define TEST_ASSERT_PTR_EQUAL(expected, actual)                                \
+	do {                                                                   \
+		if ((expected) != (actual)) {                                  \
+			TEST_PRINT_FAIL("Expected pointer %p, got %p",         \
+					(void *)(expected), (void *)(actual)); \
+			return false;                                          \
+		}                                                              \
+	} while (0)
+
 #define TEST_ASSERT_STRING_EQUAL(expected, actual)                     \
 	do {                                                           \
 		if (strcmp((expected), (actual)) != 0) {               \
@@ -149,6 +158,16 @@
 		}                                                     \
 	} while (0)
 
+#define TEST_ASSERT_PTR_EQUAL_GOTO(expected, actual, label)                    \
+	do {                                                                   \
+		if ((expected) != (actual)) {                                  \
+			TEST_PRINT_FAIL("Expected pointer %p, got %p",         \
+					(void *)(expected), (void *)(actual)); \
+			test_status = false;                                   \
+			goto label;                                            \
+		}                                                              \
+	} while (0)
+
 #define TEST_ASSERT_STRING_EQUAL_GOTO(expected, actual, label)         \
 	do {                                                           \
 		if (strcmp((expected), (actual)) != 0) {               \
@@ -208,6 +227,15 @@
 			TEST_PRINT_FAIL("Expected non-NULL pointer"); \
 			test_status = false;                          \
 		}                                                     \
+	} while (0)
+
+#define TEST_ASSERT_PTR_EQUAL_CONTINUE(expected, actual)                       \
+	do {                                                                   \
+		if ((expected) != (actual)) {                                  \
+			TEST_PRINT_FAIL("Expected pointer %p, got %p",         \
+					(void *)(expected), (void *)(actual)); \
+			test_status = false;                                   \
+		}                                                              \
 	} while (0)
 
 #define TEST_ASSERT_STRING_EQUAL_CONTINUE(expected, actual)            \
