@@ -202,6 +202,45 @@ void net_crypto_cleanup(void);
  */
 el2go_status_t net_crypto_disconnect(net_crypto_ctx_t *ctx);
 
+/**
+ * @typedef net_crypto_fetch_callback_t
+ * @brief Callback function to fetch next data chunk for hashing.
+ *
+ * The callback is called repeatedly until it signals end of data
+ * by setting @p bytes_read to 0.
+ *
+ * @param context     User-provided context.
+ * @param buffer      Input buffer to fill with data.
+ * @param buffer_size Size of the buffer in bytes.
+ * @param bytes_read  Output: number of bytes actually read (0 = end of data).
+ * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
+ */
+typedef el2go_status_t (*net_crypto_fetch_callback_t)(void *context, uint8_t *buffer,
+                                                      size_t buffer_size, size_t *bytes_read);
+
+/**
+ * @brief Calculate SHA-256 hash using streaming callback.
+ *
+ * The callback will be called repeatedly until it returns @p bytes_read = 0.
+ *
+ * @param fetch_callback Function to fetch next data chunk.
+ * @param context        User context passed to callback.
+ * @param hash_out       Output buffer for hash (must be at least 32 bytes).
+ * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
+ */
+el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch_callback, void *context,
+                                        uint8_t *hash_out);
+
+/**
+ * @brief Calculate SHA-256 hash of in-memory data.
+ *
+ * @param data      Input data buffer.
+ * @param data_len  Length of input data in bytes.
+ * @param hash_out  Output buffer for hash (must be at least 32 bytes).
+ * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
+ */
+el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *hash_out);
+
 /** @} */ /* end of net_crypto */
 
 #endif /* __NET_CRYPTO_H__ */

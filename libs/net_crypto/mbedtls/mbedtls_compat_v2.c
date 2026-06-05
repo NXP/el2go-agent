@@ -78,4 +78,39 @@ void mbedtls_compat_ssl_conf_groups(mbedtls_ssl_config *conf,
     mbedtls_ssl_conf_curves(conf, groups);
 }
 
+/* ========================================================================== */
+/* SHA-256 Functions - mbedTLS v2.x                                           */
+/* ========================================================================== */
+
+void mbedtls_compat_sha256_init(mbedtls_compat_sha256_context *ctx)
+{
+    mbedtls_sha256_init(&ctx->ctx);
+}
+
+void mbedtls_compat_sha256_free(mbedtls_compat_sha256_context *ctx)
+{
+    mbedtls_sha256_free(&ctx->ctx);
+}
+
+int mbedtls_compat_sha256_starts(mbedtls_compat_sha256_context *ctx)
+{
+    return mbedtls_sha256_starts_ret(&ctx->ctx, 0);
+}
+
+int mbedtls_compat_sha256_update(mbedtls_compat_sha256_context *ctx, const unsigned char *input,
+                                 size_t ilen)
+{
+    return mbedtls_sha256_update_ret(&ctx->ctx, input, ilen);
+}
+
+int mbedtls_compat_sha256_finish(mbedtls_compat_sha256_context *ctx, unsigned char output[32])
+{
+    return mbedtls_sha256_finish_ret(&ctx->ctx, output);
+}
+
+int mbedtls_compat_sha256(const unsigned char *input, size_t ilen, unsigned char output[32])
+{
+    return mbedtls_sha256_ret(input, ilen, output, 0);
+}
+
 /** @} */ /* end of mbedtls_compat_v2 */

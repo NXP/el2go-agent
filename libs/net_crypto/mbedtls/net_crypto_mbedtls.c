@@ -28,6 +28,9 @@
 /** Maximum length for port number string representation */
 #define NET_CRYPTO_PORT_STR_LEN 16
 
+/** Chunk size for SHA-256 streaming operations */
+#define NET_CRYPTO_SHA256_CHUNK_SIZE 64
+
 /**
  * @brief Debug callback for mbedTLS library
  *
@@ -1029,6 +1032,88 @@ exit:
     /* Free temporary buffer if ownership was not transferred to context */
     if (status != EL2GO_STATUS_SUCCESS && curves)
         osal_free(curves);
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
+}
+
+el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch_callback, void *context,
+                                        uint8_t *hash_out)
+{
+    mbedtls_compat_sha256_context sha_ctx = { 0 };
+    uint8_t buffer[NET_CRYPTO_SHA256_CHUNK_SIZE] = { 0 };
+    size_t bytes_read = 0;
+    el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
+    int ret = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!fetch_callback || !hash_out)
+        goto exit;
+
+    mbedtls_compat_sha256_init(&sha_ctx);
+
+    ret = mbedtls_compat_sha256_starts(&sha_ctx);
+    if (ret != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "SHA-256 init failed: -0x%04x\n", -ret);
+        status = EL2GO_STATUS_NET_CRYPTO_SHA_ERROR;
+        goto exit;
+    }
+
+    /* Process data in chunks */
+    do {
+        status = fetch_callback(context, buffer, NET_CRYPTO_SHA256_CHUNK_SIZE, &bytes_read);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR, "Fetch callback failed: 0x%04x\n", status);
+            goto exit;
+        }
+
+        if (bytes_read > 0) {
+            ret = mbedtls_compat_sha256_update(&sha_ctx, buffer, bytes_read);
+            if (ret != 0) {
+                EL2GO_DBG_PRINTF(ERROR, "SHA-256 update err: -0x%04x\n", -ret);
+                status = EL2GO_STATUS_NET_CRYPTO_SHA_ERROR;
+                goto exit;
+            }
+        }
+    } while (bytes_read > 0);
+
+    /* Finalize hash */
+    ret = mbedtls_compat_sha256_finish(&sha_ctx, hash_out);
+    if (ret != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "SHA-256 finish failed: -0x%04x\n", -ret);
+        status = EL2GO_STATUS_NET_CRYPTO_SHA_ERROR;
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(VERBOSE, "SHA-256 hash calculated successfully\n");
+    status = EL2GO_STATUS_SUCCESS;
+
+exit:
+    mbedtls_compat_sha256_free(&sha_ctx);
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
+}
+
+el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *hash_out)
+{
+    int ret = 0;
+    el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!data || !hash_out)
+        goto exit;
+
+    ret = mbedtls_compat_sha256(data, data_len, hash_out);
+    if (ret != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "SHA-256 calculation failed: -0x%04x\n", -ret);
+        status = EL2GO_STATUS_NET_CRYPTO_SHA_ERROR;
+        goto exit;
+    }
+
+    status = EL2GO_STATUS_SUCCESS;
+
+exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
 }

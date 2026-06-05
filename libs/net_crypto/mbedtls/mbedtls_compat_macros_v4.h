@@ -10,6 +10,7 @@
 
 #include <mbedtls/version.h>
 #include <mbedtls/ssl.h>
+#include <psa/crypto.h>
 #include <stdint.h>
 
 /**
@@ -48,6 +49,16 @@ typedef uint16_t mbedtls_compat_group_id_t;
     (MBEDTLS_SSL_IN_CONTENT_LEN < MBEDTLS_SSL_OUT_CONTENT_LEN ? MBEDTLS_SSL_IN_CONTENT_LEN : \
                                                                 MBEDTLS_SSL_OUT_CONTENT_LEN)
 #endif
+
+/**
+ * @brief SHA-256 context for mbedTLS 4.x.
+ *
+ * In mbedTLS 4.x SHA-256 is accessed via PSA crypto API.
+ * Wraps psa_hash_operation_t.
+ */
+typedef struct mbedtls_compat_sha256_context {
+    psa_hash_operation_t ctx;
+} mbedtls_compat_sha256_context;
 
 /** @} */ /* end of mbedtls_compat_v4 */
 

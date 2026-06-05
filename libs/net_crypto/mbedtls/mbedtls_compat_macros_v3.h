@@ -10,6 +10,7 @@
 
 #include <mbedtls/version.h>
 #include <mbedtls/ssl.h>
+#include <mbedtls/sha256.h>
 
 /**
  * @defgroup mbedtls_compat_v3 mbedTLS 3.x Compatibility
@@ -52,6 +53,15 @@ typedef uint16_t mbedtls_compat_group_id_t;
     (MBEDTLS_SSL_IN_CONTENT_LEN < MBEDTLS_SSL_OUT_CONTENT_LEN ? MBEDTLS_SSL_IN_CONTENT_LEN : \
                                                                 MBEDTLS_SSL_OUT_CONTENT_LEN)
 #endif
+
+/**
+ * @brief SHA-256 context for mbedTLS 3.x.
+ *
+ * Wraps mbedtls_sha256_context.
+ */
+typedef struct mbedtls_compat_sha256_context {
+    mbedtls_sha256_context ctx;
+} mbedtls_compat_sha256_context;
 
 /** @} */ /* end of mbedtls_compat_v3 */
 

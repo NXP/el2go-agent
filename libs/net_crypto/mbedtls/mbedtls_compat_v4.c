@@ -210,4 +210,51 @@ void mbedtls_compat_ssl_conf_groups(mbedtls_ssl_config *conf,
     mbedtls_ssl_conf_groups(conf, groups);
 }
 
+/* ========================================================================== */
+/* SHA-256 Functions - mbedTLS v4.x (via PSA crypto)                         */
+/* ========================================================================== */
+
+void mbedtls_compat_sha256_init(mbedtls_compat_sha256_context *ctx)
+{
+    ctx->ctx = psa_hash_operation_init();
+}
+
+void mbedtls_compat_sha256_free(mbedtls_compat_sha256_context *ctx)
+{
+    (void)psa_hash_abort(&ctx->ctx);
+}
+
+int mbedtls_compat_sha256_starts(mbedtls_compat_sha256_context *ctx)
+{
+    psa_status_t status = psa_hash_setup(&ctx->ctx, PSA_ALG_SHA_256);
+
+    return (status == PSA_SUCCESS) ? 0 : -1;
+}
+
+int mbedtls_compat_sha256_update(mbedtls_compat_sha256_context *ctx, const unsigned char *input,
+                                 size_t ilen)
+{
+    psa_status_t status = psa_hash_update(&ctx->ctx, input, ilen);
+
+    return (status == PSA_SUCCESS) ? 0 : -1;
+}
+
+int mbedtls_compat_sha256_finish(mbedtls_compat_sha256_context *ctx, unsigned char output[32])
+{
+    size_t hash_len = 0;
+    psa_status_t status =
+        psa_hash_finish(&ctx->ctx, output, PSA_HASH_LENGTH(PSA_ALG_SHA_256), &hash_len);
+
+    return (status == PSA_SUCCESS) ? 0 : -1;
+}
+
+int mbedtls_compat_sha256(const unsigned char *input, size_t ilen, unsigned char output[32])
+{
+    size_t hash_len = 0;
+    psa_status_t status = psa_hash_compute(PSA_ALG_SHA_256, input, ilen, output,
+                                           PSA_HASH_LENGTH(PSA_ALG_SHA_256), &hash_len);
+
+    return (status == PSA_SUCCESS) ? 0 : -1;
+}
+
 /** @} */ /* end of mbedtls_compat_v4 */

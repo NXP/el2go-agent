@@ -142,3 +142,22 @@ __weak el2go_status_t net_crypto_disconnect(net_crypto_ctx_t *ctx)
 
     return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
+
+__weak el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *hash_out)
+{
+    (void)data;
+    (void)data_len;
+    (void)hash_out;
+
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
+}
+
+__weak el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch_callback,
+                                               void *context, uint8_t *hash_out)
+{
+    (void)fetch_callback;
+    (void)context;
+    (void)hash_out;
+
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
+}

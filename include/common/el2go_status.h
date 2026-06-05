@@ -43,6 +43,9 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_NET_CRYPTO_CERT_VERIFY_FAILED, /**< Server certificate verification failed */
     EL2GO_STATUS_NET_CRYPTO_HOSTNAME_FAILED,    /**< Failed to set SNI hostname */
     EL2GO_STATUS_NET_CRYPTO_INVALID_CERT, /**< Certificate is invalid or could not be parsed */
+    EL2GO_STATUS_NET_CRYPTO_SHA_ERROR,    /**< SHA hashing operation failed */
+    EL2GO_STATUS_CHECKSUM_MISMATCH,       /**< Checksum verification failed */
+    EL2GO_STATUS_INVALID_DATA,            /**< Data is invalid or malformed */
     EL2GO_STATUS_INCOMPLETE_DATA,         /**< Operation completed but data is incomplete */
     EL2GO_STATUS_RESOURCE_LIMIT,          /**< Resource limit reached */
     EL2GO_STATUS_ALREADY_EXISTS,          /**< Resource already exists */

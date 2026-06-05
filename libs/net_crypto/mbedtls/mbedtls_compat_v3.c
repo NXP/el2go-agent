@@ -6,6 +6,7 @@
  */
 
 #include <mbedtls/version.h>
+#include <mbedtls/sha256.h>
 #include <psa/crypto.h>
 
 #include "builtin_macros.h"
@@ -72,6 +73,41 @@ void mbedtls_compat_ssl_conf_groups(mbedtls_ssl_config *conf,
                                     const mbedtls_compat_group_id_t *groups)
 {
     mbedtls_ssl_conf_groups(conf, groups);
+}
+
+/* ========================================================================== */
+/* SHA-256 Functions - mbedTLS v3.x                                           */
+/* ========================================================================== */
+
+void mbedtls_compat_sha256_init(mbedtls_compat_sha256_context *ctx)
+{
+    mbedtls_sha256_init(&ctx->ctx);
+}
+
+void mbedtls_compat_sha256_free(mbedtls_compat_sha256_context *ctx)
+{
+    mbedtls_sha256_free(&ctx->ctx);
+}
+
+int mbedtls_compat_sha256_starts(mbedtls_compat_sha256_context *ctx)
+{
+    return mbedtls_sha256_starts(&ctx->ctx, 0);
+}
+
+int mbedtls_compat_sha256_update(mbedtls_compat_sha256_context *ctx, const unsigned char *input,
+                                 size_t ilen)
+{
+    return mbedtls_sha256_update(&ctx->ctx, input, ilen);
+}
+
+int mbedtls_compat_sha256_finish(mbedtls_compat_sha256_context *ctx, unsigned char output[32])
+{
+    return mbedtls_sha256_finish(&ctx->ctx, output);
+}
+
+int mbedtls_compat_sha256(const unsigned char *input, size_t ilen, unsigned char output[32])
+{
+    return mbedtls_sha256(input, ilen, output, 0);
 }
 
 /** @} */ /* end of mbedtls_compat_v3 */

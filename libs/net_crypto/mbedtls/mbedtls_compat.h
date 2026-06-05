@@ -227,6 +227,66 @@ size_t mbedtls_compat_curve_map_size(void);
  */
 mbedtls_compat_group_id_t mbedtls_compat_curve_to_id(el2go_curve_id_t curve);
 
+/* ========================================================================== */
+/* SHA-256 Functions                                                           */
+/* ========================================================================== */
+
+/**
+ * @brief Initialize a SHA-256 context.
+ *
+ * @param[in] ctx  SHA-256 context to initialize.
+ */
+void mbedtls_compat_sha256_init(mbedtls_compat_sha256_context *ctx);
+
+/**
+ * @brief Free a SHA-256 context.
+ *
+ * @param[in] ctx  SHA-256 context to free.
+ */
+void mbedtls_compat_sha256_free(mbedtls_compat_sha256_context *ctx);
+
+/**
+ * @brief Start a SHA-256 hash operation.
+ *
+ * @param[in] ctx  SHA-256 context.
+ *
+ * @return 0 on success, negative error code on failure.
+ */
+int mbedtls_compat_sha256_starts(mbedtls_compat_sha256_context *ctx);
+
+/**
+ * @brief Feed data into a SHA-256 hash operation.
+ *
+ * @param[in] ctx    SHA-256 context.
+ * @param[in] input  Input data buffer.
+ * @param[in] ilen   Length of input data.
+ *
+ * @return 0 on success, negative error code on failure.
+ */
+int mbedtls_compat_sha256_update(mbedtls_compat_sha256_context *ctx, const unsigned char *input,
+                                 size_t ilen);
+
+/**
+ * @brief Finish a SHA-256 hash operation.
+ *
+ * @param[in]  ctx     SHA-256 context.
+ * @param[out] output  Output buffer for the hash (32 bytes).
+ *
+ * @return 0 on success, negative error code on failure.
+ */
+int mbedtls_compat_sha256_finish(mbedtls_compat_sha256_context *ctx, unsigned char output[32]);
+
+/**
+ * @brief Calculate SHA-256 hash of a buffer in one shot.
+ *
+ * @param[in]  input   Input data buffer.
+ * @param[in]  ilen    Length of input data.
+ * @param[out] output  Output buffer for the hash (32 bytes).
+ *
+ * @return 0 on success, negative error code on failure.
+ */
+int mbedtls_compat_sha256(const unsigned char *input, size_t ilen, unsigned char output[32]);
+
 /** @} */ /* end of mbedtls_compat */
 
 #endif /* MBEDTLS_COMPAT_H */

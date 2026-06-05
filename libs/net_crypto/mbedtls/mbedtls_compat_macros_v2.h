@@ -10,6 +10,7 @@
 
 #include <mbedtls/version.h>
 #include <mbedtls/ssl.h>
+#include <mbedtls/sha256.h>
 
 /**
  * @defgroup mbedtls_compat_v2 mbedTLS 2.x Compatibility
@@ -32,6 +33,15 @@ typedef mbedtls_ecp_group_id mbedtls_compat_group_id_t;
  * @brief Get peer certificate from SSL session in mbedTLS 2.x.
  */
 #define MBEDTLS_COMPAT_GET_PEER_CERT(ssl) ((ssl)->session->peer_cert)
+
+/**
+ * @brief SHA-256 context for mbedTLS 2.x.
+ *
+ * Wraps mbedtls_sha256_context.
+ */
+typedef struct mbedtls_compat_sha256_context {
+    mbedtls_sha256_context ctx;
+} mbedtls_compat_sha256_context;
 
 /** @} */ /* end of mbedtls_compat_v2 */
 
