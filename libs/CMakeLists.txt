@@ -10,6 +10,8 @@ add_subdirectory(keystores)
 add_subdirectory(datastores)
 add_subdirectory(osal/${OS})
 add_subdirectory(net_crypto)
+add_subdirectory(common)
+
 
 # Add EL2GO RTP library subdirectories
 add_subdirectory(el2go_rtp_lib)

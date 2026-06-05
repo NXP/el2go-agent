@@ -14,6 +14,7 @@ add_library(el2go_protobuf OBJECT
     PSA.pb.c
     RPC.pb.c
     Types.pb.c
+    ServiceDescriptor.pb.c
 )
 
 target_include_directories(el2go_protobuf PUBLIC

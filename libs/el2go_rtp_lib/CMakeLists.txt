@@ -25,6 +25,9 @@ if(BUILD_TESTING)
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/priv>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/osal/include>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/net_crypto>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/platforms>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     )
 
     # link to external libraries
@@ -38,6 +41,7 @@ if(BUILD_TESTING)
             el2go_datastore
             osal
             el2go_protobuf
+            el2go_common
         PUBLIC
             net_crypto  # This propagates the link dependencies
     )
@@ -68,11 +72,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-
 # Private include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/priv
     ${CMAKE_SOURCE_DIR}/libs/osal/include
+    ${CMAKE_SOURCE_DIR}/libs/net_crypto
+    ${CMAKE_SOURCE_DIR}/libs/platforms
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # link to external libraries
@@ -88,6 +94,7 @@ target_link_libraries(${PROJECT_NAME}
         osal
         el2go_protobuf
         net_crypto
+        el2go_common
 )
 
 # ============================================================================
@@ -117,6 +124,7 @@ install(FILES
     ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtp
 )
+
 # Export ONLY the public library target
 install(EXPORT ${PROJECT_NAME}-targets
     FILE ${PROJECT_NAME}-targets.cmake
@@ -138,6 +146,7 @@ write_basic_package_version_file(
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
+
 
 install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake

@@ -54,7 +54,8 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_INCOMPLETE_READ,         /**< Read operation incomplete */
     EL2GO_STATUS_UNSUPPORTED_OPERATION,   /**< Operation is not supported */
     EL2GO_STATUS_INVALID_REQUEST,         /**< Request is invalid */
-    EL2GO_STATUS_PSA_ERROR                /**< A function in the PSA API returned an error */
+    EL2GO_STATUS_PSA_ERROR,               /**< A function in the PSA API returned an error */
+    EL2GO_STATUS_INVALID_DATASTORE        /**< Datastore is invalid or corrupted */
 } el2go_status_t;
 
 /**
