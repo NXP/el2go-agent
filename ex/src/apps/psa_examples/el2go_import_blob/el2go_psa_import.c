@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 NXP
+ * Copyright 2024-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -231,27 +231,38 @@ static bool is_blob_magic(const uint8_t *ptr, const uint8_t *end_ptr)
            *(ptr + 12)             == MAGIC_TLV_4;
 }
 
-psa_status_t iot_agent_utils_psa_import_blobs_from_flash(const uint8_t *blob_area, size_t blob_area_size, size_t *blobs_imported)
+psa_status_t iot_agent_utils_psa_import_blobs_from_flash_exp_key_id(
+    const uint8_t *blob_area,
+    size_t blob_area_size,
+    size_t *blobs_imported,
+    psa_key_id_t *psa_key_id_list,
+    size_t psa_key_id_list_len)
 {
     psa_status_t psa_import_status = PSA_SUCCESS;
 
-    if ( blob_area == NULL )
+    if (blob_area == NULL)
     {
         psa_import_status = PSA_ERROR_GENERIC_ERROR;
         LOG("blob_area address is NULL\r\n");
         goto exit;
     }
-    if ( blobs_imported == NULL )
+    if (blobs_imported == NULL)
     {
         psa_import_status = PSA_ERROR_GENERIC_ERROR;
         LOG("blobs_imported address is NULL\r\n");
         goto exit;
     }
+    if (psa_key_id_list != NULL && psa_key_id_list_len == 0U)
+    {
+        psa_import_status = PSA_ERROR_GENERIC_ERROR;
+        LOG("psa_key_id_list provided but length is 0\r\n");
+        goto exit;
+    }
 
     *blobs_imported = 0U;
 
-    const uint8_t* blob_area_end = blob_area + blob_area_size;
-    if ( !(is_blob_magic(blob_area, blob_area_end)) )
+    const uint8_t *blob_area_end = blob_area + blob_area_size;
+    if (!(is_blob_magic(blob_area, blob_area_end)))
     {
         psa_import_status = PSA_SUCCESS;
         goto exit;
@@ -276,12 +287,12 @@ psa_status_t iot_agent_utils_psa_import_blobs_from_flash(const uint8_t *blob_are
         size_t blob_size = blob_ptr - blob;
         psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
         psa_import_status = iot_agent_utils_parse_blob(blob, blob_size, &attributes, &blob_size);
-        if ( psa_import_status != PSA_SUCCESS)
+        if (psa_import_status != PSA_SUCCESS)
         {
             LOG("Failed to parse blob attributes\r\n");
             goto exit;
         }
-        
+
         psa_key_id_t blob_key_id = psa_get_key_id(&attributes);
         if (blob_key_id == OEM_KEY_ID || blob_key_id == RKTH_KEY_ID || blob_key_id == OTP_DATA_KEY_ID || blob_key_id == BATCH_FLOW_KEY_ID) {
             continue;
@@ -293,16 +304,34 @@ psa_status_t iot_agent_utils_psa_import_blobs_from_flash(const uint8_t *blob_are
             psa_status = psa_destroy_key(blob_key_id);
             psa_status = psa_import_key(&attributes, blob, blob_size, &psa_key_id);
         }
-        if ( psa_status != PSA_SUCCESS)
+        if (psa_status != PSA_SUCCESS)
         {
-          LOG("psa_import_key failed (%d)\r\n", psa_status);
-          psa_import_status = psa_status;
-          goto exit;
+            LOG("psa_import_key failed (%d)\r\n", psa_status);
+            psa_import_status = psa_status;
+            goto exit;
         }
-        
+
+        /* Store key ID if caller provided a list */
+        if (psa_key_id_list != NULL)
+        {
+            if (*blobs_imported >= psa_key_id_list_len)
+            {
+                psa_import_status = PSA_ERROR_BUFFER_TOO_SMALL;
+                LOG("psa_key_id_list buffer too small\r\n");
+                goto exit;
+            }
+            psa_key_id_list[*blobs_imported] = psa_key_id;
+        }
+
         (*blobs_imported)++;
     } while (blob_ptr < blob_area_end);
 
 exit:
     return psa_import_status;
+}
+
+psa_status_t iot_agent_utils_psa_import_blobs_from_flash(const uint8_t *blob_area, size_t blob_area_size, size_t *blobs_imported)
+{
+    return iot_agent_utils_psa_import_blobs_from_flash_exp_key_id(
+        blob_area, blob_area_size, blobs_imported, NULL, 0U);
 }
