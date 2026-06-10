@@ -7,7 +7,9 @@
 #define __COMPILER_H__
 
 #define __weak	       __attribute__((weak))
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__ZEPHYR__)
+#define __export
+#elif defined(__GNUC__) || defined(__clang__)
 #define __export       __attribute__((visibility("default")))
 #else
 #define __export

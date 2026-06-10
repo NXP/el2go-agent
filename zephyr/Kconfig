@@ -1,0 +1,12 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config EL2GO_OTA_FWUAL_LIBRARY_SOURCES
+    bool "Include FWUAL (Firmware Update Abstraction Layer) sources"
+    help
+      Includes the FWUAL sources in the application build.
+
+config EL2GO_OTA_LIBRARY_SOURCES
+    bool "Include EL2GO OTA Library sources"
+    help
+      Includes the EL2GO OTA Library sources in the application build.

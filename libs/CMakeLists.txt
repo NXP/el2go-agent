@@ -7,3 +7,7 @@ add_subdirectory(osal/${OS})
 
 # Add EL2GO RTP library subdirectories
 add_subdirectory(el2go_rtp_lib)
+
+# Add OTA library subdirectories
+add_subdirectory(fwual)
+add_subdirectory(el2go_ota_lib)

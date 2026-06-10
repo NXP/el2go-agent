@@ -4,6 +4,10 @@ project(EL2GOAgents VERSION 1.0 LANGUAGES C)
 # Include standard installation directories
 include(GNUInstallDirs)
 
+# Make project-local CMake modules available (e.g. add_target_sources)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "Set default build type Release.")
