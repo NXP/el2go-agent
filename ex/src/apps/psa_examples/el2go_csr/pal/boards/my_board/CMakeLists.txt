@@ -53,7 +53,11 @@ endif()
 # and expose them to the parent CMakeLists.txt.
 
 file(GLOB _board_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
-set(EL2GO_CSR_BOARD_SOURCES ${_board_sources} PARENT_SCOPE)
+
+set(EL2GO_CSR_BOARD_SOURCES 
+    ${_board_sources} 
+    PARENT_SCOPE
+)
 
 set(EL2GO_CSR_BOARD_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/inc
@@ -88,6 +92,8 @@ target_compile_definitions(el2go_csr_board_sdk PUBLIC
 
 # --- 3d. Linker script ---
 
-set_target_properties(el2go_csr_board_sdk PROPERTIES LINK_DEPENDS 
-    # Add your linker file here
+set(EL2GO_LINKER_SCRIPT 
+    # add your linker script here
+    # e.g.,  ${BOARD_SDK_PATH}/linker/my_board.ld
+    PARENT_SCOPE
 )

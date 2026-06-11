@@ -220,6 +220,7 @@ The application returns status codes to the Host Tool via the `el2go_spsdk_statu
 | Status Code | Value | Description |
 |-------------|-------|-------------|
 | `SPSDK_STATUS_CODE_SUCCESS` | `0x3BBBA12D` | Operation completed successfully |
+| `SPSDK_STATUS_CODE_INIT` | `0xDEADBEEF` | Initial value before application runs |
 
 For all other status codes, refer to the relevant module in the codebase depending on where the failure occurred — e.g., the TLV parser (`el2go_csr_tlv_parser.h`), the memory PAL (`el2go_csr_memory.h`), or PSA Crypto error codes (`psa/crypto_values.h`).
 
@@ -229,11 +230,11 @@ The typical workflow between the Host Tool and the device is:
 
 1. Host Tool prepares the configuration block in TLV format
 2. Host Tool writes the configuration block to the device memory address of `el2go_csr_conf_data`
-3. Host Tool triggers application execution 
+3. Host Tool triggers application execution
 4. Application processes the request and writes results to memory
 5. Host Tool reads the CSR and the status code from device memory
 
-The memory addresses for `el2go_csr_conf_data` and `el2go_spsdk_status` are defined in the board-specific PAL implementation. These addresses must be communicated to the Host Tool so it knows where to write the configuration block and where to read the result.
+The memory addresses for `el2go_csr_conf_data` and `el2go_spsdk_status` are defined in the board-specific PAL implementation (see `el2go_csr_flash_memory.c` or equivalent in your board port). These addresses must be communicated to the Host Tool so it knows where to write the configuration block and where to read the result.
 
 ## Configuration Block Format
 
@@ -321,26 +322,24 @@ extern uint8_t* const el2go_csr_conf_data;
 
 /* Pointer to the status code location read by the Host Tool */
 extern uint32_t* const el2go_spsdk_status;
-
-/* Size of the configuration block buffer */
-extern const uint32_t el2go_csr_conf_data_size;
 ```
 
-These three symbols **must** be defined in your memory implementation. Their addresses must be communicated to the Host Tool so it knows where to write the configuration block and where to read the result.
+These two symbols **must** be defined in your memory implementation. Their addresses must be communicated to the Host Tool so it knows where to write the configuration block and where to read the result.
 
 You must also implement the following functions:
 
-**`mem_read`** reads `size` bytes from the memory address `addr` into `buffer`:
-
 ```c
 csr_mem_status_t mem_read(uint32_t addr, uint8_t *buffer, size_t size);
-```
-
-
-**`mem_write`** writes `size` bytes from `data` to the memory address `addr`: 
-```c
 csr_mem_status_t mem_write(uint32_t addr, const uint8_t *data, size_t size);
 ```
+
+**`mem_read`** reads `size` bytes from the memory address `addr` into `buffer`. This is used to:
+- Read the X.509 certificate from memory (certificate verification mode)
+- Read the existing status code before writing (to avoid unnecessary flash writes)
+
+**`mem_write`** writes `size` bytes from `data` to the memory address `addr`. This is used to:
+- Write the generated CSR to the destination address
+- Write the operation status code to `el2go_spsdk_status`
 
 For all return values, refer to the `csr_mem_status_t` enum defined in `pal/inc/el2go_csr_memory.h`.
 
@@ -350,8 +349,7 @@ For all return values, refer to the `csr_mem_status_t` enum defined in `pal/inc/
 - The configuration block size is fixed at **124 bytes** (`EL2GO_CSR_CONF_DATA_SIZE`). Ensure the memory region reserved for `el2go_csr_conf_data` is at least this size.
 - Choose memory addresses that do not conflict with your linker sections, ITS storage, or other firmware regions.
 
-For a reference FLASH implementation, see `pal/boards/frdmmcxe31b/el2go_csr_flash_memory.c`
-For a reference RAM implementation, see `pal/boards/my_board/el2go_csr_ram_memory.c`
+For a reference implementation, see `pal/boards/frdmmcxe31b/el2go_csr_flash_memory.c`.
 
 ---
 
@@ -367,7 +365,7 @@ This function fills the PSA key attributes used when generating or accessing the
 
 The following attributes must be configured:
 - **Key ID** — use the key ID parsed from the configuration block
-- **Lifetime** — the key must persist across resets; use `PSA_KEY_LIFETIME_PERSISTENT` or a platform-specific persistent lifetime if your platform uses a hardware-backed key store (e.g., a secure enclave)
+- **Lifetime** — the key must persist across resets; use `PSA_KEY_LIFETIME_PERSISTENT` or a platform-specific persistent lifetime if your platform uses a hardware-backed key store (e.g., a secure element)
 - **Usage flags** — must include at minimum sign-hash and sign-message capabilities
 - **Algorithm** — the signing algorithm used for CSR generation and certificate verification (e.g., ECDSA with SHA-256)
 - **Key type** — the key pair type matching your chosen algorithm (e.g., ECC P-256)
@@ -375,7 +373,9 @@ The following attributes must be configured:
 
 > **Note:** The specific algorithm, key type, and key size are suggestions based on the reference implementation. These can be adapted to match your platform's capabilities and CA requirements, as long as the key attributes remain consistent with the challenge-response configuration in `get_challenge_response_config()`.
 
-For a reference implementation, see `pal/boards/my_board/el2go_csr_psa_key.c`
+> **Important:** The application uses **persistent PSA keys** (`PSA_KEY_LIFETIME_PERSISTENT`). This requires a properly configured Internal Trusted Storage (ITS) layer backed by MbedTLS. Ensure that the MbedTLS ITS implementation is initialized in `platform_init()` and that the underlying storage (e.g., flash) is correctly configured before `psa_crypto_init()` is called. Without a working ITS layer, key generation and retrieval will fail.
+
+For a reference implementation, see `pal/boards/frdmmcxe31b/el2go_csr_psa_key.c`.
 
 ---
 
@@ -390,6 +390,15 @@ mbedtls_md_type_t get_msg_digest_algo(void);
 Returns the MbedTLS message digest algorithm used for CSR generation. This is called by `generate_csr()` in `csr_util.c` to set the signature hash algorithm on the CSR.
 
 For most platforms, return `MBEDTLS_MD_SHA256`. Only change this if your platform's PSA Crypto backend does not support SHA-256 or if a different digest is required by your CA.
+
+**Reference implementation:**
+
+```c
+mbedtls_md_type_t get_msg_digest_algo(void)
+{
+    return MBEDTLS_MD_SHA256;
+}
+```
 
 ---
 
@@ -541,12 +550,30 @@ target_compile_definitions(el2go_csr_board_sdk PUBLIC
 )
 
 # Step 3: Linker script
-set_target_properties(el2go_csr_board_sdk PROPERTIES LINK_DEPENDS
+# Export the linker script path to the parent CMakeLists.txt via PARENT_SCOPE.
+# The root CMakeLists.txt passes it to the executable via target_link_options.
+set(EL2GO_LINKER_SCRIPT
     ${BOARD_SDK_PATH}/linker/<your_mcu>.ld
+    PARENT_SCOPE
 )
 ```
 
 Refer to `pal/boards/my_board/CMakeLists.txt` for the full annotated template.
+
+---
+
+### Porting Checklist
+
+| # | File | Function / Symbol | 
+|---|------|-------------------|
+| 1 | `el2go_csr_platform.c` | `platform_init()` | 
+| 2 | `el2go_csr_flash_memory.c` | `mem_read()`, `mem_write()`, `el2go_csr_conf_data`, `el2go_spsdk_status` |  
+| 3 | `el2go_csr_psa_key.c` | `fill_key_attributes()` | 
+| 4 | `el2go_csr_pal_util.c` | `get_msg_digest_algo()` |
+| 5 | `el2go_csr_challenge.c` | `get_challenge_response_config()` |
+| 6 | `el2go_csr_integrity_verifier.c` | `verify_integrity()` |
+| 7 | `inc/el2go_csr_bsp.h` | `PRINTF`, `SCANF` macros | 
+| 8 | `CMakeLists.txt` | `el2go_csr_board_sdk` target, `EL2GO_CSR_BOARD_SOURCES`, `EL2GO_CSR_BOARD_INCLUDE_DIRS` |
 
 ---
 

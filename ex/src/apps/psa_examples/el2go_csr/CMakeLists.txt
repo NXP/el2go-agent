@@ -151,6 +151,14 @@ add_executable(el2go_csr
     ${APP_DIR}/src/el2go_csr.c
 )
 
+target_link_options(el2go_csr PRIVATE
+    -T${EL2GO_LINKER_SCRIPT}
+)
+
+set_target_properties(el2go_csr PROPERTIES SUFFIX 
+    ".elf"
+)
+
 target_link_libraries(el2go_csr PRIVATE
     el2go_csr_lib
 )
