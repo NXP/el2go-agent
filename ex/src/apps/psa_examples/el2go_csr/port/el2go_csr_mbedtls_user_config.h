@@ -82,5 +82,7 @@
     #define MBEDTLS_X509_CSR_WRITE_C
 #endif 
 
+#include "el2go_csr_mbedtls_user_config_board.h"
+
 #endif /* __MBEDTLS_USER_CONFIG_H__ */
 

@@ -65,6 +65,10 @@ if(EXISTS "${EL2GO_CSR_MBEDTLS_PATH}/CMakeLists.txt")
         "${PORT_DIR}/el2go_csr_mbedtls_user_config.h" 
         CACHE FILEPATH "MbedTLS config" FORCE)
 
+    # Including the board specific mbedtls configs, acting as overlay to the main 
+    #  "${PORT_DIR}/el2go_csr_mbedtls_user_config.h" 
+    include_directories(${BOARD_DIR}/inc/)
+
     add_subdirectory(${EL2GO_CSR_MBEDTLS_PATH} ${CMAKE_BINARY_DIR}/mbedtls)
 else()
     message(FATAL_ERROR 
@@ -149,6 +153,9 @@ target_link_libraries(el2go_csr_lib PUBLIC
 # ==============================================================================
 add_executable(el2go_csr
     ${APP_DIR}/src/el2go_csr.c
+
+    # entropy fallback implementation, if no HW source is used. 
+    ${BOARD_DIR}/mbedtls_entropy_hardware_alt.c
 )
 
 target_link_options(el2go_csr PRIVATE

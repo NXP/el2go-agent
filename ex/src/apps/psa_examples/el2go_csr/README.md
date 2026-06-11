@@ -496,14 +496,35 @@ The `my_board` template defaults to standard `printf`/`scanf`, which is suitable
 
 **File to implement:** `pal/boards/<your_board>/inc/el2go_csr_mbedtls_user_config_board.h`
 
-This header provides board-specific MbedTLS feature enablement macros. It acts as an overlay on top of the root `port/el2go_csr_mbedtls_user_config.h`, which is the main MbedTLS configuration file used for the build. The root config does not include the board header, but can be added like followingly: 
+This header provides board-specific MbedTLS feature enablement macros. It acts as an overlay on top of the root `port/el2go_csr_mbedtls_user_config.h`, which is the main MbedTLS configuration file used for the build. The root config includes this board header at the end, like followingly:
 
 ```c
 /* in port/el2go_csr_mbedtls_user_config.h */
 #include "el2go_csr_mbedtls_user_config_board.h" 
 ```
 
+The board include directory (`pal/boards/<your_board>/inc/`) is automatically added to the include path by the CMake build system, so the root config can resolve this header at build time.
+
 Use this file to enable any MbedTLS modules that your platform requires but that are not already enabled in the root config. 
+
+---
+
+### PAL: `mbedtls_entropy_hardware_alt.c` — Hardware Entropy Source
+
+**File to implement:** `pal/boards/<your_board>/mbedtls_entropy_hardware_alt.c`
+
+When `MBEDTLS_ENTROPY_HARDWARE_ALT` is defined (e.g., in `el2go_csr_mbedtls_user_config_board.h`), MbedTLS requires a board-specific implementation of the following function:
+
+```c
+int mbedtls_hardware_poll(void *data, unsigned char *output,
+                          size_t len, size_t *olen);
+```
+
+This function is called by the MbedTLS entropy module to collect hardware entropy, which is required by PSA Crypto for key generation and random number operations. It must fill `output` with `len` bytes of entropy from a hardware source (e.g., a hardware RNG peripheral) and set `*olen` to the number of bytes written. Return `0` on success, non-zero on failure.
+
+The file is compiled directly into the `el2go_csr` executable by the root `CMakeLists.txt` via `${BOARD_DIR}/mbedtls_entropy_hardware_alt.c`.
+
+> **Important:** The `my_board` template provides a **dummy non-secure** implementation using a fixed seed. This is only a starting point to get the build working and **must not be used in production**. Replace it with a real hardware entropy source (e.g., your MCU's TRNG/RNG peripheral) before deploying to production.
 
 ---
 
@@ -588,8 +609,10 @@ Refer to `pal/boards/my_board/CMakeLists.txt` for the full annotated template.
 | 4 | `el2go_csr_pal_util.c` | `get_msg_digest_algo()` |
 | 5 | `el2go_csr_challenge.c` | `get_challenge_response_config()` |
 | 6 | `el2go_csr_integrity_verifier.c` | `verify_integrity()` |
-| 7 | `inc/el2go_csr_bsp.h` | `PRINTF`, `SCANF` macros |
-| 8 | `CMakeLists.txt` | `el2go_csr_board_sdk` target, `EL2GO_CSR_BOARD_SOURCES`, `EL2GO_CSR_BOARD_INCLUDE_DIRS`, `EL2GO_LINKER_SCRIPT` |
+| 7 | `inc/el2go_csr_bsp.h` | `PRINTF`, `SCANF` macros | 
+| 8 | `inc/el2go_csr_mbedtls_user_config_board.h` | MbedTLS required board-specific macros | 
+| 9 | `mbedtls_entropy_hardware_alt.c` | `mbedtls_hardware_poll()` — hardware entropy source |
+| 10 | `CMakeLists.txt` | `el2go_csr_board_sdk` target, `EL2GO_CSR_BOARD_SOURCES`, `EL2GO_CSR_BOARD_INCLUDE_DIRS`, `EL2GO_LINKER_SCRIPT` | 
 
 ---
 
