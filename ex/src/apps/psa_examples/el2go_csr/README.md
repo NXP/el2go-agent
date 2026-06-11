@@ -11,7 +11,7 @@ Additional information about EdgeLock 2GO X.509 Certificate Service for MCUs can
 ## Prerequisites
 
 - Active [EdgeLock 2GO](https://www.edgelock2go.com) account
-- [mbedTLS](https://github.com/Mbed-TLS/mbedtls) source
+- [MbedTLS](https://github.com/Mbed-TLS/mbedtls) source (version 3.x)
 - CMake >= 3.15 and a compatible C toolchain (e.g., ARM GCC, IAR, KEIL MDK)
 - A Host Tool capable of reading/writing device memory (e.g., J-Link Commander or OpenOCD)
 - Any serial terminal 
@@ -74,6 +74,13 @@ ex/src/apps/psa_examples/el2go_csr/
 ```bash
 git clone https://github.com/NXP/el2go-agent.git
 ```
+
+> **Note:** MbedTLS version **3.x** is required. When cloning MbedTLS, ensure you check out a 3.x release tag. Additionally, the following PSA header files must be present in the MbedTLS include path, as they are required by the application:
+> - `psa/error.h`
+> - `psa/internal_trusted_storage.h`
+> - `psa/storage_common.h`
+>
+> If these headers are not provided by your MbedTLS version or platform SDK, you must supply them separately and ensure they are reachable via the include directories configured in your board's `CMakeLists.txt`.
 
 ### 2. Create your board port
 
@@ -158,7 +165,7 @@ cmake --build build
 
 ### 7. Connect the Host Tool and flash the binaries to the target board
 
-Connect your debug probe / Host Tool to the board and open a serial terminal with your UART communication settings and load the configuration block binary to the predefined memory location. Additonally, use your Host Tool to download the application binary to the target. 
+Connect your debug probe / Host Tool to the board and open a serial terminal with your UART communication settings and load the configuration block binary to the predefined memory location. Additionally, use your Host Tool to download the application binary to the target.
 
 ## Running the Application
 
@@ -234,7 +241,7 @@ The typical workflow between the Host Tool and the device is:
 4. Application processes the request and writes results to memory
 5. Host Tool reads the CSR and the status code from device memory
 
-The memory addresses for `el2go_csr_conf_data` and `el2go_spsdk_status` are defined in the board-specific PAL implementation (see `el2go_csr_flash_memory.c` or equivalent in your board port). These addresses must be communicated to the Host Tool so it knows where to write the configuration block and where to read the result.
+The memory addresses for `el2go_csr_conf_data` and `el2go_spsdk_status` are defined in the board-specific PAL implementation. These addresses must be communicated to the Host Tool so it knows where to write the configuration block and where to read the result.
 
 ## Configuration Block Format
 
@@ -312,9 +319,9 @@ For a reference implementation, see `pal/boards/frdmmcxe31b/el2go_csr_platform.c
 
 ### PAL: `el2go_csr_memory.h` — Memory Read/Write
 
-**File to implement:** `pal/boards/<your_board>/el2go_csr_<storage>_memory.c`
+**File to implement:** `pal/boards/<your_board>/el2go_csr_flash_memory.c`
 
-This is the most critical PAL component. It abstracts all memory access (flash or RAM) and exposes three symbols that the application uses to communicate with the Host Tool:
+This is the most critical PAL component. It abstracts all memory access and exposes two symbols that the application uses to communicate with the Host Tool:
 
 ```c
 /* Pointer to the configuration block written by the Host Tool */
@@ -349,7 +356,7 @@ For all return values, refer to the `csr_mem_status_t` enum defined in `pal/inc/
 - The configuration block size is fixed at **124 bytes** (`EL2GO_CSR_CONF_DATA_SIZE`). Ensure the memory region reserved for `el2go_csr_conf_data` is at least this size.
 - Choose memory addresses that do not conflict with your linker sections, ITS storage, or other firmware regions.
 
-For a reference implementation, see `pal/boards/frdmmcxe31b/el2go_csr_flash_memory.c`.
+For a template flash implementation, see `pal/boards/my_board/el2go_csr_flash_memory.c`.
 
 ---
 
@@ -375,7 +382,7 @@ The following attributes must be configured:
 
 > **Important:** The application uses **persistent PSA keys** (`PSA_KEY_LIFETIME_PERSISTENT`). This requires a properly configured Internal Trusted Storage (ITS) layer backed by MbedTLS. Ensure that the MbedTLS ITS implementation is initialized in `platform_init()` and that the underlying storage (e.g., flash) is correctly configured before `psa_crypto_init()` is called. Without a working ITS layer, key generation and retrieval will fail.
 
-For a reference implementation, see `pal/boards/frdmmcxe31b/el2go_csr_psa_key.c`.
+For a reference implementation, see `pal/boards/my_board/el2go_csr_psa_key.c`.
 
 ---
 
@@ -390,15 +397,6 @@ mbedtls_md_type_t get_msg_digest_algo(void);
 Returns the MbedTLS message digest algorithm used for CSR generation. This is called by `generate_csr()` in `csr_util.c` to set the signature hash algorithm on the CSR.
 
 For most platforms, return `MBEDTLS_MD_SHA256`. Only change this if your platform's PSA Crypto backend does not support SHA-256 or if a different digest is required by your CA.
-
-**Reference implementation:**
-
-```c
-mbedtls_md_type_t get_msg_digest_algo(void)
-{
-    return MBEDTLS_MD_SHA256;
-}
-```
 
 ---
 
@@ -494,6 +492,21 @@ The `my_board` template defaults to standard `printf`/`scanf`, which is suitable
 
 ---
 
+### PAL: `el2go_csr_mbedtls_user_config_board.h` — Board-Specific MbedTLS Configuration
+
+**File to implement:** `pal/boards/<your_board>/inc/el2go_csr_mbedtls_user_config_board.h`
+
+This header provides board-specific MbedTLS feature enablement macros. It acts as an overlay on top of the root `port/el2go_csr_mbedtls_user_config.h`, which is the main MbedTLS configuration file used for the build. The root config does not include the board header, but can be added like followingly: 
+
+```c
+/* in port/el2go_csr_mbedtls_user_config.h */
+#include "el2go_csr_mbedtls_user_config_board.h" 
+```
+
+Use this file to enable any MbedTLS modules that your platform requires but that are not already enabled in the root config. 
+
+---
+
 ### OSAL: `el2go_csr_osal.h` — OS Initialization
 
 **File:** `osal/baremetal/src/el2go_csr_osal.c` (already provided, no changes needed for baremetal)
@@ -524,7 +537,10 @@ set(BOARD_SDK_PATH "" CACHE PATH "Path to the board/vendor SDK")
 
 # Step 1: Export board sources
 file(GLOB _board_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
-set(EL2GO_CSR_BOARD_SOURCES ${_board_sources} PARENT_SCOPE)
+set(EL2GO_CSR_BOARD_SOURCES
+    ${_board_sources}
+    PARENT_SCOPE
+)
 
 set(EL2GO_CSR_BOARD_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/inc
@@ -566,14 +582,14 @@ Refer to `pal/boards/my_board/CMakeLists.txt` for the full annotated template.
 
 | # | File | Function / Symbol | 
 |---|------|-------------------|
-| 1 | `el2go_csr_platform.c` | `platform_init()` | 
-| 2 | `el2go_csr_flash_memory.c` | `mem_read()`, `mem_write()`, `el2go_csr_conf_data`, `el2go_spsdk_status` |  
-| 3 | `el2go_csr_psa_key.c` | `fill_key_attributes()` | 
+| 1 | `el2go_csr_platform.c` | `platform_init()` |
+| 2 | `el2go_csr_flash_memory.c` | `mem_read()`, `mem_write()`, `el2go_csr_conf_data`, `el2go_spsdk_status` |
+| 3 | `el2go_csr_psa_key.c` | `fill_key_attributes()` |
 | 4 | `el2go_csr_pal_util.c` | `get_msg_digest_algo()` |
 | 5 | `el2go_csr_challenge.c` | `get_challenge_response_config()` |
 | 6 | `el2go_csr_integrity_verifier.c` | `verify_integrity()` |
-| 7 | `inc/el2go_csr_bsp.h` | `PRINTF`, `SCANF` macros | 
-| 8 | `CMakeLists.txt` | `el2go_csr_board_sdk` target, `EL2GO_CSR_BOARD_SOURCES`, `EL2GO_CSR_BOARD_INCLUDE_DIRS` |
+| 7 | `inc/el2go_csr_bsp.h` | `PRINTF`, `SCANF` macros |
+| 8 | `CMakeLists.txt` | `el2go_csr_board_sdk` target, `EL2GO_CSR_BOARD_SOURCES`, `EL2GO_CSR_BOARD_INCLUDE_DIRS`, `EL2GO_LINKER_SCRIPT` |
 
 ---
 
