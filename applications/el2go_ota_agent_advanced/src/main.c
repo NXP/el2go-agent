@@ -1,4 +1,3 @@
-/* Same as core for now — advanced logic added in a future ticket. */
 // SPDX-License-Identifier: Apache-2.0
 /*
  * Copyright 2026 NXP
@@ -9,7 +8,10 @@
 
 int main(void)
 {
-	fwual_init();
-	el2go_ota_lib_init();
-	return 0;
+    if (fwual_init() != FWUAL_OK)
+        return 1;
+
+    if (el2go_ota_lib_init() != EL2GO_STATUS_SUCCESS)
+        return 1;
+    return 0;
 }
