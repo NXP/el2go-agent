@@ -131,7 +131,7 @@ function usage() {
 # Get the git root directory
 GIT_TOPLEVEL=$(get_toplevel)
 
-# Install checkpatch if not present
+# Install clang if not present
 if [[ ! -x $(command -v "${GIT_CLANGFORMAT}") ]]; then
   install_clang "$GIT_TOPLEVEL"/.tmp
 fi
