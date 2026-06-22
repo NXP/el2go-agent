@@ -29,6 +29,26 @@ void register_el2go_rtp_tests(void);
 void register_datastore_tests(void);
 
 /**
+ * @brief Register all FWUAL library tests.
+ */
+void register_fwual_tests(void);
+
+/**
+ * @brief Register all EL2GO OTA Library tests.
+ */
+void register_ota_lib_tests(void);
+
+/**
+ * @brief Register all el2go_ota_agent_core tests.
+ */
+void register_ota_agent_core_tests(void);
+
+/**
+ * @brief Register all el2go_ota_agent_advanced tests.
+ */
+void register_ota_agent_advanced_tests(void);
+
+/**
  * @brief Register all net_crypto tests.
  */
 void register_net_crypto_tests(void);

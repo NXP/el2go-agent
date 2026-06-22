@@ -15,6 +15,7 @@ static void print_usage(const char *prog_name)
     printf("Options:\n");
     printf("  -s, --suite=<name>    Run only tests from specified suite\n");
     printf("                        (el2go_rtp, datastore, net_crypto)\n");
+    printf("                         fwual, ota_lib, ota_agent_core, ota_agent_advanced)\n");
     printf("  -a, --all             Run all tests (default)\n");
     printf("  -h, --help            Show this help message\n");
 }
@@ -62,6 +63,18 @@ int main(int argc, char **argv)
 
     if (!suite || strcmp(suite, "net_crypto") == 0)
         register_net_crypto_tests();
+
+    if (!suite || strcmp(suite, "fwual") == 0)
+        register_fwual_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_tests();
+
+    if (!suite || strcmp(suite, "ota_agent_core") == 0)
+        register_ota_agent_core_tests();
+
+    if (!suite || strcmp(suite, "ota_agent_advanced") == 0)
+        register_ota_agent_advanced_tests();
 
     /* Run all registered tests */
     return test_framework_run();

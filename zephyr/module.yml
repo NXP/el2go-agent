@@ -4,3 +4,5 @@ build:
   kconfig: zephyr/Kconfig
 samples:
   - zephyr/samples
+tests:
+  - zephyr/tests

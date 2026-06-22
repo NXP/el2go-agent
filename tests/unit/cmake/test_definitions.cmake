@@ -23,6 +23,10 @@ add_unit_test(unit_public_platform ${PUBLIC_TEST_EXECUTABLE} platform public)
 add_unit_test(unit_public_el2go_rtp ${PUBLIC_TEST_EXECUTABLE} el2go_rtp public)
 add_unit_test(unit_public_datastore ${PUBLIC_TEST_EXECUTABLE} datastore public)
 add_unit_test(unit_public_keystore ${PUBLIC_TEST_EXECUTABLE} keystore public)
+add_unit_test(unit_public_fwual ${PUBLIC_TEST_EXECUTABLE} fwual public)
+add_unit_test(unit_public_ota_lib ${PUBLIC_TEST_EXECUTABLE} ota_lib public)
+add_unit_test(unit_public_ota_agent_core ${PUBLIC_TEST_EXECUTABLE} ota_agent_core public)
+add_unit_test(unit_public_ota_agent_advanced ${PUBLIC_TEST_EXECUTABLE} ota_agent_advanced public)
 
 # Register internal tests with CTest
 add_unit_test(unit_internal_platform ${INTERNAL_TEST_EXECUTABLE} platform internal)
@@ -30,3 +34,7 @@ add_unit_test(unit_internal_el2go_rtp ${INTERNAL_TEST_EXECUTABLE} el2go_rtp inte
 add_unit_test(unit_internal_datastore ${INTERNAL_TEST_EXECUTABLE} datastore internal)
 add_unit_test(unit_internal_keystore ${INTERNAL_TEST_EXECUTABLE} keystore internal)
 add_unit_test(unit_internal_net_crypto ${INTERNAL_TEST_EXECUTABLE} net_crypto internal)
+add_unit_test(unit_internal_fwual ${INTERNAL_TEST_EXECUTABLE} fwual internal)
+add_unit_test(unit_internal_ota_lib ${INTERNAL_TEST_EXECUTABLE} ota_lib internal)
+add_unit_test(unit_internal_ota_agent_core ${INTERNAL_TEST_EXECUTABLE} ota_agent_core internal)
+add_unit_test(unit_internal_ota_agent_advanced ${INTERNAL_TEST_EXECUTABLE} ota_agent_advanced internal)

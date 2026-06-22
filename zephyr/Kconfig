@@ -10,3 +10,8 @@ config EL2GO_OTA_LIBRARY_SOURCES
     bool "Include EL2GO OTA Library sources"
     help
       Includes the EL2GO OTA Library sources in the application build.
+
+config EL2GO_OTA_TESTS
+    bool "Include EL2GO OTA unit test sources"
+    help
+      Includes the OTA unit test sources in the Zephyr test build.

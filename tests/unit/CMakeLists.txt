@@ -42,19 +42,43 @@ add_subdirectory(public_net_crypto)
 # Collect internal transport tests
 add_subdirectory(internal_net_crypto)
 
+# Collect public fwual tests
+add_subdirectory(public_fwual)
+
+# Collect internal fwual tests
+add_subdirectory(internal_fwual)
+
+# Collect public ota_lib tests
+add_subdirectory(public_ota_lib)
+
+# Collect internal ota_lib tests
+add_subdirectory(internal_ota_lib)
+
+# Collect public ota_agent_core tests
+add_subdirectory(public_ota_agent_core)
+
+# Collect internal ota_agent_core tests
+add_subdirectory(internal_ota_agent_core)
+
+# Collect public ota_agent_advanced tests
+add_subdirectory(public_ota_agent_advanced)
+
+# Collect internal ota_agent_advanced tests
+add_subdirectory(internal_ota_agent_advanced)
+
 # ============================================================================
 # Test sources organized by type
 # ============================================================================
 
 # Public API tests - only test what external users can access
 set(PUBLIC_API_TEST_SOURCES
-    main.c
+    osal/linux/linux_main.c
     ${PUBLIC_TEST_SOURCES}
 )
 
 # Internal/implementation tests - test internal details
 set(INTERNAL_API_TEST_SOURCES
-    main.c
+    osal/linux/linux_main.c
     ${INTERNAL_TEST_SOURCES}
 )
 
@@ -83,6 +107,8 @@ target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
     PRIVATE
         unit_test_framework
         el2go_rtp
+        fwual
+        el2go_ota_lib
 )
 
 # ============================================================================
