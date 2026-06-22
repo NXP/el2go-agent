@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: Apache-2.0 */
 /*
  * Copyright 2020-2021, 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
 #ifndef __EL2GO_RTP_CERTIFICATES_H__

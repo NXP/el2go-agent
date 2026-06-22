@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: BSD-3-Clause */
 /*
  * Copyright 2022, 2024, 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
 /* Automatically generated nanopb header */

@@ -1,3 +1,8 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 # MbedTLS 2.x does not export a cmake configuration
 include(FindPkgConfig)
 

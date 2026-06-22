@@ -1,3 +1,8 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 project(el2go_rtp VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 

@@ -1,6 +1,8 @@
-// SPDX-License-Identifier: Apache-2.0
 /*
  * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
 #include "rtp/el2go_rtp.h"

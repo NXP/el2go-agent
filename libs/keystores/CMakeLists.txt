@@ -1,3 +1,8 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 # Keystore object library
 add_library(el2go_keystore OBJECT
     el2go_keystore.c

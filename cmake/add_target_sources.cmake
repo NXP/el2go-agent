@@ -1,5 +1,7 @@
 # Copyright 2026 NXP
+#
 # SPDX-License-Identifier: Apache-2.0
+#
 
 # Wrappers that dispatch to the correct CMake API depending on whether
 # we are building as a Zephyr module (BUILD_ZEPHYR=1) or as a plain

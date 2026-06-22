@@ -1,5 +1,7 @@
 # Copyright 2026 NXP
+#
 # SPDX-License-Identifier: Apache-2.0
+#
 
 # Sources shared between the bare-metal and Zephyr builds.
 # Zephyr-only or bare-metal-only files are added directly in their

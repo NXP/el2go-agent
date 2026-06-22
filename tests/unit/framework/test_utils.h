@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: Apache-2.0 */
 /*
  * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  */
 #ifndef __TEST_UTILS_H__
 #define __TEST_UTILS_H__

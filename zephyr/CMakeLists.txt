@@ -1,5 +1,7 @@
 # Copyright 2026 NXP
+#
 # SPDX-License-Identifier: Apache-2.0
+#
 
 # This file is the Zephyr module entry point for nxp_iot_agent.
 # BUILD_ZEPHYR=1 is set here so that library CMakeLists.txt files

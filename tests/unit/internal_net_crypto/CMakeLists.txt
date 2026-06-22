@@ -1,5 +1,7 @@
-# SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 
 # Collect internal net_crypto test sources
 set(INTERNAL_TEST_SOURCES

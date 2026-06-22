@@ -1,3 +1,8 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 # EdgeLock 2GO protobuf definitions
 add_library(el2go_protobuf OBJECT
     Agent.pb.c

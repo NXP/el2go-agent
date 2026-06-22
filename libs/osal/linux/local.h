@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: BSD-3-Clause */
 /*
  * Copyright 2021-2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
 #ifndef __LOCAL_H__

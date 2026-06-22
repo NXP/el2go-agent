@@ -1,6 +1,8 @@
-// SPDX-License-Identifier: Apache-2.0
 /*
  * Copyright 2022, 2024, 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
 /* Automatically generated nanopb constant definitions */

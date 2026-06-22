@@ -1,3 +1,8 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 # Nanopb runtime library
 add_library(nanopb STATIC
     pb_common.c

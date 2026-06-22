@@ -1,4 +1,8 @@
-# Platform-specific sources
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 set(PLATFORM_SOURCES
     el2go_platform.c
     plat_crypto_params.c

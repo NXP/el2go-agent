@@ -1,3 +1,8 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 # Find SMW library
 find_package(NXP_SMW REQUIRED)
 if(NXP_SMW_FOUND)

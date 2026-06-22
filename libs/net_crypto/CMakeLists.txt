@@ -1,3 +1,8 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 # Common source files
 set(NET_CRYPTO_SOURCES
     net_crypto.c

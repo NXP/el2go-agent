@@ -1,5 +1,7 @@
-# SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 project(el2go_unit_tests VERSION 1.0 LANGUAGES C)
@@ -12,7 +14,6 @@ enable_testing()
 # ============================================================================
 # Build the unit test framework first
 # ============================================================================
-# Unit test framework
 add_subdirectory(framework)
 
 # ============================================================================

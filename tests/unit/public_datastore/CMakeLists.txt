@@ -1,3 +1,8 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 # Public API test sources
 set(PUBLIC_TEST_SOURCES
         ${PUBLIC_TEST_SOURCES}

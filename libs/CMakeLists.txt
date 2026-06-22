@@ -1,3 +1,7 @@
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 
 # Add common component subdirectories (shared between main libraries)
 add_subdirectory(protobuf)

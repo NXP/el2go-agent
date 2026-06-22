@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: BSD-3-Clause */
 /*
  * Copyright 2020-2024, 2026 NXP
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  */
 
 #ifndef __DEBUG_H__
