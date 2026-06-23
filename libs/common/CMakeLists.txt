@@ -4,6 +4,8 @@
 
 add_library(el2go_common OBJECT
     el2go_service.c
+    el2go_server_certificates.c
+    el2go_server_connection.c
 )
 
 target_include_directories(el2go_common

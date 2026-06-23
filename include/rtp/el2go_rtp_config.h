@@ -23,8 +23,6 @@
  * @{
  */
 
-#include "rtp/el2go_rtp_certificates.h"
-
 /**
  * @brief Maximum number of datastores
  *
@@ -87,50 +85,14 @@
 #define EL2GO_RTP_EDGELOCK2GO_PORT 443U
 #endif
 
-#ifdef EL2GO_RTP_ENABLE_SANDBOX_TEST
-/* Test / Sandbox certificates */
+/** @brief Maximum size of the self-signed client certificate in bytes */
+#ifndef EL2GO_RTP_CLIENT_CERT_MAX_SIZE
+#define EL2GO_RTP_CLIENT_CERT_MAX_SIZE 1024U
+#endif
 
-/**
- * @brief Trusted root CA certificates for sandbox environment
- *
- * Array of DER-encoded certificates used to verify EdgeLock 2GO server
- * in sandbox/test environment.
- */
-#define EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES                                                 \
-    {                                                                                          \
-        EL2GO_RTP_TRUSTED_ROOT_CA_CERT_RSA_SANDBOX, EL2GO_RTP_TRUSTED_ROOT_CA_CERT_ECC_SANDBOX \
-    }
-
-/**
- * @brief Total size of trusted root CA certificates for sandbox
- *
- * Combined size of all certificates in EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES.
- */
-#define EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES_SIZE   \
-    EL2GO_RTP_TRUSTED_ROOT_CA_CERT_RSA_SANDBOX_SIZE + \
-        EL2GO_RTP_TRUSTED_ROOT_CA_CERT_ECC_SANDBOX_SIZE
-#else
-/* Production certificates */
-
-/**
- * @brief Trusted root CA certificates for production environment
- *
- * Array of DER-encoded certificates used to verify EdgeLock 2GO server
- * in production environment.
- */
-#define EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES                                           \
-    {                                                                                    \
-        EL2GO_RTP_TRUSTED_ROOT_CA_CERT_RSA_PROD, EL2GO_RTP_TRUSTED_ROOT_CA_CERT_ECC_PROD \
-    }
-
-/**
- * @brief Total size of trusted root CA certificates for production
- *
- * Combined size of all certificates in EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES.
- * This must match the certificates configured above.
- */
-#define EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES_SIZE \
-    EL2GO_RTP_TRUSTED_ROOT_CA_CERT_RSA_PROD_SIZE + EL2GO_RTP_TRUSTED_ROOT_CA_CERT_ECC_PROD_SIZE
+/** @brief Certificate subject used for client certificate generation */
+#ifndef EL2GO_RTP_SUBJECT
+#define EL2GO_RTP_SUBJECT "CN=EdgeLock2GO,O=NXP"
 #endif
 
 /** @} */ /* end of el2go_rtp_config */

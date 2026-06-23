@@ -15,6 +15,7 @@
 #include "net_crypto.h"
 #include "common/el2go_platform.h"
 #include "rtp/el2go_rtp_config.h"
+#include "el2go_server_certificates.h"
 
 #include "test_framework.h"
 #include "test_utils.h"
@@ -39,7 +40,7 @@
 #define TEST_SUBJECT "CN=TestDevice,O=NXP"
 
 /** @brief Trusted root CA certificates loaded from the RTP configuration. */
-static const uint8_t trusted_root_ca_certs[] = EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES;
+static const uint8_t trusted_root_ca_certs[] = { EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES };
 
 /** @brief Size in bytes of @ref trusted_root_ca_certs. */
 static const size_t trusted_root_ca_certs_size = EL2GO_RTP_TRUSTED_ROOT_CA_CERTIFICATES_SIZE;

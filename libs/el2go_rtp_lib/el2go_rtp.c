@@ -11,13 +11,161 @@
 #include <inttypes.h>
 
 #include "rtp/el2go_rtp.h"
+#include "rtp/el2go_rtp_config.h"
 #include "common/el2go_status.h"
 
-#include "el2go_rtp_internal.h"
 #include "compiler.h"
 #include "osal.h"
 #include "debug.h"
+#include "builtin_macros.h"
 
+#include "net_crypto.h"
+#include "el2go_server_certificates.h"
+#include "el2go_server_connection.h"
+
+#include "keystore_priv.h"
+#include "platform_priv.h"
+
+#include "pb.h"
+
+#include "el2go_rtp_internal.h"
+
+__export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
+                                                  el2go_keystore_t *keystore_ctx,
+                                                  const el2go_rtp_datastore_config_t *config)
+{
+    el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
+    const char *hostname = NULL;
+    uint16_t port = 0;
+    pb_bytes_array_t *cert_array = NULL;
+    const pb_bytes_array_t *cert = NULL;
+    bool user_provided = false;
+    uint32_t key_id = 0;
+    uint8_t *device_uuid = NULL;
+    size_t device_uuid_len = 0;
+    PB_BYTES_ARRAY_T(EL2GO_RTP_CLIENT_CERT_MAX_SIZE) client_cert_buf = { 0 };
+    pb_bytes_array_t *client_cert_array = (pb_bytes_array_t *)&client_cert_buf;
+    size_t client_cert_len = EL2GO_RTP_CLIENT_CERT_MAX_SIZE;
+
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (!datastore || !keystore_ctx || !config)
+        goto exit;
+
+    /* Use hostname and port from config if both are set,
+     * otherwise fall back to defaults for both.
+     * Hostname and port must be provided together. */
+    if (config->hostname && config->hostname[0] != '\0' && config->port != 0) {
+        hostname = config->hostname;
+        port = config->port;
+        user_provided = true;
+        EL2GO_DBG_PRINTF(VERBOSE, "Using hostname and port from config\n");
+    } else {
+        hostname = EL2GO_RTP_EDGELOCK2GO_HOSTNAME;
+        port = EL2GO_RTP_EDGELOCK2GO_PORT;
+        EL2GO_DBG_PRINTF(VERBOSE,
+                         "No hostname/port in config, "
+                         "using defaults: %s:%u\n",
+                         hostname, port);
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Using EdgeLock 2GO server: %s:%u\n", hostname, port);
+
+    if (user_provided &&
+        !el2go_conn_datastore_needs_update(datastore, hostname, port, config->certificate)) {
+        status = EL2GO_STATUS_SUCCESS;
+        goto exit;
+    }
+
+    /* Get the ECC key ID from the keystore */
+    status = el2go_keystore_get_el2go_key_id(keystore_ctx, &key_id);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to get EL2GO key ID: 0x%04x\n", status);
+        goto exit;
+    }
+
+    /* Try to get client certificate from keystore/platform first */
+    status = el2go_keystore_get_el2go_cert(keystore_ctx, client_cert_buf.bytes, &client_cert_len);
+    if (status == EL2GO_STATUS_CERT_NOT_AVAILABLE) {
+        EL2GO_DBG_PRINTF(VERBOSE, "No platform certificate, generating self-signed\n");
+
+        /* Get device UUID from platform */
+        status =
+            el2go_platform_get_uuid(keystore_ctx->platform_ctx, &device_uuid, &device_uuid_len);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR, "Failed to get device UUID: 0x%04x\n", status);
+            goto exit;
+        }
+
+        /* Generate self-signed client certificate */
+        status = net_crypto_self_signed_cert(EL2GO_RTP_SUBJECT, key_id, device_uuid,
+                                             device_uuid_len, client_cert_buf.bytes,
+                                             &client_cert_len);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR, "Failed to generate self-signed certificate: 0x%04x\n", status);
+            goto exit;
+        }
+
+        EL2GO_DBG_PRINTF(VERBOSE, "Generated self-signed client certificate (%zu bytes)\n",
+                         client_cert_len);
+    } else if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to get client certificate from keystore: 0x%04x\n", status);
+        goto exit;
+    } else {
+        EL2GO_DBG_PRINTF(VERBOSE, "Using keystore client certificate (%zu bytes)\n",
+                         client_cert_len);
+    }
+
+    client_cert_buf.size = (pb_size_t)client_cert_len;
+
+    /* Build pb_bytes_array_t for the certificate.
+     * Certificate is independent of hostname/port -
+     * can be provided in any situation. */
+    if (config->certificate && config->certificate->data && config->certificate->len > 0) {
+        cert_array = (pb_bytes_array_t *)osal_calloc(
+            1, PB_BYTES_ARRAY_T_ALLOCSIZE(config->certificate->len));
+        if (!cert_array) {
+            status = EL2GO_STATUS_ALLOCATION_ERROR;
+            goto exit;
+        }
+        cert_array->size = (pb_size_t)config->certificate->len;
+        memcpy(cert_array->bytes, config->certificate->data, config->certificate->len);
+        cert = cert_array;
+        user_provided = true;
+        EL2GO_DBG_PRINTF(VERBOSE, "Using certificate from config (%zu bytes)\n",
+                         config->certificate->len);
+    } else {
+        cert = el2go_get_default_certs();
+        EL2GO_DBG_PRINTF(VERBOSE, "No certificate in config, using default\n");
+    }
+
+    if (user_provided &&
+        !el2go_conn_datastore_needs_update(datastore, hostname, port, config->certificate)) {
+        status = EL2GO_STATUS_SUCCESS;
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Updating EdgeLock 2GO datastore with %s:%u\n", hostname, port);
+
+    status = el2go_conn_write_datastore(datastore, keystore_ctx, hostname, port, cert, key_id,
+                                        client_cert_array);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR,
+                         "Failed to write EdgeLock 2GO datastore: "
+                         "0x%04x\n",
+                         status);
+        goto exit;
+    }
+
+exit:
+    if (cert_array)
+        osal_free(cert_array);
+    if (device_uuid)
+        osal_free(device_uuid);
+
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
+}
 /**
  * get_datastore_index_by_id - Get datastore index by identifier
  * @ctx: RTP agent context
@@ -429,26 +577,6 @@ __export el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx, char *uu
 
     if (!ctx || !uuid_buffer || !buffer_size)
         goto exit;
-
-    status = EL2GO_STATUS_SUCCESS;
-
-exit:
-    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
-    return status;
-}
-
-__export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
-                                                  el2go_keystore_t *keystore_ctx,
-                                                  const el2go_rtp_datastore_config_t *config)
-{
-    el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
-
-    EL2GO_DBG_TRACE_API_CALL;
-
-    if (!datastore || !keystore_ctx || !config)
-        goto exit;
-
-    /* TODO: Implement EdgeLock 2GO configuration */
 
     status = EL2GO_STATUS_SUCCESS;
 

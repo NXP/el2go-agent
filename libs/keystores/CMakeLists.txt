@@ -12,9 +12,9 @@ add_library(el2go_keystore OBJECT)
 
 # Set keystore-specific include directory
 target_include_directories(el2go_keystore
-    PRIVATE
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/${KEYSTORE}
+    PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/priv
         ${CMAKE_SOURCE_DIR}/libs/osal/include

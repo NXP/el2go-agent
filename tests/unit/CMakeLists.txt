@@ -85,6 +85,7 @@ set(PUBLIC_API_TEST_SOURCES
 # Internal/implementation tests - test internal details
 set(INTERNAL_API_TEST_SOURCES
     osal/linux/linux_main.c
+    ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_rtp.c
     ${INTERNAL_TEST_SOURCES}
 )
 
@@ -132,21 +133,21 @@ target_include_directories(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib
-        ${CMAKE_SOURCE_DIR}/libs/net_crypto
-        ${CMAKE_SOURCE_DIR}/libs/platforms
-        ${CMAKE_SOURCE_DIR}/libs/platforms/${PLATFORM}
-        ${CMAKE_SOURCE_DIR}/libs/datastores/plain
-        ${CMAKE_SOURCE_DIR}/libs/datastores/fs
-        ${CMAKE_SOURCE_DIR}/libs/keystores
-        ${CMAKE_SOURCE_DIR}/libs/keystores/${KEYSTORE}
-        ${CMAKE_SOURCE_DIR}/libs/protobuf/nanopb
-        ${CMAKE_SOURCE_DIR}/libs/protobuf/el2go
+	${CMAKE_SOURCE_DIR}/include
+	${CMAKE_SOURCE_DIR}/priv
 )
 
 target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
         unit_test_framework
-        _el2go_rtp_internal
+        el2go_platform
+        el2go_platform
+        el2go_keystore
+        el2go_datastore
+        osal
+        el2go_protobuf
+        net_crypto
+        el2go_common
 )
 
 # ============================================================================

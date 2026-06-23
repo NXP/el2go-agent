@@ -7,52 +7,6 @@ cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 project(el2go_rtp VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 
 # ============================================================================
-# INTERNAL STATIC LIBRARY - FOR TESTING ONLY (NOT EXPORTED)
-# ============================================================================
-# This is a STATIC library that contains all object files
-# This library is NEVER installed or exported
-# All symbols are visible for testing purposes
-# ============================================================================
-if(BUILD_TESTING)
-    set(INTERNAL_LIB_NAME _${PROJECT_NAME}_internal)
-
-    add_library(${INTERNAL_LIB_NAME} STATIC
-        el2go_rtp.c
-    )
-
-    # Provide both public and private headers to tests
-    target_include_directories(${INTERNAL_LIB_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/priv>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/osal/include>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/net_crypto>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/platforms>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    )
-
-    # link to external libraries
-    target_link_libraries(${INTERNAL_LIB_NAME} INTERFACE ${EXT_LIBS})
-
-    target_link_libraries(${INTERNAL_LIB_NAME}
-        PRIVATE
-            $<TARGET_OBJECTS:el2go_platform>
-            $<TARGET_OBJECTS:net_crypto>
-            el2go_keystore
-            el2go_datastore
-            osal
-            el2go_protobuf
-            el2go_common
-        PUBLIC
-            net_crypto  # This propagates the link dependencies
-    )
-
-    # All symbols visible in static library (no hiding)
-    set_target_properties(${INTERNAL_LIB_NAME} PROPERTIES
-        C_VISIBILITY_PRESET default
-    )
-endif()
-
-# ============================================================================
 # PUBLIC LIBRARY - THIS IS EXPORTED
 # ============================================================================
 add_library(${PROJECT_NAME}
@@ -75,19 +29,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # Private include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/priv
-    ${CMAKE_SOURCE_DIR}/libs/osal/include
-    ${CMAKE_SOURCE_DIR}/libs/net_crypto
-    ${CMAKE_SOURCE_DIR}/libs/platforms
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-
-# link to external libraries
-target_link_libraries(${PROJECT_NAME} INTERFACE ${EXT_LIBS})
 
 # Link to internal object libraries
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        el2go_platform
         el2go_platform
         el2go_keystore
         el2go_datastore
@@ -95,6 +42,7 @@ target_link_libraries(${PROJECT_NAME}
         el2go_protobuf
         net_crypto
         el2go_common
+        $<TARGET_PROPERTY:el2go_platform,INTERFACE_LINK_LIBRARIES>
 )
 
 # ============================================================================
@@ -120,7 +68,6 @@ install(FILES
 # Install public headers - rtp
 install(FILES
     ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_config.h
-    ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_certificates.h
     ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtp
 )

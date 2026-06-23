@@ -25,6 +25,7 @@
 
 #include "common/el2go_keystore.h"
 #include "platform_priv.h"
+#include "plat_keys.h"
 
 #define EL2GO_MAX_KEY_DATA_SIZE (10 * 1024)
 
@@ -443,4 +444,21 @@ exit:
 
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
+}
+
+el2go_status_t el2go_keystore_get_el2go_key_id(el2go_keystore_t *keystore, uint32_t *key_id)
+{
+    if (!keystore || !key_id)
+        return EL2GO_STATUS_INVALID_PARAMETER;
+
+    return el2go_platform_get_el2go_key_id(keystore->platform_ctx, key_id);
+}
+
+el2go_status_t el2go_keystore_get_el2go_cert(el2go_keystore_t *keystore, uint8_t *cert,
+                                             size_t *cert_len)
+{
+    if (!keystore || !cert || !cert_len)
+        return EL2GO_STATUS_INVALID_PARAMETER;
+
+    return el2go_platform_get_el2go_cert(keystore->platform_ctx, cert, cert_len);
 }

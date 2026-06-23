@@ -13,8 +13,9 @@ add_library(net_crypto OBJECT ${NET_CRYPTO_SOURCES})
 
 # Set include directories
 target_include_directories(net_crypto
-    PRIVATE
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/priv
         ${CMAKE_SOURCE_DIR}/libs/osal/include
@@ -31,6 +32,3 @@ if(CRYPTO_BACKEND)
 else()
     message(STATUS "Building net_crypto with weak stubs only")
 endif()
-
-set(EXT_LIBS_STATIC ${EXT_LIBS_STATIC} PARENT_SCOPE)
-set(EXT_LIBS ${EXT_LIBS} PARENT_SCOPE)
