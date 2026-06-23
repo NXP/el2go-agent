@@ -21,7 +21,6 @@
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_datastore_plain_create(el2go_datastore_t *datastore,
-					    const char *basename);
+el2go_status_t el2go_datastore_plain_create(el2go_datastore_t *datastore, const char *basename);
 
 #endif /* __EL2GO_DATASTORE_PLAIN_H__ */

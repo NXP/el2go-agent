@@ -36,8 +36,7 @@ size_t osal_fread(void *ptr, size_t size, size_t nmemb, osal_file_t *file)
     return 0;
 }
 
-size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
-           osal_file_t *file)
+size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb, osal_file_t *file)
 {
     (void)ptr;
     (void)size;
@@ -46,8 +45,7 @@ size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
     return 0;
 }
 
-el2go_status_t osal_fseek(osal_file_t *file, long offset,
-              osal_seek_origin_t origin)
+el2go_status_t osal_fseek(osal_file_t *file, long offset, osal_seek_origin_t origin)
 {
     (void)file;
     (void)offset;

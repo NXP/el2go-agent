@@ -44,10 +44,9 @@ typedef uint16_t mbedtls_compat_group_id_t;
  * This macro resolves to the minimum of the two.
  */
 #if !defined(MBEDTLS_SSL_MAX_CONTENT_LEN)
-#define MBEDTLS_SSL_MAX_CONTENT_LEN                                 \
-	(MBEDTLS_SSL_IN_CONTENT_LEN < MBEDTLS_SSL_OUT_CONTENT_LEN ? \
-		 MBEDTLS_SSL_IN_CONTENT_LEN :                       \
-		 MBEDTLS_SSL_OUT_CONTENT_LEN)
+#define MBEDTLS_SSL_MAX_CONTENT_LEN                                                          \
+    (MBEDTLS_SSL_IN_CONTENT_LEN < MBEDTLS_SSL_OUT_CONTENT_LEN ? MBEDTLS_SSL_IN_CONTENT_LEN : \
+                                                                MBEDTLS_SSL_OUT_CONTENT_LEN)
 #endif
 
 /** @} */ /* end of mbedtls_compat_v4 */

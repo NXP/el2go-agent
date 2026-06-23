@@ -10,14 +10,14 @@
 
 __weak el2go_cipher_list_t el2go_platform_get_cipher_suites(void)
 {
-	el2go_cipher_list_t list = { .suites = NULL, .count = 0 };
+    el2go_cipher_list_t list = { .suites = NULL, .count = 0 };
 
-	return list;
+    return list;
 }
 
 __weak el2go_curve_list_t el2go_platform_get_curves(void)
 {
-	el2go_curve_list_t list = { .curves = NULL, .count = 0 };
+    el2go_curve_list_t list = { .curves = NULL, .count = 0 };
 
-	return list;
+    return list;
 }

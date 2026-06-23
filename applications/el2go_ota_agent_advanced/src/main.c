@@ -15,5 +15,6 @@ int main(void)
 
     if (el2go_ota_lib_init() != EL2GO_STATUS_SUCCESS)
         return 1;
+
     return 0;
 }

@@ -91,8 +91,8 @@ typedef struct mbedtls_compat_rng_context mbedtls_compat_rng_context;
  *
  * @return 0 on success, negative error code on failure.
  */
-int mbedtls_compat_rng_init(mbedtls_compat_rng_context **ctx,
-			    const unsigned char *pers, size_t pers_len);
+int mbedtls_compat_rng_init(mbedtls_compat_rng_context **ctx, const unsigned char *pers,
+                            size_t pers_len);
 
 /**
  * @brief Free RNG context.
@@ -109,8 +109,7 @@ void mbedtls_compat_rng_free(mbedtls_compat_rng_context *ctx);
  *
  * @return 0 on success, negative error code on failure.
  */
-int mbedtls_compat_ssl_conf_rng(mbedtls_ssl_config *conf,
-				mbedtls_compat_rng_context *rng_ctx);
+int mbedtls_compat_ssl_conf_rng(mbedtls_ssl_config *conf, mbedtls_compat_rng_context *rng_ctx);
 
 /* ========================================================================== */
 /* PK (Public Key) Functions                                                   */
@@ -155,8 +154,7 @@ int mbedtls_compat_pk_has_key(const mbedtls_pk_context *pk);
  * @return 0 on success, negative error code on failure.
  */
 int mbedtls_compat_x509write_crt_set_serial(mbedtls_x509write_cert *ctx,
-					    const unsigned char *serial,
-					    size_t serial_len);
+                                            const unsigned char *serial, size_t serial_len);
 
 /**
  * @brief Write certificate in DER format.
@@ -172,9 +170,8 @@ int mbedtls_compat_x509write_crt_set_serial(mbedtls_x509write_cert *ctx,
  *
  * @return Number of bytes written on success, negative error code on failure.
  */
-int mbedtls_compat_x509write_crt_der(mbedtls_x509write_cert *ctx,
-				     unsigned char *buf, size_t size,
-				     mbedtls_compat_rng_context *rng_ctx);
+int mbedtls_compat_x509write_crt_der(mbedtls_x509write_cert *ctx, unsigned char *buf, size_t size,
+                                     mbedtls_compat_rng_context *rng_ctx);
 
 /* ========================================================================== */
 /* SSL Configuration - Curves/Groups                                           */
@@ -191,7 +188,7 @@ int mbedtls_compat_x509write_crt_der(mbedtls_x509write_cert *ctx,
  * @param[in] groups  NULL-terminated array of group IDs.
  */
 void mbedtls_compat_ssl_conf_groups(mbedtls_ssl_config *conf,
-				    const mbedtls_compat_group_id_t *groups);
+                                    const mbedtls_compat_group_id_t *groups);
 
 /* ========================================================================== */
 /* Cipher Suite Mapping                                                        */

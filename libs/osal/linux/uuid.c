@@ -10,8 +10,8 @@
 
 el2go_status_t osal_uuid(uint8_t **uuid, size_t *uuid_len)
 {
-	(void)uuid;
-	(void)uuid_len;
+    (void)uuid;
+    (void)uuid_len;
 
-	return EL2GO_STATUS_NOT_IMPLEMENTED;
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
 }

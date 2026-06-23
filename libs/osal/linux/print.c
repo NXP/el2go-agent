@@ -21,116 +21,116 @@ static FILE *stddebug;
 
 void set_log_file(void)
 {
-	FILE *f = NULL;
-	const char *file_name = getenv("EL2GO_LOG_FILE");
+    FILE *f = NULL;
+    const char *file_name = getenv("EL2GO_LOG_FILE");
 
-	stddebug = stderr;
+    stddebug = stderr;
 
-	if (file_name) {
-		f = fopen(file_name, "w");
-		if (f)
-			stddebug = f;
-	}
+    if (file_name) {
+        f = fopen(file_name, "w");
+        if (f)
+            stddebug = f;
+    }
 }
 
 void set_log_level(void)
 {
-	char level[128] = { 0 };
-	char *end_ptr = NULL;
-	const char *tmp_ptr = NULL;
-	unsigned long value = 0;
+    char level[128] = { 0 };
+    char *end_ptr = NULL;
+    const char *tmp_ptr = NULL;
+    unsigned long value = 0;
 
-	tmp_ptr = getenv("EL2GO_LOG_LEVEL");
+    tmp_ptr = getenv("EL2GO_LOG_LEVEL");
 
-	if (tmp_ptr) {
-		(void)strncpy(level, tmp_ptr, sizeof(level) - 1);
-		value = strtoul(level, &end_ptr, 0);
-		if (!value && end_ptr == level)
-			return;
+    if (tmp_ptr) {
+        (void)strncpy(level, tmp_ptr, sizeof(level) - 1);
+        value = strtoul(level, &end_ptr, 0);
+        if (!value && end_ptr == level)
+            return;
 
-		if (SET_OVERFLOW(value, log_level))
-			log_level = DBG_LEVEL_NONE;
-	}
+        if (SET_OVERFLOW(value, log_level))
+            log_level = DBG_LEVEL_NONE;
+    }
 }
 
 void osal_printf(unsigned int level, const char *fmt, ...)
 {
-	va_list args;
+    va_list args;
 
-	if (level > log_level)
-		return;
+    if (level > log_level)
+        return;
 
-	va_start(args, fmt);
-	(void)vfprintf(stddebug, fmt, args);
-	va_end(args);
-	(void)fflush(stddebug);
+    va_start(args, fmt);
+    (void)vfprintf(stddebug, fmt, args);
+    va_end(args);
+    (void)fflush(stddebug);
 }
 
 int osal_sprintf(char *str, const char *format, ...)
 {
-	va_list args;
-	int ret = 0;
+    va_list args;
+    int ret = 0;
 
-	if (!str || !format)
-		return -1;
+    if (!str || !format)
+        return -1;
 
-	va_start(args, format);
-	ret = vsprintf(str, format, args);
-	va_end(args);
+    va_start(args, format);
+    ret = vsprintf(str, format, args);
+    va_end(args);
 
-	if (ret < 0)
-		return -1;
+    if (ret < 0)
+        return -1;
 
-	return ret;
+    return ret;
 }
 
 int osal_snprintf(char *str, size_t size, const char *format, ...)
 {
-	va_list args;
-	int ret = 0;
+    va_list args;
+    int ret = 0;
 
-	if (!str || !format || size == 0)
-		return -1;
+    if (!str || !format || size == 0)
+        return -1;
 
-	va_start(args, format);
-	ret = vsnprintf(str, size, format, args);
-	va_end(args);
+    va_start(args, format);
+    ret = vsnprintf(str, size, format, args);
+    va_end(args);
 
-	if (ret < 0)
-		return -1;
+    if (ret < 0)
+        return -1;
 
-	return ret;
+    return ret;
 }
 
 void osal_hex_dump(unsigned int level, const void *buffer, size_t length)
 {
-	const unsigned char *buf = (const unsigned char *)buffer;
-	size_t i = 0;
+    const unsigned char *buf = (const unsigned char *)buffer;
+    size_t i = 0;
 
-	if (level > log_level)
-		return;
+    if (level > log_level)
+        return;
 
-	if (!buffer) {
-		(void)fprintf(stddebug, "(null)\n");
-		return;
-	}
+    if (!buffer) {
+        (void)fprintf(stddebug, "(null)\n");
+        return;
+    }
 
-	if (!length) {
-		(void)fprintf(stddebug, "(empty)\n");
-		return;
-	}
+    if (!length) {
+        (void)fprintf(stddebug, "(empty)\n");
+        return;
+    }
 
-	for (; i < length; i++) {
-		(void)fprintf(stddebug, "%02x", buf[i]);
+    for (; i < length; i++) {
+        (void)fprintf(stddebug, "%02x", buf[i]);
 
-		if ((i + 1) % HEX_DUMP_LINE_LENGTH == 0)
-			(void)fprintf(stddebug, "\n");
-		else if (i < length - 1)
-			(void)fprintf(stddebug, " ");
-	}
+        if ((i + 1) % HEX_DUMP_LINE_LENGTH == 0)
+            (void)fprintf(stddebug, "\n");
+        else if (i < length - 1)
+            (void)fprintf(stddebug, " ");
+    }
 
-	if (length % HEX_DUMP_LINE_LENGTH)
-		(void)fprintf(stddebug, "\n");
+    if (length % HEX_DUMP_LINE_LENGTH)
+        (void)fprintf(stddebug, "\n");
 
-	(void)fflush(stddebug);
+    (void)fflush(stddebug);
 }

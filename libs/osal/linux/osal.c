@@ -10,6 +10,6 @@
 
 void osal_lib_init(void)
 {
-	set_log_file();
-	set_log_level();
+    set_log_file();
+    set_log_level();
 }

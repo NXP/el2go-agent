@@ -89,8 +89,7 @@ fwual_result_t fwual_close_session(fwual_session_t *session);
  * @retval FWUAL_ERR_UNSUPPORTED if image_id is unknown to the backend or
  *   update_type is FWUAL_UPDATE_DELTA on a backend without delta support
  */
-fwual_result_t fwual_prepare_image(fwual_session_t *session,
-                   const fwual_image_desc_t *desc);
+fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_desc_t *desc);
 
 /**
  * @brief Optional early capacity check for a prepared image
@@ -105,8 +104,7 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session,
  * @retval FWUAL_OK if sufficient storage is available
  * @retval FWUAL_ERR_NO_SPACE if capacity is insufficient
  */
-fwual_result_t fwual_check_storage(fwual_session_t *session,
-                   fwual_image_id_t image_id);
+fwual_result_t fwual_check_storage(fwual_session_t *session, fwual_image_id_t image_id);
 
 /**
  * @brief Cancels a prepared image and discards its staged data
@@ -122,8 +120,7 @@ fwual_result_t fwual_check_storage(fwual_session_t *session,
  * @retval FWUAL_OK upon success
  * @retval FWUAL_ERR_INVALID_STATE if the image was not prepared in this session
  */
-fwual_result_t fwual_cancel_image(fwual_session_t *session,
-                  fwual_image_id_t image_id);
+fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t image_id);
 
 /**
  * @brief Writes a contiguous block of image data at a logical offset
@@ -149,8 +146,8 @@ fwual_result_t fwual_cancel_image(fwual_session_t *session,
  *   is out-of-order when sequential writes are required
  * @retval FWUAL_ERR_IO upon storage write failure
  */
-fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id,
-               uint64_t offset, const uint8_t *data, size_t len);
+fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id, uint64_t offset,
+                           const uint8_t *data, size_t len);
 
 /**
  * @brief Signals that all data for an image has been written
@@ -167,8 +164,7 @@ fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id,
  * @retval FWUAL_ERR_INVALID_STATE if the image was not prepared or the total
  *   bytes written do not match the declared image size
  */
-fwual_result_t fwual_finalize_image(fwual_session_t *session,
-                  fwual_image_id_t image_id);
+fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_image_id_t image_id);
 
 /**
  * @brief Verifies the integrity of a finalized image
@@ -189,8 +185,7 @@ fwual_result_t fwual_finalize_image(fwual_session_t *session,
  * @retval FWUAL_ERR_CORRUPT if the computed hash does not match expected_hash
  * @retval FWUAL_ERR_INVALID_STATE if the image was not finalized
  */
-fwual_result_t fwual_verify_image(fwual_session_t *session,
-                  fwual_image_id_t image_id);
+fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image_id_t image_id);
 
 /**
  * @brief Atomically commits all prepared and verified images in the session
@@ -283,8 +278,7 @@ fwual_state_t fwual_get_state(void);
  * @retval FWUAL_OK upon success (including truncated case)
  * @retval FWUAL_ERR_INVALID_PARAM if list or in_out_count is NULL
  */
-fwual_result_t fwual_list_installed(fwual_installed_image_t *list,
-                    size_t *in_out_count);
+fwual_result_t fwual_list_installed(fwual_installed_image_t *list, size_t *in_out_count);
 
 /**
  * @brief Queries whether an image is fully written and verified in the current session

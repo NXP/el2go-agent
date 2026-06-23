@@ -25,7 +25,7 @@
  */
 void register_net_crypto_tests(void)
 {
-	/* No public API tests for net_crypto - it's an internal library */
+    /* No public API tests for net_crypto - it's an internal library */
 }
 
 /** @} */ /* end of test_net_crypto_public */

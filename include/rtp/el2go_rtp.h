@@ -26,13 +26,11 @@ typedef struct el2go_rtp_ctx el2go_rtp_ctx_t;
 /*
  * EdgeLock 2GO datastore configuration
  */
-/* clang-format off */
 typedef struct el2go_rtp_datastore_config {
-	const char *hostname;                    /* Server hostname */
-	uint16_t port;                           /* Server port */
-	const el2go_buffer_t *certificate; /* Server certificate */
+    const char *hostname;              /* Server hostname */
+    uint16_t port;                     /* Server port */
+    const el2go_buffer_t *certificate; /* Server certificate */
 } el2go_rtp_datastore_config_t;
-/* clang-format on */
 
 /**
  * el2go_rtp_get_version - Get RTP Agent version information
@@ -73,8 +71,7 @@ el2go_status_t el2go_rtp_free(el2go_rtp_ctx_t **ctx);
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_keystore_add(el2go_rtp_ctx_t *ctx,
-				      el2go_keystore_t *keystore_ctx);
+el2go_status_t el2go_rtp_keystore_add(el2go_rtp_ctx_t *ctx, el2go_keystore_t *keystore_ctx);
 
 /**
  * el2go_rtp_keystore_remove - Remove a keystore from the RTP Agent
@@ -87,8 +84,7 @@ el2go_status_t el2go_rtp_keystore_add(el2go_rtp_ctx_t *ctx,
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_keystore_remove(el2go_rtp_ctx_t *ctx,
-					 el2go_keystore_t *keystore_ctx);
+el2go_status_t el2go_rtp_keystore_remove(el2go_rtp_ctx_t *ctx, el2go_keystore_t *keystore_ctx);
 
 /**
  * el2go_rtp_datastore_add - Add a datastore to the RTP Agent
@@ -101,8 +97,7 @@ el2go_status_t el2go_rtp_keystore_remove(el2go_rtp_ctx_t *ctx,
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_datastore_add(el2go_rtp_ctx_t *ctx,
-				       el2go_datastore_t *datastore);
+el2go_status_t el2go_rtp_datastore_add(el2go_rtp_ctx_t *ctx, el2go_datastore_t *datastore);
 
 /**
  * el2go_rtp_datastore_remove - Remove a datastore from the RTP Agent
@@ -114,8 +109,7 @@ el2go_status_t el2go_rtp_datastore_add(el2go_rtp_ctx_t *ctx,
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_datastore_remove(el2go_rtp_ctx_t *ctx,
-					  el2go_datastore_t *datastore);
+el2go_status_t el2go_rtp_datastore_remove(el2go_rtp_ctx_t *ctx, el2go_datastore_t *datastore);
 
 /**
  * el2go_rtp_get_datastore_by_id - Get a datastore by its identifier
@@ -131,7 +125,7 @@ el2go_status_t el2go_rtp_datastore_remove(el2go_rtp_ctx_t *ctx,
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_rtp_get_datastore_by_id(el2go_rtp_ctx_t *ctx, uint32_t id,
-					     el2go_datastore_t **datastore);
+                                             el2go_datastore_t **datastore);
 
 /**
   * el2go_rtp_provision - Provision keys and certificates from server
@@ -148,8 +142,7 @@ el2go_status_t el2go_rtp_get_datastore_by_id(el2go_rtp_ctx_t *ctx, uint32_t id,
   * Return:
   * EL2GO_STATUS_SUCCESS on success, error code otherwise
   */
-el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx,
-				   el2go_verbosity_t verbosity);
+el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, el2go_verbosity_t verbosity);
 
 /**
  * el2go_rtp_get_device_uuid - Get device UUID in hexadecimal format
@@ -164,9 +157,8 @@ el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx,
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx,
-					 char *uuid_buffer,
-					 size_t *buffer_size);
+el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx, char *uuid_buffer,
+                                         size_t *buffer_size);
 
 /**
  * el2go_rtp_datastore_el2go - Configure EdgeLock 2GO datastore
@@ -182,9 +174,8 @@ el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx,
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t
-el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
-			  el2go_keystore_t *keystore_ctx,
-			  const el2go_rtp_datastore_config_t *config);
+el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
+                                         el2go_keystore_t *keystore_ctx,
+                                         const el2go_rtp_datastore_config_t *config);
 
 #endif /* __EL2GO_RTP_H__ */

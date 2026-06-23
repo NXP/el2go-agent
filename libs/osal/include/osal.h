@@ -15,14 +15,12 @@
 #include "common/el2go_status.h"
 
 /* Debug levels */
-// clang-format off
-#define DBG_LEVEL_NONE    0 /* No trace */
-#define DBG_LEVEL_ERROR   1 /* Failures of which the user must be aware */
-#define DBG_LEVEL_INFO    2 /* Traces which could interest the user */
-#define DBG_LEVEL_DEBUG   3 /* First level of debugging information */
+#define DBG_LEVEL_NONE 0    /* No trace */
+#define DBG_LEVEL_ERROR 1   /* Failures of which the user must be aware */
+#define DBG_LEVEL_INFO 2    /* Traces which could interest the user */
+#define DBG_LEVEL_DEBUG 3   /* First level of debugging information */
 #define DBG_LEVEL_VERBOSE 4 /* Second level of debugging information */
-#define DBG_LEVEL_EXTRA   5 /* Maximum level of debugging information */
-// clang-format on
+#define DBG_LEVEL_EXTRA 5   /* Maximum level of debugging information */
 
 /**
  * File seek origin - Specifies the reference position for file seeking
@@ -31,11 +29,7 @@
  * @OSAL_SEEK_CUR: Seek from the current file position
  * @OSAL_SEEK_END: Seek from the end of the file
  */
-typedef enum {
-  OSAL_SEEK_SET = 0,
-  OSAL_SEEK_CUR,
-  OSAL_SEEK_END
-} osal_seek_origin_t;
+typedef enum { OSAL_SEEK_SET = 0, OSAL_SEEK_CUR, OSAL_SEEK_END } osal_seek_origin_t;
 
 /* Opaque file handle */
 typedef struct osal_file osal_file_t;
@@ -165,8 +159,7 @@ size_t osal_fread(void *ptr, size_t size, size_t nmemb, osal_file_t *file);
  * Return:
  * Number of elements successfully written
  */
-size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
-       osal_file_t *file);
+size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb, osal_file_t *file);
 
 /**
  * osal_fseek - Set file position indicator
@@ -179,8 +172,7 @@ size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
  * Return:
  * error code.
  */
-el2go_status_t osal_fseek(osal_file_t *file, long offset,
-        osal_seek_origin_t origin);
+el2go_status_t osal_fseek(osal_file_t *file, long offset, osal_seek_origin_t origin);
 
 /**
  * osal_ftell - Get current file position

@@ -39,8 +39,7 @@
  * @param fmt    printf-style format string.
  * @param ...    Variable arguments for the format string.
  */
-#define TEST_PRINT(stream, fmt, ...) \
-	(void)fprintf(stream, "[EL2GO-TEST] " fmt, ##__VA_ARGS__)
+#define TEST_PRINT(stream, fmt, ...) (void)fprintf(stream, "[EL2GO-TEST] " fmt, ##__VA_ARGS__)
 
 /**
  * @def TEST_PRINT_RAW(fmt, ...)
@@ -63,9 +62,8 @@
  * @param fmt printf-style format string.
  * @param ... Variable arguments for the format string.
  */
-#define TEST_PRINT_FAIL(fmt, ...)                                        \
-	TEST_PRINT(stdout, "FAIL: %s:%d: " fmt "\n", __FILE__, __LINE__, \
-		   ##__VA_ARGS__)
+#define TEST_PRINT_FAIL(fmt, ...) \
+    TEST_PRINT(stdout, "FAIL: %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 /**
  * @def TEST_PRINT_INFO(fmt, ...)
@@ -76,8 +74,7 @@
  * @param fmt printf-style format string.
  * @param ... Variable arguments for the format string.
  */
-#define TEST_PRINT_INFO(fmt, ...) \
-	TEST_PRINT(stdout, "[INFO] " fmt "\n", ##__VA_ARGS__)
+#define TEST_PRINT_INFO(fmt, ...) TEST_PRINT(stdout, "[INFO] " fmt "\n", ##__VA_ARGS__)
 
 /**
  * @def TEST_PRINT_WARN(fmt, ...)
@@ -88,8 +85,7 @@
  * @param fmt printf-style format string.
  * @param ... Variable arguments for the format string.
  */
-#define TEST_PRINT_WARN(fmt, ...) \
-	TEST_PRINT(stderr, "[WARN] " fmt "\n", ##__VA_ARGS__)
+#define TEST_PRINT_WARN(fmt, ...) TEST_PRINT(stderr, "[WARN] " fmt "\n", ##__VA_ARGS__)
 
 /**
  * @def TEST_PRINT_ERROR(fmt, ...)
@@ -100,8 +96,7 @@
  * @param fmt printf-style format string.
  * @param ... Variable arguments for the format string.
  */
-#define TEST_PRINT_ERROR(fmt, ...) \
-	TEST_PRINT(stderr, "[ERROR] " fmt "\n", ##__VA_ARGS__)
+#define TEST_PRINT_ERROR(fmt, ...) TEST_PRINT(stderr, "[ERROR] " fmt "\n", ##__VA_ARGS__)
 
 /**
  * @def TEST_PRINT_DEBUG(fmt, ...)
@@ -112,8 +107,7 @@
  * @param fmt printf-style format string.
  * @param ... Variable arguments for the format string.
  */
-#define TEST_PRINT_DEBUG(fmt, ...) \
-	TEST_PRINT(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
+#define TEST_PRINT_DEBUG(fmt, ...) TEST_PRINT(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
 
 /**
  * @def TEST_PRINT_RESULT(result, name)
@@ -122,8 +116,7 @@
  * @param result Test result string (e.g. @c "PASS" or @c "FAIL").
  * @param name   Test name string.
  */
-#define TEST_PRINT_RESULT(result, name) \
-	TEST_PRINT(stdout, "[RESULT] [ %s ] %s\n", result, name)
+#define TEST_PRINT_RESULT(result, name) TEST_PRINT(stdout, "[RESULT] [ %s ] %s\n", result, name)
 
 /* ============================================================================
  * Test Macros
@@ -136,13 +129,13 @@
  *
  * @param condition Expression to evaluate.
  */
-#define TEST_ASSERT(condition)                                               \
-	do {                                                                 \
-		if (!(condition)) {                                          \
-			TEST_PRINT_FAIL("Assertion failed: %s", #condition); \
-			return false;                                        \
-		}                                                            \
-	} while (0)
+#define TEST_ASSERT(condition)                                   \
+    do {                                                         \
+        if (!(condition)) {                                      \
+            TEST_PRINT_FAIL("Assertion failed: %s", #condition); \
+            return false;                                        \
+        }                                                        \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_EQUAL(expected, actual)
@@ -151,14 +144,13 @@
  * @param expected Expected integer value.
  * @param actual   Actual integer value.
  */
-#define TEST_ASSERT_EQUAL(expected, actual)                              \
-	do {                                                             \
-		if ((expected) != (actual)) {                            \
-			TEST_PRINT_FAIL("Expected %d, got %d",           \
-					(int)(expected), (int)(actual)); \
-			return false;                                    \
-		}                                                        \
-	} while (0)
+#define TEST_ASSERT_EQUAL(expected, actual)                                         \
+    do {                                                                            \
+        if ((expected) != (actual)) {                                               \
+            TEST_PRINT_FAIL("Expected %d, got %d", (int)(expected), (int)(actual)); \
+            return false;                                                           \
+        }                                                                           \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NOT_EQUAL(expected, actual)
@@ -167,14 +159,13 @@
  * @param expected Value that @p actual must not equal.
  * @param actual   Actual integer value.
  */
-#define TEST_ASSERT_NOT_EQUAL(expected, actual)                     \
-	do {                                                        \
-		if ((expected) == (actual)) {                       \
-			TEST_PRINT_FAIL("Expected not equal to %d", \
-					(int)(expected));           \
-			return false;                               \
-		}                                                   \
-	} while (0)
+#define TEST_ASSERT_NOT_EQUAL(expected, actual)                           \
+    do {                                                                  \
+        if ((expected) == (actual)) {                                     \
+            TEST_PRINT_FAIL("Expected not equal to %d", (int)(expected)); \
+            return false;                                                 \
+        }                                                                 \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NULL(ptr)
@@ -182,13 +173,13 @@
  *
  * @param ptr Pointer to check.
  */
-#define TEST_ASSERT_NULL(ptr)                                     \
-	do {                                                      \
-		if ((ptr) != NULL) {                              \
-			TEST_PRINT_FAIL("Expected NULL pointer"); \
-			return false;                             \
-		}                                                 \
-	} while (0)
+#define TEST_ASSERT_NULL(ptr)                         \
+    do {                                              \
+        if ((ptr) != NULL) {                          \
+            TEST_PRINT_FAIL("Expected NULL pointer"); \
+            return false;                             \
+        }                                             \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NOT_NULL(ptr)
@@ -196,13 +187,13 @@
  *
  * @param ptr Pointer to check.
  */
-#define TEST_ASSERT_NOT_NULL(ptr)                                     \
-	do {                                                          \
-		if ((ptr) == NULL) {                                  \
-			TEST_PRINT_FAIL("Expected non-NULL pointer"); \
-			return false;                                 \
-		}                                                     \
-	} while (0)
+#define TEST_ASSERT_NOT_NULL(ptr)                         \
+    do {                                                  \
+        if ((ptr) == NULL) {                              \
+            TEST_PRINT_FAIL("Expected non-NULL pointer"); \
+            return false;                                 \
+        }                                                 \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_PTR_EQUAL(expected, actual)
@@ -211,14 +202,13 @@
  * @param expected Expected pointer value.
  * @param actual   Actual pointer value.
  */
-#define TEST_ASSERT_PTR_EQUAL(expected, actual)                                \
-	do {                                                                   \
-		if ((expected) != (actual)) {                                  \
-			TEST_PRINT_FAIL("Expected pointer %p, got %p",         \
-					(void *)(expected), (void *)(actual)); \
-			return false;                                          \
-		}                                                              \
-	} while (0)
+#define TEST_ASSERT_PTR_EQUAL(expected, actual)                                                   \
+    do {                                                                                          \
+        if ((expected) != (actual)) {                                                             \
+            TEST_PRINT_FAIL("Expected pointer %p, got %p", (void *)(expected), (void *)(actual)); \
+            return false;                                                                         \
+        }                                                                                         \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_STRING_EQUAL(expected, actual)
@@ -229,14 +219,13 @@
  * @param expected Expected C string.
  * @param actual   Actual C string.
  */
-#define TEST_ASSERT_STRING_EQUAL(expected, actual)                     \
-	do {                                                           \
-		if (strcmp((expected), (actual)) != 0) {               \
-			TEST_PRINT_FAIL("Expected \"%s\", got \"%s\"", \
-					(expected), (actual));         \
-			return false;                                  \
-		}                                                      \
-	} while (0)
+#define TEST_ASSERT_STRING_EQUAL(expected, actual)                                \
+    do {                                                                          \
+        if (strcmp((expected), (actual)) != 0) {                                  \
+            TEST_PRINT_FAIL("Expected \"%s\", got \"%s\"", (expected), (actual)); \
+            return false;                                                         \
+        }                                                                         \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_MEMORY_EQUAL(expected, actual, size)
@@ -248,13 +237,13 @@
  * @param actual   Pointer to actual memory region.
  * @param size     Number of bytes to compare.
  */
-#define TEST_ASSERT_MEMORY_EQUAL(expected, actual, size)             \
-	do {                                                         \
-		if (memcmp((expected), (actual), (size)) != 0) {     \
-			TEST_PRINT_FAIL("Memory comparison failed"); \
-			return false;                                \
-		}                                                    \
-	} while (0)
+#define TEST_ASSERT_MEMORY_EQUAL(expected, actual, size) \
+    do {                                                 \
+        if (memcmp((expected), (actual), (size)) != 0) { \
+            TEST_PRINT_FAIL("Memory comparison failed"); \
+            return false;                                \
+        }                                                \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_GOTO(condition, label)
@@ -263,14 +252,14 @@
  * @param condition Expression to evaluate.
  * @param label     Label to jump to on failure.
  */
-#define TEST_ASSERT_GOTO(condition, label)                                   \
-	do {                                                                 \
-		if (!(condition)) {                                          \
-			TEST_PRINT_FAIL("Assertion failed: %s", #condition); \
-			test_status = false;                                 \
-			goto label;                                          \
-		}                                                            \
-	} while (0)
+#define TEST_ASSERT_GOTO(condition, label)                       \
+    do {                                                         \
+        if (!(condition)) {                                      \
+            TEST_PRINT_FAIL("Assertion failed: %s", #condition); \
+            test_status = false;                                 \
+            goto label;                                          \
+        }                                                        \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_EQUAL_GOTO(expected, actual, label)
@@ -280,15 +269,14 @@
  * @param actual   Actual integer value.
  * @param label    Label to jump to on failure.
  */
-#define TEST_ASSERT_EQUAL_GOTO(expected, actual, label)                  \
-	do {                                                             \
-		if ((expected) != (actual)) {                            \
-			TEST_PRINT_FAIL("Expected %d, got %d",           \
-					(int)(expected), (int)(actual)); \
-			test_status = false;                             \
-			goto label;                                      \
-		}                                                        \
-	} while (0)
+#define TEST_ASSERT_EQUAL_GOTO(expected, actual, label)                             \
+    do {                                                                            \
+        if ((expected) != (actual)) {                                               \
+            TEST_PRINT_FAIL("Expected %d, got %d", (int)(expected), (int)(actual)); \
+            test_status = false;                                                    \
+            goto label;                                                             \
+        }                                                                           \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NOT_EQUAL_GOTO(expected, actual, label)
@@ -298,15 +286,14 @@
  * @param actual   Actual integer value.
  * @param label    Label to jump to on failure.
  */
-#define TEST_ASSERT_NOT_EQUAL_GOTO(expected, actual, label)         \
-	do {                                                        \
-		if ((expected) == (actual)) {                       \
-			TEST_PRINT_FAIL("Expected not equal to %d", \
-					(int)(expected));           \
-			test_status = false;                        \
-			goto label;                                 \
-		}                                                   \
-	} while (0)
+#define TEST_ASSERT_NOT_EQUAL_GOTO(expected, actual, label)               \
+    do {                                                                  \
+        if ((expected) == (actual)) {                                     \
+            TEST_PRINT_FAIL("Expected not equal to %d", (int)(expected)); \
+            test_status = false;                                          \
+            goto label;                                                   \
+        }                                                                 \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NULL_GOTO(ptr, label)
@@ -315,14 +302,14 @@
  * @param ptr   Pointer to check.
  * @param label Label to jump to on failure.
  */
-#define TEST_ASSERT_NULL_GOTO(ptr, label)                         \
-	do {                                                      \
-		if ((ptr) != NULL) {                              \
-			TEST_PRINT_FAIL("Expected NULL pointer"); \
-			test_status = false;                      \
-			goto label;                               \
-		}                                                 \
-	} while (0)
+#define TEST_ASSERT_NULL_GOTO(ptr, label)             \
+    do {                                              \
+        if ((ptr) != NULL) {                          \
+            TEST_PRINT_FAIL("Expected NULL pointer"); \
+            test_status = false;                      \
+            goto label;                               \
+        }                                             \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NOT_NULL_GOTO(ptr, label)
@@ -331,14 +318,14 @@
  * @param ptr   Pointer to check.
  * @param label Label to jump to on failure.
  */
-#define TEST_ASSERT_NOT_NULL_GOTO(ptr, label)                         \
-	do {                                                          \
-		if ((ptr) == NULL) {                                  \
-			TEST_PRINT_FAIL("Expected non-NULL pointer"); \
-			test_status = false;                          \
-			goto label;                                   \
-		}                                                     \
-	} while (0)
+#define TEST_ASSERT_NOT_NULL_GOTO(ptr, label)             \
+    do {                                                  \
+        if ((ptr) == NULL) {                              \
+            TEST_PRINT_FAIL("Expected non-NULL pointer"); \
+            test_status = false;                          \
+            goto label;                                   \
+        }                                                 \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_PTR_EQUAL_GOTO(expected, actual, label)
@@ -349,15 +336,14 @@
  * @param actual   Actual pointer value.
  * @param label    Label to jump to on failure.
  */
-#define TEST_ASSERT_PTR_EQUAL_GOTO(expected, actual, label)                    \
-	do {                                                                   \
-		if ((expected) != (actual)) {                                  \
-			TEST_PRINT_FAIL("Expected pointer %p, got %p",         \
-					(void *)(expected), (void *)(actual)); \
-			test_status = false;                                   \
-			goto label;                                            \
-		}                                                              \
-	} while (0)
+#define TEST_ASSERT_PTR_EQUAL_GOTO(expected, actual, label)                                       \
+    do {                                                                                          \
+        if ((expected) != (actual)) {                                                             \
+            TEST_PRINT_FAIL("Expected pointer %p, got %p", (void *)(expected), (void *)(actual)); \
+            test_status = false;                                                                  \
+            goto label;                                                                           \
+        }                                                                                         \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_STRING_EQUAL_GOTO(expected, actual, label)
@@ -368,15 +354,14 @@
  * @param actual   Actual C string.
  * @param label    Label to jump to on failure.
  */
-#define TEST_ASSERT_STRING_EQUAL_GOTO(expected, actual, label)         \
-	do {                                                           \
-		if (strcmp((expected), (actual)) != 0) {               \
-			TEST_PRINT_FAIL("Expected \"%s\", got \"%s\"", \
-					(expected), (actual));         \
-			test_status = false;                           \
-			goto label;                                    \
-		}                                                      \
-	} while (0)
+#define TEST_ASSERT_STRING_EQUAL_GOTO(expected, actual, label)                    \
+    do {                                                                          \
+        if (strcmp((expected), (actual)) != 0) {                                  \
+            TEST_PRINT_FAIL("Expected \"%s\", got \"%s\"", (expected), (actual)); \
+            test_status = false;                                                  \
+            goto label;                                                           \
+        }                                                                         \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_MEMORY_EQUAL_GOTO(expected, actual, size, label)
@@ -389,13 +374,13 @@
  * @param label    Label to jump to on failure.
  */
 #define TEST_ASSERT_MEMORY_EQUAL_GOTO(expected, actual, size, label) \
-	do {                                                         \
-		if (memcmp((expected), (actual), (size)) != 0) {     \
-			TEST_PRINT_FAIL("Memory comparison failed"); \
-			test_status = false;                         \
-			goto label;                                  \
-		}                                                    \
-	} while (0)
+    do {                                                             \
+        if (memcmp((expected), (actual), (size)) != 0) {             \
+            TEST_PRINT_FAIL("Memory comparison failed");             \
+            test_status = false;                                     \
+            goto label;                                              \
+        }                                                            \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_CONTINUE(condition)
@@ -403,13 +388,13 @@
  *
  * @param condition Expression to evaluate.
  */
-#define TEST_ASSERT_CONTINUE(condition)                                      \
-	do {                                                                 \
-		if (!(condition)) {                                          \
-			TEST_PRINT_FAIL("Assertion failed: %s", #condition); \
-			test_status = false;                                 \
-		}                                                            \
-	} while (0)
+#define TEST_ASSERT_CONTINUE(condition)                          \
+    do {                                                         \
+        if (!(condition)) {                                      \
+            TEST_PRINT_FAIL("Assertion failed: %s", #condition); \
+            test_status = false;                                 \
+        }                                                        \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_EQUAL_CONTINUE(expected, actual)
@@ -418,14 +403,13 @@
  * @param expected Expected integer value.
  * @param actual   Actual integer value.
  */
-#define TEST_ASSERT_EQUAL_CONTINUE(expected, actual)                     \
-	do {                                                             \
-		if ((expected) != (actual)) {                            \
-			TEST_PRINT_FAIL("Expected %d, got %d",           \
-					(int)(expected), (int)(actual)); \
-			test_status = false;                             \
-		}                                                        \
-	} while (0)
+#define TEST_ASSERT_EQUAL_CONTINUE(expected, actual)                                \
+    do {                                                                            \
+        if ((expected) != (actual)) {                                               \
+            TEST_PRINT_FAIL("Expected %d, got %d", (int)(expected), (int)(actual)); \
+            test_status = false;                                                    \
+        }                                                                           \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NOT_EQUAL_CONTINUE(expected, actual)
@@ -434,14 +418,13 @@
  * @param expected Value that @p actual must not equal.
  * @param actual   Actual integer value.
  */
-#define TEST_ASSERT_NOT_EQUAL_CONTINUE(expected, actual)            \
-	do {                                                        \
-		if ((expected) == (actual)) {                       \
-			TEST_PRINT_FAIL("Expected not equal to %d", \
-					(int)(expected));           \
-			test_status = false;                        \
-		}                                                   \
-	} while (0)
+#define TEST_ASSERT_NOT_EQUAL_CONTINUE(expected, actual)                  \
+    do {                                                                  \
+        if ((expected) == (actual)) {                                     \
+            TEST_PRINT_FAIL("Expected not equal to %d", (int)(expected)); \
+            test_status = false;                                          \
+        }                                                                 \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NULL_CONTINUE(ptr)
@@ -449,13 +432,13 @@
  *
  * @param ptr Pointer to check.
  */
-#define TEST_ASSERT_NULL_CONTINUE(ptr)                            \
-	do {                                                      \
-		if ((ptr) != NULL) {                              \
-			TEST_PRINT_FAIL("Expected NULL pointer"); \
-			test_status = false;                      \
-		}                                                 \
-	} while (0)
+#define TEST_ASSERT_NULL_CONTINUE(ptr)                \
+    do {                                              \
+        if ((ptr) != NULL) {                          \
+            TEST_PRINT_FAIL("Expected NULL pointer"); \
+            test_status = false;                      \
+        }                                             \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_NOT_NULL_CONTINUE(ptr)
@@ -463,13 +446,13 @@
  *
  * @param ptr Pointer to check.
  */
-#define TEST_ASSERT_NOT_NULL_CONTINUE(ptr)                            \
-	do {                                                          \
-		if ((ptr) == NULL) {                                  \
-			TEST_PRINT_FAIL("Expected non-NULL pointer"); \
-			test_status = false;                          \
-		}                                                     \
-	} while (0)
+#define TEST_ASSERT_NOT_NULL_CONTINUE(ptr)                \
+    do {                                                  \
+        if ((ptr) == NULL) {                              \
+            TEST_PRINT_FAIL("Expected non-NULL pointer"); \
+            test_status = false;                          \
+        }                                                 \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_PTR_EQUAL_CONTINUE(expected, actual)
@@ -480,14 +463,13 @@
  * @param actual   Actual pointer value.
  */
 
-#define TEST_ASSERT_PTR_EQUAL_CONTINUE(expected, actual)                       \
-	do {                                                                   \
-		if ((expected) != (actual)) {                                  \
-			TEST_PRINT_FAIL("Expected pointer %p, got %p",         \
-					(void *)(expected), (void *)(actual)); \
-			test_status = false;                                   \
-		}                                                              \
-	} while (0)
+#define TEST_ASSERT_PTR_EQUAL_CONTINUE(expected, actual)                                          \
+    do {                                                                                          \
+        if ((expected) != (actual)) {                                                             \
+            TEST_PRINT_FAIL("Expected pointer %p, got %p", (void *)(expected), (void *)(actual)); \
+            test_status = false;                                                                  \
+        }                                                                                         \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_STRING_EQUAL_CONTINUE(expected, actual)
@@ -497,14 +479,13 @@
  * @param expected Expected C string.
  * @param actual   Actual C string.
  */
-#define TEST_ASSERT_STRING_EQUAL_CONTINUE(expected, actual)            \
-	do {                                                           \
-		if (strcmp((expected), (actual)) != 0) {               \
-			TEST_PRINT_FAIL("Expected \"%s\", got \"%s\"", \
-					(expected), (actual));         \
-			test_status = false;                           \
-		}                                                      \
-	} while (0)
+#define TEST_ASSERT_STRING_EQUAL_CONTINUE(expected, actual)                       \
+    do {                                                                          \
+        if (strcmp((expected), (actual)) != 0) {                                  \
+            TEST_PRINT_FAIL("Expected \"%s\", got \"%s\"", (expected), (actual)); \
+            test_status = false;                                                  \
+        }                                                                         \
+    } while (0)
 
 /**
  * @def TEST_ASSERT_MEMORY_EQUAL_CONTINUE(expected, actual, size)
@@ -515,13 +496,13 @@
  * @param actual   Pointer to actual memory region.
  * @param size     Number of bytes to compare.
  */
-#define TEST_ASSERT_MEMORY_EQUAL_CONTINUE(expected, actual, size)    \
-	do {                                                         \
-		if (memcmp((expected), (actual), (size)) != 0) {     \
-			TEST_PRINT_FAIL("Memory comparison failed"); \
-			test_status = false;                         \
-		}                                                    \
-	} while (0)
+#define TEST_ASSERT_MEMORY_EQUAL_CONTINUE(expected, actual, size) \
+    do {                                                          \
+        if (memcmp((expected), (actual), (size)) != 0) {          \
+            TEST_PRINT_FAIL("Memory comparison failed");          \
+            test_status = false;                                  \
+        }                                                         \
+    } while (0)
 
 /**
  * @typedef test_func_t
@@ -580,8 +561,7 @@ void test_framework_set_suite_setup(test_setup_func_t setup, void *params);
  * @param teardown Function to call after all tests complete (may be @c NULL).
  * @param params   Optional parameters to pass to @p teardown (may be @c NULL).
  */
-void test_framework_set_suite_teardown(test_teardown_func_t teardown,
-				       void *params);
+void test_framework_set_suite_teardown(test_teardown_func_t teardown, void *params);
 
 /**
  * @brief Register a test function.
@@ -624,8 +604,7 @@ int test_framework_run(void);
  * @param func   Test function name.
  * @param params Parameters to pass to the test function.
  */
-#define TEST_REGISTER_WITH_PARAMS(func, params) \
-	test_framework_register(#func, func, params)
+#define TEST_REGISTER_WITH_PARAMS(func, params) test_framework_register(#func, func, params)
 
 /**
  * @def TEST_SET_SUITE_SETUP(func)
@@ -642,8 +621,7 @@ int test_framework_run(void);
  * @param func   Setup function name.
  * @param params Parameters to pass to the setup function.
  */
-#define TEST_SET_SUITE_SETUP_WITH_PARAMS(func, params) \
-	test_framework_set_suite_setup(func, params)
+#define TEST_SET_SUITE_SETUP_WITH_PARAMS(func, params) test_framework_set_suite_setup(func, params)
 
 /**
  * @def TEST_SET_SUITE_TEARDOWN(func)
@@ -651,8 +629,7 @@ int test_framework_run(void);
  *
  * @param func Teardown function name.
  */
-#define TEST_SET_SUITE_TEARDOWN(func) \
-	test_framework_set_suite_teardown(func, NULL)
+#define TEST_SET_SUITE_TEARDOWN(func) test_framework_set_suite_teardown(func, NULL)
 
 /**
  * @def TEST_SET_SUITE_TEARDOWN_WITH_PARAMS(func, params)
@@ -662,7 +639,7 @@ int test_framework_run(void);
  * @param params Parameters to pass to the teardown function.
  */
 #define TEST_SET_SUITE_TEARDOWN_WITH_PARAMS(func, params) \
-	test_framework_set_suite_teardown(func, params)
+    test_framework_set_suite_teardown(func, params)
 
 /** @} */ /* end of test_framework */
 

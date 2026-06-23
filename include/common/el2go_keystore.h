@@ -16,12 +16,10 @@ typedef struct el2go_platform_ctx el2go_platform_ctx_t;
 /*
 * Keystore types
 */
-/* clang-format off */
 typedef enum {
-	EL2GO_KEYSTORE_SSS, /* SSS (Secure Subsystem) keystore */
-	EL2GO_KEYSTORE_PSA /* PSA (Platform Security Architecture) keystore */
+    EL2GO_KEYSTORE_SSS, /* SSS (Secure Subsystem) keystore */
+    EL2GO_KEYSTORE_PSA  /* PSA (Platform Security Architecture) keystore */
 } el2go_keystore_type_t;
-/* clang-format on */
 
 /**
  * IoT Agent keystore
@@ -35,14 +33,12 @@ typedef enum {
  * for keystore implementations. The priv field is for internal use only and
  * must not be accessed or modified by users.
  */
-/* clang-format off */
 typedef struct el2go_keystore {
-			uint32_t id;                        /* Keystore identifier */
-			el2go_keystore_type_t type;         /* Keystore type */
-			void *context;                      /* Keystore context */
-			void *priv;                         /* Private data */
+    uint32_t id;                /* Keystore identifier */
+    el2go_keystore_type_t type; /* Keystore type */
+    void *context;              /* Keystore context */
+    void *priv;                 /* Private data */
 } el2go_keystore_t;
-/* clang-format on */
 
 /**
  * el2go_keystore_init - Initialize a keystore
@@ -58,8 +54,7 @@ typedef struct el2go_keystore {
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_keystore_init(uint32_t id, el2go_keystore_type_t type,
-				   el2go_platform_ctx_t *platform_ctx,
-				   el2go_keystore_t *keystore);
+                                   el2go_platform_ctx_t *platform_ctx, el2go_keystore_t *keystore);
 
 /**
 * el2go_keystore_free - Free a keystore

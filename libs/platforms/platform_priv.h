@@ -36,8 +36,8 @@
  *
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
-el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_ctx,
-				       uint8_t **uuid, size_t *uuid_len);
+el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_ctx, uint8_t **uuid,
+                                       size_t *uuid_len);
 
 /** @} */ /* end of el2go_platform_int */
 

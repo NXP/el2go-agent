@@ -24,7 +24,6 @@
  */
 typedef struct el2go_platform_ctx el2go_platform_ctx_t;
 
-// clang-format off
 /**
  * @brief Platform configuration.
  *
@@ -36,10 +35,9 @@ typedef struct el2go_platform_ctx el2go_platform_ctx_t;
  * remaining flexible for different platform implementations.
  */
 typedef struct {
-	int param_count;   /**< Number of platform parameters. */
-	char **param_list; /**< Array of platform parameter strings. */
+    int param_count;   /**< Number of platform parameters. */
+    char **param_list; /**< Array of platform parameter strings. */
 } el2go_platform_config_t;
-// clang-format on
 
 /**
  * @brief Initialize platform and HSM hardware.
@@ -53,7 +51,7 @@ typedef struct {
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
 el2go_status_t el2go_platform_init(const el2go_platform_config_t *config,
-				   el2go_platform_ctx_t **platform_ctx);
+                                   el2go_platform_ctx_t **platform_ctx);
 
 /**
  * @brief Cleanup platform and HSM hardware.
@@ -76,8 +74,7 @@ el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platform_ctx);
  *
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
-el2go_status_t el2go_claimcode_import(el2go_platform_ctx_t *platform_ctx,
-				      const char *claimcode);
+el2go_status_t el2go_claimcode_import(el2go_platform_ctx_t *platform_ctx, const char *claimcode);
 
 /** @} */ /* end of el2go_platform_pub */
 

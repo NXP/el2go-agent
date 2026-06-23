@@ -12,124 +12,122 @@
 #include "osal.h"
 
 struct osal_file {
-	FILE *fp;
+    FILE *fp;
 };
 
 osal_file_t *osal_fopen(const char *filename, const char *mode)
 {
-	osal_file_t *file = NULL;
+    osal_file_t *file = NULL;
 
-	if (!filename || !mode)
-		goto exit;
+    if (!filename || !mode)
+        goto exit;
 
-	file = (osal_file_t *)calloc(1, sizeof(osal_file_t));
-	if (!file)
-		goto exit;
+    file = (osal_file_t *)calloc(1, sizeof(osal_file_t));
+    if (!file)
+        goto exit;
 
-	file->fp = fopen(filename, mode);
-	if (!file->fp) {
-		free(file);
-		file = NULL;
-		goto exit;
-	}
+    file->fp = fopen(filename, mode);
+    if (!file->fp) {
+        free(file);
+        file = NULL;
+        goto exit;
+    }
 
 exit:
-	return file;
+    return file;
 }
 
 el2go_status_t osal_fclose(osal_file_t *file)
 {
-	el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
-	if (!file) {
-		status = EL2GO_STATUS_INVALID_POINTER;
-		goto exit;
-	}
+    if (!file) {
+        status = EL2GO_STATUS_INVALID_POINTER;
+        goto exit;
+    }
 
-	if (file->fp) {
-		if (fclose(file->fp))
-			status = EL2GO_STATUS_FILE_CLOSE_ERROR;
-		file->fp = NULL;
-	}
+    if (file->fp) {
+        if (fclose(file->fp))
+            status = EL2GO_STATUS_FILE_CLOSE_ERROR;
+        file->fp = NULL;
+    }
 
-	free(file);
+    free(file);
 
 exit:
-	return status;
+    return status;
 }
 
 size_t osal_fread(void *ptr, size_t size, size_t nmemb, osal_file_t *file)
 {
-	if (!file || !file->fp || !ptr)
-		return 0;
+    if (!file || !file->fp || !ptr)
+        return 0;
 
-	return fread(ptr, size, nmemb, file->fp);
+    return fread(ptr, size, nmemb, file->fp);
 }
 
-size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb,
-		   osal_file_t *file)
+size_t osal_fwrite(const void *ptr, size_t size, size_t nmemb, osal_file_t *file)
 {
-	if (!file || !file->fp || !ptr)
-		return 0;
+    if (!file || !file->fp || !ptr)
+        return 0;
 
-	return fwrite(ptr, size, nmemb, file->fp);
+    return fwrite(ptr, size, nmemb, file->fp);
 }
 
-el2go_status_t osal_fseek(osal_file_t *file, long offset,
-			  osal_seek_origin_t origin)
+el2go_status_t osal_fseek(osal_file_t *file, long offset, osal_seek_origin_t origin)
 {
-	el2go_status_t status = EL2GO_STATUS_SUCCESS;
-	int whence = 0;
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    int whence = 0;
 
-	if (!file || !file->fp) {
-		status = EL2GO_STATUS_INVALID_POINTER;
-		goto exit;
-	}
+    if (!file || !file->fp) {
+        status = EL2GO_STATUS_INVALID_POINTER;
+        goto exit;
+    }
 
-	switch (origin) {
-	case OSAL_SEEK_SET:
-		whence = SEEK_SET;
-		break;
-	case OSAL_SEEK_CUR:
-		whence = SEEK_CUR;
-		break;
-	case OSAL_SEEK_END:
-		whence = SEEK_END;
-		break;
-	default:
-		status = EL2GO_STATUS_FILE_SEEK_ERROR;
-		goto exit;
-	}
+    switch (origin) {
+    case OSAL_SEEK_SET:
+        whence = SEEK_SET;
+        break;
+    case OSAL_SEEK_CUR:
+        whence = SEEK_CUR;
+        break;
+    case OSAL_SEEK_END:
+        whence = SEEK_END;
+        break;
+    default:
+        status = EL2GO_STATUS_FILE_SEEK_ERROR;
+        goto exit;
+    }
 
-	if (fseek(file->fp, offset, whence)) {
-		status = EL2GO_STATUS_FILE_SEEK_ERROR;
-		goto exit;
-	}
+    if (fseek(file->fp, offset, whence)) {
+        status = EL2GO_STATUS_FILE_SEEK_ERROR;
+        goto exit;
+    }
 
 exit:
-	return status;
+    return status;
 }
 
 long osal_ftell(osal_file_t *file)
 {
-	if (!file || !file->fp)
-		return -1;
+    if (!file || !file->fp)
+        return -1;
 
-	return ftell(file->fp);
+    return ftell(file->fp);
 }
 
 el2go_status_t osal_fflush(osal_file_t *file)
 {
-	el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
-	if (!file || !file->fp) {
-		status = EL2GO_STATUS_INVALID_POINTER;
-		goto exit;
-	}
+    if (!file || !file->fp) {
+        status = EL2GO_STATUS_INVALID_POINTER;
+        goto exit;
+    }
 
-	if (fflush(file->fp))
-		status = EL2GO_STATUS_FILE_WRITE_ERROR;
+    if (fflush(file->fp))
+        status = EL2GO_STATUS_FILE_WRITE_ERROR;
 
 exit:
-	return status;
+    return status;
 }

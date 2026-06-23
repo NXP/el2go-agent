@@ -38,8 +38,7 @@ void fill_buffer(uint8_t *buffer, size_t size, size_t seed);
  * @param count      Number of datastores in the array.
  * @param base_id    Base ID for the first datastore.
  */
-void init_datastores(el2go_datastore_t *datastores, size_t count,
-		     uint32_t base_id);
+void init_datastores(el2go_datastore_t *datastores, size_t count, uint32_t base_id);
 /**
  * @brief Dump buffer contents in hexadecimal format.
  *

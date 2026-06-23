@@ -11,15 +11,15 @@
 
 void *osal_malloc(size_t size)
 {
-	return malloc(size);
+    return malloc(size);
 }
 
 void *osal_calloc(size_t nmemb, size_t size)
 {
-	return calloc(nmemb, size);
+    return calloc(nmemb, size);
 }
 
 void osal_free(void *ptr)
 {
-	free(ptr);
+    free(ptr);
 }

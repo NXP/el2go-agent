@@ -30,8 +30,8 @@
  *
  * @return Number of cipher suites converted on success, negative error code on failure.
  */
-int cipher_list_to_mbedtls(const el2go_cipher_list_t *platform_list,
-			   int *mbedtls_ciphers, size_t max_ciphers);
+int cipher_list_to_mbedtls(const el2go_cipher_list_t *platform_list, int *mbedtls_ciphers,
+                           size_t max_ciphers);
 
 /**
  * @brief Convert platform curve list to mbedTLS curve array.
@@ -42,8 +42,8 @@ int cipher_list_to_mbedtls(const el2go_cipher_list_t *platform_list,
  *
  * @return Number of curves converted on success, negative error code on failure.
  */
-int curves_to_mbedtls(const el2go_curve_list_t *curve_list,
-		      void *mbedtls_curves, size_t max_curves);
+int curves_to_mbedtls(const el2go_curve_list_t *curve_list, void *mbedtls_curves,
+                      size_t max_curves);
 
 /** @} */ /* end of mbedtls_int */
 

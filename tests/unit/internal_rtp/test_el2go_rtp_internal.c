@@ -18,26 +18,26 @@
 
 static bool test_el2go_rtp_context_structure(void *params)
 {
-	el2go_rtp_ctx_t *ctx = NULL;
-	el2go_status_t status = EL2GO_STATUS_SUCCESS;
-	bool test_status = true;
+    el2go_rtp_ctx_t *ctx = NULL;
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
 
-	(void)params;
+    (void)params;
 
-	status = el2go_rtp_init(&ctx);
-	TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
-	TEST_ASSERT_NOT_NULL_GOTO(ctx, exit);
+    status = el2go_rtp_init(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_NOT_NULL_GOTO(ctx, exit);
 
-	TEST_ASSERT_EQUAL_GOTO(0, ctx->num_keystores, cleanup);
-	TEST_ASSERT_EQUAL_CONTINUE(0, ctx->num_datastores);
+    TEST_ASSERT_EQUAL_GOTO(0, ctx->num_keystores, cleanup);
+    TEST_ASSERT_EQUAL_CONTINUE(0, ctx->num_datastores);
 
 cleanup:
-	status = el2go_rtp_free(&ctx);
-	TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
-	TEST_ASSERT_NULL(ctx);
+    status = el2go_rtp_free(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_NULL(ctx);
 
 exit:
-	return test_status;
+    return test_status;
 }
 
 /* ========================================================================== */
@@ -46,46 +46,45 @@ exit:
 
 static bool test_el2go_rtp_datastore_count(void *params)
 {
-	el2go_rtp_ctx_t *ctx = NULL;
-	el2go_datastore_t datastores[EL2GO_RTP_MAX_DATASTORES] = { 0 };
-	el2go_status_t status = EL2GO_STATUS_SUCCESS;
-	bool test_status = true;
-	size_t i = 0;
+    el2go_rtp_ctx_t *ctx = NULL;
+    el2go_datastore_t datastores[EL2GO_RTP_MAX_DATASTORES] = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+    size_t i = 0;
 
-	(void)params;
+    (void)params;
 
-	init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES, 0x70000000);
+    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES, 0x70000000);
 
-	status = el2go_rtp_init(&ctx);
-	TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
-	TEST_ASSERT_NOT_NULL_GOTO(ctx, exit);
+    status = el2go_rtp_init(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_NOT_NULL_GOTO(ctx, exit);
 
-	TEST_ASSERT_EQUAL_GOTO(0, ctx->num_datastores, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(0, ctx->num_datastores, cleanup);
 
-	/* Add datastores up to the limit */
-	for (i = 0; i < EL2GO_RTP_MAX_DATASTORES; i++) {
-		status = el2go_rtp_datastore_add(ctx, &datastores[i]);
-		TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
-		TEST_ASSERT_EQUAL_GOTO(i + 1, ctx->num_datastores, cleanup);
-	}
+    /* Add datastores up to the limit */
+    for (i = 0; i < EL2GO_RTP_MAX_DATASTORES; i++) {
+        status = el2go_rtp_datastore_add(ctx, &datastores[i]);
+        TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+        TEST_ASSERT_EQUAL_GOTO(i + 1, ctx->num_datastores, cleanup);
+    }
 
-	/* Remove datastores one by one */
-	for (i = 0; i < EL2GO_RTP_MAX_DATASTORES; i++) {
-		status = el2go_rtp_datastore_remove(ctx, &datastores[i]);
-		TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
-		TEST_ASSERT_EQUAL_GOTO(EL2GO_RTP_MAX_DATASTORES - i - 1,
-				       ctx->num_datastores, cleanup);
-	}
+    /* Remove datastores one by one */
+    for (i = 0; i < EL2GO_RTP_MAX_DATASTORES; i++) {
+        status = el2go_rtp_datastore_remove(ctx, &datastores[i]);
+        TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+        TEST_ASSERT_EQUAL_GOTO(EL2GO_RTP_MAX_DATASTORES - i - 1, ctx->num_datastores, cleanup);
+    }
 
-	TEST_ASSERT_EQUAL_CONTINUE(0, ctx->num_datastores);
+    TEST_ASSERT_EQUAL_CONTINUE(0, ctx->num_datastores);
 
 cleanup:
-	status = el2go_rtp_free(&ctx);
-	TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
-	TEST_ASSERT_NULL(ctx);
+    status = el2go_rtp_free(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_NULL(ctx);
 
 exit:
-	return test_status;
+    return test_status;
 }
 
 /* ========================================================================== */
@@ -94,36 +93,35 @@ exit:
 
 static bool test_el2go_rtp_datastore_internal_storage(void *params)
 {
-	el2go_rtp_ctx_t *ctx = NULL;
-	el2go_datastore_t datastores[EL2GO_RTP_MAX_DATASTORES] = { 0 };
-	el2go_status_t status = EL2GO_STATUS_SUCCESS;
-	bool test_status = true;
-	size_t i = 0;
+    el2go_rtp_ctx_t *ctx = NULL;
+    el2go_datastore_t datastores[EL2GO_RTP_MAX_DATASTORES] = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+    size_t i = 0;
 
-	(void)params;
+    (void)params;
 
-	init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES, 0x70000000);
+    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES, 0x70000000);
 
-	status = el2go_rtp_init(&ctx);
-	TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
-	TEST_ASSERT_NOT_NULL_GOTO(ctx, exit);
+    status = el2go_rtp_init(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_NOT_NULL_GOTO(ctx, exit);
 
-	/* Add datastores and verify storage */
-	for (i = 0; i < EL2GO_RTP_MAX_DATASTORES; i++) {
-		status = el2go_rtp_datastore_add(ctx, &datastores[i]);
-		TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
-		TEST_ASSERT_EQUAL_GOTO(i + 1, ctx->num_datastores, cleanup);
-		TEST_ASSERT_EQUAL_GOTO(datastores[i].id, ctx->datastores[i]->id,
-				       cleanup);
-	}
+    /* Add datastores and verify storage */
+    for (i = 0; i < EL2GO_RTP_MAX_DATASTORES; i++) {
+        status = el2go_rtp_datastore_add(ctx, &datastores[i]);
+        TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+        TEST_ASSERT_EQUAL_GOTO(i + 1, ctx->num_datastores, cleanup);
+        TEST_ASSERT_EQUAL_GOTO(datastores[i].id, ctx->datastores[i]->id, cleanup);
+    }
 
 cleanup:
-	status = el2go_rtp_free(&ctx);
-	TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
-	TEST_ASSERT_NULL(ctx);
+    status = el2go_rtp_free(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_NULL(ctx);
 
 exit:
-	return test_status;
+    return test_status;
 }
 
 /* ========================================================================== */
@@ -132,7 +130,7 @@ exit:
 
 void register_el2go_rtp_tests(void)
 {
-	TEST_REGISTER(test_el2go_rtp_context_structure);
-	TEST_REGISTER(test_el2go_rtp_datastore_count);
-	TEST_REGISTER(test_el2go_rtp_datastore_internal_storage);
+    TEST_REGISTER(test_el2go_rtp_context_structure);
+    TEST_REGISTER(test_el2go_rtp_datastore_count);
+    TEST_REGISTER(test_el2go_rtp_datastore_internal_storage);
 }

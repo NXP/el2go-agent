@@ -19,29 +19,25 @@
  * @note TODO: Read these capabilities from a configuration file.
  */
 static const el2go_cipher_suite_t cipher_suites[] = {
-	/* TLS 1.2 - CBC cipher suites first */
-	EL2GO_CIPHER_ECDHE_ECDSA_AES256_CBC_SHA384,
-	EL2GO_CIPHER_ECDH_ECDSA_AES256_CBC_SHA384,
-	EL2GO_CIPHER_ECDHE_RSA_AES256_CBC_SHA384,
-	EL2GO_CIPHER_ECDH_RSA_AES256_CBC_SHA384,
+    /* TLS 1.2 - CBC cipher suites first */
+    EL2GO_CIPHER_ECDHE_ECDSA_AES256_CBC_SHA384, EL2GO_CIPHER_ECDH_ECDSA_AES256_CBC_SHA384,
+    EL2GO_CIPHER_ECDHE_RSA_AES256_CBC_SHA384, EL2GO_CIPHER_ECDH_RSA_AES256_CBC_SHA384,
 
-	/* TLS 1.2 - GCM cipher suites */
-	EL2GO_CIPHER_ECDHE_ECDSA_AES256_GCM_SHA384,
-	EL2GO_CIPHER_ECDH_ECDSA_AES256_GCM_SHA384,
-	EL2GO_CIPHER_ECDHE_RSA_AES256_GCM_SHA384,
-	EL2GO_CIPHER_ECDH_RSA_AES256_GCM_SHA384,
+    /* TLS 1.2 - GCM cipher suites */
+    EL2GO_CIPHER_ECDHE_ECDSA_AES256_GCM_SHA384, EL2GO_CIPHER_ECDH_ECDSA_AES256_GCM_SHA384,
+    EL2GO_CIPHER_ECDHE_RSA_AES256_GCM_SHA384, EL2GO_CIPHER_ECDH_RSA_AES256_GCM_SHA384,
 
-	/* TODO: Add TLS 1.3 cipher suites here */
+    /* TODO: Add TLS 1.3 cipher suites here */
 };
 
 el2go_cipher_list_t el2go_platform_get_cipher_suites(void)
 {
-	el2go_cipher_list_t list = { 0 };
+    el2go_cipher_list_t list = { 0 };
 
-	list.suites = cipher_suites;
-	list.count = ARRAY_SIZE(cipher_suites);
+    list.suites = cipher_suites;
+    list.count = ARRAY_SIZE(cipher_suites);
 
-	return list;
+    return list;
 }
 
 /* ========================================================================== */
@@ -54,17 +50,17 @@ el2go_cipher_list_t el2go_platform_get_cipher_suites(void)
  * @note TODO: Read these capabilities from a configuration file.
  */
 static const el2go_curve_id_t curves[] = {
-	EL2GO_CURVE_SECP256R1,
-	EL2GO_CURVE_SECP384R1,
-	EL2GO_CURVE_SECP521R1,
+    EL2GO_CURVE_SECP256R1,
+    EL2GO_CURVE_SECP384R1,
+    EL2GO_CURVE_SECP521R1,
 };
 
 el2go_curve_list_t el2go_platform_get_curves(void)
 {
-	el2go_curve_list_t list = { 0 };
+    el2go_curve_list_t list = { 0 };
 
-	list.curves = curves;
-	list.count = ARRAY_SIZE(curves);
+    list.curves = curves;
+    list.count = ARRAY_SIZE(curves);
 
-	return list;
+    return list;
 }

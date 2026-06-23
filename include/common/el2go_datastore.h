@@ -16,23 +16,19 @@
 /*
  * Datastore types
  */
-/* clang-format off */
 typedef enum {
-	EL2GO_DATASTORE_TYPE_FS,      /* Filesystem-based datastore */
-	EL2GO_DATASTORE_TYPE_PLAIN,   /* Plain memory datastore */
-	EL2GO_DATASTORE_TYPE_CUSTOM   /* Custom user-provided datastore */
+    EL2GO_DATASTORE_TYPE_FS,    /* Filesystem-based datastore */
+    EL2GO_DATASTORE_TYPE_PLAIN, /* Plain memory datastore */
+    EL2GO_DATASTORE_TYPE_CUSTOM /* Custom user-provided datastore */
 } el2go_datastore_type_t;
-/* clang-format on */
 
 /*
  * Binary data buffer
  */
-/* clang-format off */
 typedef struct {
-	uint8_t *data;         /* Pointer to data */
-	size_t len;            /* Length in bytes */
+    uint8_t *data; /* Pointer to data */
+    size_t len;    /* Length in bytes */
 } el2go_buffer_t;
-/* clang-format on */
 
 /* Forward declarations */
 typedef struct el2go_datastore el2go_datastore_t;
@@ -55,9 +51,7 @@ typedef struct el2go_datastore_ops el2go_datastore_ops_t;
  * Return:
  * EL2GO_STATUS_SUCCESS if validation passes, error code otherwise
  */
-/* clang-format off */
 typedef el2go_status_t (*el2go_datastore_validator_t)(el2go_datastore_t *datastore);
-/* clang-format on */
 
 /* Function pointer types for datastore operations */
 
@@ -72,10 +66,8 @@ typedef el2go_status_t (*el2go_datastore_validator_t)(el2go_datastore_t *datasto
  *
  * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-/* clang-format off */
 typedef el2go_status_t (*el2go_datastore_init_t)(void *context,
-	el2go_datastore_validator_t validator);
-/* clang-format on */
+                                                 el2go_datastore_validator_t validator);
 
 /**
  * el2go_datastore_allocate_t - Allocate memory in the datastore
@@ -95,8 +87,8 @@ typedef el2go_status_t (*el2go_datastore_allocate_t)(void *context, size_t len);
  *
  * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-typedef el2go_status_t (*el2go_datastore_read_t)(void *context, void *dest,
-						 size_t offset, size_t len);
+typedef el2go_status_t (*el2go_datastore_read_t)(void *context, void *dest, size_t offset,
+                                                 size_t len);
 
 /**
  * el2go_datastore_write_t - Write data to the datastore
@@ -107,9 +99,8 @@ typedef el2go_status_t (*el2go_datastore_read_t)(void *context, void *dest,
  *
  * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-typedef el2go_status_t (*el2go_datastore_write_t)(void *context,
-						  const void *src,
-						  size_t offset, size_t len);
+typedef el2go_status_t (*el2go_datastore_write_t)(void *context, const void *src, size_t offset,
+                                                  size_t len);
 
 /**
  * el2go_datastore_commit_t - Commit pending changes to the datastore
@@ -130,16 +121,14 @@ typedef el2go_status_t (*el2go_datastore_commit_t)(void *context);
  */
 typedef el2go_status_t (*el2go_datastore_free_t)(void *context);
 
-/* clang-format off */
 struct el2go_datastore_ops {
-	el2go_datastore_init_t init;         /* Initialize the custom datastore */
-	el2go_datastore_allocate_t allocate; /* Allocate memory in datastore */
-	el2go_datastore_read_t read;         /* Read data from the datastore */
-	el2go_datastore_write_t write;       /* Write data to the datastore */
-	el2go_datastore_commit_t commit;     /* Commit pending changes */
-	el2go_datastore_free_t free;         /* Free datastore resources */
+    el2go_datastore_init_t init;         /* Initialize the custom datastore */
+    el2go_datastore_allocate_t allocate; /* Allocate memory in datastore */
+    el2go_datastore_read_t read;         /* Read data from the datastore */
+    el2go_datastore_write_t write;       /* Write data to the datastore */
+    el2go_datastore_commit_t commit;     /* Commit pending changes */
+    el2go_datastore_free_t free;         /* Free datastore resources */
 };
-/* clang-format on */
 
 /**
  * RTP Agent datastore
@@ -153,16 +142,14 @@ struct el2go_datastore_ops {
  * for custom datastore implementations. The priv field is for internal
  * use only and must not be accessed or modified by users.
  */
-/* clang-format off */
 struct el2go_datastore {
-	uint32_t id;                              /* Datastore identifier */
-	const char *name;                         /* Datastore name */
-	el2go_datastore_type_t type;              /* Datastore type */
-	const el2go_datastore_ops_t *ops;         /* Operations (for custom type) */
-	void *context;                            /* Data store context */
-	void *priv;                               /* Private data (do not access) */
+    uint32_t id;                      /* Datastore identifier */
+    const char *name;                 /* Datastore name */
+    el2go_datastore_type_t type;      /* Datastore type */
+    const el2go_datastore_ops_t *ops; /* Operations (for custom type) */
+    void *context;                    /* Data store context */
+    void *priv;                       /* Private data (do not access) */
 };
-/* clang-format on */
 
 /**
  * el2go_datastore_init - Initialize a datastore
@@ -187,10 +174,9 @@ struct el2go_datastore {
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_datastore_init(uint32_t id, const char *name,
-				    el2go_datastore_type_t type,
-				    el2go_datastore_t *datastore,
-				    el2go_datastore_validator_t validator);
+el2go_status_t el2go_datastore_init(uint32_t id, const char *name, el2go_datastore_type_t type,
+                                    el2go_datastore_t *datastore,
+                                    el2go_datastore_validator_t validator);
 
 /**
  * el2go_datastore_allocate - Allocate memory in the datastore
@@ -203,8 +189,7 @@ el2go_status_t el2go_datastore_init(uint32_t id, const char *name,
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_datastore_allocate(el2go_datastore_t *datastore,
-					size_t len);
+el2go_status_t el2go_datastore_allocate(el2go_datastore_t *datastore, size_t len);
 
 /**
  * el2go_datastore_read - Read data from the datastore
@@ -219,8 +204,8 @@ el2go_status_t el2go_datastore_allocate(el2go_datastore_t *datastore,
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_datastore_read(el2go_datastore_t *datastore, void *dest,
-				    size_t offset, size_t len);
+el2go_status_t el2go_datastore_read(el2go_datastore_t *datastore, void *dest, size_t offset,
+                                    size_t len);
 
 /**
  * el2go_datastore_write - Write data to the datastore
@@ -235,9 +220,8 @@ el2go_status_t el2go_datastore_read(el2go_datastore_t *datastore, void *dest,
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_datastore_write(el2go_datastore_t *datastore,
-				     const void *src, size_t offset,
-				     size_t len);
+el2go_status_t el2go_datastore_write(el2go_datastore_t *datastore, const void *src, size_t offset,
+                                     size_t len);
 
 /**
  * el2go_datastore_commit - Commit a transaction to the datastore
