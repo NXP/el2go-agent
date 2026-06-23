@@ -4,42 +4,62 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  */
-#include "common/el2go_keystore.h"
+
+#include <stddef.h>
+
 #include "compiler.h"
 
-__export el2go_status_t el2go_keystore_init(uint32_t id, el2go_keystore_type_t type,
-                                            el2go_platform_ctx_t *platform_ctx,
-                                            el2go_keystore_t *keystore)
+#include "common/el2go_keystore.h"
+
+__export __weak el2go_status_t el2go_keystore_init(uint32_t id, el2go_platform_ctx_t *platform_ctx,
+                                                   el2go_keystore_t *keystore)
 {
     (void)id;
-    (void)type;
     (void)platform_ctx;
-    (void)keystore;
 
-    /* TODO: Implement keystore initialization */
-    return EL2GO_STATUS_FAILURE;
+    if (!keystore) {
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
+
+    return EL2GO_STATUS_SUCCESS;
 }
 
-__export el2go_status_t el2go_keystore_free(el2go_keystore_t *keystore)
+__export __weak el2go_status_t el2go_keystore_free(el2go_keystore_t *keystore)
 {
-    (void)keystore;
+    if (!keystore) {
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
 
-    /* TODO: Free keystore resources */
-    return EL2GO_STATUS_FAILURE;
+    keystore->platform_ctx = NULL;
+
+    return EL2GO_STATUS_SUCCESS;
 }
 
-__export el2go_status_t el2go_keystore_open_session(el2go_keystore_t *keystore)
+__export __weak el2go_status_t el2go_keystore_open_session(el2go_keystore_t *keystore)
 {
-    (void)keystore;
+    if (!keystore) {
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
 
-    /* TODO: Open keystore session */
-    return EL2GO_STATUS_FAILURE;
+    return EL2GO_STATUS_SUCCESS;
 }
 
-__export el2go_status_t el2go_keystore_close_session(el2go_keystore_t *keystore)
+__export __weak el2go_status_t el2go_keystore_close_session(el2go_keystore_t *keystore)
 {
-    (void)keystore;
+    if (!keystore) {
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
 
-    /* TODO: Close keystore session */
-    return EL2GO_STATUS_FAILURE;
+    return EL2GO_STATUS_SUCCESS;
+}
+
+__weak el2go_status_t el2go_keystore_handle_request(el2go_keystore_t *keystore,
+                                                    const void *message_type, void *istream,
+                                                    void *ostream)
+{
+    if (!keystore || !istream || !ostream || !message_type) {
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
+
+    return EL2GO_STATUS_SUCCESS;
 }

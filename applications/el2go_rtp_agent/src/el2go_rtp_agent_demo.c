@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     /* Import claim code for device provisioning - optional step in demo */
     printf("Importing claim code...\n");
     const char *claimcode = "AAAA-BBBB-CCCC-DDDD-EEEE-FFFF"; /* Example claim code */
-    status = el2go_claimcode_import(platform_ctx, claimcode);
+    status = el2go_platform_import_claimcode(platform_ctx, claimcode);
     if (status != EL2GO_STATUS_SUCCESS) {
         printf("Failed to import claim code (status: %d)\n", status);
         goto cleanup_platform;
@@ -88,8 +88,7 @@ int main(int argc, char **argv)
 
     /* Initialize keystore */
     printf("Initializing keystore (PSA type)...\n");
-    status = el2go_keystore_init(EL2GO_RTP_DATASTORE_EDGELOCK_ID, EL2GO_KEYSTORE_PSA, platform_ctx,
-                                 &keystore_ctx);
+    status = el2go_keystore_init(EL2GO_RTP_DATASTORE_EDGELOCK_ID, platform_ctx, &keystore_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
         printf("Failed to initialize keystore (status: %d)\n", status);
         goto cleanup_platform;

@@ -23,6 +23,12 @@ target_include_directories(el2go_platform PRIVATE
     $<TARGET_PROPERTY:NXP_SMW::smw,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
+# Expose SMW include directories
+add_library(psa_headers INTERFACE)
+
+target_include_directories(psa_headers INTERFACE
+    $<TARGET_PROPERTY:NXP_SMW::smw,INTERFACE_INCLUDE_DIRECTORIES>)
+
 # Add SMW to platform libraries for external propagation
 list(APPEND EXT_LIBS
     NXP_SMW::smw

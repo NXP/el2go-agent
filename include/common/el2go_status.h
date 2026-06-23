@@ -49,7 +49,11 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_NOT_FOUND,               /**< Resource not found */
     EL2GO_STATUS_INCOMPLETE_WRITE,        /**< Write operation incomplete */
     EL2GO_STATUS_INCOMPLETE_READ,         /**< Read operation incomplete */
+    EL2GO_STATUS_UNSUPPORTED_OPERATION,   /**< Operation is not supported */
+    EL2GO_STATUS_INVALID_REQUEST,         /**< Request is invalid */
+    EL2GO_STATUS_PSA_ERROR                /**< A function in the PSA API returned an error */
 } el2go_status_t;
+
 /**
  * @enum el2go_verbosity_t
  * @brief Status report verbosity levels

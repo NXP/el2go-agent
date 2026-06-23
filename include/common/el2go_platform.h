@@ -74,7 +74,8 @@ el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platform_ctx);
  *
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
-el2go_status_t el2go_claimcode_import(el2go_platform_ctx_t *platform_ctx, const char *claimcode);
+el2go_status_t el2go_platform_import_claimcode(el2go_platform_ctx_t *platform_ctx,
+                                               const char *claimcode);
 
 /** @} */ /* end of el2go_platform_pub */
 

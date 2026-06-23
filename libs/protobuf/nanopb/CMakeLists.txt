@@ -17,4 +17,5 @@ target_include_directories(nanopb PUBLIC
 # Define PB_FIELD_32BIT for nanopb to support very large messages
 target_compile_definitions(nanopb PUBLIC
     PB_FIELD_32BIT=1
+    PB_ENABLE_MALLOC=1
 )

@@ -76,6 +76,12 @@ if(NOT DEFINED CRYPTO_BACKEND)
 endif()
 message(STATUS "Using crypto backend: ${CRYPTO_BACKEND}")
 
+# Set default keystore if not defined
+if(NOT DEFINED KEYSTORE)
+    set(KEYSTORE psa)
+endif()
+message(STATUS "Using keystore: ${KEYSTORE}")
+
 # Enable compiler warnings
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra)

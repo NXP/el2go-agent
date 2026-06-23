@@ -3,15 +3,25 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Keystore object library
-add_library(el2go_keystore OBJECT
+set(KEYSTORE_SOURCES
     el2go_keystore.c
 )
 
+# Create keystore library
+add_library(el2go_keystore OBJECT)
+
+# Set keystore-specific include directory
 target_include_directories(el2go_keystore
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/${KEYSTORE}
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/priv
-        ${CMAKE_SOURCE_DIR}/lib/osal/include
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/libs/osal/include
+        ${CMAKE_SOURCE_DIR}/libs/platforms
 )
+
+message(STATUS "EdgeLock 2GO Keystore: ${KEYSTORE}")
+add_subdirectory(${KEYSTORE})
+
+target_sources(el2go_keystore PRIVATE ${KEYSTORE_SOURCES})

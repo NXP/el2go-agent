@@ -11,6 +11,7 @@
 #include <smw_osal.h>
 #include <smw_device.h>
 #include <psa/crypto.h>
+#include <psa/internal_trusted_storage.h>
 
 #include "compiler.h"
 #include "debug.h"
@@ -92,8 +93,8 @@ exit:
     return status;
 }
 
-__export el2go_status_t /* force clang formatting */
-el2go_platform_get_uuid(el2go_platform_ctx_t *platform_ctx, uint8_t **uuid, size_t *uuid_len)
+__export el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_ctx, uint8_t **uuid,
+                                                size_t *uuid_len)
 {
     struct smw_device_uuid_args device_args = { 0 };
     enum smw_status_code smw_status = SMW_STATUS_OK;
@@ -164,4 +165,42 @@ exit:
 
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
+}
+
+__export el2go_status_t el2go_platform_destroy_key(el2go_platform_ctx_t *platform_ctx,
+                                                   const void *key_id)
+{
+    psa_status_t psa_status = PSA_SUCCESS;
+    el2go_status_t el2go_status = EL2GO_STATUS_SUCCESS;
+    psa_key_id_t id = 0U;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!platform_ctx || !key_id) {
+        el2go_status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    /*
+     * On SMW targets the PSA implementation layer is not able to handle the
+     * destruction of RAW data secure objects via the psa_destroy_key API, which will in
+     * this case return PSA_ERROR_INVALID_HANDLE. Use psa_its_remove() as fallback.
+     */
+    id = *(psa_key_id_t *)key_id;
+    psa_status = psa_its_remove(id);
+
+    if (psa_status == PSA_ERROR_INVALID_HANDLE) {
+        el2go_status = EL2GO_STATUS_NOT_FOUND;
+        goto exit;
+    }
+
+    if (psa_status != PSA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "psa_its_remove failed: %d\n", (int)psa_status);
+        el2go_status = EL2GO_STATUS_PSA_ERROR;
+        goto exit;
+    }
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, el2go_status);
+    return el2go_status;
 }
