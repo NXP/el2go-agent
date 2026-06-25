@@ -57,24 +57,24 @@ static bool test_datastore_fs_write_out_of_bounds(void *params)
     (void)params;
 
     status = el2go_datastore_init(1, __func__, EL2GO_DATASTORE_TYPE_FS, &datastore, NULL);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_datastore_allocate(&datastore, 100);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     /* FS allows writing beyond allocation - file grows */
     status = el2go_datastore_write(&datastore, write_data, 0, sizeof(write_data), &bytes_written);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(bytes_written, sizeof(write_data), cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_written, cleanup);
 
     bytes_written = 0;
     status = el2go_datastore_write(&datastore, write_data, 50, 100, &bytes_written);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
-    TEST_ASSERT_EQUAL_CONTINUE(bytes_written, 100);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_EQUAL_CONTINUE(100, bytes_written);
 
 cleanup:
     status = el2go_datastore_free(&datastore);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
 exit:
     return test_status;
@@ -93,33 +93,33 @@ static bool test_datastore_fs_read_out_of_bounds(void *params)
     (void)params;
 
     status = el2go_datastore_init(1, __func__, EL2GO_DATASTORE_TYPE_FS, &datastore, NULL);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_datastore_allocate(&datastore, 100);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     fill_buffer(write_data, sizeof(write_data), 0);
 
     status = el2go_datastore_write(&datastore, write_data, 0, sizeof(write_data), &bytes_written);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(bytes_written, sizeof(write_data), cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_written, cleanup);
 
     status = el2go_datastore_commit(&datastore);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     /* Try to read more than written - should read only what's in file */
     status = el2go_datastore_read(&datastore, read_data, 0, sizeof(read_data), &bytes_read);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_INCOMPLETE_READ, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(bytes_read, sizeof(write_data), cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INCOMPLETE_READ, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_read, cleanup);
 
     bytes_read = 0;
     status = el2go_datastore_read(&datastore, read_data, 50, 100, &bytes_read);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_INCOMPLETE_READ, cleanup);
-    TEST_ASSERT_EQUAL_CONTINUE(bytes_read, sizeof(write_data) - 50);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INCOMPLETE_READ, status, cleanup);
+    TEST_ASSERT_EQUAL_CONTINUE(sizeof(write_data) - 50, bytes_read);
 
 cleanup:
     status = el2go_datastore_free(&datastore);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
 exit:
     return test_status;
@@ -152,31 +152,31 @@ static bool test_datastore_fs_partial_read(void *params)
     (void)params;
 
     status = el2go_datastore_init(1, __func__, EL2GO_DATASTORE_TYPE_FS, &datastore, NULL);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_datastore_allocate(&datastore, 80);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     fill_buffer(write_data, sizeof(write_data), 0);
 
     status = el2go_datastore_write(&datastore, write_data, 0, sizeof(write_data), &bytes_written);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(bytes_written, sizeof(write_data), cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_written, cleanup);
 
     status = el2go_datastore_commit(&datastore);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     /* Try to read more than written - should read only what's in file */
     status = el2go_datastore_read(&datastore, read_data, 0, sizeof(read_data), &bytes_read);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_INCOMPLETE_READ, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(bytes_read, sizeof(write_data), cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INCOMPLETE_READ, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_read, cleanup);
 
     /* Verify partial data is correct */
     TEST_ASSERT_MEMORY_EQUAL_CONTINUE(write_data, read_data, sizeof(write_data));
 
 cleanup:
     status = el2go_datastore_free(&datastore);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
 exit:
     return test_status;
@@ -195,31 +195,31 @@ static bool test_datastore_fs_partial_write(void *params)
     (void)params;
 
     status = el2go_datastore_init(1, __func__, EL2GO_DATASTORE_TYPE_FS, &datastore, NULL);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_datastore_allocate(&datastore, 80);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     fill_buffer(write_data, sizeof(write_data), 0);
 
     /* FS allows writing more than allocated - file grows */
     status = el2go_datastore_write(&datastore, write_data, 0, sizeof(write_data), &bytes_written);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(bytes_written, sizeof(write_data), cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_written, cleanup);
 
     status = el2go_datastore_commit(&datastore);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     /* Verify all data was written correctly */
     status = el2go_datastore_read(&datastore, read_data, 0, sizeof(read_data), &bytes_read);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(bytes_read, sizeof(read_data), cleanup);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(read_data), bytes_read, cleanup);
 
     TEST_ASSERT_MEMORY_EQUAL_CONTINUE(write_data, read_data, sizeof(read_data));
 
 cleanup:
     status = el2go_datastore_free(&datastore);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
 exit:
     return test_status;
@@ -268,37 +268,37 @@ static bool test_datastore_fs_persistence(void *params)
     (void)params;
 
     status = el2go_datastore_init(1, __func__, EL2GO_DATASTORE_TYPE_FS, &datastore[0], NULL);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     initialized[0] = true;
 
     status = el2go_datastore_allocate(&datastore[0], 256);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     fill_buffer(write_data, sizeof(write_data), 50);
 
     status =
         el2go_datastore_write(&datastore[0], write_data, 0, sizeof(write_data), &bytes_written);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
-    TEST_ASSERT_EQUAL_GOTO(bytes_written, sizeof(write_data), exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_written, exit);
 
     status = el2go_datastore_commit(&datastore[0]);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_datastore_free(&datastore[0]);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     initialized[0] = false;
 
     status =
         el2go_datastore_init(2, __func__, EL2GO_DATASTORE_TYPE_FS, &datastore[1], dummy_validator);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     initialized[1] = true;
 
     status = el2go_datastore_read(&datastore[1], read_data, 0, sizeof(read_data), &bytes_read);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
-    TEST_ASSERT_EQUAL_GOTO(bytes_read, sizeof(read_data), exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(read_data), bytes_read, exit);
 
     if (memcmp(write_data, read_data, sizeof(write_data))) {
         TEST_PRINT_FAIL("Memory comparison failed");
@@ -309,7 +309,7 @@ exit:
     for (; i < 2; i++) {
         if (initialized[i]) {
             status = el2go_datastore_free(&datastore[i]);
-            TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+            TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
         }
     }
 

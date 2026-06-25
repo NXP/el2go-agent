@@ -349,11 +349,11 @@ static bool test_datastore_custom_null_ops(void *params)
     datastore.context = &ctx;
 
     status = el2go_datastore_init(3, "test_custom", EL2GO_DATASTORE_TYPE_CUSTOM, &datastore, NULL);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_INVALID_POINTER, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_POINTER, status, exit);
 
 exit:
     status = el2go_datastore_free(&datastore);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
     return test_status;
 }
@@ -379,10 +379,10 @@ static bool test_datastore_custom_all_ops_null(void *params)
     datastore.context = &ctx;
 
     status = el2go_datastore_init(3, "test_custom", EL2GO_DATASTORE_TYPE_CUSTOM, &datastore, NULL);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_INVALID_POINTER);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_INVALID_POINTER, status);
 
     status = el2go_datastore_free(&datastore);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
     return test_status;
 }
@@ -408,10 +408,10 @@ static bool test_datastore_custom_only_init_set(void *params)
     datastore.context = &ctx;
 
     status = el2go_datastore_init(3, "test_custom", EL2GO_DATASTORE_TYPE_CUSTOM, &datastore, NULL);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
     status = el2go_datastore_free(&datastore);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
     return test_status;
 }
@@ -441,24 +441,24 @@ static bool test_datastore_custom_partial_ops_full_cycle(void *params)
     datastore.context = &ctx;
 
     status = el2go_datastore_init(3, "test_custom", EL2GO_DATASTORE_TYPE_CUSTOM, &datastore, NULL);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_datastore_allocate(&datastore, sizeof(write_data));
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_datastore_write(&datastore, write_data, 0, sizeof(write_data), &bytes_written);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
-    TEST_ASSERT_EQUAL_GOTO(bytes_written, sizeof(write_data), exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_written, exit);
 
     status = el2go_datastore_commit(&datastore);
-    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_datastore_read(&datastore, read_data, 0, sizeof(read_data), &bytes_read);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_INVALID_PARAMETER);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_INVALID_PARAMETER, status);
 
 exit:
     status = el2go_datastore_free(&datastore);
-    TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
 
     return test_status;
 }
