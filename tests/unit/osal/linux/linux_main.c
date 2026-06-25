@@ -61,6 +61,9 @@ int main(int argc, char **argv)
     if (!suite || strcmp(suite, "datastore") == 0)
         register_datastore_tests();
 
+    if (!suite || strcmp(suite, "keystore") == 0)
+        register_keystore_tests();
+
     if (!suite || strcmp(suite, "net_crypto") == 0)
         register_net_crypto_tests();
 

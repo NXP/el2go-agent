@@ -53,6 +53,11 @@ void register_ota_agent_advanced_tests(void);
  */
 void register_net_crypto_tests(void);
 
+/**
+ * @brief Register all keystore tests.
+ */
+void register_keystore_tests(void);
+
 /** @} */ /* end of test_suites */
 
 #endif /* __TEST_SUITES_H__ */

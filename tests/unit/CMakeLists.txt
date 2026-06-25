@@ -36,6 +36,12 @@ add_subdirectory(public_datastore)
 # Collect internal datastore tests
 add_subdirectory(internal_datastore)
 
+# Collect public keystore tests
+add_subdirectory(public_keystore)
+
+# Collect internal keystore tests
+add_subdirectory(internal_keystore)
+
 # Collect public transport tests
 add_subdirectory(public_net_crypto)
 
@@ -131,6 +137,10 @@ target_include_directories(${INTERNAL_TEST_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/libs/platforms/${PLATFORM}
         ${CMAKE_SOURCE_DIR}/libs/datastores/plain
         ${CMAKE_SOURCE_DIR}/libs/datastores/fs
+        ${CMAKE_SOURCE_DIR}/libs/keystores
+        ${CMAKE_SOURCE_DIR}/libs/keystores/${KEYSTORE}
+        ${CMAKE_SOURCE_DIR}/libs/protobuf/nanopb
+        ${CMAKE_SOURCE_DIR}/libs/protobuf/el2go
 )
 
 target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
