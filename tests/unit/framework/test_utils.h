@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "common/el2go_datastore.h"
+#include "common/el2go_keystore.h"
 
 /**
  * @defgroup test_utils Test Utilities
@@ -39,6 +40,19 @@ void fill_buffer(uint8_t *buffer, size_t size, size_t seed);
  * @param base_id    Base ID for the first datastore.
  */
 void init_datastores(el2go_datastore_t *datastores, size_t count, uint32_t base_id);
+
+/**
+ * @brief Initialize array of keystores with unique IDs.
+ *
+ * Initializes all keystores in the array with zero values and assigns
+ * unique IDs starting from base_id.
+ *
+ * @param keystores  Array of keystores to initialize.
+ * @param count      Number of keystores in the array.
+ * @param base_id    Base ID for the first keystore.
+ */
+void init_keystores(el2go_keystore_t *keystores, size_t count, uint32_t base_id);
+
 /**
  * @brief Dump buffer contents in hexadecimal format.
  *
