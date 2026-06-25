@@ -61,7 +61,7 @@ el2go_status_t el2go_rtp_init(el2go_rtp_ctx_t **ctx);
 el2go_status_t el2go_rtp_free(el2go_rtp_ctx_t **ctx);
 
 /**
- * el2go_rtp_keystore_add - Add a keystore to the RTP Agent
+ * el2go_rtp_add_keystore - Add a keystore to the RTP Agent
  * @ctx: RTP Agent context
  * @keystore_ctx: Keystore context to add
  *
@@ -71,10 +71,10 @@ el2go_status_t el2go_rtp_free(el2go_rtp_ctx_t **ctx);
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_keystore_add(el2go_rtp_ctx_t *ctx, el2go_keystore_t *keystore_ctx);
+el2go_status_t el2go_rtp_add_keystore(el2go_rtp_ctx_t *ctx, el2go_keystore_t *keystore_ctx);
 
 /**
- * el2go_rtp_keystore_remove - Remove a keystore from the RTP Agent
+ * el2go_rtp_remove_keystore - Remove a keystore from the RTP Agent
  * @ctx: RTP Agent context
  * @keystore_ctx: Keystore context to remove
  *
@@ -84,10 +84,26 @@ el2go_status_t el2go_rtp_keystore_add(el2go_rtp_ctx_t *ctx, el2go_keystore_t *ke
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_keystore_remove(el2go_rtp_ctx_t *ctx, el2go_keystore_t *keystore_ctx);
+el2go_status_t el2go_rtp_remove_keystore(el2go_rtp_ctx_t *ctx, el2go_keystore_t *keystore_ctx);
 
 /**
- * el2go_rtp_datastore_add - Add a datastore to the RTP Agent
+ * el2go_rtp_get_keystore_by_id - Get a keystore by its identifier
+ * @ctx: RTP Agent context
+ * @id: Keystore identifier to search for
+ * @keystore: Pointer to store the found keystore
+ *
+ * This function searches through the registered keystores in the Agent context
+ * to find a keystore with the specified identifier. If found, the keystore is
+ * returned through the keystore parameter.
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+el2go_status_t el2go_rtp_get_keystore_by_id(el2go_rtp_ctx_t *ctx, uint32_t id,
+                                            el2go_keystore_t **keystore);
+
+/**
+ * el2go_rtp_add_datastore - Add a datastore to the RTP Agent
  * @ctx: RTP Agent context
  * @datastore: Datastore context to add
  *
@@ -97,10 +113,10 @@ el2go_status_t el2go_rtp_keystore_remove(el2go_rtp_ctx_t *ctx, el2go_keystore_t 
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_datastore_add(el2go_rtp_ctx_t *ctx, el2go_datastore_t *datastore);
+el2go_status_t el2go_rtp_add_datastore(el2go_rtp_ctx_t *ctx, el2go_datastore_t *datastore);
 
 /**
- * el2go_rtp_datastore_remove - Remove a datastore from the RTP Agent
+ * el2go_rtp_remove_datastore - Remove a datastore from the RTP Agent
  * @ctx: RTP Agent context
  * @datastore: Pointer to datastore context (will be set to NULL)
  *
@@ -109,7 +125,7 @@ el2go_status_t el2go_rtp_datastore_add(el2go_rtp_ctx_t *ctx, el2go_datastore_t *
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
-el2go_status_t el2go_rtp_datastore_remove(el2go_rtp_ctx_t *ctx, el2go_datastore_t *datastore);
+el2go_status_t el2go_rtp_remove_datastore(el2go_rtp_ctx_t *ctx, el2go_datastore_t *datastore);
 
 /**
  * el2go_rtp_get_datastore_by_id - Get a datastore by its identifier

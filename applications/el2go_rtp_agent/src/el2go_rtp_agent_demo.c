@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
     /* Add keystore to agent */
     printf("Adding keystore to agent...\n");
-    status = el2go_rtp_keystore_add(agent_ctx, &keystore_ctx);
+    status = el2go_rtp_add_keystore(agent_ctx, &keystore_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
         printf("Failed to add keystore to agent (status: %d)\n", status);
         goto cleanup_keystore_free;
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
     /* Add datastore to agent */
     printf("Adding datastore to agent...\n");
-    status = el2go_rtp_datastore_add(agent_ctx, &datastore_ctx);
+    status = el2go_rtp_add_datastore(agent_ctx, &datastore_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
         printf("Failed to add datastore to agent (status: %d)\n", status);
         goto cleanup_datastore_free;
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
     /* Cleanup resources */
 cleanup_datastore:
     printf("Removing datastore from agent...\n");
-    el2go_rtp_datastore_remove(agent_ctx, &datastore_ctx);
+    el2go_rtp_remove_datastore(agent_ctx, &datastore_ctx);
 
 cleanup_datastore_free:
     printf("Freeing datastore...\n");
@@ -162,7 +162,7 @@ cleanup_datastore_free:
 
 cleanup_keystore:
     printf("Removing keystore from agent...\n");
-    el2go_rtp_keystore_remove(agent_ctx, &keystore_ctx);
+    el2go_rtp_remove_keystore(agent_ctx, &keystore_ctx);
 
 cleanup_keystore_free:
     printf("Freeing keystore...\n");
