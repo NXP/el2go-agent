@@ -5,8 +5,23 @@
 
 include(add_target_sources)
 
+set(EL2GO_OTA_CRED_PROVIDER "psa" CACHE STRING
+    "OTA mTLS credential provider: psa")
+
+if(EL2GO_OTA_CRED_PROVIDER STREQUAL "psa")
+    set(EL2GO_OTA_CRED_SOURCE src/cred/el2go_ota_cred_psa.c)
+else()
+    message(FATAL_ERROR
+        "Unknown EL2GO_OTA_CRED_PROVIDER '${EL2GO_OTA_CRED_PROVIDER}'. "
+        "Valid values: psa. See src/cred/el2go_ota_cred.h to add a new provider.")
+endif()
+
+message(STATUS "EL2GO OTA credential provider: ${EL2GO_OTA_CRED_PROVIDER}")
+
 set(EL2GO_OTA_LIB_SOURCES
     el2go_ota_lib.c
+    src/el2go_ota_tls.c
+    ${EL2GO_OTA_CRED_SOURCE}
 )
 
 if(NOT BUILD_ZEPHYR)
@@ -28,6 +43,21 @@ if(NOT BUILD_ZEPHYR)
 
     target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_SOURCE_DIR}/priv
+        ${CMAKE_SOURCE_DIR}/libs/osal/include
+        ${CMAKE_SOURCE_DIR}/libs/net_crypto
+        ${CMAKE_SOURCE_DIR}/libs/platforms
+        ${CMAKE_SOURCE_DIR}/libs/platforms/${PLATFORM}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/cred
+    )
+
+    # net_crypto provides the TLS abstraction layer (mbedTLS backend) and
+    # propagates all required mbedTLS include dirs and link libraries.
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            net_crypto
+            el2go_platform
+            osal
     )
 
     # ============================================================================
@@ -76,5 +106,10 @@ else()
     add_private_directories(el2go_ota_lib
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/osal/include
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/net_crypto
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/src
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/src/cred
     )
 endif()
