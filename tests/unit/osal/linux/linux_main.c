@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
     /* Register tests based on suite filter */
     if (!suite || strcmp(suite, "el2go_rtp") == 0)
-        register_el2go_rtp_tests();
+        register_el2go_rtp_tests(true);
 
     if (!suite || strcmp(suite, "datastore") == 0)
         register_datastore_tests();

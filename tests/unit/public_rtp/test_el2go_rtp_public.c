@@ -758,12 +758,53 @@ exit:
 }
 
 /**
+  * @brief Test el2go_rtp_datastore_el2go() with NULL parameters.
+  *
+  * Verifies that el2go_rtp_datastore_el2go() returns
+  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the datastore,
+  * keystore, config, or all three.
+  *
+  * @param params Unused.
+  * @return @c true if all assertions pass, @c false otherwise.
+  */
+static bool test_el2go_rtp_datastore_el2go_null_parameters(void *params)
+{
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    el2go_datastore_t datastore = { 0 };
+    el2go_keystore_t keystore = { 0 };
+    el2go_rtp_datastore_config_t config = { 0 };
+    bool test_status = true;
+
+    (void)params;
+
+    /* Test NULL datastore */
+    status = el2go_rtp_datastore_el2go(NULL, &keystore, &config);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_PARAMETER, status, exit);
+
+    /* Test NULL keystore */
+    status = el2go_rtp_datastore_el2go(&datastore, NULL, &config);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_PARAMETER, status, exit);
+
+    /* Test NULL config */
+    status = el2go_rtp_datastore_el2go(&datastore, &keystore, NULL);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_PARAMETER, status, exit);
+
+    /* Test all NULL */
+    status = el2go_rtp_datastore_el2go(NULL, NULL, NULL);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_INVALID_PARAMETER, status);
+
+exit:
+    return test_status;
+}
+
+/**
  * @brief Register all public RTP tests with the test framework.
  *
  * Registers every test function in the order they should be executed.
  */
-void register_el2go_rtp_tests(void)
+void register_el2go_rtp_tests(bool include_fs_tests)
 {
+    (void)include_fs_tests;
     TEST_REGISTER(test_el2go_rtp_init_and_free);
     TEST_REGISTER(test_el2go_rtp_null_parameters);
     TEST_REGISTER(test_el2go_rtp_datastore_add_remove_null_parameters);
@@ -773,6 +814,7 @@ void register_el2go_rtp_tests(void)
     TEST_REGISTER(test_el2go_get_datastore_by_id_null_parameters);
     TEST_REGISTER(test_el2go_get_datastore_by_id_success);
     TEST_REGISTER(test_el2go_get_datastore_by_id_not_found);
+    TEST_REGISTER(test_el2go_rtp_datastore_el2go_null_parameters);
     TEST_REGISTER(test_el2go_rtp_keystore_add_remove_null_parameters);
     TEST_REGISTER(test_el2go_rtp_keystore_add_remove);
     TEST_REGISTER(test_el2go_rtp_keystore_remove_not_found);

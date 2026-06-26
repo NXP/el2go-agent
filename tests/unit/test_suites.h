@@ -8,6 +8,8 @@
 #ifndef __TEST_SUITES_H__
 #define __TEST_SUITES_H__
 
+#include <stdbool.h>
+
 /**
  * @defgroup test_suites Test Suites
  * @brief Registration interface for all unit test suites.
@@ -21,7 +23,7 @@
 /**
  * @brief Register all EL2GO RTP tests.
  */
-void register_el2go_rtp_tests(void);
+void register_el2go_rtp_tests(bool include_fs_tests);
 
 /**
  * @brief Register all datastore tests.
