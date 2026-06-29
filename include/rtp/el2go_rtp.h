@@ -193,5 +193,4 @@ el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx, char *uuid_buffer
 el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
                                          el2go_keystore_t *keystore_ctx,
                                          const el2go_rtp_datastore_config_t *config);
-
 #endif /* __EL2GO_RTP_H__ */

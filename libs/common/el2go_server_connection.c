@@ -25,6 +25,8 @@
 #include "el2go_server_connection.h"
 #include "net_crypto.h"
 
+#include "keystore_priv.h"
+
 bool el2go_conn_datastore_needs_update(el2go_datastore_t *datastore, const char *hostname,
                                        uint16_t port, const el2go_buffer_t *certificate)
 {
@@ -110,9 +112,15 @@ el2go_status_t el2go_conn_write_datastore(el2go_datastore_t *datastore,
     svc_desc.client_key_sss_ref.has_object_id = true;
     svc_desc.client_key_sss_ref.object_id = object_id;
 
-    /* Setup client certificate */
-    if (keystore_ctx->type == EL2GO_KEYSTORE_PSA) {
-        svc_desc.client_certificate = (pb_bytes_array_t *)client_cert;
+    /* Get client certificate from service descriptor */
+    /* Setup client certificate in service descriptor */
+    status = el2go_keystore_set_cert_in_srv_desc(keystore_ctx, client_cert, &svc_desc);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR,
+                         "Failed to set client certificate in service "
+                         "descriptor: 0x%04x\n",
+                         status);
+        goto exit;
     }
 
     pb_status = pb_encode_delimited(&stream, nxp_iot_ServiceDescriptor_fields, &svc_desc);
@@ -123,6 +131,7 @@ el2go_status_t el2go_conn_write_datastore(el2go_datastore_t *datastore,
     }
 
     encoded_size = stream.bytes_written;
+    EL2GO_DBG_PRINTF(VERBOSE, "Encoded service descriptor size: %zu bytes\n", encoded_size);
 
     if (ADD_OVERFLOW(sizeof(config_data_hdr_t), encoded_size, &total_size)) {
         EL2GO_DBG_PRINTF(ERROR, "Overflow in total size calculation\n");

@@ -24,8 +24,7 @@ struct el2go_platform_ctx {
     bool smw_initialized;
 };
 
-__export el2go_status_t el2go_platform_init(const el2go_platform_config_t *config,
-                                            el2go_platform_ctx_t **platform_ctx)
+__export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
 {
     el2go_platform_ctx_t *ctx = NULL;
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
@@ -34,7 +33,7 @@ __export el2go_status_t el2go_platform_init(const el2go_platform_config_t *confi
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     /* the config parameter is not used for this type of platform */
-    if (!config || !platform_ctx) {
+    if (!platform_ctx) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }

@@ -25,33 +25,16 @@
 typedef struct el2go_platform_ctx el2go_platform_ctx_t;
 
 /**
- * @brief Platform configuration.
- *
- * Platform-specific initialization parameters. The content and usage depend
- * on the underlying HSM implementation and its middleware requirements.
- *
- * @note Some HSM middleware layers require specific parameter formats that
- * cannot be modified. These fields accommodate those requirements while
- * remaining flexible for different platform implementations.
- */
-typedef struct {
-    int param_count;   /**< Number of platform parameters. */
-    char **param_list; /**< Array of platform parameter strings. */
-} el2go_platform_config_t;
-
-/**
  * @brief Initialize platform and HSM hardware.
  *
  * Initializes the platform-specific components including HSM hardware.
  * The SE05X underlying layers require parameters in the form of argc/argv.
  *
- * @param[in]  config        Platform configuration.
  * @param[out] platform_ctx  Pointer to store the created platform context.
  *
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
-el2go_status_t el2go_platform_init(const el2go_platform_config_t *config,
-                                   el2go_platform_ctx_t **platform_ctx);
+el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx);
 
 /**
  * @brief Cleanup platform and HSM hardware.

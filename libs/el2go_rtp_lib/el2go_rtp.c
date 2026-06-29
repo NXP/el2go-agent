@@ -22,13 +22,85 @@
 #include "net_crypto.h"
 #include "el2go_server_certificates.h"
 #include "el2go_server_connection.h"
+#include "el2go_service.h"
 
 #include "keystore_priv.h"
 #include "platform_priv.h"
 
 #include "pb.h"
+#include "pb_decode.h"
+#include "ServiceDescriptor.pb.h"
 
 #include "el2go_rtp_internal.h"
+
+/**
+ * @brief Get or generate the client certificate for EL2GO connection
+ *
+ * Tries to get the client certificate from the keystore/platform first.
+ * If not available, generates a self-signed certificate using the key ID
+ * and device UUID from the platform.
+ *
+ * @param[in] keystore_ctx Keystore context
+ * @param[in] key_id ECC key ID to use for self-signed certificate generation
+ * @param[out] client_cert_buf Buffer to store the certificate
+ * @param[in,out] client_cert_len On input, size of buffer; on output, actual certificate length
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+
+static el2go_status_t get_el2go_client_cert(el2go_keystore_t *keystore_ctx, uint32_t key_id,
+                                            uint8_t *client_cert_buf, size_t *client_cert_len)
+{
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    uint8_t *device_uuid = NULL;
+    size_t device_uuid_len = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    /* Try to get client certificate from keystore/platform first */
+    status = el2go_keystore_get_el2go_cert(keystore_ctx, client_cert_buf, client_cert_len);
+    if (status == EL2GO_STATUS_CERT_NOT_AVAILABLE) {
+        EL2GO_DBG_PRINTF(VERBOSE, "No platform certificate, generating self-signed\n");
+
+        /* Get device UUID from platform */
+        status =
+            el2go_platform_get_uuid(keystore_ctx->platform_ctx, &device_uuid, &device_uuid_len);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR, "Failed to get device UUID: 0x%04x\n", status);
+            goto exit;
+        }
+
+        /* Generate self-signed client certificate */
+        status = net_crypto_self_signed_cert(EL2GO_RTP_SUBJECT, key_id, device_uuid,
+                                             device_uuid_len, client_cert_buf, client_cert_len);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "Failed to generate self-signed certificate: "
+                             "0x%04x\n",
+                             status);
+            goto exit;
+        }
+
+        EL2GO_DBG_PRINTF(VERBOSE, "Generated self-signed client certificate (%zu bytes)\n",
+                         *client_cert_len);
+    } else if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR,
+                         "Failed to get client certificate from keystore: "
+                         "0x%04x\n",
+                         status);
+        goto exit;
+    } else {
+        EL2GO_DBG_PRINTF(VERBOSE, "Using keystore client certificate (%zu bytes)\n",
+                         *client_cert_len);
+    }
+
+exit:
+    if (device_uuid)
+        osal_free(device_uuid);
+
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
+}
 
 __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
                                                   el2go_keystore_t *keystore_ctx,
@@ -39,10 +111,10 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
     uint16_t port = 0;
     pb_bytes_array_t *cert_array = NULL;
     const pb_bytes_array_t *cert = NULL;
-    bool user_provided = false;
+    bool user_provided_host = false;
+    bool user_provided_cert = false;
+
     uint32_t key_id = 0;
-    uint8_t *device_uuid = NULL;
-    size_t device_uuid_len = 0;
     PB_BYTES_ARRAY_T(EL2GO_RTP_CLIENT_CERT_MAX_SIZE) client_cert_buf = { 0 };
     pb_bytes_array_t *client_cert_array = (pb_bytes_array_t *)&client_cert_buf;
     size_t client_cert_len = EL2GO_RTP_CLIENT_CERT_MAX_SIZE;
@@ -58,7 +130,7 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
     if (config->hostname && config->hostname[0] != '\0' && config->port != 0) {
         hostname = config->hostname;
         port = config->port;
-        user_provided = true;
+        user_provided_host = true;
         EL2GO_DBG_PRINTF(VERBOSE, "Using hostname and port from config\n");
     } else {
         hostname = EL2GO_RTP_EDGELOCK2GO_HOSTNAME;
@@ -71,7 +143,7 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
 
     EL2GO_DBG_PRINTF(INFO, "Using EdgeLock 2GO server: %s:%u\n", hostname, port);
 
-    if (user_provided &&
+    if (user_provided_host &&
         !el2go_conn_datastore_needs_update(datastore, hostname, port, config->certificate)) {
         status = EL2GO_STATUS_SUCCESS;
         goto exit;
@@ -83,39 +155,10 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
         EL2GO_DBG_PRINTF(ERROR, "Failed to get EL2GO key ID: 0x%04x\n", status);
         goto exit;
     }
-
-    /* Try to get client certificate from keystore/platform first */
-    status = el2go_keystore_get_el2go_cert(keystore_ctx, client_cert_buf.bytes, &client_cert_len);
-    if (status == EL2GO_STATUS_CERT_NOT_AVAILABLE) {
-        EL2GO_DBG_PRINTF(VERBOSE, "No platform certificate, generating self-signed\n");
-
-        /* Get device UUID from platform */
-        status =
-            el2go_platform_get_uuid(keystore_ctx->platform_ctx, &device_uuid, &device_uuid_len);
-        if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_DBG_PRINTF(ERROR, "Failed to get device UUID: 0x%04x\n", status);
-            goto exit;
-        }
-
-        /* Generate self-signed client certificate */
-        status = net_crypto_self_signed_cert(EL2GO_RTP_SUBJECT, key_id, device_uuid,
-                                             device_uuid_len, client_cert_buf.bytes,
-                                             &client_cert_len);
-        if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_DBG_PRINTF(ERROR, "Failed to generate self-signed certificate: 0x%04x\n", status);
-            goto exit;
-        }
-
-        EL2GO_DBG_PRINTF(VERBOSE, "Generated self-signed client certificate (%zu bytes)\n",
-                         client_cert_len);
-    } else if (status != EL2GO_STATUS_SUCCESS) {
-        EL2GO_DBG_PRINTF(ERROR, "Failed to get client certificate from keystore: 0x%04x\n", status);
+    status = get_el2go_client_cert(keystore_ctx, key_id, client_cert_buf.bytes, &client_cert_len);
+    if (status != EL2GO_STATUS_SUCCESS) {
         goto exit;
-    } else {
-        EL2GO_DBG_PRINTF(VERBOSE, "Using keystore client certificate (%zu bytes)\n",
-                         client_cert_len);
     }
-
     client_cert_buf.size = (pb_size_t)client_cert_len;
 
     /* Build pb_bytes_array_t for the certificate.
@@ -131,7 +174,7 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
         cert_array->size = (pb_size_t)config->certificate->len;
         memcpy(cert_array->bytes, config->certificate->data, config->certificate->len);
         cert = cert_array;
-        user_provided = true;
+        user_provided_cert = true;
         EL2GO_DBG_PRINTF(VERBOSE, "Using certificate from config (%zu bytes)\n",
                          config->certificate->len);
     } else {
@@ -139,7 +182,7 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
         EL2GO_DBG_PRINTF(VERBOSE, "No certificate in config, using default\n");
     }
 
-    if (user_provided &&
+    if (user_provided_cert &&
         !el2go_conn_datastore_needs_update(datastore, hostname, port, config->certificate)) {
         status = EL2GO_STATUS_SUCCESS;
         goto exit;
@@ -160,8 +203,6 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
 exit:
     if (cert_array)
         osal_free(cert_array);
-    if (device_uuid)
-        osal_free(device_uuid);
 
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
@@ -320,6 +361,20 @@ __export el2go_status_t el2go_rtp_add_datastore(el2go_rtp_ctx_t *ctx, el2go_data
     if (!ctx || !datastore)
         goto exit;
 
+    /* EL2GO datastore is treated specially - stored in dedicated pointer */
+    if (datastore->id == EL2GO_RTP_DATASTORE_EDGELOCK_ID) {
+        if (ctx->el2go_datastore) {
+            EL2GO_DBG_PRINTF(ERROR, "EL2GO datastore already set\n");
+            status = EL2GO_STATUS_ALREADY_EXISTS;
+            goto exit;
+        }
+
+        ctx->el2go_datastore = datastore;
+        EL2GO_DBG_PRINTF(INFO, "EL2GO datastore added\n");
+        status = EL2GO_STATUS_SUCCESS;
+        goto exit;
+    }
+
     if (ctx->num_datastores >= EL2GO_RTP_MAX_DATASTORES) {
         EL2GO_DBG_PRINTF(ERROR, "Unable to register datastore, maximum number reached\n");
         status = EL2GO_STATUS_RESOURCE_LIMIT;
@@ -370,6 +425,20 @@ __export el2go_status_t el2go_rtp_remove_datastore(el2go_rtp_ctx_t *ctx,
     if (!ctx || !datastore)
         goto exit;
 
+    /* Handle special EL2GO datastore */
+    if (datastore->id == EL2GO_RTP_DATASTORE_EDGELOCK_ID) {
+        if (!ctx->el2go_datastore) {
+            EL2GO_DBG_PRINTF(ERROR, "EL2GO datastore not set\n");
+            status = EL2GO_STATUS_INVALID_STATE;
+            goto exit;
+        }
+
+        ctx->el2go_datastore = NULL;
+        EL2GO_DBG_PRINTF(INFO, "EL2GO datastore removed\n");
+        status = EL2GO_STATUS_SUCCESS;
+        goto exit;
+    }
+
     if (ctx->num_datastores == 0) {
         status = EL2GO_STATUS_INVALID_STATE;
         goto exit;
@@ -413,6 +482,19 @@ __export el2go_status_t el2go_rtp_get_datastore_by_id(el2go_rtp_ctx_t *ctx, uint
     if (!ctx || !datastore)
         goto exit;
 
+    /* Handle special EL2GO datastore */
+    if (id == EL2GO_RTP_DATASTORE_EDGELOCK_ID) {
+        if (!ctx->el2go_datastore) {
+            EL2GO_DBG_PRINTF(ERROR, "EL2GO datastore not set\n");
+            status = EL2GO_STATUS_NOT_FOUND;
+            goto exit;
+        }
+
+        *datastore = ctx->el2go_datastore;
+        status = EL2GO_STATUS_SUCCESS;
+        goto exit;
+    }
+
     status = get_datastore_index_by_id(ctx, id, &index);
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "Datastore with id 0x%08" PRIx32 " not found\n", id);
@@ -428,9 +510,95 @@ exit:
     return status;
 }
 
+/**
+ * get_el2go_service_descriptor - Find and return the EL2GOSERVICE descriptor from datastore
+ * @datastore: EL2GO datastore containing the service descriptor
+ * @service_descriptor: Caller-owned descriptor to populate - must be released by caller
+ *
+ * Searches the datastore for a service descriptor of type EL2GOSERVICE
+ * and populates the caller-provided descriptor with the found data.
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+static el2go_status_t get_el2go_service_descriptor(el2go_datastore_t *datastore,
+                                                   nxp_iot_ServiceDescriptor *service_descriptor)
+{
+    el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
+    size_t num_services = 0;
+    size_t offset = 0;
+    size_t i = 0;
+    bool found = false;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!datastore || !service_descriptor)
+        goto exit;
+
+    num_services = srv_get_number_of_services(datastore);
+    if (num_services == 0) {
+        EL2GO_DBG_PRINTF(ERROR, "No services in EL2GO datastore\n");
+        status = EL2GO_STATUS_NOT_FOUND;
+        goto exit;
+    }
+
+    /* Search for EL2GOSERVICE type service descriptor */
+    for (i = 0; i < num_services; i++) {
+        offset = 0;
+        pb_release(nxp_iot_ServiceDescriptor_fields, service_descriptor);
+        *service_descriptor = (nxp_iot_ServiceDescriptor)nxp_iot_ServiceDescriptor_init_default;
+
+        status = srv_get_service_by_index(datastore, i, &offset, service_descriptor);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "Failed to read service descriptor %zu: "
+                             "0x%04x\n",
+                             i, status);
+            goto exit;
+        }
+
+        if (service_descriptor->has_service_type &&
+            service_descriptor->service_type == nxp_iot_ServiceType_EL2GOSERVICE) {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        EL2GO_DBG_PRINTF(ERROR, "No EL2GOSERVICE descriptor found in datastore\n");
+        status = EL2GO_STATUS_NOT_FOUND;
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Found EL2GOSERVICE descriptor\n");
+
+    status = EL2GO_STATUS_SUCCESS;
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
+}
+
 __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, el2go_verbosity_t verbosity)
 {
     el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
+    const char *hostname = NULL;
+    uint16_t port = 0;
+    uint32_t key_id = 0;
+    el2go_keystore_t *keystore = NULL;
+    uint8_t *client_cert_buf = NULL;
+    size_t client_cert_buf_len = EL2GO_RTP_CLIENT_CERT_MAX_SIZE;
+    const uint8_t *client_cert = NULL;
+    size_t client_cert_len = 0;
+    const uint8_t *server_cert = NULL;
+    size_t server_cert_len = 0;
+    bool use_compile_time_config = false;
+    nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
+    const pb_bytes_array_t *default_certs = NULL;
+    net_crypto_ctx_t *net_ctx = NULL;
+    net_crypto_config_t net_config = { 0 };
+    el2go_cipher_list_t cipher_list = { 0 };
+    el2go_curve_list_t curve_list = { 0 };
 
     EL2GO_DBG_TRACE_API_CALL;
 
@@ -439,14 +607,183 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, el2go_verbosit
     if (!ctx)
         goto exit;
 
-    /* TODO: Connect to EdgeLock 2GO server */
+    /* Find the keystore registered with EL2GO keystore ID */
+    status = el2go_rtp_get_keystore_by_id(ctx, EL2GO_RTP_EDGELOCK2GO_KEYSTORE_ID, &keystore);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "EL2GO keystore not found\n");
+        goto exit;
+    }
+
+    /* Check if EL2GO datastore is set and valid */
+    if (!ctx->el2go_datastore) {
+        EL2GO_DBG_PRINTF(INFO, "EL2GO datastore not set, using compile-time constants\n");
+        use_compile_time_config = true;
+    } else {
+        status = srv_validate_configuration_data(ctx->el2go_datastore);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(INFO,
+                             "EL2GO datastore invalid (0x%04x), "
+                             "using compile-time constants\n",
+                             status);
+            use_compile_time_config = true;
+        }
+    }
+
+    if (use_compile_time_config) {
+        /* Use compile-time constants for connection parameters */
+        hostname = EL2GO_RTP_EDGELOCK2GO_HOSTNAME;
+        port = EL2GO_RTP_EDGELOCK2GO_PORT;
+
+        /* Get default server certificates */
+        default_certs = el2go_get_default_certs();
+        if (!default_certs) {
+            EL2GO_DBG_PRINTF(ERROR, "Failed to get default server certificates\n");
+            status = EL2GO_STATUS_FAILURE;
+            goto exit;
+        }
+        server_cert = default_certs->bytes;
+        server_cert_len = default_certs->size;
+
+        /* Get key ID from keystore */
+        status = el2go_keystore_get_el2go_key_id(keystore, &key_id);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR, "Failed to get EL2GO key ID: 0x%04x\n", status);
+            goto exit;
+        }
+
+        /* Allocate client certificate buffer */
+        client_cert_buf = osal_malloc(EL2GO_RTP_CLIENT_CERT_MAX_SIZE);
+        if (!client_cert_buf) {
+            EL2GO_DBG_PRINTF(ERROR, "Failed to allocate client certificate buffer\n");
+            status = EL2GO_STATUS_ALLOCATION_ERROR;
+            goto exit;
+        }
+
+        /* Get or generate client certificate */
+        status = get_el2go_client_cert(keystore, key_id, client_cert_buf, &client_cert_buf_len);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR, "Failed to get client certificate: 0x%04x\n", status);
+            goto exit;
+        }
+
+        /* Point client_cert to the allocated buffer */
+        client_cert = client_cert_buf;
+        client_cert_len = client_cert_buf_len;
+
+        EL2GO_DBG_PRINTF(INFO, "Using compile-time config: %s:%u\n", hostname, port);
+    } else {
+        EL2GO_DBG_PRINTF(INFO, "EL2GO datastore is valid, reading config\n");
+
+        status = get_el2go_service_descriptor(ctx->el2go_datastore, &service_descriptor);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "Failed to get EL2GO service descriptor: "
+                             "0x%04x\n",
+                             status);
+            goto exit;
+        }
+
+        /* Extract connection parameters from service descriptor */
+        hostname = service_descriptor.hostname;
+        port = (uint16_t)service_descriptor.port;
+        key_id = service_descriptor.client_key_sss_ref.object_id;
+        server_cert = service_descriptor.server_certificate->bytes;
+        server_cert_len = service_descriptor.server_certificate->size;
+
+        /* Get client certificate from service descriptor - no allocation */
+        status = el2go_keystore_get_cert_from_srv_desc(keystore, &service_descriptor, &client_cert,
+                                                       &client_cert_len);
+        if (status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "Failed to get client certificate from service "
+                             "descriptor: 0x%04x\n",
+                             status);
+            goto exit;
+        }
+
+        EL2GO_DBG_PRINTF(INFO,
+                         "Using datastore config: %s:%u key_id: 0x%08" PRIx32
+                         " client_cert: %zu bytes "
+                         "server_cert: %zu bytes\n",
+                         hostname, port, key_id, client_cert_len, server_cert_len);
+    }
+
+    /* 1. Create network crypto context */
+    status = net_crypto_new(&net_ctx);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to create net crypto context: 0x%04x\n", status);
+        goto exit;
+    }
+
+    /* 2. Configure connection (hostname, port) */
+    net_config.hostname = hostname;
+    net_config.port = port;
+    status = net_crypto_configure(net_ctx, &net_config);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to configure net crypto context: 0x%04x\n", status);
+        goto exit;
+    }
+
+    /* 3. Set trusted root CA certificates for server verification */
+    status = net_crypto_set_server_cert(net_ctx, server_cert, server_cert_len);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to set server certificate: 0x%04x\n", status);
+        goto exit;
+    }
+
+    /* 4. Set client certificate for mutual TLS authentication */
+    status = net_crypto_set_cli_cert(net_ctx, client_cert, client_cert_len);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to set client certificate: 0x%04x\n", status);
+        goto exit;
+    }
+
+    /* 5. Associate the private key from HSM */
+    status = net_crypto_associate_key(net_ctx, key_id);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to associate private key: 0x%04x\n", status);
+        goto exit;
+    }
+
+    /* 6. Configure platform cipher suites */
+    cipher_list = el2go_platform_get_cipher_suites();
+    status = net_crypto_set_cipher_suites(net_ctx, &cipher_list);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to set cipher suites: 0x%04x\n", status);
+        goto exit;
+    }
+
+    /* 7. Configure platform curves */
+    curve_list = el2go_platform_get_curves();
+    status = net_crypto_set_curves(net_ctx, &curve_list);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to set curves: 0x%04x\n", status);
+        goto exit;
+    }
+
+    /* 8. Connect to EdgeLock 2GO server */
+    status = net_crypto_connect(net_ctx);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to connect to EL2GO server: 0x%04x\n", status);
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Connected to EL2GO server successfully\n");
+
     /* TODO: Provision keys and certificates */
-    /* TODO: Populate status_report from server response */
     /* TODO: Set result based on provisioning outcome */
 
     status = EL2GO_STATUS_SUCCESS;
 
 exit:
+    if (net_ctx) {
+        net_crypto_disconnect(net_ctx);
+        net_crypto_free(&net_ctx);
+    }
+    /* Only free the heap allocated buffer - datastore path points into service_descriptor */
+    if (client_cert_buf)
+        osal_free(client_cert_buf);
+    pb_release(nxp_iot_ServiceDescriptor_fields, &service_descriptor);
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
 }

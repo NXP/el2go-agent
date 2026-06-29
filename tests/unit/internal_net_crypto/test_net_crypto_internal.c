@@ -215,13 +215,12 @@ static bool test_net_crypto_self_signed_cert(void *params)
     uint8_t *device_uuid = NULL;
     size_t device_uuid_len = 0;
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     bool test_status = true;
 
     (void)params;
 
     /* Initialize platform to get UUID */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     /* Get device UUID */
@@ -394,7 +393,6 @@ static bool test_net_crypto_el2go_connection_common(const char *subject, bool us
     net_crypto_ctx_t *ctx = NULL;
     el2go_platform_ctx_t *platform_ctx = NULL;
     el2go_status_t status;
-    el2go_platform_config_t platform_config = { 0 };
     const char *hostname = NULL;
     net_crypto_config_t config = { 0 };
     uint8_t client_cert[2048];
@@ -422,7 +420,7 @@ static bool test_net_crypto_el2go_connection_common(const char *subject, bool us
     config.port = TEST_PORT;
 
     /* 1. Initialize platform (SMW) */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     /* 2. Get device UUID */

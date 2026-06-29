@@ -22,6 +22,7 @@
 #include "Dispatcher.pb.h"
 #include "Agent.pb.h"
 #include "PSA.pb.h"
+#include "ServiceDescriptor.pb.h"
 
 #include "common/el2go_keystore.h"
 #include "platform_priv.h"
@@ -461,4 +462,39 @@ el2go_status_t el2go_keystore_get_el2go_cert(el2go_keystore_t *keystore, uint8_t
         return EL2GO_STATUS_INVALID_PARAMETER;
 
     return el2go_platform_get_el2go_cert(keystore->platform_ctx, cert, cert_len);
+}
+
+el2go_status_t
+el2go_keystore_get_cert_from_srv_desc(el2go_keystore_t *keystore,
+                                      const nxp_iot_ServiceDescriptor *service_descriptor,
+                                      const uint8_t **client_cert, size_t *client_cert_len)
+{
+    if (!keystore || !service_descriptor || !client_cert || !client_cert_len)
+        return EL2GO_STATUS_INVALID_PARAMETER;
+
+    if (!service_descriptor->client_certificate ||
+        service_descriptor->client_certificate->size == 0) {
+        EL2GO_DBG_PRINTF(ERROR, "EL2GOSERVICE descriptor has no client certificate\n");
+        return EL2GO_STATUS_INVALID_DATASTORE;
+    }
+
+    /* PSA keystore: certificate is stored in service descriptor
+     * point directly into it - no copy needed */
+    *client_cert = service_descriptor->client_certificate->bytes;
+    *client_cert_len = service_descriptor->client_certificate->size;
+
+    return EL2GO_STATUS_SUCCESS;
+}
+
+el2go_status_t el2go_keystore_set_cert_in_srv_desc(el2go_keystore_t *keystore,
+                                                   const pb_bytes_array_t *client_cert,
+                                                   nxp_iot_ServiceDescriptor *service_descriptor)
+{
+    if (!keystore || !client_cert || !service_descriptor)
+        return EL2GO_STATUS_INVALID_PARAMETER;
+
+    /* PSA keystore: point directly into the pb_bytes_array_t - no copy needed */
+    service_descriptor->client_certificate = (pb_bytes_array_t *)client_cert;
+
+    return EL2GO_STATUS_SUCCESS;
 }

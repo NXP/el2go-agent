@@ -20,6 +20,7 @@ target_link_libraries(el2go_common
     PRIVATE
         el2go_protobuf
         el2go_datastore
+        el2go_keystore
         osal
 	net_crypto
 )

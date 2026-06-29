@@ -362,14 +362,13 @@ static bool test_el2go_keystore_get_el2go_key_id_success(void *params)
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     el2go_keystore_t keystore = { 0 };
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     uint32_t key_id = 0;
     bool test_status = true;
 
     (void)params;
 
     /* Initialize platform */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     keystore.platform_ctx = platform_ctx;
@@ -433,7 +432,6 @@ static bool test_el2go_keystore_get_el2go_cert_not_available(void *params)
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     el2go_keystore_t keystore = { 0 };
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     uint8_t cert[EL2GO_RTP_CLIENT_CERT_MAX_SIZE];
     size_t cert_len = sizeof(cert);
     bool test_status = true;
@@ -441,7 +439,7 @@ static bool test_el2go_keystore_get_el2go_cert_not_available(void *params)
     (void)params;
 
     /* Initialize platform */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     keystore.platform_ctx = platform_ctx;
@@ -495,14 +493,13 @@ static bool test_el2go_platform_get_el2go_key_id_success(void *params)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     uint32_t key_id = 0;
     bool test_status = true;
 
     (void)params;
 
     /* Initialize platform */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     /* Get key ID */
@@ -530,7 +527,6 @@ static bool test_el2go_platform_get_el2go_cert_not_available(void *params)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     uint8_t cert[EL2GO_RTP_CLIENT_CERT_MAX_SIZE];
     size_t cert_len = sizeof(cert);
     bool test_status = true;
@@ -538,7 +534,7 @@ static bool test_el2go_platform_get_el2go_cert_not_available(void *params)
     (void)params;
 
     /* Initialize platform */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     /* SMW platform should return NOT_AVAILABLE */
@@ -611,7 +607,6 @@ static bool common_test_el2go_rtp_datastore_el2go(const char *hostname, uint16_t
     el2go_datastore_t datastore = { 0 };
     el2go_keystore_t keystore = { 0 };
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     el2go_rtp_datastore_config_t config = { 0 };
     nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
     const char *expected_hostname = hostname ? hostname : EL2GO_RTP_EDGELOCK2GO_HOSTNAME;
@@ -620,7 +615,7 @@ static bool common_test_el2go_rtp_datastore_el2go(const char *hostname, uint16_t
     bool test_status = true;
 
     /* Initialize platform */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     /* Initialize keystore with platform context */
@@ -731,7 +726,6 @@ static bool test_el2go_rtp_datastore_needs_update(void *params)
     el2go_datastore_t datastore = { 0 };
     el2go_keystore_t keystore = { 0 };
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     el2go_rtp_datastore_config_t config = { 0 };
     bool needs_update = false;
     bool test_status = true;
@@ -741,7 +735,7 @@ static bool test_el2go_rtp_datastore_needs_update(void *params)
     (void)params;
 
     /* Initialize platform */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     /* Initialize keystore with platform context */
@@ -811,7 +805,6 @@ static bool test_el2go_rtp_datastore_needs_update_service_type(void *params)
     el2go_datastore_t datastore = { 0 };
     el2go_keystore_t keystore = { 0 };
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     el2go_rtp_datastore_config_t config = { 0 };
     nxp_iot_ServiceDescriptor service_descriptor = nxp_iot_ServiceDescriptor_init_default;
     bool needs_update = false;
@@ -825,7 +818,7 @@ static bool test_el2go_rtp_datastore_needs_update_service_type(void *params)
     (void)params;
 
     /* Initialize platform */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     /* Initialize keystore with platform context */
@@ -908,7 +901,6 @@ static bool test_el2go_rtp_datastore_random_data(void *params)
     el2go_datastore_t datastore = { 0 };
     el2go_keystore_t keystore = { 0 };
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     el2go_rtp_datastore_config_t config = { 0 };
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     nxp_iot_ServiceDescriptor sd = nxp_iot_ServiceDescriptor_init_default;
@@ -922,7 +914,7 @@ static bool test_el2go_rtp_datastore_random_data(void *params)
     (void)params;
 
     /* Initialize platform and keystore */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_keystore_init(EL2GO_RTP_EDGELOCK2GO_KEYSTORE_ID, platform_ctx, &keystore);
@@ -996,7 +988,6 @@ static bool test_el2go_rtp_datastore_malformed_services(void *params)
     el2go_datastore_t datastore = { 0 };
     el2go_keystore_t keystore = { 0 };
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     el2go_rtp_datastore_config_t config = { 0 };
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     nxp_iot_ServiceDescriptor sd = nxp_iot_ServiceDescriptor_init_default;
@@ -1011,7 +1002,7 @@ static bool test_el2go_rtp_datastore_malformed_services(void *params)
     (void)params;
 
     /* Initialize platform and keystore */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_keystore_init(EL2GO_RTP_EDGELOCK2GO_KEYSTORE_ID, platform_ctx, &keystore);
@@ -1091,7 +1082,6 @@ static bool test_el2go_rtp_datastore_correct_checksum_malformed_services(void *p
     el2go_datastore_t datastore = { 0 };
     el2go_keystore_t keystore = { 0 };
     el2go_platform_ctx_t *platform_ctx = NULL;
-    el2go_platform_config_t platform_config = { 0 };
     el2go_rtp_datastore_config_t config = { 0 };
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     nxp_iot_ServiceDescriptor sd = nxp_iot_ServiceDescriptor_init_default;
@@ -1106,7 +1096,7 @@ static bool test_el2go_rtp_datastore_correct_checksum_malformed_services(void *p
     (void)params;
 
     /* Initialize platform and keystore */
-    status = el2go_platform_init(&platform_config, &platform_ctx);
+    status = el2go_platform_init(&platform_ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     status = el2go_keystore_init(EL2GO_RTP_EDGELOCK2GO_KEYSTORE_ID, platform_ctx, &keystore);

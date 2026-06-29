@@ -14,10 +14,9 @@
 #include "platform_priv.h"
 #include "plat_keys.h"
 
-__export __weak el2go_status_t el2go_platform_init(const el2go_platform_config_t *config,
-                                                   el2go_platform_ctx_t **platform_ctx)
+__export __weak el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
 {
-    if (!config || !platform_ctx) {
+    if (!platform_ctx) {
         return EL2GO_STATUS_INVALID_PARAMETER;
     }
 

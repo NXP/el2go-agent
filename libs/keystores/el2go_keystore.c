@@ -8,8 +8,11 @@
 #include <stddef.h>
 
 #include "compiler.h"
+#include "debug.h"
 
 #include "common/el2go_keystore.h"
+
+#include "keystore_priv.h"
 
 __export __weak el2go_status_t el2go_keystore_init(uint32_t id, el2go_platform_ctx_t *platform_ctx,
                                                    el2go_keystore_t *keystore)
@@ -62,4 +65,18 @@ __weak el2go_status_t el2go_keystore_handle_request(el2go_keystore_t *keystore,
     }
 
     return EL2GO_STATUS_SUCCESS;
+}
+
+__weak el2go_status_t el2go_keystore_get_cert_from_srv_desc(
+    el2go_keystore_t *keystore, const nxp_iot_ServiceDescriptor *service_descriptor,
+    const uint8_t **client_cert, size_t *client_cert_len)
+{
+    (void)keystore;
+    (void)service_descriptor;
+    (void)client_cert;
+    (void)client_cert_len;
+
+    EL2GO_DBG_PRINTF(ERROR, "el2go_keystore_get_cert_from_srv_desc not implemented "
+                            "for this keystore type\n");
+    return EL2GO_STATUS_UNSUPPORTED_OPERATION;
 }

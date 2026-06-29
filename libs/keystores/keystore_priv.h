@@ -11,6 +11,9 @@
 #include "common/el2go_keystore.h"
 #include "common/el2go_status.h"
 
+#include "pb.h"
+#include "ServiceDescriptor.pb.h"
+
 /**
  * @defgroup el2go_keystore_int Keystore Internal API
  * @brief Keystore interface for internal module use.
@@ -61,6 +64,35 @@ el2go_status_t el2go_keystore_get_el2go_key_id(el2go_keystore_t *keystore, uint3
  */
 el2go_status_t el2go_keystore_get_el2go_cert(el2go_keystore_t *keystore, uint8_t *cert,
                                              size_t *cert_len);
+
+/**
+ * @brief Set the client certificate in a service descriptor.
+ *
+ * Stores the provided client certificate into the service descriptor.
+ *
+ * @param keystore            Keystore structure containing the platform context.
+ * @param client_cert         Client certificate to use.
+ * @param service_descriptor  Service descriptor in which to store the certificate.
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise.
+ */
+el2go_status_t el2go_keystore_set_cert_in_srv_desc(el2go_keystore_t *keystore,
+                                                   const pb_bytes_array_t *client_cert,
+                                                   nxp_iot_ServiceDescriptor *service_descriptor);
+/**
+ * el2go_keystore_get_cert_from_srv_desc - Get client certificate from service descriptor
+ * @keystore: Keystore structure
+ * @service_descriptor: Service descriptor containing the client certificate
+ * @client_cert: Output pointer to client certificate buffer
+ * @client_cert_len: Output pointer to client certificate length
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+el2go_status_t
+el2go_keystore_get_cert_from_srv_desc(el2go_keystore_t *keystore,
+                                      const nxp_iot_ServiceDescriptor *service_descriptor,
+                                      const uint8_t **client_cert, size_t *client_cert_len);
 
 /** @} */ /* end of el2go_keystore_int */
 
