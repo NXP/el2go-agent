@@ -10,6 +10,41 @@ config EL2GO_OTA_LIBRARY_SOURCES
     bool "Include EL2GO OTA Library sources"
     help
       Includes the EL2GO OTA Library sources in the application build.
+      Requires mbedTLS PSA crypto and network sockets -- configure these
+      in your application's prj.conf (see samples/el2go_ota_agent_core/prj.conf).
+
+# ---------------------------------------------------------------------------
+# EL2GO OTA Platform backend
+# ---------------------------------------------------------------------------
+config EL2GO_OTA_PLATFORM_SOURCES
+    bool "Include EL2GO OTA platform sources"
+    help
+      Includes a platform backend that implements el2go_platform_init() and
+      el2go_platform_free(). Select the backend that matches your SoC below.
+
+if EL2GO_OTA_PLATFORM_SOURCES
+
+choice EL2GO_OTA_PLATFORM_BACKEND
+    prompt "EL2GO OTA platform backend"
+    default EL2GO_OTA_PLATFORM_ELS_PKC if SOC_SERIES_RW6XX
+    help
+      Select the platform crypto backend for the EL2GO OTA library.
+      Each backend implements the el2go_platform.h interface for a
+      specific SoC family.
+
+config EL2GO_OTA_PLATFORM_ELS_PKC
+    bool "ELS PKC (RW61x / RW612)"
+    depends on MCUX_ELS_PKC
+    help
+      Uses the ELS PKC driver backed by the S50 secure enclave.
+      Suitable for RW610, RW612 and other RW6xx family SoCs.
+      Automatically selected when MCUX_ELS_PKC is available (e.g. SOC_SERIES_RW6XX).
+      Requires MCUX_PSA_CRYPTO_DRIVER_ELS_PKC and SECURE_STORAGE -- configure
+      these in your application's prj.conf (see samples/el2go_ota_agent_core/prj.conf).
+
+endchoice # EL2GO_OTA_PLATFORM_BACKEND
+
+endif # EL2GO_OTA_PLATFORM_SOURCES
 
 config EL2GO_OTA_TESTS
     bool "Include EL2GO OTA unit test sources"

@@ -1,0 +1,15 @@
+tests:
+  nxp_iot_agent.el2go_ota_tests:
+    tags:
+      - el2go
+      - ota
+      - unit
+    platform_allow:
+      - frdm_rw612
+      - rd_rw612_bga
+    timeout: 60
+    harness: ztest
+    harness_config:
+      type: multi_line
+      regex:
+        - "ZTEST: test_run_all_ota_suites PASSED"

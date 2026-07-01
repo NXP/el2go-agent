@@ -3,14 +3,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Wrappers that dispatch to the correct CMake API depending on whether
-# we are building as a Zephyr module (BUILD_ZEPHYR=1) or as a plain
-# CMake project (Linux / bare-metal).
-#
-# Usage:
-#   add_private_sources(<target> file1.c file2.c ...)
-#   add_private_directories(<target> dir1 dir2 ...)
+# Declares an OBJECT library
+# Must be called before add_private_sources / add_private_directories
+function(declare_library target)
+    if(NOT BUILD_ZEPHYR)
+        add_library(${target} OBJECT)
+    endif()
+endfunction()
 
+# Adds private source files to a target
 function(add_private_sources target)
     if(BUILD_ZEPHYR)
         zephyr_library_sources(${ARGN})
@@ -19,10 +20,36 @@ function(add_private_sources target)
     endif()
 endfunction()
 
+# Adds private include directories to a target
 function(add_private_directories target)
     if(BUILD_ZEPHYR)
         zephyr_library_include_directories(${ARGN})
     else()
         target_include_directories(${target} PRIVATE ${ARGN})
+    endif()
+endfunction()
+
+# Adds public include directories to a target
+function(add_public_directories target)
+    if(BUILD_ZEPHYR)
+        zephyr_library_include_directories(${ARGN})
+    else()
+        target_include_directories(${target} PUBLIC ${ARGN})
+    endif()
+endfunction()
+
+# Links libraries to a target
+function(add_link_libraries target)
+    if(NOT BUILD_ZEPHYR)
+        target_link_libraries(${target} ${ARGN})
+    endif()
+endfunction()
+
+# Adds private compile definitions to a target
+function(add_private_definitions target)
+    if(BUILD_ZEPHYR)
+        zephyr_library_compile_definitions(${ARGN})
+    else()
+        target_compile_definitions(${target} PRIVATE ${ARGN})
     endif()
 endfunction()

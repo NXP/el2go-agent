@@ -3,7 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(osal OBJECT
+include(add_target_sources)
+
+set(OSAL_SOURCES
     alloc.c
     osal.c
     print.c
@@ -11,9 +13,14 @@ add_library(osal OBJECT
     uuid.c
 )
 
-target_include_directories(osal
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/../include
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
+declare_library(osal)
+
+add_private_sources(osal ${OSAL_SOURCES})
+
+add_public_directories(osal
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
+
+add_private_directories(osal
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )

@@ -25,8 +25,8 @@ __export el2go_status_t el2go_platform_init(const el2go_platform_config_t *confi
                                             el2go_platform_ctx_t **platform_ctx)
 {
     el2go_platform_ctx_t *ctx = NULL;
-    psa_status_t psa_status = PSA_SUCCESS;
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
+    el2go_status_t status = EL2GO_STATUS_FAILURE;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
@@ -46,13 +46,6 @@ __export el2go_status_t el2go_platform_init(const el2go_platform_config_t *confi
         return EL2GO_STATUS_ALLOCATION_ERROR;
     }
 
-    /* ------------------------------------------------------------------
-     * Initialise PSA Crypto.
-     *
-     * On RW61x + Zephyr (no TF-M), PSA Crypto is provided by mbedTLS
-     * with the ELS PKC driver backing the S50 secure enclave.
-     * psa_crypto_init() is idempotent per the PSA spec.
-     * ------------------------------------------------------------------ */
     psa_status = psa_crypto_init();
     if (psa_status != PSA_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "[EL2GO ELS_PKC] psa_crypto_init failed: %d\n", (int)psa_status);
@@ -62,6 +55,7 @@ __export el2go_status_t el2go_platform_init(const el2go_platform_config_t *confi
 
     EL2GO_DBG_PRINTF(INFO, "[EL2GO ELS_PKC] PSA Crypto initialized\n");
 
+    status = EL2GO_STATUS_SUCCESS; /* explicitly set before transferring ownership */
     ctx->initialized = true;
     *platform_ctx = ctx;
     ctx = NULL; /* ownership transferred */

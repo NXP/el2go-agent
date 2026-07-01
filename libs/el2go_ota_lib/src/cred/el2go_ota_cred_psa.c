@@ -5,6 +5,8 @@
  *
  */
 
+#include <inttypes.h>
+
 #include "osal.h"
 #include "debug.h"
 
@@ -17,16 +19,20 @@ el2go_status_t el2go_ota_prepare_client_credentials(el2go_platform_ctx_t *platfo
                                                     uint8_t **cert_der, size_t *cert_der_len,
                                                     uint32_t *key_id)
 {
-    psa_storage_info_t info = { 0 };
-    psa_status_t psa_status = PSA_SUCCESS;
+    struct psa_storage_info_t info = { 0 };
+    psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
     uint8_t *cert_buf = NULL;
     size_t actual_len = 0U;
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    el2go_status_t status = EL2GO_STATUS_FAILURE;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!config || !cert_der || !cert_der_len || !key_id) {
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
 
     /* Use client_cert_object_id as psa_storage_uid_t (lower 32 bits; upper = 0). */
     psa_storage_uid_t cert_uid = (psa_storage_uid_t)config->client_cert_object_id;
-
-    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     /* platform_ctx is not needed by this provider — PSA ITS is accessed
      * directly via the PSA Storage API without a platform context. */

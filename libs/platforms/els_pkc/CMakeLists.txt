@@ -3,10 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-target_sources(el2go_platform PRIVATE
+include(add_target_sources)
+
+add_private_sources(el2go_platform
     els_pkc_platform.c
 )
 
-target_include_directories(el2go_platform PRIVATE
+add_private_directories(el2go_platform
     ${CMAKE_CURRENT_SOURCE_DIR}
 )

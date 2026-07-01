@@ -31,9 +31,13 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
     uint8_t *client_cert = NULL;
     size_t client_cert_len = 0U;
     uint32_t key_id = 0U;
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    el2go_status_t status = EL2GO_STATUS_FAILURE;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!out_ctx || !platform_ctx || !config) {
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
 
     *out_ctx = NULL;
 
@@ -134,6 +138,7 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
         goto cleanup;
     }
 
+    status = EL2GO_STATUS_SUCCESS; /* explicitly set before transferring ownership */
     *out_ctx = ctx;
     ctx = NULL; /* ownership transferred — do not free in cleanup */
 
@@ -154,23 +159,43 @@ cleanup:
 
 el2go_status_t el2go_ota_tls_connect(el2go_ota_tls_ctx_t *ctx)
 {
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    el2go_status_t status = EL2GO_STATUS_FAILURE;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     if (!ctx || !ctx->net_ctx) {
         EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] el2go_ota_tls_connect: ctx must not be NULL\n");
-        return EL2GO_STATUS_INVALID_PARAMETER;
+        status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
     }
 
     status = net_crypto_connect(ctx->net_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] net_crypto_connect failed: %d\n", status);
-        return status;
+        /* Map all net_crypto errors via the status variable so that
+         * the return path is consistent throughout the codebase and
+         * internal codes never leak through the TLS layer boundary. */
+        if (status == EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED) {
+            status = EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED;
+        } else if (status == EL2GO_STATUS_NET_CRYPTO_INVALID_CERT) {
+            status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
+        } else if (status == EL2GO_STATUS_NET_CRYPTO_INVALID_KEY) {
+            status = EL2GO_STATUS_NET_CRYPTO_INVALID_KEY;
+        } else {
+            /* All other failures (TCP connect, timeout, etc.) map to a
+             * generic network error so the caller always receives a
+             * defined status. */
+            status = EL2GO_STATUS_NET_CRYPTO_CONNECT_FAILED;
+        }
+        goto exit;
     }
 
     EL2GO_DBG_PRINTF(INFO, "[EL2GO OTA] mTLS handshake complete\n");
-    return EL2GO_STATUS_SUCCESS;
+    status = EL2GO_STATUS_SUCCESS;
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
 }
 
 void el2go_ota_tls_disconnect(el2go_ota_tls_ctx_t *ctx)
