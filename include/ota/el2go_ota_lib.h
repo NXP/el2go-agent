@@ -23,6 +23,7 @@ typedef enum {
     EL2GO_OTA_ERROR_NETWORK = 4,       /**< TCP connection failed. */
     EL2GO_OTA_ERROR_TLS_HANDSHAKE = 5, /**< TLS handshake failed. */
     EL2GO_OTA_ERROR_CERT_VERIFY = 6,   /**< Server certificate verification failed. */
+    EL2GO_OTA_ERROR_PLATFORM_INIT = 7, /**< Platform initialisation failed. */
 } el2go_ota_status_t;
 
 /**
@@ -54,6 +55,8 @@ typedef struct el2go_ota_ctx el2go_ota_ctx_t;
  * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx or config is NULL, or any
  *         required config field is missing or invalid (including port == 0).
  * @retval EL2GO_OTA_ERROR_MEMORY if context allocation fails.
+ * @retval EL2GO_OTA_ERROR_PLATFORM_INIT if platform (PSA crypto / secure
+ *         storage) initialisation fails.
  * @retval EL2GO_OTA_ERROR_TLS_HANDSHAKE if TLS context configuration fails.
  * @retval EL2GO_OTA_ERROR_CERT_VERIFY if client credentials cannot be
  *         loaded from the keystore.

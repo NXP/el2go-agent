@@ -39,6 +39,11 @@ function(add_public_directories target)
 endfunction()
 
 # Links libraries to a target
+# Visibility keywords (PUBLIC, PRIVATE, INTERFACE) are passed through
+# verbatim via ${ARGN} to target_link_libraries(), so callers must
+# include the desired keyword explicitly, e.g.:
+#   add_link_libraries(my_target PRIVATE foo)
+#   add_link_libraries(my_target PUBLIC  bar)
 function(add_link_libraries target)
     if(NOT BUILD_ZEPHYR)
         target_link_libraries(${target} ${ARGN})

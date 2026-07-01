@@ -35,9 +35,9 @@ static bool test_ota_agent_advanced_calls_fwual_init(void *params)
 }
 
 /**
- * @brief Verify that el2go_ota_lib_init() is reachable from the ota_agent_advanced entry point.
+ * @brief Verify that el2go_ota_init() is reachable from the ota_agent_advanced entry point.
  *
- * Calls the el2go_ota_lib_init() stub from the advanced agent context and
+ * Calls the el2go_ota_init() stub from the advanced agent context and
  * checks it returns without error. Validates that the OTA library dependency
  * is correctly linked into the ota_agent_advanced build target.
  *
@@ -52,8 +52,21 @@ static bool test_ota_agent_advanced_calls_ota_lib_init(void *params)
 
     (void)params;
 
-    el2go_ota_lib_init();
-    TEST_PRINT_INFO("ota_agent_advanced: el2go_ota_lib_init() reachable");
+    /* Verify el2go_ota_init() is reachable at link time.
+     * NULL server_ca_chain must return EL2GO_OTA_ERROR_INVALID_PARAM. */
+    el2go_ota_ctx_t *ctx = NULL;
+    const el2go_ota_mtls_config_t config = {
+        .hostname = "ota.example.com",
+        .port = 443U,
+        .server_ca_chain = NULL,
+        .server_ca_chain_size = 0U,
+        .client_key_object_id = 0U,
+        .client_cert_object_id = 0U,
+    };
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_init(&ctx, &config));
+    TEST_ASSERT_NULL(ctx);
+    TEST_PRINT_INFO("ota_agent_advanced: el2go_ota_init() reachable");
 
     return test_status;
 }

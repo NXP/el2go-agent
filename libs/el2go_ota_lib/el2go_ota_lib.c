@@ -148,7 +148,6 @@ __export el2go_ota_status_t el2go_ota_connect(el2go_ota_ctx_t *ctx)
 
     status = el2go_ota_tls_connect(ctx->tls_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
-        /* RC3: Map via ota_status variable — no direct return literals. */
         if (status == EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED) {
             set_last_error(ctx, "TLS handshake failed");
             ota_status = EL2GO_OTA_ERROR_TLS_HANDSHAKE;

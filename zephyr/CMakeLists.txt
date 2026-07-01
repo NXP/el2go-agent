@@ -38,7 +38,7 @@ if(CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
 endif()
 
 # ---------------------------------------------------------------------------
-# net_crypto — mbedTLS backend for mTLS (Zephyr provides mbedTLS 4.x)
+# net_crypto — mbedTLS backend for mTLS
 # Must come before el2go_ota_lib (it's a dependency).
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES AND CONFIG_MBEDTLS)

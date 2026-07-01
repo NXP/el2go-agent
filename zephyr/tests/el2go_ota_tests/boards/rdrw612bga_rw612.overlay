@@ -1,0 +1,14 @@
+/*
+ * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&w25q512jvfiq {
+    partitions {
+        storage_partition: partition@680000 {
+            label = "storage";
+            reg = <0x00680000 DT_SIZE_K(512)>;
+        };
+    };
+};

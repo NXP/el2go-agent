@@ -100,6 +100,9 @@ else()
 
     add_private_directories(el2go_ota_lib
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/osal/include
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/net_crypto
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/cred
     )

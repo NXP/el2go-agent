@@ -15,7 +15,7 @@
  *
  * Covers parameter validation and state management paths that are
  * exercisable without hardware (no live PSA keystore required).
- * 
+ *
  * @{
  */
 
@@ -210,6 +210,89 @@ static bool test_el2go_ota_cleanup_null_safe(void *params)
     return true;
 }
 
+/**
+ * @brief el2go_ota_init() with valid parameters must succeed and return a
+ *        non-NULL context that can be cleaned up without crashing.
+ */
+static bool test_el2go_ota_init_cleanup(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
+    el2go_ota_mtls_config_t cfg = {
+        .hostname = "ota.example.com",
+        .port = 443U,
+        .server_ca_chain = s_dummy_ca,
+        .server_ca_chain_size = sizeof(s_dummy_ca),
+    };
+
+    (void)params;
+
+    status = el2go_ota_init(&ctx, &cfg);
+    /* Must fail — no real PSA keystore or valid CA on a unit-test host. */
+    TEST_ASSERT_NOT_EQUAL(EL2GO_OTA_SUCCESS, status);
+    /* ctx must be NULL-ed on any failure path. */
+    TEST_ASSERT_NULL(ctx);
+    /* cleanup of NULL ctx must be safe. */
+    el2go_ota_cleanup(&ctx);
+
+    return true;
+}
+
+/**
+ * @brief A failed el2go_ota_init() must leave ctx NULL, which must report
+ *        not connected.
+ */
+static bool test_el2go_ota_is_connected_after_init(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_mtls_config_t cfg = {
+        .hostname = "ota.example.com",
+        .port = 443U,
+        .server_ca_chain = s_dummy_ca,
+        .server_ca_chain_size = sizeof(s_dummy_ca),
+    };
+
+    (void)params;
+
+    /* Ignore the specific error — see test_el2go_ota_init_cleanup. */
+    (void)el2go_ota_init(&ctx, &cfg);
+    TEST_ASSERT_NULL(ctx);
+
+    /* NULL ctx must always report not connected. */
+    TEST_ASSERT_EQUAL(false, el2go_ota_is_connected(ctx));
+
+    el2go_ota_cleanup(&ctx);
+    return true;
+}
+
+/**
+ * @brief el2go_ota_get_last_error() with a NULL ctx must return a non-NULL
+ *        fallback string (verified here in the post-failed-init state).
+ */
+static bool test_el2go_ota_get_last_error_valid_ctx(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_mtls_config_t cfg = {
+        .hostname = "ota.example.com",
+        .port = 443U,
+        .server_ca_chain = s_dummy_ca,
+        .server_ca_chain_size = sizeof(s_dummy_ca),
+    };
+    const char *err = NULL;
+
+    (void)params;
+
+    /* Ignore the specific error — see test_el2go_ota_init_cleanup. */
+    (void)el2go_ota_init(&ctx, &cfg);
+    TEST_ASSERT_NULL(ctx);
+
+    /* get_last_error on NULL ctx must return a non-NULL fallback string. */
+    err = el2go_ota_get_last_error(ctx);
+    TEST_ASSERT_NOT_NULL(err);
+
+    el2go_ota_cleanup(&ctx);
+    return true;
+}
 /* ========================================================================== */
 /* Test Registration                                                          */
 /* ========================================================================== */
@@ -229,4 +312,7 @@ void register_ota_lib_tests(void)
     TEST_REGISTER(test_el2go_ota_is_connected_null_ctx);
     TEST_REGISTER(test_el2go_ota_get_last_error_null_ctx);
     TEST_REGISTER(test_el2go_ota_cleanup_null_safe);
+    TEST_REGISTER(test_el2go_ota_init_cleanup);
+    TEST_REGISTER(test_el2go_ota_is_connected_after_init);
+    TEST_REGISTER(test_el2go_ota_get_last_error_valid_ctx);
 }

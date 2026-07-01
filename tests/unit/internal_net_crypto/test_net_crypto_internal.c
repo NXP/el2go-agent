@@ -657,6 +657,59 @@ exit:
 }
 
 /**
+ * @brief Test that net_crypto_free() is safe to call with a NULL pointer.
+ *
+ * Verifies that passing NULL to net_crypto_free() does not crash.
+ *
+ * @param params Unused.
+ * @return @c true always.
+ */
+static bool test_net_crypto_free_null(void *params)
+{
+    (void)params;
+
+    net_crypto_free(NULL); /* must not crash */
+    TEST_PRINT_INFO("net_crypto_free(NULL) is safe");
+
+    return true;
+}
+
+/**
+ * @brief Test that net_crypto_disconnect() returns an error when called with
+ *        a NULL context or on a context that was never connected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_net_crypto_disconnect_not_connected(void *params)
+{
+    net_crypto_ctx_t *ctx = NULL;
+    el2go_status_t status;
+    net_crypto_config_t config = { .hostname = TEST_HOSTNAME, .port = TEST_PORT };
+    bool test_status = true;
+
+    (void)params;
+
+    /* NULL context */
+    status = net_crypto_disconnect(NULL);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+
+    /* Valid context, never connected */
+    status = net_crypto_new(&ctx);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, status);
+
+    status = net_crypto_configure(ctx, &config);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+
+    status = net_crypto_disconnect(ctx);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_NET_CRYPTO_NOT_CONNECTED, status);
+
+exit:
+    net_crypto_free(&ctx);
+    return test_status;
+}
+
+/**
  * @brief Register all internal net_crypto tests with the test framework.
  *
  * Sets the suite-level setup function and registers every test function
@@ -669,10 +722,12 @@ void register_net_crypto_tests(void)
 
     TEST_REGISTER(test_net_crypto_context_lifecycle);
     TEST_REGISTER(test_net_crypto_null_parameters);
+    TEST_REGISTER(test_net_crypto_free_null);
     TEST_REGISTER(test_net_crypto_configure);
     TEST_REGISTER(test_net_crypto_self_signed_cert);
     TEST_REGISTER(test_net_crypto_read_write_not_connected);
     TEST_REGISTER(test_net_crypto_cipher_suites);
+    TEST_REGISTER(test_net_crypto_disconnect_not_connected);
     TEST_REGISTER(test_net_crypto_connect_invalid_hostname);
     TEST_REGISTER(test_net_crypto_el2go_connection);
     TEST_REGISTER(test_net_crypto_connect_wrong_client_cert);

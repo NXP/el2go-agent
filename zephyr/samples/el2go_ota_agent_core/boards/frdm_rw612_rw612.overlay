@@ -5,7 +5,7 @@
  */
 
 / {
-	chosen {
-		secure_storage_its_partition = &storage_partition;
-	};
+    chosen {
+        secure_storage_its_partition = &storage_partition;
+    };
 };
