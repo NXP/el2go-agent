@@ -148,7 +148,7 @@ static bool test_el2go_rtp_datastore_count(void *params)
 
     (void)params;
 
-    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES, 0x70000000);
+    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES, 0x70000001);
 
     status = el2go_rtp_init(&ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
@@ -200,7 +200,7 @@ static bool test_el2go_rtp_datastore_internal_storage(void *params)
 
     (void)params;
 
-    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES, 0x70000000);
+    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES, 0x70000001);
 
     status = el2go_rtp_init(&ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);

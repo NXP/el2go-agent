@@ -19,6 +19,7 @@
 
 #include "test_framework.h"
 #include "test_utils.h"
+#include "test_osal.h"
 
 /** @defgroup test_net_crypto_internal Internal Net Crypto Tests
  * @brief Unit tests for the internal net_crypto module.
@@ -408,7 +409,7 @@ static bool test_net_crypto_el2go_connection_common(const char *subject, bool us
     bool test_status = true;
 
     /* Get hostname from environment variable, fallback to config default */
-    hostname = getenv("EL2GO_TEST_HOSTNAME");
+    hostname = test_osal_getenv("EL2GO_TEST_HOSTNAME");
     if (!hostname) {
         hostname = TEST_HOSTNAME;
         TEST_PRINT_INFO("Using default hostname from config: %s", hostname);

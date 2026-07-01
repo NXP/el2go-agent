@@ -24,6 +24,8 @@ add_subdirectory(framework)
 set(PUBLIC_TEST_SOURCES "")
 set(INTERNAL_TEST_SOURCES "")
 
+add_subdirectory(osal)
+
 # Collect public RTP tests
 add_subdirectory(public_rtp)
 
@@ -108,6 +110,7 @@ target_include_directories(${PUBLIC_TEST_EXECUTABLE}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/libs/osal/include
+        ${CMAKE_SOURCE_DIR}/priv
 )
 
 target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
@@ -116,6 +119,7 @@ target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
         el2go_rtp
         fwual
         el2go_ota_lib
+        test_osal
 )
 
 # ============================================================================
@@ -148,6 +152,7 @@ target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
         el2go_protobuf
         net_crypto
         el2go_common
+        test_osal
 )
 
 # ============================================================================

@@ -7,9 +7,12 @@
 
 #include "rtp/el2go_rtp.h"
 #include "rtp/el2go_rtp_config.h"
+
 #include "test_framework.h"
 #include "test_suites.h"
 #include "test_utils.h"
+
+#include "test_el2go_rtp_provision.h"
 
 /** @defgroup test_el2go_rtp_public Public RTP API Tests
  * @brief Unit tests for the public RTP API.
@@ -181,7 +184,7 @@ static bool test_el2go_rtp_datastore_remove_not_found(void *params)
 
     (void)params;
 
-    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES + 1, 0x70000000);
+    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES + 1, 0x70000001);
 
     status = el2go_rtp_init(&ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
@@ -233,7 +236,7 @@ static bool test_el2go_rtp_datastore_add_max_limit(void *params)
 
     (void)params;
 
-    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES + 1, 0x70000000);
+    init_datastores(datastores, EL2GO_RTP_MAX_DATASTORES + 1, 0x70000001);
 
     status = el2go_rtp_init(&ctx);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
@@ -823,6 +826,9 @@ void register_el2go_rtp_tests(bool include_fs_tests)
     TEST_REGISTER(test_el2go_get_keystore_by_id_success);
     TEST_REGISTER(test_el2go_get_keystore_by_id_not_found);
     TEST_REGISTER(test_el2go_rtp_keystore_datastore_id_conflict);
+
+    /* el2go_rtp_provision tests */
+    register_el2go_rtp_provision_tests(include_fs_tests);
 }
 
 /** @} */ /* end of test_el2go_rtp_public */
