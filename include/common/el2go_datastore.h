@@ -156,7 +156,7 @@ struct el2go_datastore_ops {
  */
 struct el2go_datastore {
     uint32_t id;                      /* Datastore identifier */
-    const char *name;                 /* Datastore name */
+    char *name;                       /* Datastore name */
     el2go_datastore_type_t type;      /* Datastore type */
     const el2go_datastore_ops_t *ops; /* Operations (for custom type) */
     void *context;                    /* Data store context */

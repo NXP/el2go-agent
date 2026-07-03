@@ -6,10 +6,12 @@
  */
 
 #include <stddef.h>
+#include <string.h>
 
 #include "compiler.h"
 #include "debug.h"
 #include "builtin_macros.h"
+#include "osal.h"
 
 #include "common/el2go_datastore.h"
 #include "el2go_datastore_plain.h"
@@ -29,16 +31,30 @@ __export el2go_status_t el2go_datastore_init(uint32_t id, const char *name,
                                              el2go_datastore_validator_t validator)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    size_t name_len = 0;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (!datastore) {
+    if (!datastore || !name) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
 
+    name_len = strlen(name);
+    if (INC_OVERFLOW(name_len, 1)) {
+        status = EL2GO_STATUS_ARITHMETIC_OVERFLOW;
+        goto exit;
+    }
+
+    datastore->name = (char *)osal_calloc(name_len, sizeof(char));
+    if (!datastore->name) {
+        status = EL2GO_STATUS_ALLOCATION_ERROR;
+        goto exit;
+    }
+
+    memcpy(datastore->name, name, name_len - 1);
+
     datastore->id = id;
-    datastore->name = name;
     datastore->type = type;
     datastore->priv = NULL;
 
@@ -49,8 +65,9 @@ __export el2go_status_t el2go_datastore_init(uint32_t id, const char *name,
 
     if (datastore_create_functions[type]) {
         status = datastore_create_functions[type](datastore, name);
-        if (status != EL2GO_STATUS_SUCCESS)
-            goto exit;
+        if (status != EL2GO_STATUS_SUCCESS) {
+            goto cleanup;
+        }
     }
 
     if (!datastore->ops || !datastore->ops->init) {
@@ -59,10 +76,16 @@ __export el2go_status_t el2go_datastore_init(uint32_t id, const char *name,
     }
 
     status = datastore->ops->init(datastore->context, validator);
-    if (status == EL2GO_STATUS_SUCCESS)
+    if (status == EL2GO_STATUS_SUCCESS) {
         goto exit;
+    }
 
 cleanup:
+    if (datastore->name) {
+        osal_free(datastore->name);
+        datastore->name = NULL;
+    }
+
     (void)el2go_datastore_free(datastore);
 
 exit:
@@ -163,6 +186,11 @@ __export el2go_status_t el2go_datastore_free(el2go_datastore_t *datastore)
 
     if (datastore->context && datastore->ops && datastore->ops->free)
         status = datastore->ops->free(datastore->context);
+
+    if (datastore->name) {
+        osal_free(datastore->name);
+        datastore->name = NULL;
+    }
 
     datastore->context = NULL;
     datastore->ops = NULL;
