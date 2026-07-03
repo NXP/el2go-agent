@@ -84,11 +84,17 @@ typedef el2go_status_t (*el2go_datastore_allocate_t)(void *context, size_t len);
  * @dest: Destination buffer
  * @offset: Offset in the datastore to read from
  * @len: Number of bytes to read
+ * @bytes_read: Output parameter for actual number of bytes read
  *
- * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * This function attempts to read 'len' bytes from the datastore at the specified
+ * offset. The actual number of bytes read is returned in 'bytes_read'.
+ *
+ * Return: EL2GO_STATUS_SUCCESS if all requested bytes were read,
+ *         EL2GO_STATUS_INCOMPLETE_READ if fewer bytes were read,
+ *         or other error code on failure
  */
 typedef el2go_status_t (*el2go_datastore_read_t)(void *context, void *dest, size_t offset,
-                                                 size_t len);
+                                                 size_t len, size_t *bytes_read);
 
 /**
  * el2go_datastore_write_t - Write data to the datastore
@@ -96,11 +102,17 @@ typedef el2go_status_t (*el2go_datastore_read_t)(void *context, void *dest, size
  * @src: Source buffer
  * @offset: Offset in the datastore to write to
  * @len: Number of bytes to write
+ * @bytes_written: Output parameter for actual number of bytes written
  *
- * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * This function attempts to write 'len' bytes to the datastore at the specified
+ * offset. The actual number of bytes written is returned in 'bytes_written'.
+ *
+ * Return: EL2GO_STATUS_SUCCESS if all requested bytes were written,
+ *         EL2GO_STATUS_INCOMPLETE_WRITE if fewer bytes were written,
+ *         or other error code on failure
  */
 typedef el2go_status_t (*el2go_datastore_write_t)(void *context, const void *src, size_t offset,
-                                                  size_t len);
+                                                  size_t len, size_t *bytes_written);
 
 /**
  * el2go_datastore_commit_t - Commit pending changes to the datastore
@@ -197,15 +209,18 @@ el2go_status_t el2go_datastore_allocate(el2go_datastore_t *datastore, size_t len
  * @dest: Destination buffer
  * @offset: Offset in the datastore to read from
  * @len: Number of bytes to read
+ * @bytes_read: Output parameter for actual number of bytes read
  *
- * Reads len bytes from the datastore at the specified offset into the
- * destination buffer.
+ * Reads up to len bytes from the datastore at the specified offset into the
+ * destination buffer. The actual number of bytes read is returned in bytes_read.
  *
  * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * EL2GO_STATUS_SUCCESS if all requested bytes were read,
+ * EL2GO_STATUS_INCOMPLETE_READ if fewer bytes were read,
+ * or other error code on failure
  */
 el2go_status_t el2go_datastore_read(el2go_datastore_t *datastore, void *dest, size_t offset,
-                                    size_t len);
+                                    size_t len, size_t *bytes_read);
 
 /**
  * el2go_datastore_write - Write data to the datastore
@@ -213,15 +228,18 @@ el2go_status_t el2go_datastore_read(el2go_datastore_t *datastore, void *dest, si
  * @src: Source buffer
  * @offset: Offset in the datastore to write to
  * @len: Number of bytes to write
+ * @bytes_written: Output parameter for actual number of bytes written
  *
- * Writes len bytes from the source buffer to the datastore at the
- * specified offset.
+ * Writes up to len bytes from the source buffer to the datastore at the
+ * specified offset. The actual number of bytes written is returned in bytes_written.
  *
  * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * EL2GO_STATUS_SUCCESS if all requested bytes were written,
+ * EL2GO_STATUS_INCOMPLETE_WRITE if fewer bytes were written,
+ * or other error code on failure
  */
 el2go_status_t el2go_datastore_write(el2go_datastore_t *datastore, const void *src, size_t offset,
-                                     size_t len);
+                                     size_t len, size_t *bytes_written);
 
 /**
  * el2go_datastore_commit - Commit a transaction to the datastore

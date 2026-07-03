@@ -23,7 +23,6 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_FAILURE,                  /**< Generic operation failure */
     EL2GO_STATUS_FILE_OPEN_ERROR,          /**< Failed to open a file */
     EL2GO_STATUS_FILE_CLOSE_ERROR,         /**< Failed to close a file */
-    EL2GO_STATUS_FILE_READ_ERROR,          /**< Failed to read from a file */
     EL2GO_STATUS_FILE_WRITE_ERROR,         /**< Failed to write or flush a file */
     EL2GO_STATUS_FILE_SEEK_ERROR,          /**< Failed to seek within a file */
     EL2GO_STATUS_INVALID_POINTER,          /**< A required pointer is NULL or invalid */
@@ -47,7 +46,9 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_INCOMPLETE_DATA,         /**< Operation completed but data is incomplete */
     EL2GO_STATUS_RESOURCE_LIMIT,          /**< Resource limit reached */
     EL2GO_STATUS_ALREADY_EXISTS,          /**< Resource already exists */
-    EL2GO_STATUS_NOT_FOUND                /**< Resource not found */
+    EL2GO_STATUS_NOT_FOUND,               /**< Resource not found */
+    EL2GO_STATUS_INCOMPLETE_WRITE,        /**< Write operation incomplete */
+    EL2GO_STATUS_INCOMPLETE_READ,         /**< Read operation incomplete */
 } el2go_status_t;
 /**
  * @enum el2go_verbosity_t

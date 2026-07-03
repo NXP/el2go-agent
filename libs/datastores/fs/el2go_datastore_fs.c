@@ -26,9 +26,10 @@ typedef struct el2go_datastore_fs_context {
 
 static el2go_status_t el2go_datastore_fs_init(void *context, el2go_datastore_validator_t validator);
 static el2go_status_t el2go_datastore_fs_allocate(void *context, size_t len);
-static el2go_status_t el2go_datastore_fs_read(void *context, void *dest, size_t offset, size_t len);
+static el2go_status_t el2go_datastore_fs_read(void *context, void *dest, size_t offset, size_t len,
+                                              size_t *bytes_read);
 static el2go_status_t el2go_datastore_fs_write(void *context, const void *src, size_t offset,
-                                               size_t len);
+                                               size_t len, size_t *bytes_written);
 static el2go_status_t el2go_datastore_fs_commit(void *context);
 static el2go_status_t el2go_datastore_fs_free(void *context);
 
@@ -274,18 +275,20 @@ exit:
 }
 
 static el2go_status_t el2go_datastore_fs_write(void *context, const void *src, size_t offset,
-                                               size_t len)
+                                               size_t len, size_t *bytes_written)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     el2go_datastore_fs_context_t *ctx = (el2go_datastore_fs_context_t *)context;
-    size_t written = 0;
+    size_t actual_written = 0;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (!ctx || !src || len == 0) {
+    if (!ctx || !src || len == 0 || !bytes_written) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
+
+    *bytes_written = 0;
 
     if (ctx->idx_write >= FILE_POINTER_NUMBER) {
         EL2GO_DBG_PRINTF(ERROR, "Write index out of bounds\n");
@@ -311,30 +314,35 @@ static el2go_status_t el2go_datastore_fs_write(void *context, const void *src, s
         goto exit;
     }
 
-    written = osal_fwrite(src, sizeof(uint8_t), len, ctx->fp[ctx->idx_write]);
-    if (written != len) {
-        EL2GO_DBG_PRINTF(ERROR, "Write error: expected %zu, wrote %zu\n", len, written);
-        status = EL2GO_STATUS_FILE_WRITE_ERROR;
-        goto exit;
+    actual_written = osal_fwrite(src, sizeof(uint8_t), len, ctx->fp[ctx->idx_write]);
+    if (actual_written != len) {
+        EL2GO_DBG_PRINTF(DEBUG, "Incomplete write: requested: %zu, available: %zu\n", len,
+                         actual_written);
+        status = EL2GO_STATUS_INCOMPLETE_WRITE;
     }
+
+    *bytes_written = actual_written;
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
 }
 
-static el2go_status_t el2go_datastore_fs_read(void *context, void *dest, size_t offset, size_t len)
+static el2go_status_t el2go_datastore_fs_read(void *context, void *dest, size_t offset, size_t len,
+                                              size_t *bytes_read)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     el2go_datastore_fs_context_t *ctx = (el2go_datastore_fs_context_t *)context;
-    size_t read_bytes = 0;
+    size_t actual_read = 0;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (!ctx || !dest || len == 0) {
+    if (!ctx || !dest || len == 0 || !bytes_read) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
+
+    *bytes_read = 0;
 
     if (ctx->idx_read >= FILE_POINTER_NUMBER) {
         EL2GO_DBG_PRINTF(ERROR, "Read index out of bounds\n");
@@ -360,12 +368,14 @@ static el2go_status_t el2go_datastore_fs_read(void *context, void *dest, size_t 
         goto exit;
     }
 
-    read_bytes = osal_fread(dest, sizeof(uint8_t), len, ctx->fp[ctx->idx_read]);
-    if (read_bytes != len) {
-        EL2GO_DBG_PRINTF(ERROR, "Read error: expected %zu, read %zu\n", len, read_bytes);
-        status = EL2GO_STATUS_FILE_READ_ERROR;
-        goto exit;
+    actual_read = osal_fread(dest, sizeof(uint8_t), len, ctx->fp[ctx->idx_read]);
+    if (actual_read != len) {
+        EL2GO_DBG_PRINTF(DEBUG, "Incomplete read: requested: %zu, available: %zu\n", len,
+                         actual_read);
+        status = EL2GO_STATUS_INCOMPLETE_READ;
     }
+
+    *bytes_read = actual_read;
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
@@ -391,9 +401,9 @@ static el2go_status_t el2go_datastore_fs_commit(void *context)
         goto exit;
     }
 
-    if (osal_fflush(ctx->fp[ctx->idx_write]) != EL2GO_STATUS_SUCCESS) {
+    status = osal_fflush(ctx->fp[ctx->idx_write]);
+    if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "Failed to flush write file\n");
-        status = EL2GO_STATUS_FILE_WRITE_ERROR;
         goto exit;
     }
 

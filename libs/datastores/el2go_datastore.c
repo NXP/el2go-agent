@@ -89,18 +89,21 @@ exit:
 }
 
 __export el2go_status_t el2go_datastore_read(el2go_datastore_t *datastore, void *dest,
-                                             size_t offset, size_t len)
+                                             size_t offset, size_t len, size_t *bytes_read)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (len == 0 || !dest || !datastore || !datastore->ops || !datastore->ops->read) {
+    if (len == 0 || !dest || !datastore || !datastore->ops || !datastore->ops->read ||
+        !bytes_read) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
 
-    status = datastore->ops->read(datastore->context, dest, offset, len);
+    *bytes_read = 0;
+
+    status = datastore->ops->read(datastore->context, dest, offset, len, bytes_read);
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
@@ -108,18 +111,21 @@ exit:
 }
 
 __export el2go_status_t el2go_datastore_write(el2go_datastore_t *datastore, const void *src,
-                                              size_t offset, size_t len)
+                                              size_t offset, size_t len, size_t *bytes_written)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (len == 0 || !src || !datastore || !datastore->ops || !datastore->ops->write) {
+    if (len == 0 || !src || !datastore || !datastore->ops || !datastore->ops->write ||
+        !bytes_written) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
 
-    status = datastore->ops->write(datastore->context, src, offset, len);
+    *bytes_written = 0;
+
+    status = datastore->ops->write(datastore->context, src, offset, len, bytes_written);
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);

@@ -25,9 +25,9 @@ static el2go_status_t el2go_datastore_plain_init(void *context,
                                                  el2go_datastore_validator_t validator);
 static el2go_status_t el2go_datastore_plain_allocate(void *context, size_t len);
 static el2go_status_t el2go_datastore_plain_read(void *context, void *dest, size_t offset,
-                                                 size_t len);
+                                                 size_t len, size_t *bytes_read);
 static el2go_status_t el2go_datastore_plain_write(void *context, const void *src, size_t offset,
-                                                  size_t len);
+                                                  size_t len, size_t *bytes_written);
 static el2go_status_t el2go_datastore_plain_commit(void *context);
 static el2go_status_t el2go_datastore_plain_free(void *context);
 
@@ -128,7 +128,7 @@ static el2go_status_t el2go_datastore_plain_allocate(void *context, size_t len)
         goto exit;
     }
 
-    ctx->buffers[ctx->idx_write].data = osal_calloc(len, sizeof(uint8_t));
+    ctx->buffers[ctx->idx_write].data = (uint8_t *)osal_calloc(len, sizeof(uint8_t));
     if (!ctx->buffers[ctx->idx_write].data) {
         EL2GO_DBG_PRINTF(ERROR, "Allocation error\n");
         status = EL2GO_STATUS_ALLOCATION_ERROR;
@@ -143,20 +143,23 @@ exit:
 }
 
 static el2go_status_t el2go_datastore_plain_write(void *context, const void *src, size_t offset,
-                                                  size_t len)
+                                                  size_t len, size_t *bytes_written)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     el2go_datastore_plain_context_t *ctx = (el2go_datastore_plain_context_t *)context;
     uint8_t *write_buffer = NULL;
     size_t write_buffer_size = 0;
     size_t end_offset = 0;
+    size_t actual_written = 0;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (!ctx || !src || len == 0) {
+    if (!ctx || !src || len == 0 || !bytes_written) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
+
+    *bytes_written = 0;
 
     if (ctx->idx_write >= BUFFER_NUMBER) {
         EL2GO_DBG_PRINTF(ERROR, "Overflow in write index\n");
@@ -173,22 +176,32 @@ static el2go_status_t el2go_datastore_plain_write(void *context, const void *src
 
     write_buffer_size = ctx->buffers[ctx->idx_write].len;
 
+    /* Check if offset is within bounds */
+    if (offset >= write_buffer_size) {
+        EL2GO_DBG_PRINTF(ERROR, "Offset out of bounds: offset: %zu, buffer_size: %zu\n", offset,
+                         write_buffer_size);
+        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
+        goto exit;
+    }
+
     if (ADD_OVERFLOW(offset, len, &end_offset)) {
         EL2GO_DBG_PRINTF(ERROR, "Overflow in offset calculation\n");
         status = EL2GO_STATUS_ARITHMETIC_OVERFLOW;
         goto exit;
     }
 
+    /* Perform partial write if requested length exceeds buffer */
     if (end_offset > write_buffer_size) {
-        EL2GO_DBG_PRINTF(ERROR,
-                         "Writing out of bounds: "
-                         "offset: %zu, len: %zu, buffer_size: %zu\n",
-                         offset, len, write_buffer_size);
-        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
-        goto exit;
+        actual_written = write_buffer_size - offset;
+        EL2GO_DBG_PRINTF(DEBUG, "Incomplete write: requested: %zu, available: %zu\n", len,
+                         actual_written);
+        status = EL2GO_STATUS_INCOMPLETE_WRITE;
+    } else {
+        actual_written = len;
     }
 
-    memcpy(write_buffer + offset, src, len);
+    memcpy(write_buffer + offset, src, actual_written);
+    *bytes_written = actual_written;
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
@@ -196,20 +209,23 @@ exit:
 }
 
 static el2go_status_t el2go_datastore_plain_read(void *context, void *dest, size_t offset,
-                                                 size_t len)
+                                                 size_t len, size_t *bytes_read)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     el2go_datastore_plain_context_t *ctx = (el2go_datastore_plain_context_t *)context;
     uint8_t *read_buffer = NULL;
     size_t read_buffer_size = 0;
     size_t end_offset = 0;
+    size_t actual_read = 0;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (!ctx || !dest || len == 0) {
+    if (!ctx || !dest || len == 0 || !bytes_read) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
+
+    *bytes_read = 0;
 
     if (ctx->idx_read >= BUFFER_NUMBER) {
         EL2GO_DBG_PRINTF(ERROR, "Overflow in read index\n");
@@ -226,22 +242,32 @@ static el2go_status_t el2go_datastore_plain_read(void *context, void *dest, size
 
     read_buffer_size = ctx->buffers[ctx->idx_read].len;
 
+    /* Check if offset is within bounds */
+    if (offset >= read_buffer_size) {
+        EL2GO_DBG_PRINTF(ERROR, "Offset out of bounds: offset: %zu, buffer_size: %zu\n", offset,
+                         read_buffer_size);
+        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
+        goto exit;
+    }
+
     if (ADD_OVERFLOW(offset, len, &end_offset)) {
         EL2GO_DBG_PRINTF(ERROR, "Overflow in offset calculation\n");
         status = EL2GO_STATUS_ARITHMETIC_OVERFLOW;
         goto exit;
     }
 
+    /* Perform partial read if requested length exceeds buffer */
     if (end_offset > read_buffer_size) {
-        EL2GO_DBG_PRINTF(ERROR,
-                         "Reading out of bounds: "
-                         "offset: %zu, len: %zu, buffer_size: %zu\n",
-                         offset, len, read_buffer_size);
-        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
-        goto exit;
+        actual_read = read_buffer_size - offset;
+        EL2GO_DBG_PRINTF(DEBUG, "Incomplete read: requested: %zu, available: %zu\n", len,
+                         actual_read);
+        status = EL2GO_STATUS_INCOMPLETE_READ;
+    } else {
+        actual_read = len;
     }
 
-    memcpy(dest, read_buffer + offset, len);
+    memcpy(dest, read_buffer + offset, actual_read);
+    *bytes_read = actual_read;
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
