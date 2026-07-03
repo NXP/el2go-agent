@@ -36,18 +36,22 @@ bool common_test_ds_write_at_different_offsets(el2go_datastore_type_t type, cons
                                                const el2go_datastore_ops_t *ops, void *ctx);
 
 bool common_test_ds_write_out_of_bounds(el2go_datastore_type_t type, const char *name,
-                                        const el2go_datastore_ops_t *ops, void *ctx,
-                                        el2go_status_t expected_status);
+                                        const el2go_datastore_ops_t *ops, void *ctx);
 
 bool common_test_ds_read_out_of_bounds(el2go_datastore_type_t type, const char *name,
-                                       const el2go_datastore_ops_t *ops, void *ctx,
-                                       el2go_status_t expected_status);
+                                       const el2go_datastore_ops_t *ops, void *ctx);
 
 bool common_test_ds_transaction_recovery(el2go_datastore_type_t type, const char *name,
                                          const el2go_datastore_ops_t *ops, void *ctx);
 
 bool common_test_ds_large_allocation(el2go_datastore_type_t type, const char *name,
                                      const el2go_datastore_ops_t *ops, void *ctx);
+
+bool common_test_ds_partial_read(el2go_datastore_type_t type, const char *name,
+                                 const el2go_datastore_ops_t *ops, void *ctx);
+
+bool common_test_ds_partial_write(el2go_datastore_type_t type, const char *name,
+                                  const el2go_datastore_ops_t *ops, void *ctx);
 
 /* ========================================================================== */
 /* Test Registration Functions                                                */

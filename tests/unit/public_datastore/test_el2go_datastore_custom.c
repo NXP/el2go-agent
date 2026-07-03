@@ -78,52 +78,75 @@ exit:
     return status;
 }
 
-static el2go_status_t custom_datastore_read(void *context, void *dest, size_t offset, size_t len)
+static el2go_status_t custom_datastore_read(void *context, void *dest, size_t offset, size_t len,
+                                            size_t *bytes_read)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     custom_datastore_ctx_t *ctx = (custom_datastore_ctx_t *)context;
     size_t end_offset = 0;
+    size_t actual_read = 0;
 
-    if (!ctx || !dest || len == 0) {
+    if (!ctx || !dest || len == 0 || !bytes_read) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
+
+    *bytes_read = 0;
 
     if (!ctx->buffer || ctx->size == 0) {
         status = EL2GO_STATUS_INVALID_STATE;
         goto exit;
     }
 
+    /* Check if offset is within bounds */
+    if (offset >= ctx->size) {
+        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
+        goto exit;
+    }
+
     if (ADD_OVERFLOW(offset, len, &end_offset)) {
         status = EL2GO_STATUS_ARITHMETIC_OVERFLOW;
         goto exit;
     }
 
+    /* Perform partial read if requested length exceeds buffer */
     if (end_offset > ctx->size) {
-        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
-        goto exit;
+        actual_read = ctx->size - offset;
+        status = EL2GO_STATUS_INCOMPLETE_READ;
+    } else {
+        actual_read = len;
     }
 
-    memcpy(dest, ctx->buffer + offset, len);
+    memcpy(dest, ctx->buffer + offset, actual_read);
+    *bytes_read = actual_read;
 
 exit:
     return status;
 }
 
 static el2go_status_t custom_datastore_write(void *context, const void *src, size_t offset,
-                                             size_t len)
+                                             size_t len, size_t *bytes_written)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     custom_datastore_ctx_t *ctx = (custom_datastore_ctx_t *)context;
     size_t end_offset = 0;
+    size_t actual_written = 0;
 
-    if (!ctx || !src || len == 0) {
+    if (!ctx || !src || len == 0 || !bytes_written) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
 
+    *bytes_written = 0;
+
     if (!ctx->transaction_active || !ctx->temp_buffer) {
         status = EL2GO_STATUS_INVALID_STATE;
+        goto exit;
+    }
+
+    /* Check if offset is within bounds */
+    if (offset >= ctx->temp_size) {
+        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
         goto exit;
     }
 
@@ -132,12 +155,16 @@ static el2go_status_t custom_datastore_write(void *context, const void *src, siz
         goto exit;
     }
 
+    /* Perform partial write if requested length exceeds buffer */
     if (end_offset > ctx->temp_size) {
-        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
-        goto exit;
+        actual_written = ctx->temp_size - offset;
+        status = EL2GO_STATUS_INCOMPLETE_WRITE;
+    } else {
+        actual_written = len;
     }
 
-    memcpy(ctx->temp_buffer + offset, src, len);
+    memcpy(ctx->temp_buffer + offset, src, actual_written);
+    *bytes_written = actual_written;
 
 exit:
     return status;
@@ -252,8 +279,7 @@ static bool test_datastore_custom_write_out_of_bounds(void *params)
     (void)params;
 
     return common_test_ds_write_out_of_bounds(EL2GO_DATASTORE_TYPE_CUSTOM, "test_custom",
-                                              &custom_datastore_ops, &ctx,
-                                              EL2GO_STATUS_BUFFER_TOO_SMALL);
+                                              &custom_datastore_ops, &ctx);
 }
 
 static bool test_datastore_custom_read_out_of_bounds(void *params)
@@ -263,8 +289,7 @@ static bool test_datastore_custom_read_out_of_bounds(void *params)
     (void)params;
 
     return common_test_ds_read_out_of_bounds(EL2GO_DATASTORE_TYPE_CUSTOM, "test_custom",
-                                             &custom_datastore_ops, &ctx,
-                                             EL2GO_STATUS_BUFFER_TOO_SMALL);
+                                             &custom_datastore_ops, &ctx);
 }
 
 static bool test_datastore_custom_transaction_recovery(void *params)
@@ -285,6 +310,26 @@ static bool test_datastore_custom_large_allocation(void *params)
 
     return common_test_ds_large_allocation(EL2GO_DATASTORE_TYPE_CUSTOM, "test_custom",
                                            &custom_datastore_ops, &ctx);
+}
+
+static bool test_datastore_custom_partial_read(void *params)
+{
+    custom_datastore_ctx_t ctx = { 0 };
+
+    (void)params;
+
+    return common_test_ds_partial_read(EL2GO_DATASTORE_TYPE_CUSTOM, "test_custom",
+                                       &custom_datastore_ops, &ctx);
+}
+
+static bool test_datastore_custom_partial_write(void *params)
+{
+    custom_datastore_ctx_t ctx = { 0 };
+
+    (void)params;
+
+    return common_test_ds_partial_write(EL2GO_DATASTORE_TYPE_CUSTOM, "test_custom",
+                                        &custom_datastore_ops, &ctx);
 }
 
 /* ========================================================================== */
@@ -378,6 +423,8 @@ static bool test_datastore_custom_partial_ops_full_cycle(void *params)
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     uint8_t write_data[32] = { 1, 2, 3, 4, 5 };
     uint8_t read_data[32] = { 0 };
+    size_t bytes_written = 0;
+    size_t bytes_read = 0;
     bool test_status = true;
     el2go_datastore_ops_t incomplete_ops = {
         .init = custom_datastore_init,
@@ -399,13 +446,14 @@ static bool test_datastore_custom_partial_ops_full_cycle(void *params)
     status = el2go_datastore_allocate(&datastore, sizeof(write_data));
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
 
-    status = el2go_datastore_write(&datastore, write_data, 0, sizeof(write_data));
+    status = el2go_datastore_write(&datastore, write_data, 0, sizeof(write_data), &bytes_written);
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
+    TEST_ASSERT_EQUAL_GOTO(bytes_written, sizeof(write_data), exit);
 
     status = el2go_datastore_commit(&datastore);
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
 
-    status = el2go_datastore_read(&datastore, read_data, 0, sizeof(read_data));
+    status = el2go_datastore_read(&datastore, read_data, 0, sizeof(read_data), &bytes_read);
     TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_INVALID_PARAMETER);
 
 exit:
@@ -433,6 +481,10 @@ void register_datastore_custom_tests(void)
     TEST_REGISTER(test_datastore_custom_read_out_of_bounds);
     TEST_REGISTER(test_datastore_custom_transaction_recovery);
     TEST_REGISTER(test_datastore_custom_large_allocation);
+
+    /* Partial read/write tests */
+    TEST_REGISTER(test_datastore_custom_partial_read);
+    TEST_REGISTER(test_datastore_custom_partial_write);
 
     /* Missing operations tests */
     TEST_REGISTER(test_datastore_custom_null_ops);

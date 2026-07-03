@@ -94,6 +94,7 @@ static bool test_datastore_write_null_parameters(void *params)
     el2go_datastore_t datastore = { 0 };
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     uint8_t write_data[64] = { 0 };
+    size_t bytes_written = 0;
     bool test_status = true;
 
     (void)params;
@@ -104,10 +105,13 @@ static bool test_datastore_write_null_parameters(void *params)
     status = el2go_datastore_allocate(&datastore, 256);
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
 
-    status = el2go_datastore_write(&datastore, NULL, 0, 64);
+    status = el2go_datastore_write(&datastore, NULL, 0, 64, &bytes_written);
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_INVALID_PARAMETER, exit);
 
-    status = el2go_datastore_write(NULL, write_data, 0, 64);
+    status = el2go_datastore_write(NULL, write_data, 0, 64, &bytes_written);
+    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_INVALID_PARAMETER, exit);
+
+    status = el2go_datastore_write(&datastore, write_data, 0, 64, NULL);
     TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_INVALID_PARAMETER);
 
 exit:
@@ -122,6 +126,7 @@ static bool test_datastore_write_zero_length(void *params)
     el2go_datastore_t datastore = { 0 };
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     uint8_t write_data[64] = { 0 };
+    size_t bytes_written = 0;
     bool test_status = true;
 
     (void)params;
@@ -132,7 +137,7 @@ static bool test_datastore_write_zero_length(void *params)
     status = el2go_datastore_allocate(&datastore, 256);
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
 
-    status = el2go_datastore_write(&datastore, write_data, 0, 0);
+    status = el2go_datastore_write(&datastore, write_data, 0, 0, &bytes_written);
     TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_INVALID_PARAMETER);
 
 exit:
@@ -147,6 +152,7 @@ static bool test_datastore_read_null_parameters(void *params)
     el2go_datastore_t datastore = { 0 };
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     uint8_t read_data[64] = { 0 };
+    size_t bytes_read = 0;
     bool test_status = true;
 
     (void)params;
@@ -160,10 +166,13 @@ static bool test_datastore_read_null_parameters(void *params)
     status = el2go_datastore_commit(&datastore);
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
 
-    status = el2go_datastore_read(&datastore, NULL, 0, 64);
+    status = el2go_datastore_read(&datastore, NULL, 0, 64, &bytes_read);
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_INVALID_PARAMETER, exit);
 
-    status = el2go_datastore_read(NULL, read_data, 0, 64);
+    status = el2go_datastore_read(NULL, read_data, 0, 64, &bytes_read);
+    TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_INVALID_PARAMETER, exit);
+
+    status = el2go_datastore_read(&datastore, read_data, 0, 64, NULL);
     TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_INVALID_PARAMETER);
 
 exit:
@@ -178,6 +187,7 @@ static bool test_datastore_read_zero_length(void *params)
     el2go_datastore_t datastore = { 0 };
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     uint8_t read_data[64] = { 0 };
+    size_t bytes_read = 0;
     bool test_status = true;
 
     (void)params;
@@ -191,7 +201,7 @@ static bool test_datastore_read_zero_length(void *params)
     status = el2go_datastore_commit(&datastore);
     TEST_ASSERT_EQUAL_GOTO(status, EL2GO_STATUS_SUCCESS, exit);
 
-    status = el2go_datastore_read(&datastore, read_data, 0, 0);
+    status = el2go_datastore_read(&datastore, read_data, 0, 0, &bytes_read);
     TEST_ASSERT_EQUAL_CONTINUE(status, EL2GO_STATUS_INVALID_PARAMETER);
 
 exit:

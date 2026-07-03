@@ -51,16 +51,14 @@ static bool test_datastore_plain_write_out_of_bounds(void *params)
 {
     (void)params;
 
-    return common_test_ds_write_out_of_bounds(EL2GO_DATASTORE_TYPE_PLAIN, "test_plain", NULL, NULL,
-                                              EL2GO_STATUS_BUFFER_TOO_SMALL);
+    return common_test_ds_write_out_of_bounds(EL2GO_DATASTORE_TYPE_PLAIN, "test_plain", NULL, NULL);
 }
 
 static bool test_datastore_plain_read_out_of_bounds(void *params)
 {
     (void)params;
 
-    return common_test_ds_read_out_of_bounds(EL2GO_DATASTORE_TYPE_PLAIN, "test_plain", NULL, NULL,
-                                             EL2GO_STATUS_BUFFER_TOO_SMALL);
+    return common_test_ds_read_out_of_bounds(EL2GO_DATASTORE_TYPE_PLAIN, "test_plain", NULL, NULL);
 }
 
 static bool test_datastore_plain_transaction_recovery(void *params)
@@ -76,6 +74,20 @@ static bool test_datastore_plain_large_allocation(void *params)
     (void)params;
 
     return common_test_ds_large_allocation(EL2GO_DATASTORE_TYPE_PLAIN, "test_plain", NULL, NULL);
+}
+
+static bool test_datastore_plain_partial_read(void *params)
+{
+    (void)params;
+
+    return common_test_ds_partial_read(EL2GO_DATASTORE_TYPE_PLAIN, "test_plain", NULL, NULL);
+}
+
+static bool test_datastore_plain_partial_write(void *params)
+{
+    (void)params;
+
+    return common_test_ds_partial_write(EL2GO_DATASTORE_TYPE_PLAIN, "test_plain", NULL, NULL);
 }
 
 /* ========================================================================== */
@@ -97,4 +109,8 @@ void register_datastore_plain_tests(void)
     TEST_REGISTER(test_datastore_plain_read_out_of_bounds);
     TEST_REGISTER(test_datastore_plain_transaction_recovery);
     TEST_REGISTER(test_datastore_plain_large_allocation);
+
+    /* Partial read/write tests */
+    TEST_REGISTER(test_datastore_plain_partial_read);
+    TEST_REGISTER(test_datastore_plain_partial_write);
 }
