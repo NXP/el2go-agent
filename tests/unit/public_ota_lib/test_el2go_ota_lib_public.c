@@ -63,7 +63,7 @@ static bool test_el2go_ota_init_null_config(void *params)
 
     status = el2go_ota_init(&ctx, NULL);
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, status);
-    TEST_ASSERT_EQUAL(NULL, ctx);
+    TEST_ASSERT_NULL(ctx);
 
     return true;
 }
@@ -85,7 +85,7 @@ static bool test_el2go_ota_init_null_hostname(void *params)
     (void)params;
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_init(&ctx, &cfg));
-    TEST_ASSERT_EQUAL(NULL, ctx);
+    TEST_ASSERT_NULL(ctx);
 
     return true;
 }
@@ -107,7 +107,7 @@ static bool test_el2go_ota_init_null_ca_chain(void *params)
     (void)params;
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_init(&ctx, &cfg));
-    TEST_ASSERT_EQUAL(NULL, ctx);
+    TEST_ASSERT_NULL(ctx);
 
     return true;
 }
@@ -129,7 +129,7 @@ static bool test_el2go_ota_init_zero_ca_chain_size(void *params)
     (void)params;
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_init(&ctx, &cfg));
-    TEST_ASSERT_EQUAL(NULL, ctx);
+    TEST_ASSERT_NULL(ctx);
 
     return true;
 }
@@ -179,16 +179,23 @@ static bool test_el2go_ota_is_connected_null_ctx(void *params)
 }
 
 /**
- * @brief el2go_ota_get_last_error(NULL) must return a non-NULL string.
+ * @brief el2go_ota_get_error_string() must return a non-NULL string for every
+ *        defined status code, including the success case.
  */
-static bool test_el2go_ota_get_last_error_null_ctx(void *params)
+static bool test_el2go_ota_get_error_string(void *params)
 {
-    const char *err = NULL;
-
     (void)params;
 
-    err = el2go_ota_get_last_error(NULL);
-    TEST_ASSERT_NOT_EQUAL(NULL, err);
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_SUCCESS));
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_INVALID_PARAM));
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_MEMORY));
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_AUTH));
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_NETWORK));
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_TLS_HANDSHAKE));
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_CERT_VERIFY));
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_PLATFORM_INIT));
+    /* Unknown value must also return a non-NULL fallback. */
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string((el2go_ota_status_t)0xFF));
 
     return true;
 }
@@ -266,12 +273,13 @@ static bool test_el2go_ota_is_connected_after_init(void *params)
 }
 
 /**
- * @brief el2go_ota_get_last_error() with a NULL ctx must return a non-NULL
- *        fallback string (verified here in the post-failed-init state).
+ * @brief el2go_ota_get_error_string() on the status returned by a failed
+ *        el2go_ota_init() must return a non-NULL, non-empty string.
  */
-static bool test_el2go_ota_get_last_error_valid_ctx(void *params)
+static bool test_el2go_ota_get_error_string_after_failed_init(void *params)
 {
     el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
     el2go_ota_mtls_config_t cfg = {
         .hostname = "ota.example.com",
         .port = 443U,
@@ -282,13 +290,13 @@ static bool test_el2go_ota_get_last_error_valid_ctx(void *params)
 
     (void)params;
 
-    /* Ignore the specific error — see test_el2go_ota_init_cleanup. */
-    (void)el2go_ota_init(&ctx, &cfg);
+    status = el2go_ota_init(&ctx, &cfg);
     TEST_ASSERT_NULL(ctx);
 
-    /* get_last_error on NULL ctx must return a non-NULL fallback string. */
-    err = el2go_ota_get_last_error(ctx);
+    /* The returned status must translate to a non-NULL, non-empty string. */
+    err = el2go_ota_get_error_string(status);
     TEST_ASSERT_NOT_NULL(err);
+    TEST_ASSERT_NOT_EQUAL('\0', err[0]);
 
     el2go_ota_cleanup(&ctx);
     return true;
@@ -310,9 +318,9 @@ void register_ota_lib_tests(void)
     TEST_REGISTER(test_el2go_ota_connect_null_ctx);
     TEST_REGISTER(test_el2go_ota_disconnect_null_ctx);
     TEST_REGISTER(test_el2go_ota_is_connected_null_ctx);
-    TEST_REGISTER(test_el2go_ota_get_last_error_null_ctx);
+    TEST_REGISTER(test_el2go_ota_get_error_string);
     TEST_REGISTER(test_el2go_ota_cleanup_null_safe);
     TEST_REGISTER(test_el2go_ota_init_cleanup);
     TEST_REGISTER(test_el2go_ota_is_connected_after_init);
-    TEST_REGISTER(test_el2go_ota_get_last_error_valid_ctx);
+    TEST_REGISTER(test_el2go_ota_get_error_string_after_failed_init);
 }

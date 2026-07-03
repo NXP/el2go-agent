@@ -5,6 +5,8 @@
  *
  */
 
+#include <inttypes.h>
+
 #include "osal.h"
 #include "debug.h"
 
@@ -13,6 +15,8 @@
 
 #include "el2go_ota_tls.h"
 #include "cred/el2go_ota_cred.h"
+
+static const char *alpn_protos[] = { "h2", NULL };
 
 /**
  * @brief Internal TLS context — wraps a net_crypto context.
@@ -138,6 +142,15 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
         goto cleanup;
     }
 
+    /* ------------------------------------------------------------------
+     * Step 8: Configure ALPN — server requires HTTP/2 (gRPC).
+     * ------------------------------------------------------------------ */
+    status = net_crypto_set_alpn(ctx->net_ctx, alpn_protos);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] net_crypto_set_alpn failed: %d\n", status);
+        goto cleanup;
+    }
+
     status = EL2GO_STATUS_SUCCESS; /* explicitly set before transferring ownership */
     *out_ctx = ctx;
     ctx = NULL; /* ownership transferred — do not free in cleanup */
@@ -172,21 +185,6 @@ el2go_status_t el2go_ota_tls_connect(el2go_ota_tls_ctx_t *ctx)
     status = net_crypto_connect(ctx->net_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] net_crypto_connect failed: %d\n", status);
-        /* Map all net_crypto errors via the status variable so that
-         * the return path is consistent throughout the codebase and
-         * internal codes never leak through the TLS layer boundary. */
-        if (status == EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED) {
-            status = EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED;
-        } else if (status == EL2GO_STATUS_NET_CRYPTO_INVALID_CERT) {
-            status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
-        } else if (status == EL2GO_STATUS_NET_CRYPTO_INVALID_KEY) {
-            status = EL2GO_STATUS_NET_CRYPTO_INVALID_KEY;
-        } else {
-            /* All other failures (TCP connect, timeout, etc.) map to a
-             * generic network error so the caller always receives a
-             * defined status. */
-            status = EL2GO_STATUS_NET_CRYPTO_CONNECT_FAILED;
-        }
         goto exit;
     }
 

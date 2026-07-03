@@ -209,10 +209,6 @@ el2go_status_t net_crypto_disconnect(net_crypto_ctx_t *ctx);
  * The callback is called repeatedly until it signals end of data
  * by setting @p bytes_read to 0.
  *
- * @param context     User-provided context.
- * @param buffer      Input buffer to fill with data.
- * @param buffer_size Size of the buffer in bytes.
- * @param bytes_read  Output: number of bytes actually read (0 = end of data).
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
 typedef el2go_status_t (*net_crypto_fetch_callback_t)(void *context, uint8_t *buffer,
@@ -240,6 +236,20 @@ el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch_callba
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
 el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *hash_out);
+
+/**
+ * @brief Configure ALPN protocol list for TLS negotiation.
+ *
+ * Must be called after net_crypto_configure and before net_crypto_connect.
+ *
+ * @param[in] ctx          Network crypto context.
+ * @param[in] alpn_protos  NULL-terminated array of ALPN protocol name strings.
+ *
+ * @retval EL2GO_STATUS_SUCCESS           ALPN protocols configured successfully.
+ * @retval EL2GO_STATUS_INVALID_PARAMETER ctx or alpn_protos is NULL.
+ * @retval EL2GO_STATUS_FAILURE           mbedTLS returned a non-zero error code.
+ */
+el2go_status_t net_crypto_set_alpn(net_crypto_ctx_t *ctx, const char **alpn_protos);
 
 /** @} */ /* end of net_crypto */
 

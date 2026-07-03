@@ -55,6 +55,7 @@ if(NOT BUILD_ZEPHYR)
             net_crypto
             el2go_platform
             osal
+            $<TARGET_PROPERTY:el2go_platform,INTERFACE_LINK_LIBRARIES>
     )
 
     install(TARGETS ${PROJECT_NAME}

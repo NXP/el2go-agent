@@ -66,17 +66,20 @@ else()
 endif()
 
 set(MBEDTLS_COMPAT_SOURCES "")
-if(MBEDTLS_VERSION_MAJOR EQUAL 4)
+
+# Add common compatibility layer for v2 and v3
+if(MBEDTLS_VERSION_MAJOR LESS 4)
     list(APPEND MBEDTLS_COMPAT_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_compat_v4.c)
-else()
-    list(APPEND MBEDTLS_COMPAT_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_compat_v2_v3_common.c)
-    set(VERSION_SPECIFIC_FILE
-        ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_compat_v${MBEDTLS_VERSION_MAJOR}.c)
-    if(EXISTS ${VERSION_SPECIFIC_FILE})
-        list(APPEND MBEDTLS_COMPAT_SOURCES ${VERSION_SPECIFIC_FILE})
-    endif()
+        ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_compat_v2_v3_common.c
+    )
+endif()
+
+# Add version-specific compatibility layer if the file exists.
+# This handles v2, v3, v4 and any future major version uniformly.
+set(VERSION_SPECIFIC_FILE
+    ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_compat_v${MBEDTLS_VERSION_MAJOR}.c)
+if(EXISTS ${VERSION_SPECIFIC_FILE})
+    list(APPEND MBEDTLS_COMPAT_SOURCES ${VERSION_SPECIFIC_FILE})
 endif()
 
 message(STATUS "Using mbedTLS ${MBEDTLS_VERSION_MAJOR}.x compatibility layer")

@@ -42,21 +42,22 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED,   /**< SSL/TLS handshake with server failed */
     EL2GO_STATUS_NET_CRYPTO_CERT_VERIFY_FAILED, /**< Server certificate verification failed */
     EL2GO_STATUS_NET_CRYPTO_HOSTNAME_FAILED,    /**< Failed to set SNI hostname */
-    EL2GO_STATUS_NET_CRYPTO_INVALID_CERT, /**< Certificate is invalid or could not be parsed */
-    EL2GO_STATUS_NET_CRYPTO_SHA_ERROR,    /**< SHA hashing operation failed */
-    EL2GO_STATUS_CERT_NOT_AVAILABLE,      /**< Certificate is not available */
-    EL2GO_STATUS_CHECKSUM_MISMATCH,       /**< Checksum verification failed */
-    EL2GO_STATUS_INVALID_DATA,            /**< Data is invalid or malformed */
-    EL2GO_STATUS_INCOMPLETE_DATA,         /**< Operation completed but data is incomplete */
-    EL2GO_STATUS_RESOURCE_LIMIT,          /**< Resource limit reached */
-    EL2GO_STATUS_ALREADY_EXISTS,          /**< Resource already exists */
-    EL2GO_STATUS_NOT_FOUND,               /**< Resource not found */
-    EL2GO_STATUS_INCOMPLETE_WRITE,        /**< Write operation incomplete */
-    EL2GO_STATUS_INCOMPLETE_READ,         /**< Read operation incomplete */
-    EL2GO_STATUS_UNSUPPORTED_OPERATION,   /**< Operation is not supported */
-    EL2GO_STATUS_INVALID_REQUEST,         /**< Request is invalid */
-    EL2GO_STATUS_PSA_ERROR,               /**< A function in the PSA API returned an error */
-    EL2GO_STATUS_INVALID_DATASTORE        /**< Datastore is invalid or corrupted */
+    EL2GO_STATUS_NET_CRYPTO_INVALID_CERT,  /**< Certificate is invalid or could not be parsed */
+    EL2GO_STATUS_NET_CRYPTO_SHA_ERROR,     /**< SHA hashing operation failed */
+    EL2GO_STATUS_NET_CRYPTO_NOT_CONNECTED, /**< Network crypto connection not established */
+    EL2GO_STATUS_CERT_NOT_AVAILABLE,       /**< Certificate is not available */
+    EL2GO_STATUS_CHECKSUM_MISMATCH,        /**< Checksum verification failed */
+    EL2GO_STATUS_INVALID_DATA,             /**< Data is invalid or malformed */
+    EL2GO_STATUS_INCOMPLETE_DATA,          /**< Operation completed but data is incomplete */
+    EL2GO_STATUS_RESOURCE_LIMIT,           /**< Resource limit reached */
+    EL2GO_STATUS_ALREADY_EXISTS,           /**< Resource already exists */
+    EL2GO_STATUS_NOT_FOUND,                /**< Resource not found */
+    EL2GO_STATUS_INCOMPLETE_WRITE,         /**< Write operation incomplete */
+    EL2GO_STATUS_INCOMPLETE_READ,          /**< Read operation incomplete */
+    EL2GO_STATUS_UNSUPPORTED_OPERATION,    /**< Operation is not supported */
+    EL2GO_STATUS_INVALID_REQUEST,          /**< Request is invalid */
+    EL2GO_STATUS_PSA_ERROR,                /**< A function in the PSA API returned an error */
+    EL2GO_STATUS_INVALID_DATASTORE         /**< Datastore is invalid or corrupted */
 } el2go_status_t;
 
 /**

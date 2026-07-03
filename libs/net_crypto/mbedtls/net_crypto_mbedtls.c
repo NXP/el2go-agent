@@ -72,6 +72,7 @@ struct net_crypto_ctx {
     bool connected;                      /**< Connection status flag */
     bool ca_cert_set;                    /**< CA certificate set flag */
     bool cli_cert_set;                   /**< Client certificate set flag */
+    bool alpn_set;                       /**< ALPN protocol list configured flag */
     int *ciphers; /**< Cipher suites array (allocated by net_crypto_set_cipher_suites, freed in net_crypto_free) */
     void *curves; /**< Elliptic curves array (allocated by net_crypto_set_curves, freed in net_crypto_free) */
 };
@@ -588,6 +589,15 @@ el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
     ctx->connected = true;
     EL2GO_DBG_PRINTF(VERBOSE, "SSL/TLS connection established to %s:%u\n", ctx->hostname,
                      ctx->port);
+
+    /* Log negotiated ALPN protocol — only if ALPN was configured.
+     * If the server ignored the extension, "none" is a useful diagnostic. */
+    if (ctx->alpn_set) {
+        const char *alpn = mbedtls_ssl_get_alpn_protocol(&ctx->ssl);
+        (void)alpn;
+        EL2GO_DBG_PRINTF(INFO, "ALPN negotiated: %s\n", alpn ? alpn : "none (server ignored)");
+    }
+
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
 
@@ -675,8 +685,10 @@ el2go_status_t net_crypto_disconnect(net_crypto_ctx_t *ctx)
     if (!ctx)
         return EL2GO_STATUS_INVALID_PARAMETER;
 
-    if (!ctx->connected)
-        return EL2GO_STATUS_SUCCESS;
+    if (!ctx->connected) {
+        EL2GO_DBG_PRINTF(VERBOSE, "%s: context not connected\n", __func__);
+        return EL2GO_STATUS_NET_CRYPTO_NOT_CONNECTED;
+    }
 
     /* No error checking, the connection might be closed already */
     do {
@@ -959,6 +971,32 @@ exit:
 
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
+}
+
+el2go_status_t net_crypto_set_alpn(net_crypto_ctx_t *ctx, const char **alpn_protos)
+{
+    int ret = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!ctx || !alpn_protos)
+        return EL2GO_STATUS_INVALID_PARAMETER;
+
+    if (!ctx->configured) {
+        EL2GO_DBG_PRINTF(ERROR, "Set ALPN: context not configured\n");
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
+
+    ret = mbedtls_ssl_conf_alpn_protocols(&ctx->conf, alpn_protos);
+    if (ret != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "mbedtls_ssl_conf_alpn_protocols failed: -0x%04x\n", -ret);
+        return EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED;
+    }
+
+    ctx->alpn_set = true;
+
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, EL2GO_STATUS_SUCCESS);
+    return EL2GO_STATUS_SUCCESS;
 }
 
 el2go_status_t net_crypto_set_curves(net_crypto_ctx_t *ctx, const el2go_curve_list_t *curve_list)

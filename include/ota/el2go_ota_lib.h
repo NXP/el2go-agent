@@ -127,15 +127,17 @@ void el2go_ota_cleanup(el2go_ota_ctx_t **ctx);
 bool el2go_ota_is_connected(const el2go_ota_ctx_t *ctx);
 
 /**
- * @brief Retrieve a human-readable description of the last error.
+ * @brief Convert an EL2GO OTA status code to a human-readable string.
  *
- * The returned string is owned by the library and remains valid until the
- * next API call on the same context.
+ * The returned string is a static literal owned by the library.
+ * This function is safe to call at any time — it requires no context and
+ * cannot miss an error because the translation is done via a complete
+ * switch over all defined status codes.
  *
- * @param[in] ctx  Context. May be NULL (returns a generic message).
+ * @param[in] status  Status code to translate.
  *
- * @retval Null-terminated error string. Never returns NULL.
+ * @retval Null-terminated, human-readable description. Never returns NULL.
  */
-const char *el2go_ota_get_last_error(const el2go_ota_ctx_t *ctx);
+const char *el2go_ota_get_error_string(el2go_ota_status_t status);
 
 #endif /* __EL2GO_OTA_LIB_H__ */

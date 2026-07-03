@@ -10,6 +10,22 @@ set(CMAKE_MODULE_PATH
 )
 
 # ---------------------------------------------------------------------------
+# Default PLATFORM for Zephyr — ELS PKC for RW6xx family.
+# Can be overridden by the application CMake before including this file.
+# ---------------------------------------------------------------------------
+if(NOT DEFINED PLATFORM)
+    set(PLATFORM els_pkc)
+endif()
+
+# ---------------------------------------------------------------------------
+# Default CRYPTO_BACKEND for Zephyr — mbedTLS is provided by the Zephyr SDK.
+# Can be overridden by the application CMake before including this file.
+# ---------------------------------------------------------------------------
+if(NOT DEFINED CRYPTO_BACKEND)
+    set(CRYPTO_BACKEND mbedtls)
+endif()
+
+# ---------------------------------------------------------------------------
 # Shared public include root — resolves <ota/...> and <fwual/...> headers.
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES OR CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
