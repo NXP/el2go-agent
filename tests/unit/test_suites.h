@@ -60,4 +60,6 @@ void register_net_crypto_tests(void);
  */
 void register_keystore_tests(void);
 
+/** @} */ /* end of test_suites */
+
 #endif /* __TEST_SUITES_H__ */

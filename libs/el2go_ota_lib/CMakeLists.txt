@@ -42,10 +42,6 @@ if(NOT BUILD_ZEPHYR)
             $<INSTALL_INTERFACE:include>
         PRIVATE
             ${CMAKE_SOURCE_DIR}/priv
-            ${CMAKE_SOURCE_DIR}/libs/osal/include
-            ${CMAKE_SOURCE_DIR}/libs/net_crypto
-            ${CMAKE_SOURCE_DIR}/libs/platforms
-            ${CMAKE_SOURCE_DIR}/libs/platforms/${PLATFORM}
             ${CMAKE_CURRENT_SOURCE_DIR}/src
             ${CMAKE_CURRENT_SOURCE_DIR}/src/cred
     )

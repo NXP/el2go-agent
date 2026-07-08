@@ -3,23 +3,24 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-set(PLATFORM_SOURCES
+include(add_target_sources)
+
+declare_library(el2go_platform)
+
+add_private_sources(el2go_platform
     el2go_platform.c
     plat_crypto_params.c
 )
 
-# Create platform library
-add_library(el2go_platform OBJECT ${PLATFORM_SOURCES})
+add_public_directories(el2go_platform
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/${PLATFORM}
+)
 
-# Set platform-specific include directory
-target_include_directories(el2go_platform
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/${PLATFORM}
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/priv
-        ${CMAKE_SOURCE_DIR}/libs/osal/include
+add_private_directories(el2go_platform
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/priv
+    ${CMAKE_SOURCE_DIR}/libs/osal/include
 )
 
 message(STATUS "EdgeLock 2GO Platform: ${PLATFORM}")

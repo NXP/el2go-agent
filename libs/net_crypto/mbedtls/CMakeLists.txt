@@ -50,7 +50,6 @@ else()
     set(MBEDTLS_EXTRA_DIRS
         ${CMAKE_SOURCE_DIR}/libs/platforms
         ${CMAKE_SOURCE_DIR}/libs/net_crypto
-        ${mbedtls_INCLUDE_DIRS}
     )
 
     if(mbedtls_STATIC_LIBRARIES)
@@ -94,6 +93,10 @@ add_private_sources(net_crypto
 
 add_private_directories(net_crypto
     ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+add_public_directories(net_crypto
+    ${mbedtls_INCLUDE_DIRS}
     ${MBEDTLS_EXTRA_DIRS}
 )
 

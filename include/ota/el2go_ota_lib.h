@@ -16,14 +16,14 @@
  * @brief Status codes returned by EL2GO OTA Library functions.
  */
 typedef enum {
-    EL2GO_OTA_SUCCESS = 0,             /**< Operation succeeded. */
-    EL2GO_OTA_ERROR_INVALID_PARAM = 1, /**< NULL or invalid parameter. */
-    EL2GO_OTA_ERROR_MEMORY = 2,        /**< Heap allocation failed. */
-    EL2GO_OTA_ERROR_AUTH = 3,          /**< Client authentication failed. */
-    EL2GO_OTA_ERROR_NETWORK = 4,       /**< TCP connection failed. */
-    EL2GO_OTA_ERROR_TLS_HANDSHAKE = 5, /**< TLS handshake failed. */
-    EL2GO_OTA_ERROR_CERT_VERIFY = 6,   /**< Server certificate verification failed. */
-    EL2GO_OTA_ERROR_PLATFORM_INIT = 7, /**< Platform initialisation failed. */
+    EL2GO_OTA_SUCCESS,             /**< Operation succeeded. */
+    EL2GO_OTA_ERROR_INVALID_PARAM, /**< NULL or invalid parameter. */
+    EL2GO_OTA_ERROR_MEMORY,        /**< Heap allocation failed. */
+    EL2GO_OTA_ERROR_AUTH,          /**< Client authentication failed. */
+    EL2GO_OTA_ERROR_NETWORK,       /**< TCP connection failed. */
+    EL2GO_OTA_ERROR_TLS_HANDSHAKE, /**< TLS handshake failed. */
+    EL2GO_OTA_ERROR_CERT_VERIFY,   /**< Server certificate verification failed. */
+    EL2GO_OTA_ERROR_PLATFORM_INIT, /**< Platform initialisation failed. */
 } el2go_ota_status_t;
 
 /**

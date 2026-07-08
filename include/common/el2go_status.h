@@ -69,6 +69,7 @@ typedef enum {
     EL2GO_STATUS_ON_ERROR, /**< Print status report only on error */
     EL2GO_STATUS_ALWAYS    /**< Always print status report */
 } el2go_verbosity_t;
+
 /** @} */ /* end of el2go_status */
 
 #endif /* __EL2GO_STATUS_H__ */

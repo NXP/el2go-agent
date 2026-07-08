@@ -3,22 +3,22 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Common source files
-set(NET_CRYPTO_SOURCES
+include(add_target_sources)
+
+declare_library(net_crypto)
+
+add_private_sources(net_crypto
     net_crypto.c
 )
 
-# Create the OBJECT library
-add_library(net_crypto OBJECT ${NET_CRYPTO_SOURCES})
+add_public_directories(net_crypto
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
-# Set include directories
-target_include_directories(net_crypto
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/priv
-        ${CMAKE_SOURCE_DIR}/libs/osal/include
+add_private_directories(net_crypto
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/priv
+    ${CMAKE_SOURCE_DIR}/libs/osal/include
 )
 
 # Add crypto backend sources if backend is specified

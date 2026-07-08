@@ -21,8 +21,7 @@ struct el2go_platform_ctx {
     bool initialized;
 };
 
-__export el2go_status_t el2go_platform_init(const el2go_platform_config_t *config,
-                                            el2go_platform_ctx_t **platform_ctx)
+__export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
 {
     el2go_platform_ctx_t *ctx = NULL;
     psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
@@ -30,7 +29,7 @@ __export el2go_status_t el2go_platform_init(const el2go_platform_config_t *confi
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (!config || !platform_ctx) {
+    if (!platform_ctx) {
         return EL2GO_STATUS_INVALID_PARAMETER;
     }
 

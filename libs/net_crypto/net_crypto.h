@@ -209,6 +209,10 @@ el2go_status_t net_crypto_disconnect(net_crypto_ctx_t *ctx);
  * The callback is called repeatedly until it signals end of data
  * by setting @p bytes_read to 0.
  *
+ * @param context     User-provided context.
+ * @param buffer      Input buffer to fill with data.
+ * @param buffer_size Size of the buffer in bytes.
+ * @param bytes_read  Output: number of bytes actually read (0 = end of data).
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
 typedef el2go_status_t (*net_crypto_fetch_callback_t)(void *context, uint8_t *buffer,

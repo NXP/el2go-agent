@@ -9,11 +9,11 @@
 
 #include "osal.h"
 #include "compiler.h"
-#include "debug.h"
 
 #include "ota/el2go_ota_lib.h"
 #include "common/el2go_platform.h"
 #include "el2go_ota_tls.h"
+#include "debug.h"
 
 struct el2go_ota_ctx {
     bool connected;                     /**< True when mTLS connection is open. */
@@ -62,7 +62,7 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
     EL2GO_DBG_TRACE_API_CALL;
 
     if (!ctx) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] ctx must not be NULL\n");
+        EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
@@ -70,25 +70,25 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
     *ctx = NULL;
 
     if (!config) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] config must not be NULL\n");
+        EL2GO_DBG_PRINTF(ERROR, "config must not be NULL\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
 
     if (!config->hostname) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] config->hostname must not be NULL\n");
+        EL2GO_DBG_PRINTF(ERROR, "config->hostname must not be NULL\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
 
     if (config->port == 0U) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] config->port must not be 0\n");
+        EL2GO_DBG_PRINTF(ERROR, "config->port must not be 0\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
 
     if (!config->server_ca_chain || config->server_ca_chain_size == 0U) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] server_ca_chain must not be NULL "
+        EL2GO_DBG_PRINTF(ERROR, "server_ca_chain must not be NULL "
                                 "and server_ca_chain_size must be > 0\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
@@ -96,34 +96,31 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
 
     c = osal_calloc(1U, sizeof(*c));
     if (!c) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] Failed to allocate context\n");
+        EL2GO_DBG_PRINTF(ERROR, "Failed to allocate context\n");
         ota_status = EL2GO_OTA_ERROR_MEMORY;
         goto exit;
     }
 
-    /* ------------------------------------------------------------------
-     * Initialise the platform context (PSA crypto subsystem, secure
+    /* Initialise the platform context (PSA crypto subsystem, secure
      * storage, etc.). Owned by the context for its full lifetime and
-     * freed in el2go_ota_cleanup().
-     * ------------------------------------------------------------------ */
-    el2go_platform_config_t platform_config = { 0 };
-    status = el2go_platform_init(&platform_config, &c->platform_ctx);
+     * freed in el2go_ota_cleanup(). */
+    status = el2go_platform_init(&c->platform_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] Platform init failed: %d\n", status);
+        EL2GO_DBG_PRINTF(ERROR, "Platform init failed: %d\n", status);
         ota_status = EL2GO_OTA_ERROR_PLATFORM_INIT;
         goto cleanup_context;
     }
 
     status = el2go_ota_tls_init(&c->tls_ctx, c->platform_ctx, config);
     if (status != EL2GO_STATUS_SUCCESS) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] TLS initialisation failed: %d\n", status);
+        EL2GO_DBG_PRINTF(ERROR, "TLS initialisation failed: %d\n", status);
         ota_status = map_status(status);
         goto cleanup_platform;
     }
 
     *ctx = c;
 
-    EL2GO_DBG_PRINTF(INFO, "[EL2GO OTA] Initialized. Server: %s:%u\n", config->hostname,
+    EL2GO_DBG_PRINTF(INFO, "Initialized. Server: %s:%u\n", config->hostname,
                      (unsigned int)config->port);
 
     ota_status = EL2GO_OTA_SUCCESS;
@@ -133,7 +130,6 @@ cleanup_platform:
     el2go_platform_free(&c->platform_ctx);
 cleanup_context:
     osal_free(c);
-    c = NULL;
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, ota_status);
     return ota_status;
@@ -147,27 +143,27 @@ __export el2go_ota_status_t el2go_ota_connect(el2go_ota_ctx_t *ctx)
     EL2GO_DBG_TRACE_API_CALL;
 
     if (!ctx) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] ctx must not be NULL\n");
+        EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
 
     if (ctx->connected) {
-        EL2GO_DBG_PRINTF(VERBOSE, "[EL2GO OTA] Already connected\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Already connected\n");
         ota_status = EL2GO_OTA_SUCCESS;
         goto exit;
     }
 
     status = el2go_ota_tls_connect(ctx->tls_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] TLS connect failed: %d\n", status);
+        EL2GO_DBG_PRINTF(ERROR, "TLS connect failed: %d\n", status);
         ota_status = map_status(status);
         goto exit;
     }
 
     ctx->connected = true;
 
-    EL2GO_DBG_PRINTF(INFO, "[EL2GO OTA] mTLS connection established\n");
+    EL2GO_DBG_PRINTF(INFO, "mTLS connection established\n");
     ota_status = EL2GO_OTA_SUCCESS;
 
 exit:
@@ -180,19 +176,19 @@ __export el2go_ota_status_t el2go_ota_disconnect(el2go_ota_ctx_t *ctx)
     EL2GO_DBG_TRACE_API_CALL;
 
     if (!ctx) {
-        EL2GO_DBG_PRINTF(ERROR, "[EL2GO OTA] ctx must not be NULL\n");
+        EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
 
     if (!ctx->connected) {
-        EL2GO_DBG_PRINTF(VERBOSE, "[EL2GO OTA] Not connected — no-op\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Not connected — no-op\n");
         return EL2GO_OTA_SUCCESS;
     }
 
     el2go_ota_tls_disconnect(ctx->tls_ctx);
     ctx->connected = false;
 
-    EL2GO_DBG_PRINTF(INFO, "[EL2GO OTA] Disconnected\n");
+    EL2GO_DBG_PRINTF(INFO, "Disconnected\n");
 
     return EL2GO_OTA_SUCCESS;
 }
@@ -218,7 +214,7 @@ __export void el2go_ota_cleanup(el2go_ota_ctx_t **ctx)
     osal_free(*ctx);
     *ctx = NULL;
 
-    EL2GO_DBG_PRINTF(INFO, "[EL2GO OTA] Cleaned up\n");
+    EL2GO_DBG_PRINTF(INFO, "Cleaned up\n");
 }
 
 __export bool el2go_ota_is_connected(const el2go_ota_ctx_t *ctx)
