@@ -17,7 +17,15 @@
 #define HEX_DUMP_LINE_LENGTH 16
 
 static unsigned int log_level = TRACE_LEVEL;
-static FILE *stddebug;
+static FILE *stddebug = NULL;
+
+static FILE *get_debug_stream(void)
+{
+    if (!stddebug)
+        return stderr;
+
+    return stddebug;
+}
 
 void set_log_file(void)
 {
@@ -56,14 +64,17 @@ void set_log_level(void)
 void osal_printf(unsigned int level, const char *fmt, ...)
 {
     va_list args;
+    FILE *debug_stream = NULL;
 
     if (level > log_level)
         return;
 
+    debug_stream = get_debug_stream();
+
     va_start(args, fmt);
-    (void)vfprintf(stddebug, fmt, args);
+    (void)vfprintf(debug_stream, fmt, args);
     va_end(args);
-    (void)fflush(stddebug);
+    (void)fflush(debug_stream);
 }
 
 void osal_printf_always(const char *fmt, ...)
@@ -115,32 +126,35 @@ int osal_snprintf(char *str, size_t size, const char *format, ...)
 void osal_hex_dump(unsigned int level, const void *buffer, size_t length)
 {
     const unsigned char *buf = (const unsigned char *)buffer;
+    FILE *debug_stream = NULL;
     size_t i = 0;
 
     if (level > log_level)
         return;
 
+    debug_stream = get_debug_stream();
+
     if (!buffer) {
-        (void)fprintf(stddebug, "(null)\n");
+        (void)fprintf(debug_stream, "(null)\n");
         return;
     }
 
     if (!length) {
-        (void)fprintf(stddebug, "(empty)\n");
+        (void)fprintf(debug_stream, "(empty)\n");
         return;
     }
 
     for (; i < length; i++) {
-        (void)fprintf(stddebug, "%02x", buf[i]);
+        (void)fprintf(debug_stream, "%02x", buf[i]);
 
         if ((i + 1) % HEX_DUMP_LINE_LENGTH == 0)
-            (void)fprintf(stddebug, "\n");
+            (void)fprintf(debug_stream, "\n");
         else if (i < length - 1)
-            (void)fprintf(stddebug, " ");
+            (void)fprintf(debug_stream, " ");
     }
 
     if (length % HEX_DUMP_LINE_LENGTH)
-        (void)fprintf(stddebug, "\n");
+        (void)fprintf(debug_stream, "\n");
 
-    (void)fflush(stddebug);
+    (void)fflush(debug_stream);
 }
