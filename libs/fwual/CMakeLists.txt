@@ -76,5 +76,9 @@ else()
     add_private_directories(fwual
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
+
+    # Backend: injects strong overrides into the fwual target.
+    add_subdirectory(mcuboot)
 endif()

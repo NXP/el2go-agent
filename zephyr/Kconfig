@@ -50,3 +50,7 @@ config EL2GO_OTA_TESTS
     bool "Include EL2GO OTA unit test sources"
     help
       Includes the OTA unit test sources in the Zephyr test build.
+
+if EL2GO_OTA_FWUAL_LIBRARY_SOURCES && BOOTLOADER_MCUBOOT
+source "${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/fwual/mcuboot/Kconfig"
+endif

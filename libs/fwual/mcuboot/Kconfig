@@ -1,0 +1,10 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config FWUAL_MCUBOOT_IMAGE_COUNT
+    int "Number of MCUboot updateable images"
+    default 1
+    help
+      Number of independently updateable firmware images managed by
+      the FWUAL MCUboot backend. Must match MCUboot's
+      CONFIG_UPDATEABLE_IMAGE_NUMBER.
