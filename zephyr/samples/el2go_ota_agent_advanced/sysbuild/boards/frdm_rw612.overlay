@@ -1,0 +1,33 @@
+/*
+ * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&w25q512jvfiq {
+	partitions {
+		/delete-node/ partition@20000;
+		/delete-node/ partition@c0000;
+		/delete-node/ partition@3c0000;
+		/delete-node/ partition@460000;
+		/delete-node/ partition@760000;
+
+		slot0_partition: partition@40000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-0";
+			reg = <0x00040000 DT_SIZE_M(4)>;
+		};
+
+		slot1_partition: partition@440000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-1";
+			reg = <0x00440000 DT_SIZE_M(4)>;
+		};
+
+		storage_partition: partition@840000 {
+			compatible = "zephyr,mapped-partition";
+			label = "storage";
+			reg = <0x00840000 DT_SIZE_K(256)>;
+		};
+	};
+};
