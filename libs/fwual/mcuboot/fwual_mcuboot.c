@@ -2,6 +2,7 @@
  * Copyright 2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
 #include <string.h>
@@ -18,15 +19,7 @@
 #include "debug.h"
 #include "fwual_state.h"
 
-/* -------------------------------------------------------------------------
- * NVS key
- * ---------------------------------------------------------------------- */
-
-#define FWUAL_NVS_KEY_STATE 1U
-
-/* -------------------------------------------------------------------------
- * MCUBoot slot table
- * ---------------------------------------------------------------------- */
+/* MCUBoot slot table */
 
 typedef struct {
     uint8_t flash_area_id; /**< Zephyr flash_area ID for the inactive slot. */
@@ -40,21 +33,15 @@ static fwual_mcuboot_slot_t s_slots[FWUAL_MAX_IMAGES];
 static size_t s_slot_count;
 static bool s_slots_initialized;
 
-/* -------------------------------------------------------------------------
- * Internal state — single static instance
- * ---------------------------------------------------------------------- */
+/*  Internal state — single static instance */
 
 static fwual_internal_state_t s_fwual_state;
 
-/* -------------------------------------------------------------------------
- * NVS filesystem handle
- * ---------------------------------------------------------------------- */
+/* NVS filesystem handle */
 
 static struct nvs_fs s_nvs_fs;
 
-/* -------------------------------------------------------------------------
- * NVS helpers
- * ---------------------------------------------------------------------- */
+/* NVS helpers */
 
 static fwual_result_t fwual_nvs_read_state(fwual_update_state_t *out_state)
 {
@@ -96,9 +83,7 @@ exit:
     return result;
 }
 
-/* -------------------------------------------------------------------------
- * MCUBoot slot helpers
- * ---------------------------------------------------------------------- */
+/* MCUBoot slot helpers */
 
 static fwual_result_t fwual_slots_init(void)
 {
@@ -134,6 +119,7 @@ static fwual_result_t fwual_slots_init(void)
         } else {
             flash_area_id = (uint8_t)PARTITION_ID(slot0_partition);
         }
+
         rc = flash_area_open(flash_area_id, &fa);
         if (rc != 0) {
             EL2GO_DBG_PRINTF(ERROR, "flash_area_open(id=%u) failed: %d\n", flash_area_id, rc);
@@ -158,7 +144,8 @@ exit:
     return result;
 }
 
-static fwual_result_t fwual_slot_prepare(uint32_t image_id, uint64_t size, uint32_t *out_slot_index)
+static fwual_result_t fwual_mcuboot_prepare_slot(uint32_t image_id, uint64_t size,
+                                                 uint32_t *out_slot_index)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     fwual_mcuboot_slot_t *slot = NULL;
@@ -219,7 +206,7 @@ exit:
     return result;
 }
 
-static fwual_result_t fwual_slot_cancel(uint32_t slot_index)
+static fwual_result_t fwual_mcuboot_cancel_slot(uint32_t slot_index)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
 
@@ -240,13 +227,11 @@ exit:
     return result;
 }
 
-fwual_result_t fwual_init(void)
+__export fwual_result_t fwual_init(void)
 {
-    const struct flash_area *fa = NULL;
     fwual_result_t result = FWUAL_ERR_INTERNAL;
+    struct flash_pages_info info = { 0 };
     int rc = 0;
-    struct flash_sector _sectors[128] = { 0 };
-    uint32_t _count = 128U;
 
     if (s_fwual_state.initialized) {
         result = FWUAL_OK;
@@ -254,8 +239,6 @@ fwual_result_t fwual_init(void)
     }
 
     memset(&s_fwual_state, 0, sizeof(s_fwual_state));
-
-    struct flash_pages_info info;
 
     s_nvs_fs.flash_device = PARTITION_DEVICE(storage_partition);
     s_nvs_fs.offset = (off_t)PARTITION_OFFSET(storage_partition);
@@ -265,6 +248,7 @@ fwual_result_t fwual_init(void)
         EL2GO_DBG_PRINTF(ERROR, "flash_get_page_info_by_offs failed: %d\n", rc);
         goto exit;
     }
+
     s_nvs_fs.sector_size = (uint32_t)info.size;
     s_nvs_fs.sector_count = (uint16_t)(PARTITION_SIZE(storage_partition) / s_nvs_fs.sector_size);
 
@@ -285,6 +269,13 @@ fwual_result_t fwual_init(void)
         goto exit;
     }
 
+    /* Cache capabilities once — time-invariant for this boot. */
+    s_fwual_state.caps.requires_sequential_writes = true;
+    s_fwual_state.caps.rejects_overlaps = true;
+    s_fwual_state.caps.supports_delta = false;
+    s_fwual_state.caps.write_alignment = (s_slot_count > 0U) ? s_slots[0].write_block_size : 0U;
+    s_fwual_state.caps.max_write_size = 0U;
+
     s_fwual_state.initialized = true;
 
     EL2GO_DBG_PRINTF(INFO, "FWUAL initialized. Restored state: %d\n",
@@ -296,7 +287,7 @@ exit:
     return result;
 }
 
-fwual_result_t fwual_get_caps(fwual_caps_t *out_caps)
+__export fwual_result_t fwual_get_caps(fwual_caps_t *out_caps)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
 
@@ -310,11 +301,8 @@ fwual_result_t fwual_get_caps(fwual_caps_t *out_caps)
         goto exit;
     }
 
-    out_caps->requires_sequential_writes = true;
-    out_caps->rejects_overlaps = true;
-    out_caps->supports_delta = false;
-    out_caps->write_alignment = (s_slot_count > 0U) ? s_slots[0].write_block_size : 0U;
-    out_caps->max_write_size = 0U;
+    /* Serve from cache — populated once at fwual_init(). */
+    *out_caps = s_fwual_state.caps;
 
     result = FWUAL_OK;
 
@@ -322,7 +310,7 @@ exit:
     return result;
 }
 
-fwual_result_t fwual_open_session(fwual_session_t **out_session)
+__export fwual_result_t fwual_open_session(fwual_session_t **out_session)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
 
@@ -362,9 +350,10 @@ exit:
     return result;
 }
 
-fwual_result_t fwual_close_session(fwual_session_t *session)
+__export fwual_result_t fwual_close_session(fwual_session_t *session)
 {
     size_t i = 0U;
+    size_t image_count = 0U;
     fwual_result_t result = FWUAL_ERR_INTERNAL;
 
     if (session == NULL) {
@@ -391,13 +380,14 @@ fwual_result_t fwual_close_session(fwual_session_t *session)
     }
 
     /* Cancel all prepared, non-cancelled image slots. */
-    for (i = 0U; i < s_fwual_state.session.image_count; i++) {
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
         fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
 
         if (slot->prepared && !slot->cancelled) {
-            result = fwual_slot_cancel(slot->slot_index);
+            result = fwual_mcuboot_cancel_slot(slot->slot_index);
             if (result != FWUAL_OK) {
-                EL2GO_DBG_PRINTF(ERROR, "fwual_slot_cancel(%u) failed during close: %d\n",
+                EL2GO_DBG_PRINTF(ERROR, "fwual_mcuboot_cancel_slot(%u) failed during close: %d\n",
                                  slot->slot_index, (int)result);
                 /* Continue — close must not leave session half-open. */
             } else {
@@ -417,12 +407,15 @@ exit:
     return result;
 }
 
-fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_desc_t *desc)
+__export fwual_result_t fwual_prepare_image(fwual_session_t *session,
+                                            const fwual_image_desc_t *desc)
 {
     size_t i = 0U;
+    size_t image_count = 0U;
     uint32_t slot_index = 0U;
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     fwual_image_slot_t *new_slot = NULL;
+    bool has_free = false;
 
     if (session == NULL || desc == NULL) {
         result = FWUAL_ERR_INVALID_PARAM;
@@ -439,13 +432,9 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
         goto exit;
     }
 
-    if (s_fwual_state.session.image_count >= FWUAL_MAX_IMAGES) {
-        result = FWUAL_ERR_NO_SPACE;
-        goto exit;
-    }
-
     /* Check for duplicate image_id — skip cancelled entries. */
-    for (i = 0U; i < s_fwual_state.session.image_count; i++) {
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
         if (!s_fwual_state.session.images[i].cancelled &&
             s_fwual_state.session.images[i].image_id == desc->image_id) {
             result = FWUAL_ERR_INVALID_PARAM;
@@ -453,7 +442,20 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
         }
     }
 
-    result = fwual_slot_prepare(desc->image_id, desc->size, &slot_index);
+    if (s_fwual_state.session.image_count >= FWUAL_MAX_IMAGES) {
+        for (i = 0U; i < image_count; i++) {
+            if (s_fwual_state.session.images[i].cancelled) {
+                has_free = true;
+                break;
+            }
+        }
+        if (!has_free) {
+            result = FWUAL_ERR_NO_SPACE;
+            goto exit;
+        }
+    }
+
+    result = fwual_mcuboot_prepare_slot(desc->image_id, desc->size, &slot_index);
     if (result != FWUAL_OK) {
         goto exit;
     }
@@ -461,15 +463,29 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
     result = fwual_nvs_write_state(FWUAL_UPDATE_STATE_IMAGE_PREPARED);
     if (result != FWUAL_OK) {
         EL2GO_DBG_PRINTF(ERROR, "fwual_nvs_write_state(IMAGE_PREPARED) failed: %d\n", (int)result);
-        fwual_slot_cancel(slot_index);
+        fwual_mcuboot_cancel_slot(slot_index);
         goto exit;
     }
 
-    new_slot = &s_fwual_state.session.images[s_fwual_state.session.image_count];
+    for (i = 0U; i < image_count; i++) {
+        if (s_fwual_state.session.images[i].cancelled) {
+            new_slot = &s_fwual_state.session.images[i];
+            break;
+        }
+    }
+
+    if (new_slot == NULL) {
+        new_slot = &s_fwual_state.session.images[s_fwual_state.session.image_count];
+        s_fwual_state.session.image_count++;
+    }
+
     new_slot->image_id = desc->image_id;
     new_slot->desc = *desc;
     new_slot->prepared = true;
     new_slot->cancelled = false;
+    new_slot->finalized = false;
+    new_slot->bytes_written = 0U;
+    new_slot->next_expected_offset = 0U;
     new_slot->slot_index = slot_index;
 
     s_fwual_state.session.image_count++;
@@ -484,20 +500,16 @@ exit:
     return result;
 }
 
-fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t image_id)
+__export fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t image_id)
 {
     size_t i = 0U;
+    size_t image_count = 0U;
     fwual_image_slot_t *slot = NULL;
     fwual_image_slot_t *candidate = NULL;
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     bool any_prepared = false;
 
-    if (session == NULL) {
-        result = FWUAL_ERR_INVALID_PARAM;
-        goto exit;
-    }
-
-    if (session != &s_fwual_state.session) {
+    if (session == NULL || session != &s_fwual_state.session) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
     }
@@ -508,7 +520,8 @@ fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t ima
     }
 
     /* Find the slot with matching image_id that is prepared and not cancelled. */
-    for (i = 0U; i < s_fwual_state.session.image_count; i++) {
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
         candidate = &s_fwual_state.session.images[i];
 
         if (candidate->image_id == image_id && candidate->prepared && !candidate->cancelled) {
@@ -522,13 +535,13 @@ fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t ima
         goto exit;
     }
 
-    result = fwual_slot_cancel(slot->slot_index);
+    result = fwual_mcuboot_cancel_slot(slot->slot_index);
     if (result != FWUAL_OK) {
         goto exit;
     }
 
     /* Recompute update_state. */
-    for (i = 0U; i < s_fwual_state.session.image_count; i++) {
+    for (i = 0U; i < image_count; i++) {
         if (s_fwual_state.session.images[i].prepared &&
             !s_fwual_state.session.images[i].cancelled &&
             s_fwual_state.session.images[i].image_id != image_id) {
@@ -552,6 +565,250 @@ fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t ima
     EL2GO_DBG_PRINTF(INFO, "Slot %u released.\n", slot->slot_index);
     EL2GO_DBG_PRINTF(INFO, "Image cancelled: id=%u slot=%u\n", image_id, slot->slot_index);
 
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+static fwual_result_t fwual_mcuboot_write(uint32_t slot_index, uint64_t offset, const uint8_t *data,
+                                          size_t len)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    const struct flash_area *fa = NULL;
+    off_t physical_addr = 0;
+    int rc = 0;
+
+    if (data == NULL || len == 0U || !s_slots_initialized || slot_index >= (uint32_t)s_slot_count) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /* Bounds check: offset + len must not exceed the physical slot size. */
+    if (offset + (uint64_t)len > (uint64_t)s_slots[slot_index].size) {
+        EL2GO_DBG_PRINTF(ERROR,
+                         "mcuboot_write: out of bounds: slot=%u offset=%llu len=%zu slot_size=%u\n",
+                         slot_index, (unsigned long long)offset, len, s_slots[slot_index].size);
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    rc = flash_area_open(s_slots[slot_index].flash_area_id, &fa);
+    if (rc != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "mcuboot_write: flash_area_open(id=%u) failed: %d\n",
+                         s_slots[slot_index].flash_area_id, rc);
+        goto exit;
+    }
+
+    physical_addr = (off_t)offset;
+
+    EL2GO_DBG_PRINTF(DEBUG, "mcuboot_write: slot=%u offset=%llu len=%zu phys=0x%08x\n", slot_index,
+                     (unsigned long long)offset, len, (unsigned)physical_addr);
+
+    rc = flash_area_write(fa, physical_addr, data, len);
+    if (rc != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "mcuboot_write: flash_area_write failed: %d\n", rc);
+        result = FWUAL_ERR_IO;
+        goto exit;
+    }
+
+    result = FWUAL_OK;
+
+exit:
+    if (fa != NULL) {
+        flash_area_close(fa);
+    }
+    return result;
+}
+
+static fwual_result_t fwual_mcuboot_finalize(uint32_t slot_index, uint64_t expected_size)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+
+    EL2GO_DBG_PRINTF(INFO, "mcuboot_finalize: slot=%u expected_size=%llu\n", slot_index,
+                     (unsigned long long)expected_size);
+
+    if (!s_slots_initialized || slot_index >= (uint32_t)s_slot_count) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /*
+     * Delta updates are not supported on this backend (supports_delta == false).
+     * For FWUAL_UPDATE_FULL: the secondary slot is fully written and erased
+     * during prepare. No additional flash operations are required here —
+     * MCUBoot will verify and swap on next boot.
+     */
+
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+__export fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id,
+                                    uint64_t offset, const uint8_t *data, size_t len)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    fwual_image_slot_t *slot = NULL;
+    size_t i = 0U;
+    size_t image_count = 0U;
+
+    /* 1. NULL / zero guards */
+    if (session == NULL || data == NULL || len == 0U) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /* 2. Resolve session context */
+    if (session != &s_fwual_state.session || !s_fwual_state.session.active) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* 3. Find image slot */
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
+        if (s_fwual_state.session.images[i].image_id == image_id) {
+            slot = &s_fwual_state.session.images[i];
+            break;
+        }
+    }
+    if (slot == NULL || !slot->prepared || slot->cancelled || slot->finalized) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* 4. Sequential write enforcement — use cached caps, no function call overhead. */
+    if (s_fwual_state.caps.requires_sequential_writes) {
+        if (offset != slot->next_expected_offset) {
+            EL2GO_DBG_PRINTF(ERROR, "Write out of order: image_id=%u expected=%llu got=%llu\n",
+                             image_id, (unsigned long long)slot->next_expected_offset,
+                             (unsigned long long)offset);
+            result = FWUAL_ERR_INVALID_STATE;
+            goto exit;
+        }
+    }
+
+    /* 5. Bounds check */
+    if (offset + (uint64_t)len > slot->desc.size) {
+        EL2GO_DBG_PRINTF(ERROR, "Write overflow: image_id=%u offset=%llu len=%zu size=%llu\n",
+                         image_id, (unsigned long long)offset, len,
+                         (unsigned long long)slot->desc.size);
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /* 6. Alignment check — use cached caps. */
+    if (s_fwual_state.caps.write_alignment > 1U &&
+        (len % (size_t)s_fwual_state.caps.write_alignment) != 0U) {
+        EL2GO_DBG_PRINTF(ERROR, "Write alignment violation: image_id=%u len=%zu alignment=%u\n",
+                         image_id, len, s_fwual_state.caps.write_alignment);
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /* 7. Backend write */
+    result = fwual_mcuboot_write(slot->slot_index, offset, data, len);
+    if (result != FWUAL_OK) {
+        goto exit;
+    }
+
+    /* 8. Update progress */
+    slot->bytes_written += (uint64_t)len;
+    slot->next_expected_offset = offset + (uint64_t)len;
+
+    /* 9. Persist minimal progress to NVS (non-fatal on failure) */
+    fwual_write_progress_t progress = {
+        .image_id = slot->image_id,
+        .bytes_written = slot->bytes_written,
+        .next_expected_offset = slot->next_expected_offset,
+        .finalized = slot->finalized,
+    };
+
+    ssize_t nvs_rc =
+        nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_WRITE_PROGRESS, &progress, sizeof(progress));
+    if (nvs_rc < 0) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_write: NVS persist failed (non-fatal): %d\n", (int)nvs_rc);
+    }
+
+    /* 10. Log and return */
+    EL2GO_DBG_PRINTF(INFO, "Write: image_id=%u offset=%llu len=%zu\n", image_id,
+                     (unsigned long long)offset, len);
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+__export fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_image_id_t image_id)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    fwual_image_slot_t *slot = NULL;
+    size_t i = 0U;
+    size_t image_count = 0U;
+
+    /* 1. NULL guard */
+    if (session == NULL) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /* 2. Resolve session context */
+    if (session != &s_fwual_state.session || !s_fwual_state.session.active) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* 3. Find image slot */
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
+        if (s_fwual_state.session.images[i].image_id == image_id) {
+            slot = &s_fwual_state.session.images[i];
+            break;
+        }
+    }
+    if (slot == NULL || !slot->prepared || slot->cancelled || slot->finalized) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* 4. Completeness check — use < to tolerate alignment padding on last chunk. */
+    if (slot->bytes_written < slot->desc.size) {
+        EL2GO_DBG_PRINTF(ERROR, "Finalize incomplete: image_id=%u written=%llu expected=%llu\n",
+                         image_id, (unsigned long long)slot->bytes_written,
+                         (unsigned long long)slot->desc.size);
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* 5. Backend finalize */
+    result = fwual_mcuboot_finalize(slot->slot_index, slot->desc.size);
+    if (result != FWUAL_OK) {
+        goto exit;
+    }
+
+    /* 6. Mark finalized */
+    slot->finalized = true;
+
+    /* 7. Persist minimal progress to NVS (non-fatal on failure) */
+    fwual_write_progress_t progress = {
+        .image_id = slot->image_id,
+        .bytes_written = slot->bytes_written,
+        .next_expected_offset = slot->next_expected_offset,
+        .finalized = slot->finalized,
+    };
+
+    ssize_t nvs_rc =
+        nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_WRITE_PROGRESS, &progress, sizeof(progress));
+    if (nvs_rc < 0) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_finalize_image: NVS persist failed (non-fatal): %d\n",
+                         (int)nvs_rc);
+    }
+
+    /* 8. Log and return */
+    EL2GO_DBG_PRINTF(INFO, "Image finalized: image_id=%u size=%llu\n", image_id,
+                     (unsigned long long)slot->desc.size);
     result = FWUAL_OK;
 
 exit:

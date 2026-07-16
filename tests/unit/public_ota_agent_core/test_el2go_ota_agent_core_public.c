@@ -25,10 +25,12 @@
 static bool test_ota_agent_core_calls_fwual_init(void *params)
 {
     bool test_status = true;
+    fwual_result_t fwual_result = FWUAL_RESULT_UNINITIALIZED;
 
     (void)params;
 
-    fwual_init();
+    fwual_result = fwual_init();
+    TEST_ASSERT_EQUAL(FWUAL_OK, fwual_result);
     TEST_PRINT_INFO("ota_agent_core: fwual_init() reachable");
 
     return test_status;
