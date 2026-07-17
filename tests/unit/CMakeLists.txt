@@ -111,6 +111,7 @@ target_include_directories(${PUBLIC_TEST_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/libs/osal/include
         ${CMAKE_SOURCE_DIR}/priv
+        ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src
 )
 
 target_link_libraries(${PUBLIC_TEST_EXECUTABLE}

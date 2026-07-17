@@ -22,4 +22,7 @@ zephyr_include_directories(
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/nanopb
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/src
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/ota
 )

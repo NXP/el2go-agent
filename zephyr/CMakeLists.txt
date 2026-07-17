@@ -76,6 +76,17 @@ if(CONFIG_EL2GO_OTA_PLATFORM_SOURCES)
 endif()
 
 # ---------------------------------------------------------------------------
+# Protobuf (nanopb runtime + OTA generated files)
+# Must come before el2go_ota_lib which uses the generated .pb.h headers.
+# ---------------------------------------------------------------------------
+if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES)
+    add_subdirectory(
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf
+        ${CMAKE_CURRENT_BINARY_DIR}/protobuf
+    )
+endif()
+
+# ---------------------------------------------------------------------------
 # EL2GO OTA Library (TLS, credential, OTA logic)
 # Depends on: net_crypto, el2go_platform, osal
 # ---------------------------------------------------------------------------

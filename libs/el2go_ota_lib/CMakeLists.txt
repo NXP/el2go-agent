@@ -18,16 +18,25 @@ endif()
 
 message(STATUS "EL2GO OTA credential provider: ${EL2GO_OTA_CRED_PROVIDER}")
 
-set(EL2GO_OTA_LIB_SOURCES
-    el2go_ota_lib.c
-    src/el2go_ota_tls.c
-    ${EL2GO_OTA_CRED_SOURCE}
-)
-
+# ---------------------------------------------------------------------------
+# Linux-only: create the full shared/static library target with versioning
+# and install rules. In Zephyr the target is managed by the Zephyr build
+# system; only sources and include dirs are contributed below.
+# ---------------------------------------------------------------------------
 if(NOT BUILD_ZEPHYR)
     project(el2go_ota_lib VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 
-    add_library(${PROJECT_NAME} ${EL2GO_OTA_LIB_SOURCES})
+    add_library(${PROJECT_NAME}
+        el2go_ota_lib.c
+        src/el2go_ota_tls.c
+        src/el2go_ota_request_builder.c
+        src/el2go_ota_response_handler.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/ota/ota_delivery.pb.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_common.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_decode.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_encode.c
+        ${EL2GO_OTA_CRED_SOURCE}
+    )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         VERSION ${PROJECT_VERSION}
@@ -40,18 +49,6 @@ if(NOT BUILD_ZEPHYR)
         PUBLIC
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:include>
-        PRIVATE
-            ${CMAKE_SOURCE_DIR}/priv
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/cred
-    )
-
-    target_link_libraries(${PROJECT_NAME}
-        PRIVATE
-            net_crypto
-            el2go_platform
-            osal
-            $<TARGET_PROPERTY:el2go_platform,INTERFACE_LINK_LIBRARIES>
     )
 
     install(TARGETS ${PROJECT_NAME}
@@ -91,16 +88,36 @@ if(NOT BUILD_ZEPHYR)
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/el2go_ota_lib
     )
-
 else()
-    add_private_sources(el2go_ota_lib ${EL2GO_OTA_LIB_SOURCES})
-
-    add_private_directories(el2go_ota_lib
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/osal/include
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/net_crypto
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/cred
+    add_private_sources(el2go_ota_lib
+        el2go_ota_lib.c
+        src/el2go_ota_tls.c
+        src/el2go_ota_request_builder.c
+        src/el2go_ota_response_handler.c
+        ${EL2GO_OTA_CRED_SOURCE}
     )
 endif()
+
+# ---------------------------------------------------------------------------
+# Private include directories and link libraries — shared by both build
+# systems via the add_target_sources.cmake macros.
+# ---------------------------------------------------------------------------
+add_private_directories(el2go_ota_lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../priv
+    ${CMAKE_CURRENT_SOURCE_DIR}/../osal/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../net_crypto
+    ${CMAKE_CURRENT_SOURCE_DIR}/../platforms
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/cred
+    ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/ota
+    ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb
+)
+
+add_link_libraries(el2go_ota_lib
+    PRIVATE
+        net_crypto
+        el2go_platform
+        osal
+        ota_protobuf
+        $<TARGET_PROPERTY:el2go_platform,INTERFACE_LINK_LIBRARIES>
+)

@@ -244,6 +244,10 @@ __export const char *el2go_ota_get_error_string(el2go_ota_status_t status)
         return "Server certificate verification failed";
     case EL2GO_OTA_ERROR_PLATFORM_INIT:
         return "Platform initialisation failed";
+    case EL2GO_OTA_ERROR_ENCODE:
+        return "Protobuf request encoding failed";
+    case EL2GO_OTA_ERROR_DECODE:
+        return "Protobuf response decoding failed";
     default:
         return "Unknown error";
     }

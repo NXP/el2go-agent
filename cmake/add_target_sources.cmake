@@ -58,3 +58,14 @@ function(add_private_definitions target)
         target_compile_definitions(${target} PRIVATE ${ARGN})
     endif()
 endfunction()
+
+# Adds public compile definitions to a target
+# In Zephyr mode zephyr_library_compile_definitions propagates globally,
+# which is equivalent to PUBLIC visibility for the Zephyr library model.
+function(add_public_definitions target)
+    if(BUILD_ZEPHYR)
+        zephyr_library_compile_definitions(${ARGN})
+    else()
+        target_compile_definitions(${target} PUBLIC ${ARGN})
+    endif()
+endfunction()

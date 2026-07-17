@@ -3,8 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# EdgeLock 2GO protobuf definitions
-add_library(el2go_protobuf OBJECT
+include(add_target_sources)
+
+# EdgeLock 2GO protobuf definitions.
+# declare_library creates an OBJECT library in non-Zephyr builds; in Zephyr
+# builds it is a no-op because sources are contributed to the Zephyr library
+# directly via the add_private_sources / add_public_directories macros below.
+
+declare_library(el2go_protobuf)
+
+add_private_sources(el2go_protobuf
     Agent.pb.c
     Apdu.pb.c
     Datastore.pb.c
@@ -17,11 +25,11 @@ add_library(el2go_protobuf OBJECT
     ServiceDescriptor.pb.c
 )
 
-target_include_directories(el2go_protobuf PUBLIC
+add_public_directories(el2go_protobuf
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(el2go_protobuf PUBLIC
-    nanopb
+add_link_libraries(el2go_protobuf
+    PUBLIC
+        nanopb
 )
-

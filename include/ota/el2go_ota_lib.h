@@ -24,6 +24,8 @@ typedef enum {
     EL2GO_OTA_ERROR_TLS_HANDSHAKE, /**< TLS handshake failed. */
     EL2GO_OTA_ERROR_CERT_VERIFY,   /**< Server certificate verification failed. */
     EL2GO_OTA_ERROR_PLATFORM_INIT, /**< Platform initialisation failed. */
+    EL2GO_OTA_ERROR_ENCODE,        /**< Protobuf request encoding failed. */
+    EL2GO_OTA_ERROR_DECODE,        /**< Protobuf response decoding failed. */
 } el2go_ota_status_t;
 
 /**
