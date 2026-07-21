@@ -13,20 +13,20 @@
 #include "ota/el2go_ota_lib.h"
 #include "common/el2go_platform.h"
 #include "el2go_ota_tls.h"
+#include "transport/el2go_ota_transport.h"
+#include "download/el2go_ota_download_engine.h"
 #include "debug.h"
 
 struct el2go_ota_ctx {
     bool connected;                     /**< True when mTLS connection is open. */
     el2go_ota_tls_ctx_t *tls_ctx;       /**< Underlying TLS context. */
-    el2go_platform_ctx_t *platform_ctx; /**< Platform context — owned for lifetime of ctx. */
+    el2go_platform_ctx_t *platform_ctx; /**< Platform context -- owned for lifetime of ctx. */
+    el2go_ota_transport_t transport;    /**< Transport vtable -- initialised at connect time. */
+    const char *hostname; /**< Server hostname -- points into user config (not owned). */
 };
 
 /**
  * @brief Map an internal el2go_status_t to the public el2go_ota_status_t.
- *
- * Centralises all status translation in one place so that callers never
- * need scattered if/else chains and cannot accidentally return an internal
- * code through the public API boundary.
  */
 static el2go_ota_status_t map_status(el2go_status_t status)
 {
@@ -101,9 +101,6 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
         goto exit;
     }
 
-    /* Initialise the platform context (PSA crypto subsystem, secure
-     * storage, etc.). Owned by the context for its full lifetime and
-     * freed in el2go_ota_cleanup(). */
     status = el2go_platform_init(&c->platform_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "Platform init failed: %d\n", status);
@@ -118,6 +115,8 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
         goto cleanup_platform;
     }
 
+    /* Store hostname pointer -- config must remain valid for ctx lifetime. */
+    c->hostname = config->hostname;
     *ctx = c;
 
     EL2GO_DBG_PRINTF(INFO, "Initialized. Server: %s:%u\n", config->hostname,
@@ -139,6 +138,7 @@ __export el2go_ota_status_t el2go_ota_connect(el2go_ota_ctx_t *ctx)
 {
     el2go_status_t status = EL2GO_STATUS_FAILURE;
     el2go_ota_status_t ota_status = EL2GO_OTA_ERROR_NETWORK;
+    el2go_ota_status_t t_status = EL2GO_OTA_ERROR_NETWORK;
 
     EL2GO_DBG_TRACE_API_CALL;
 
@@ -158,6 +158,14 @@ __export el2go_ota_status_t el2go_ota_connect(el2go_ota_ctx_t *ctx)
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "TLS connect failed: %d\n", status);
         ota_status = map_status(status);
+        goto exit;
+    }
+
+    t_status = el2go_ota_transport_init(&ctx->transport, ctx->tls_ctx, ctx->hostname);
+    if (t_status != EL2GO_OTA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Transport init failed: %d\n", t_status);
+        el2go_ota_tls_disconnect(ctx->tls_ctx);
+        ota_status = t_status;
         goto exit;
     }
 
@@ -181,8 +189,12 @@ __export el2go_ota_status_t el2go_ota_disconnect(el2go_ota_ctx_t *ctx)
     }
 
     if (!ctx->connected) {
-        EL2GO_DBG_PRINTF(VERBOSE, "Not connected — no-op\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Not connected -- no-op\n");
         return EL2GO_OTA_SUCCESS;
+    }
+
+    if (ctx->transport.deinit) {
+        ctx->transport.deinit(&ctx->transport);
     }
 
     el2go_ota_tls_disconnect(ctx->tls_ctx);
@@ -202,6 +214,10 @@ __export void el2go_ota_cleanup(el2go_ota_ctx_t **ctx)
     }
 
     if ((*ctx)->connected) {
+        if ((*ctx)->transport.deinit) {
+            (*ctx)->transport.deinit(&(*ctx)->transport);
+        }
+
         el2go_ota_tls_disconnect((*ctx)->tls_ctx);
         (*ctx)->connected = false;
     }
@@ -248,7 +264,63 @@ __export const char *el2go_ota_get_error_string(el2go_ota_status_t status)
         return "Protobuf request encoding failed";
     case EL2GO_OTA_ERROR_DECODE:
         return "Protobuf response decoding failed";
+    case EL2GO_OTA_ERROR_SERVER:
+        return "Server returned a non-zero gRPC status code";
+    case EL2GO_OTA_ERROR_INTERNAL:
+        return "Unexpected internal error";
     default:
         return "Unknown error";
     }
+}
+
+__export el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx,
+                                                        const el2go_ota_attr_t *attrs,
+                                                        size_t attr_count,
+                                                        el2go_ota_check_update_resp_t *out_resp)
+{
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (!ctx) {
+        EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    if (!ctx->connected) {
+        EL2GO_DBG_PRINTF(ERROR, "not connected -- call el2go_ota_connect() first\n");
+        return EL2GO_OTA_ERROR_NETWORK;
+    }
+
+    if (!out_resp) {
+        EL2GO_DBG_PRINTF(ERROR, "out_resp must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    return el2go_ota_download_engine_check_for_updates(&ctx->transport, attrs, attr_count,
+                                                       out_resp);
+}
+
+__export el2go_ota_status_t el2go_ota_download_package(
+    el2go_ota_ctx_t *ctx, const char *update_id, const char *package_id, size_t resume_offset,
+    el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *cb_ctx),
+    void *cb_ctx)
+{
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (!ctx) {
+        EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    if (!ctx->connected) {
+        EL2GO_DBG_PRINTF(ERROR, "not connected -- call el2go_ota_connect() first\n");
+        return EL2GO_OTA_ERROR_NETWORK;
+    }
+
+    if (!update_id || !package_id || !chunk_cb) {
+        EL2GO_DBG_PRINTF(ERROR, "update_id, package_id, and chunk_cb must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    return el2go_ota_download_engine_fetch_package(&ctx->transport, update_id, package_id,
+                                                   resume_offset, chunk_cb, cb_ctx);
 }

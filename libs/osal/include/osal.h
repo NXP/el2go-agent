@@ -207,6 +207,16 @@ el2go_status_t osal_fflush(osal_file_t *file);
 el2go_status_t osal_uuid(uint8_t **uuid, size_t *uuid_len);
 
 /**
+ * osal_sleep_ms - Sleep for a given number of milliseconds
+ *
+ * @ms: Number of milliseconds to sleep
+ *
+ * Return:
+ * none.
+ */
+void osal_sleep_ms(uint32_t ms);
+
+/**
  * osal_lib_init - Initialize OSAL subsystem
  *
  * Return:

@@ -8,6 +8,9 @@ include(add_target_sources)
 set(EL2GO_OTA_CRED_PROVIDER "psa" CACHE STRING
     "OTA mTLS credential provider: psa")
 
+set(EL2GO_OTA_TRANSPORT_BACKEND "grpc" CACHE STRING
+    "OTA message transport backend: grpc")
+
 if(EL2GO_OTA_CRED_PROVIDER STREQUAL "psa")
     set(EL2GO_OTA_CRED_SOURCE src/cred/el2go_ota_cred_psa.c)
 else()
@@ -16,7 +19,18 @@ else()
         "Valid values: psa. See src/cred/el2go_ota_cred.h to add a new provider.")
 endif()
 
-message(STATUS "EL2GO OTA credential provider: ${EL2GO_OTA_CRED_PROVIDER}")
+if(EL2GO_OTA_TRANSPORT_BACKEND STREQUAL "grpc")
+    set(EL2GO_OTA_TRANSPORT_SOURCE
+        src/transport/grpc/el2go_ota_grpc.c
+        src/transport/el2go_ota_transport_init.c)
+else()
+    message(FATAL_ERROR
+        "Unknown EL2GO_OTA_TRANSPORT_BACKEND '${EL2GO_OTA_TRANSPORT_BACKEND}'. "
+        "Valid values: grpc. See src/transport/ to add a new backend.")
+endif()
+
+message(STATUS "EL2GO OTA credential provider:  ${EL2GO_OTA_CRED_PROVIDER}")
+message(STATUS "EL2GO OTA transport backend:    ${EL2GO_OTA_TRANSPORT_BACKEND}")
 
 # ---------------------------------------------------------------------------
 # Linux-only: create the full shared/static library target with versioning
@@ -31,6 +45,8 @@ if(NOT BUILD_ZEPHYR)
         src/el2go_ota_tls.c
         src/el2go_ota_request_builder.c
         src/el2go_ota_response_handler.c
+        src/download/el2go_ota_download_engine.c
+        ${EL2GO_OTA_TRANSPORT_SOURCE}
         ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/ota/ota_delivery.pb.c
         ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_common.c
         ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_decode.c
@@ -94,6 +110,8 @@ else()
         src/el2go_ota_tls.c
         src/el2go_ota_request_builder.c
         src/el2go_ota_response_handler.c
+        src/download/el2go_ota_download_engine.c
+        ${EL2GO_OTA_TRANSPORT_SOURCE}
         ${EL2GO_OTA_CRED_SOURCE}
     )
 endif()
@@ -109,6 +127,8 @@ add_private_directories(el2go_ota_lib
     ${CMAKE_CURRENT_SOURCE_DIR}/../platforms
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cred
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/transport
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/download
     ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/ota
     ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb
 )

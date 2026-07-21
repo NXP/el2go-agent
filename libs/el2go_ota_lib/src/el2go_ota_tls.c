@@ -208,3 +208,67 @@ void el2go_ota_tls_deinit(el2go_ota_tls_ctx_t *ctx)
 
     osal_free(ctx);
 }
+
+el2go_status_t el2go_ota_tls_write(el2go_ota_tls_ctx_t *ctx, const uint8_t *buf, size_t len)
+{
+    size_t sent = 0U;
+    int ret = 0;
+    el2go_status_t status = EL2GO_STATUS_FAILURE;
+
+    if (!ctx || !buf || len == 0U) {
+        status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    while (sent < len) {
+        ret = net_crypto_write(ctx->net_ctx, buf + sent, len - sent);
+        if (ret <= 0) {
+            EL2GO_DBG_PRINTF(ERROR, "net_crypto_write failed: %d\n", ret);
+            status = EL2GO_STATUS_FAILURE;
+            goto exit;
+        }
+        sent += (size_t)ret;
+    }
+
+    status = EL2GO_STATUS_SUCCESS;
+
+exit:
+    return status;
+}
+
+el2go_status_t el2go_ota_tls_read(el2go_ota_tls_ctx_t *ctx, uint8_t *buf, size_t len,
+                                  size_t *out_len)
+{
+    size_t received = 0U;
+    int ret = 0;
+    el2go_status_t status = EL2GO_STATUS_FAILURE;
+
+    if (!ctx || !buf || !out_len) {
+        status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    *out_len = 0U;
+
+    while (received < len) {
+        ret = net_crypto_read(ctx->net_ctx, buf + received, len - received);
+        if (ret == 0) {
+            /* Connection closed before we got all bytes. */
+            EL2GO_DBG_PRINTF(ERROR, "TLS connection closed after %zu/%zu bytes\n", received, len);
+            status = EL2GO_STATUS_FAILURE;
+            goto exit;
+        }
+        if (ret < 0) {
+            EL2GO_DBG_PRINTF(ERROR, "net_crypto_read failed: %d\n", ret);
+            status = EL2GO_STATUS_FAILURE;
+            goto exit;
+        }
+        received += (size_t)ret;
+    }
+
+    *out_len = received;
+    status = EL2GO_STATUS_SUCCESS;
+
+exit:
+    return status;
+}

@@ -5,7 +5,13 @@
  *
  */
 
+#include <zephyr/kernel.h>
 #include "osal.h"
+
+void osal_sleep_ms(uint32_t ms)
+{
+    k_msleep((int32_t)ms);
+}
 
 void osal_lib_init(void)
 {

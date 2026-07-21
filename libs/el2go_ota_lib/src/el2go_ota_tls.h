@@ -82,4 +82,38 @@ void el2go_ota_tls_disconnect(el2go_ota_tls_ctx_t *ctx);
  */
 void el2go_ota_tls_deinit(el2go_ota_tls_ctx_t *ctx);
 
+/**
+ * @brief Write data over the TLS connection.
+ *
+ * Calls net_crypto_write() and retries on partial writes until all bytes
+ * are sent or an unrecoverable error occurs.
+ *
+ * @param[in] ctx  TLS context. Must not be NULL.
+ * @param[in] buf  Data to write. Must not be NULL.
+ * @param[in] len  Number of bytes to write. Must be > 0.
+ *
+ * @retval EL2GO_STATUS_SUCCESS on success.
+ * @retval EL2GO_STATUS_INVALID_PARAMETER if ctx, buf is NULL or len is 0.
+ * @retval EL2GO_STATUS_FAILURE if the TLS send fails.
+ */
+el2go_status_t el2go_ota_tls_write(el2go_ota_tls_ctx_t *ctx, const uint8_t *buf, size_t len);
+
+/**
+ * @brief Read exactly len bytes over the TLS connection.
+ *
+ * Calls net_crypto_read() in a loop until exactly len bytes have been
+ * received or an error/EOF occurs.
+ *
+ * @param[in]  ctx      TLS context. Must not be NULL.
+ * @param[out] buf      Output buffer. Must not be NULL.
+ * @param[in]  len      Exact number of bytes to read.
+ * @param[out] out_len  Number of bytes actually read. Must not be NULL.
+ *
+ * @retval EL2GO_STATUS_SUCCESS on success (out_len == len).
+ * @retval EL2GO_STATUS_INVALID_PARAMETER if ctx, buf, or out_len is NULL.
+ * @retval EL2GO_STATUS_FAILURE if the connection is closed or read fails.
+ */
+el2go_status_t el2go_ota_tls_read(el2go_ota_tls_ctx_t *ctx, uint8_t *buf, size_t len,
+                                  size_t *out_len);
+
 #endif /* __EL2GO_OTA_TLS_H__ */

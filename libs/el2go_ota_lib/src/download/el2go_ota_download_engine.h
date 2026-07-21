@@ -1,0 +1,60 @@
+/*
+ * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ */
+
+#ifndef EL2GO_OTA_DOWNLOAD_ENGINE_H
+#define EL2GO_OTA_DOWNLOAD_ENGINE_H
+
+#include <stdint.h>
+#include <stddef.h>
+
+#include "ota/el2go_ota_lib.h"
+#include "transport/el2go_ota_transport.h"
+#include "el2go_ota_request_builder.h"
+#include "el2go_ota_response_handler.h"
+
+/* Retry policy constants for el2go_ota_download_engine_fetch_package(). */
+#define EL2GO_OTA_DOWNLOAD_MAX_RETRIES 3U
+#define EL2GO_OTA_DOWNLOAD_RETRY_BASE_MS 500U
+
+/**
+ * @brief Internal implementation of el2go_ota_check_for_updates().
+ *
+ * @param[in]  transport   Initialised transport instance. Must not be NULL.
+ * @param[in]  attrs       Device attribute array. May be NULL if attr_count is 0.
+ * @param[in]  attr_count  Number of entries in attrs[].
+ * @param[out] out_resp    Parsed response. Guaranteed non-NULL by caller.
+ * @return EL2GO_OTA_SUCCESS on success.
+ * @return EL2GO_OTA_ERROR_ENCODE on request encoding failure.
+ * @return EL2GO_OTA_ERROR_NETWORK on send/receive failure.
+ * @return EL2GO_OTA_ERROR_DECODE on response parsing failure.
+ */
+el2go_ota_status_t
+el2go_ota_download_engine_check_for_updates(el2go_ota_transport_t *transport,
+                                            const el2go_ota_attr_t *attrs, size_t attr_count,
+                                            el2go_ota_check_update_resp_t *out_resp);
+
+/**
+ * @brief Internal implementation of el2go_ota_download_package().
+ *
+ * @param[in] transport      Initialised transport instance. Must not be NULL.
+ * @param[in] update_id      Update identifier. Guaranteed non-NULL by caller.
+ * @param[in] package_id     Package identifier. Guaranteed non-NULL by caller.
+ * @param[in] resume_offset  Byte offset to resume from (0 = start fresh).
+ * @param[in] chunk_cb       Chunk delivery callback. Guaranteed non-NULL by caller.
+ * @param[in] cb_ctx         Opaque context for chunk_cb. May be NULL.
+ * @return EL2GO_OTA_SUCCESS on success.
+ * @return EL2GO_OTA_ERROR_ENCODE on encoding failure (not retried).
+ * @return EL2GO_OTA_ERROR_NETWORK on unrecoverable network failure after retries.
+ * @return EL2GO_OTA_ERROR_DECODE on decoding failure (not retried).
+ */
+el2go_ota_status_t el2go_ota_download_engine_fetch_package(
+    el2go_ota_transport_t *transport, const char *update_id, const char *package_id,
+    size_t resume_offset,
+    el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *ctx),
+    void *cb_ctx);
+
+#endif /* EL2GO_OTA_DOWNLOAD_ENGINE_H */

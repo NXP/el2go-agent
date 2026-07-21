@@ -5,8 +5,18 @@
  *
  */
 
+#include <time.h>
 #include "osal.h"
 #include "local.h"
+
+void osal_sleep_ms(uint32_t ms)
+{
+    struct timespec ts;
+
+    ts.tv_sec = (time_t)(ms / 1000U);
+    ts.tv_nsec = (long)((ms % 1000U) * 1000000UL);
+    (void)nanosleep(&ts, NULL);
+}
 
 void osal_lib_init(void)
 {

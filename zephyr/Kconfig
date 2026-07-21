@@ -51,6 +51,16 @@ config EL2GO_OTA_TESTS
     help
       Includes the OTA unit test sources in the Zephyr test build.
 
+config EL2GO_OTA_CHUNK_SIZE
+    int "OTA download chunk size in bytes"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 4096
+    help
+      Size of each firmware chunk requested from the EL2GO OTA backend.
+      Must be a multiple of the FWUAL write alignment (4 bytes for RW612).
+      Increasing this value reduces round-trips but increases stack usage
+      in the download engine (wire buffer = EL2GO_OTA_CHUNK_SIZE + 256).
+
 if EL2GO_OTA_FWUAL_LIBRARY_SOURCES && BOOTLOADER_MCUBOOT
 source "${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/fwual/mcuboot/Kconfig"
 endif

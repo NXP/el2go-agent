@@ -12,6 +12,38 @@
 #include <stdint.h>
 
 /**
+ * @brief Maximum number of bytes requested per chunk from the OTA server.
+ *
+ * Tune this value to match the available stack budget on the target platform.
+ * On Zephyr it is set via CONFIG_EL2GO_OTA_CHUNK_SIZE in Kconfig.
+ * On other platforms define EL2GO_OTA_CHUNK_SIZE in the build system before
+ * including this header to override the default.
+ *
+ * Default: 4096 bytes.
+ */
+#ifndef EL2GO_OTA_CHUNK_SIZE
+#ifdef CONFIG_EL2GO_OTA_CHUNK_SIZE
+#define EL2GO_OTA_CHUNK_SIZE CONFIG_EL2GO_OTA_CHUNK_SIZE
+#else
+#define EL2GO_OTA_CHUNK_SIZE 4096U
+#endif
+#endif /* EL2GO_OTA_CHUNK_SIZE */
+
+/**
+ * @brief Extra bytes reserved in the wire buffer for gRPC/protobuf framing overhead.
+ *
+ * Covers the 5-byte gRPC frame header, protobuf field tags and length prefixes,
+ * and HTTP/2 HEADERS framing. The actual overhead for the current proto schema
+ * is well under 100 bytes; 256 provides a conservative margin.
+ * Override in the build system if a tighter budget is required.
+ *
+ * Default: 256 bytes.
+ */
+#ifndef EL2GO_OTA_WIRE_OVERHEAD
+#define EL2GO_OTA_WIRE_OVERHEAD 256U
+#endif /* EL2GO_OTA_WIRE_OVERHEAD */
+
+/**
  * @brief mTLS configuration for the EL2GO OTA server connection.
  *
  * All pointer fields must remain valid for the lifetime of the context

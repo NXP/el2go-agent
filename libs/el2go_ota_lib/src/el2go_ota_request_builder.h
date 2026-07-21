@@ -15,18 +15,9 @@
 #include "ota/el2go_ota_lib.h"
 
 /**
- * @brief A single key-value attribute pair for device metadata.
- *
- * Both key and value are null-terminated strings. Pointers must remain
- * valid for the duration of the encode call.
- */
-typedef struct {
-    const char *key;
-    const char *value;
-} el2go_ota_attr_t;
-
-/**
  * @brief Input for encoding a GetAvailableUpdates request.
+ *
+ * Uses el2go_ota_attr_t from ota/el2go_ota_lib.h (included via the public header).
  */
 typedef struct {
     const el2go_ota_attr_t *attrs; /**< Array of device attribute pairs. */

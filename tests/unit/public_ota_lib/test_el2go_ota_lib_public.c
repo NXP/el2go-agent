@@ -13,6 +13,7 @@
 #include "ota/el2go_ota_lib.h"
 #include "el2go_ota_request_builder.h"
 #include "el2go_ota_response_handler.h"
+#include "download/el2go_ota_download_engine.h"
 #include "ota_delivery.pb.h"
 #include "test_framework.h"
 #include "test_suites.h"
@@ -204,6 +205,7 @@ static bool test_el2go_ota_get_error_string(void *params)
     TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_PLATFORM_INIT));
     TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_ENCODE));
     TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_DECODE));
+    TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string(EL2GO_OTA_ERROR_INTERNAL));
     /* Unknown value must also return a non-NULL fallback. */
     TEST_ASSERT_NOT_NULL(el2go_ota_get_error_string((el2go_ota_status_t)0xFF));
 
@@ -1133,6 +1135,107 @@ static bool test_parse_fetch_package_roundtrip(void *params)
 }
 
 /* ========================================================================== */
+/* Download Engine -- Parameter Validation Tests                              */
+/* ========================================================================== */
+
+/** No-op chunk callback used to satisfy the non-NULL callback requirement. */
+static el2go_ota_status_t s_noop_chunk_cb(const uint8_t *data, size_t len, size_t offset, void *ctx)
+{
+    (void)data;
+    (void)len;
+    (void)offset;
+    (void)ctx;
+    return EL2GO_OTA_SUCCESS;
+}
+
+/**
+ * @brief el2go_ota_check_for_updates(NULL, ...) must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM without crashing.
+ */
+static bool test_check_for_updates_null_ctx(void *params)
+{
+    static el2go_ota_check_update_resp_t out;
+
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_check_for_updates(NULL, NULL, 0U, &out));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_check_for_updates() with NULL out_resp must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM (NULL ctx is checked first, same result).
+ */
+static bool test_check_for_updates_null_out(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_check_for_updates(NULL, NULL, 0U, NULL));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_download_package(NULL, ...) must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM without crashing.
+ */
+static bool test_download_package_null_ctx(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_download_package(NULL, "upd-1", "pkg-1", 0U, s_noop_chunk_cb,
+                                                 NULL));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_download_package() with NULL update_id must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM (NULL ctx is checked first, same result).
+ */
+static bool test_download_package_null_update_id(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_download_package(NULL, NULL, "pkg-1", 0U, s_noop_chunk_cb, NULL));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_download_package() with NULL package_id must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM (NULL ctx is checked first, same result).
+ */
+static bool test_download_package_null_package_id(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_download_package(NULL, "upd-1", NULL, 0U, s_noop_chunk_cb, NULL));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_download_package() with NULL chunk_cb must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM (NULL ctx is checked first, same result).
+ */
+static bool test_download_package_null_callback(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_download_package(NULL, "upd-1", "pkg-1", 0U, NULL, NULL));
+
+    return true;
+}
+
+/* ========================================================================== */
 /* Test Registration                                                          */
 /* ========================================================================== */
 
@@ -1183,4 +1286,10 @@ void register_ota_lib_tests(void)
     TEST_REGISTER(test_encode_fetch_package_null_req);
     TEST_REGISTER(test_encode_fetch_package_null_ids);
     TEST_REGISTER(test_encode_report_status_null_req);
+    TEST_REGISTER(test_check_for_updates_null_ctx);
+    TEST_REGISTER(test_check_for_updates_null_out);
+    TEST_REGISTER(test_download_package_null_ctx);
+    TEST_REGISTER(test_download_package_null_update_id);
+    TEST_REGISTER(test_download_package_null_package_id);
+    TEST_REGISTER(test_download_package_null_callback);
 }
