@@ -169,7 +169,7 @@ def enable_debug_logging(state: bool) -> None:
 def get_spsdk_version() -> list:
     stdout, _ = run_command("spsdk --version", show_output = False)
 
-    version_code: list = (re.findall(r"\d\.\d\.\d.*", stdout[0])[0]).split('.')
+    version_code: list = (re.findall(r"\d+\.\d+\.\d+.*", stdout[0])[0]).split('.')
 
     for idx, code in enumerate(version_code):
         try:
@@ -261,6 +261,8 @@ def wrap_blobs(settings: DeviceSettings, raw_blobs: bytes, blobs_total_size: int
     with open(raw_blobs_path, "wb") as raw_blobs_file:
         raw_blobs_file.write(raw_blobs)
     
+    # Note: Depending on the SPSDK version, it may be necessary to add the
+    # --interface option to the nxpdebugmbox commands.
     run_command(f"nxpdebugmbox cmd -f {settings.soc} ispmode -m 1")
 
     if((settings.soc == SupportedDevices.rw610) or (settings.soc == SupportedDevices.rw612)):
