@@ -29,6 +29,14 @@ else()
         "Valid values: grpc. See src/transport/ to add a new backend.")
 endif()
 
+# Fallback implementation always compiled; Zephyr adds the strong NVS override.
+set(EL2GO_OTA_KVS_FALLBACK src/osal/el2go_ota_kvs.c)
+if(BUILD_ZEPHYR)
+    set(EL2GO_OTA_KVS_SOURCE src/osal/zephyr/el2go_ota_kvs_zephyr.c)
+else()
+    set(EL2GO_OTA_KVS_SOURCE "")
+endif()
+
 message(STATUS "EL2GO OTA credential provider:  ${EL2GO_OTA_CRED_PROVIDER}")
 message(STATUS "EL2GO OTA transport backend:    ${EL2GO_OTA_TRANSPORT_BACKEND}")
 
@@ -45,8 +53,11 @@ if(NOT BUILD_ZEPHYR)
         src/el2go_ota_tls.c
         src/el2go_ota_request_builder.c
         src/el2go_ota_response_handler.c
+        src/el2go_ota_status_reporting.c
         src/download/el2go_ota_download_engine.c
         ${EL2GO_OTA_TRANSPORT_SOURCE}
+        ${EL2GO_OTA_KVS_FALLBACK}
+        ${EL2GO_OTA_KVS_SOURCE}
         ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/ota/ota_delivery.pb.c
         ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_common.c
         ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_decode.c
@@ -110,8 +121,11 @@ else()
         src/el2go_ota_tls.c
         src/el2go_ota_request_builder.c
         src/el2go_ota_response_handler.c
+        src/el2go_ota_status_reporting.c
         src/download/el2go_ota_download_engine.c
         ${EL2GO_OTA_TRANSPORT_SOURCE}
+        ${EL2GO_OTA_KVS_FALLBACK}
+        ${EL2GO_OTA_KVS_SOURCE}
         ${EL2GO_OTA_CRED_SOURCE}
     )
 endif()
@@ -128,6 +142,7 @@ add_private_directories(el2go_ota_lib
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cred
     ${CMAKE_CURRENT_SOURCE_DIR}/src/transport
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/osal
     ${CMAKE_CURRENT_SOURCE_DIR}/src/download
     ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/ota
     ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb

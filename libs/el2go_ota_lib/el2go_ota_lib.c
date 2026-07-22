@@ -15,6 +15,7 @@
 #include "el2go_ota_tls.h"
 #include "transport/el2go_ota_transport.h"
 #include "download/el2go_ota_download_engine.h"
+#include "el2go_ota_status_reporting.h"
 #include "debug.h"
 
 struct el2go_ota_ctx {
@@ -323,4 +324,51 @@ __export el2go_ota_status_t el2go_ota_download_package(
 
     return el2go_ota_download_engine_fetch_package(&ctx->transport, update_id, package_id,
                                                    resume_offset, chunk_cb, cb_ctx);
+}
+
+__export el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const char *update_id,
+                                                    const char *package_id,
+                                                    el2go_ota_update_outcome_t outcome)
+{
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (!ctx) {
+        EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    if (!ctx->connected) {
+        EL2GO_DBG_PRINTF(ERROR, "not connected -- call el2go_ota_connect() first\n");
+        return EL2GO_OTA_ERROR_NETWORK;
+    }
+
+    if (!update_id || !package_id) {
+        EL2GO_DBG_PRINTF(ERROR, "update_id and package_id must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    if (outcome != EL2GO_OTA_OUTCOME_SUCCESS && outcome != EL2GO_OTA_OUTCOME_FAILURE &&
+        outcome != EL2GO_OTA_OUTCOME_ROLLBACK) {
+        EL2GO_DBG_PRINTF(ERROR, "invalid outcome value: %d\n", (int)outcome);
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    return el2go_ota_status_reporting_report(&ctx->transport, update_id, package_id, outcome);
+}
+
+__export el2go_ota_status_t el2go_ota_report_pending_status(el2go_ota_ctx_t *ctx)
+{
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (!ctx) {
+        EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    if (!ctx->connected) {
+        EL2GO_DBG_PRINTF(ERROR, "not connected -- call el2go_ota_connect() first\n");
+        return EL2GO_OTA_ERROR_NETWORK;
+    }
+
+    return el2go_ota_status_reporting_retry_pending(&ctx->transport);
 }

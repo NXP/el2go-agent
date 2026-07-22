@@ -17,8 +17,8 @@
  *
  * @param[in] params Unused test parameter, pass NULL.
  *
- * @retval true  Test passed.
- * @retval false Test failed.
+ * @return true  Test passed.
+ * @return false Test failed.
  */
 static bool test_fwual_get_caps_null(void *params)
 {
@@ -43,8 +43,8 @@ exit:
  *
  * @param[in] params Unused test parameter, pass NULL.
  *
- * @retval true  Test passed.
- * @retval false Test failed.
+ * @return true  Test passed.
+ * @return false Test failed.
  */
 static bool test_fwual_open_session_null(void *params)
 {
@@ -71,8 +71,8 @@ exit:
  *
  * @param[in] params Unused test parameter, pass NULL.
  *
- * @retval true  Test passed.
- * @retval false Test failed.
+ * @return true  Test passed.
+ * @return false Test failed.
  */
 static bool test_fwual_close_session_null(void *params)
 {
@@ -95,8 +95,8 @@ exit:
  *
  * @param[in] params Unused test parameter, pass NULL.
  *
- * @retval true  Test passed.
- * @retval false Test failed.
+ * @return true  Test passed.
+ * @return false Test failed.
  */
 static bool test_fwual_prepare_image_null_session(void *params)
 {

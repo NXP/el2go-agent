@@ -36,12 +36,10 @@
  * @param[out] key_id         Receives the key ID to pass to
  *                            net_crypto_associate_key().
  *
- * @retval EL2GO_STATUS_SUCCESS on success.
- * @retval EL2GO_STATUS_ALLOCATION_ERROR if a heap allocation fails.
- * @retval EL2GO_STATUS_NET_CRYPTO_INVALID_CERT if certificate
- *         retrieval from PSA ITS fails.
- * @retval EL2GO_STATUS_NET_CRYPTO_INVALID_KEY if the key cannot
- *         be accessed from the PSA keystore.
+ * @return EL2GO_STATUS_SUCCESS on success; EL2GO_STATUS_ALLOCATION_ERROR if a
+ *   heap allocation fails; EL2GO_STATUS_NET_CRYPTO_INVALID_CERT if certificate
+ *   retrieval from PSA ITS fails; EL2GO_STATUS_NET_CRYPTO_INVALID_KEY if the
+ *   key cannot be accessed from the PSA keystore
  */
 el2go_status_t el2go_ota_prepare_client_credentials(el2go_platform_ctx_t *platform_ctx,
                                                     const el2go_ota_mtls_config_t *config,

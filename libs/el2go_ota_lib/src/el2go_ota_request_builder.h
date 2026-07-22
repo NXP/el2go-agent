@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef EL2GO_OTA_REQUEST_BUILDER_H
-#define EL2GO_OTA_REQUEST_BUILDER_H
+#ifndef __EL2GO_OTA_REQUEST_BUILDER_H__
+#define __EL2GO_OTA_REQUEST_BUILDER_H__
 
 #include <stdint.h>
 #include <stddef.h>
@@ -112,4 +112,4 @@ el2go_ota_status_t el2go_ota_encode_fetch_package(const el2go_ota_fetch_pkg_req_
 el2go_ota_status_t el2go_ota_encode_report_status(const el2go_ota_report_status_req_t *req,
                                                   uint8_t *buf, size_t buf_len, size_t *out_len);
 
-#endif /* EL2GO_OTA_REQUEST_BUILDER_H */
+#endif /* __EL2GO_OTA_REQUEST_BUILDER_H__ */

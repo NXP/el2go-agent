@@ -24,10 +24,22 @@
 			reg = <0x00440000 DT_SIZE_M(4)>;
 		};
 
-		storage_partition: partition@840000 {
+		its_partition: partition@840000 {
+			compatible = "zephyr,mapped-partition";
+			label = "its";
+			reg = <0x00840000 DT_SIZE_K(128)>;
+		};
+
+		storage_partition: partition@860000 {
 			compatible = "zephyr,mapped-partition";
 			label = "storage";
-			reg = <0x00840000 DT_SIZE_K(256)>;
+			reg = <0x00860000 DT_SIZE_K(8)>;
+		};
+
+		ota_status_partition: partition@862000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ota_status";
+			reg = <0x00862000 DT_SIZE_K(8)>;
 		};
 	};
 };

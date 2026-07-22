@@ -38,11 +38,11 @@ typedef struct el2go_ota_tls_ctx el2go_ota_tls_ctx_t;
  * @param[in]  platform_ctx  Initialised platform context. Must not be NULL.
  * @param[in]  config        mTLS configuration.
  *
- * @retval EL2GO_STATUS_SUCCESS on success.
- * @retval EL2GO_STATUS_ALLOCATION_ERROR if context allocation fails.
- * @retval EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED if TLS configuration fails.
- * @retval EL2GO_STATUS_NET_CRYPTO_INVALID_CERT if certificate setup fails.
- * @retval EL2GO_STATUS_NET_CRYPTO_INVALID_KEY if key association fails.
+ * @return EL2GO_STATUS_SUCCESS on success.
+ * @return EL2GO_STATUS_ALLOCATION_ERROR if context allocation fails.
+ * @return EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED if TLS configuration fails.
+ * @return EL2GO_STATUS_NET_CRYPTO_INVALID_CERT if certificate setup fails.
+ * @return EL2GO_STATUS_NET_CRYPTO_INVALID_KEY if key association fails.
  */
 el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_ctx_t *platform_ctx,
                                   const el2go_ota_mtls_config_t *config);
@@ -55,10 +55,10 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
  *
  * @param[in] ctx  TLS context. Must not be NULL.
  *
- * @retval  EL2GO_STATUS_SUCCESS on success.
- * @retval  EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED if handshake fails.
- * @retval  EL2GO_STATUS_NET_CRYPTO_INVALID_CERT if server cert verify fails.
- * @retval  EL2GO_STATUS_NET_CRYPTO_INVALID_KEY if client auth fails.
+ * @return  EL2GO_STATUS_SUCCESS on success.
+ * @return  EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED if handshake fails.
+ * @return  EL2GO_STATUS_NET_CRYPTO_INVALID_CERT if server cert verify fails.
+ * @return  EL2GO_STATUS_NET_CRYPTO_INVALID_KEY if client auth fails.
  */
 el2go_status_t el2go_ota_tls_connect(el2go_ota_tls_ctx_t *ctx);
 
@@ -92,9 +92,9 @@ void el2go_ota_tls_deinit(el2go_ota_tls_ctx_t *ctx);
  * @param[in] buf  Data to write. Must not be NULL.
  * @param[in] len  Number of bytes to write. Must be > 0.
  *
- * @retval EL2GO_STATUS_SUCCESS on success.
- * @retval EL2GO_STATUS_INVALID_PARAMETER if ctx, buf is NULL or len is 0.
- * @retval EL2GO_STATUS_FAILURE if the TLS send fails.
+ * @return EL2GO_STATUS_SUCCESS on success.
+ * @return EL2GO_STATUS_INVALID_PARAMETER if ctx, buf is NULL or len is 0.
+ * @return EL2GO_STATUS_FAILURE if the TLS send fails.
  */
 el2go_status_t el2go_ota_tls_write(el2go_ota_tls_ctx_t *ctx, const uint8_t *buf, size_t len);
 
@@ -109,9 +109,9 @@ el2go_status_t el2go_ota_tls_write(el2go_ota_tls_ctx_t *ctx, const uint8_t *buf,
  * @param[in]  len      Exact number of bytes to read.
  * @param[out] out_len  Number of bytes actually read. Must not be NULL.
  *
- * @retval EL2GO_STATUS_SUCCESS on success (out_len == len).
- * @retval EL2GO_STATUS_INVALID_PARAMETER if ctx, buf, or out_len is NULL.
- * @retval EL2GO_STATUS_FAILURE if the connection is closed or read fails.
+ * @return EL2GO_STATUS_SUCCESS on success (out_len == len).
+ * @return EL2GO_STATUS_INVALID_PARAMETER if ctx, buf, or out_len is NULL.
+ * @return EL2GO_STATUS_FAILURE if the connection is closed or read fails.
  */
 el2go_status_t el2go_ota_tls_read(el2go_ota_tls_ctx_t *ctx, uint8_t *buf, size_t len,
                                   size_t *out_len);

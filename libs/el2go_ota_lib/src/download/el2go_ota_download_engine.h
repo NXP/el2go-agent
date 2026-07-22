@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef EL2GO_OTA_DOWNLOAD_ENGINE_H
-#define EL2GO_OTA_DOWNLOAD_ENGINE_H
+#ifndef __EL2GO_OTA_DOWNLOAD_ENGINE_H__
+#define __EL2GO_OTA_DOWNLOAD_ENGINE_H__
 
 #include <stdint.h>
 #include <stddef.h>
@@ -57,4 +57,4 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *ctx),
     void *cb_ctx);
 
-#endif /* EL2GO_OTA_DOWNLOAD_ENGINE_H */
+#endif /* __EL2GO_OTA_DOWNLOAD_ENGINE_H__ */

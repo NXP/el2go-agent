@@ -13,6 +13,7 @@
 #include "ota/el2go_ota_lib.h"
 #include "el2go_ota_request_builder.h"
 #include "el2go_ota_response_handler.h"
+#include "el2go_ota_status_reporting.h"
 #include "download/el2go_ota_download_engine.h"
 #include "ota_delivery.pb.h"
 #include "test_framework.h"
@@ -1239,6 +1240,102 @@ static bool test_download_package_null_callback(void *params)
 /* Test Registration                                                          */
 /* ========================================================================== */
 
+/* ========================================================================== */
+/* Status Reporting API -- Parameter Validation Tests                         */
+/* ========================================================================== */
+
+/**
+ * @brief el2go_ota_report_status(NULL, ...) must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ */
+static bool test_report_status_null_ctx(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_report_status(NULL, "upd-1", "pkg-1", EL2GO_OTA_OUTCOME_SUCCESS));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_report_status() with NULL update_id must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM (NULL ctx is checked first, same result).
+ */
+static bool test_report_status_null_update_id(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_report_status(NULL, NULL, "pkg-1", EL2GO_OTA_OUTCOME_SUCCESS));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_report_status() with NULL package_id must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM (NULL ctx is checked first, same result).
+ */
+static bool test_report_status_null_package_id(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_report_status(NULL, "upd-1", NULL, EL2GO_OTA_OUTCOME_SUCCESS));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_report_status() with an out-of-range outcome value (99) must
+ *        return EL2GO_OTA_ERROR_INVALID_PARAM (NULL ctx is checked first, same result).
+ */
+static bool test_report_status_invalid_outcome(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_report_status(NULL, "upd-1", "pkg-1",
+                                              (el2go_ota_update_outcome_t)99));
+
+    return true;
+}
+
+/**
+ * @brief el2go_ota_report_pending_status(NULL) must return
+ *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ */
+static bool test_report_pending_status_null_ctx(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_report_pending_status(NULL));
+
+    return true;
+}
+
+/**
+ * @brief sizeof(el2go_ota_pending_status_t) must be within the expected range
+ *        (outcome 1 byte + update_id 64 bytes + package_id 64 bytes + valid 1 byte
+ *        = 130 bytes minimum, allowing for up to 6 bytes of padding).
+ */
+static bool test_pending_status_struct_layout(void *params)
+{
+    size_t sz = sizeof(el2go_ota_pending_status_t);
+
+    (void)params;
+
+    TEST_PRINT_INFO("sizeof(el2go_ota_pending_status_t) = %u", (unsigned)sz);
+    TEST_ASSERT(sz >= 130U);
+    TEST_ASSERT(sz <= 136U);
+
+    return true;
+}
+
+/* ========================================================================== */
+/* Test Registration                                                          */
+/* ========================================================================== */
+
 /**
  * @brief Register all public EL2GO OTA Library tests with the test framework.
  */
@@ -1292,4 +1389,10 @@ void register_ota_lib_tests(void)
     TEST_REGISTER(test_download_package_null_update_id);
     TEST_REGISTER(test_download_package_null_package_id);
     TEST_REGISTER(test_download_package_null_callback);
+    TEST_REGISTER(test_report_status_null_ctx);
+    TEST_REGISTER(test_report_status_null_update_id);
+    TEST_REGISTER(test_report_status_null_package_id);
+    TEST_REGISTER(test_report_status_invalid_outcome);
+    TEST_REGISTER(test_report_pending_status_null_ctx);
+    TEST_REGISTER(test_pending_status_struct_layout);
 }

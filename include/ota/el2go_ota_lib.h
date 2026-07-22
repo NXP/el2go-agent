@@ -105,6 +105,15 @@ typedef struct {
 } el2go_ota_check_update_resp_t;
 
 /**
+ * @brief OTA update outcome status for reporting to the EL2GO backend.
+ */
+typedef enum {
+    EL2GO_OTA_OUTCOME_SUCCESS = 0,  /**< Firmware installed and confirmed by MCUBoot. */
+    EL2GO_OTA_OUTCOME_FAILURE = 1,  /**< Firmware installation failed. */
+    EL2GO_OTA_OUTCOME_ROLLBACK = 2, /**< MCUBoot rolled back to the previous image. */
+} el2go_ota_update_outcome_t;
+
+/**
  * @brief Allocate a context and prepare the mTLS security layer.
  *
  * Retrieves client credentials from the platform keystore using the object
@@ -121,16 +130,16 @@ typedef struct {
  *                     config->server_ca_chain must not be NULL and
  *                     config->server_ca_chain_size must be > 0.
  *
- * @retval EL2GO_OTA_SUCCESS on success.
- * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx or config is NULL, or any
+ * @return EL2GO_OTA_SUCCESS on success.
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if ctx or config is NULL, or any
  *         required config field is missing or invalid (including port == 0).
- * @retval EL2GO_OTA_ERROR_MEMORY if context allocation fails.
- * @retval EL2GO_OTA_ERROR_PLATFORM_INIT if platform (PSA crypto / secure
+ * @return EL2GO_OTA_ERROR_MEMORY if context allocation fails.
+ * @return EL2GO_OTA_ERROR_PLATFORM_INIT if platform (PSA crypto / secure
  *         storage) initialisation fails.
- * @retval EL2GO_OTA_ERROR_TLS_HANDSHAKE if TLS context configuration fails.
- * @retval EL2GO_OTA_ERROR_CERT_VERIFY if client credentials cannot be
+ * @return EL2GO_OTA_ERROR_TLS_HANDSHAKE if TLS context configuration fails.
+ * @return EL2GO_OTA_ERROR_CERT_VERIFY if client credentials cannot be
  *         loaded from the keystore.
- * @retval EL2GO_OTA_ERROR_AUTH if the client private key cannot be
+ * @return EL2GO_OTA_ERROR_AUTH if the client private key cannot be
  *         associated.
  */
 el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx, const el2go_ota_mtls_config_t *config);
@@ -151,12 +160,12 @@ el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx, const el2go_ota_mtls_co
  *
  * @param[in] ctx  Initialised context from el2go_ota_init(). Must not be NULL.
  *
- * @retval EL2GO_OTA_SUCCESS on success (including when already connected).
- * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx is NULL.
- * @retval EL2GO_OTA_ERROR_NETWORK if TCP connection fails.
- * @retval EL2GO_OTA_ERROR_TLS_HANDSHAKE if TLS handshake fails.
- * @retval EL2GO_OTA_ERROR_CERT_VERIFY if server certificate verification fails.
- * @retval EL2GO_OTA_ERROR_AUTH if client authentication fails.
+ * @return EL2GO_OTA_SUCCESS on success (including when already connected).
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if ctx is NULL.
+ * @return EL2GO_OTA_ERROR_NETWORK if TCP connection fails.
+ * @return EL2GO_OTA_ERROR_TLS_HANDSHAKE if TLS handshake fails.
+ * @return EL2GO_OTA_ERROR_CERT_VERIFY if server certificate verification fails.
+ * @return EL2GO_OTA_ERROR_AUTH if client authentication fails.
  */
 el2go_ota_status_t el2go_ota_connect(el2go_ota_ctx_t *ctx);
 
@@ -169,8 +178,8 @@ el2go_ota_status_t el2go_ota_connect(el2go_ota_ctx_t *ctx);
  *
  * @param[in] ctx  Context. Must not be NULL.
  *
- * @retval EL2GO_OTA_SUCCESS on success.
- * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx is NULL.
+ * @return EL2GO_OTA_SUCCESS on success.
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if ctx is NULL.
  */
 el2go_ota_status_t el2go_ota_disconnect(el2go_ota_ctx_t *ctx);
 
@@ -189,8 +198,8 @@ void el2go_ota_cleanup(el2go_ota_ctx_t **ctx);
  *
  * @param[in] ctx  Context. May be NULL (returns false).
  *
- * @retval true  if connected.
- * @retval false if not connected, not initialised, or ctx is NULL.
+ * @return true  if connected.
+ * @return false if not connected, not initialised, or ctx is NULL.
  */
 bool el2go_ota_is_connected(const el2go_ota_ctx_t *ctx);
 
@@ -199,7 +208,7 @@ bool el2go_ota_is_connected(const el2go_ota_ctx_t *ctx);
  *
  * @param[in] status  Status code to translate.
  *
- * @retval Null-terminated, human-readable description. Never returns NULL.
+ * @return Null-terminated, human-readable description. Never returns NULL.
  */
 const char *el2go_ota_get_error_string(el2go_ota_status_t status);
 
@@ -215,12 +224,12 @@ const char *el2go_ota_get_error_string(el2go_ota_status_t status);
  * @param[in]  attr_count  Number of entries in attrs[].
  * @param[out] out_resp    Receives the parsed response. Must not be NULL.
  *
- * @retval EL2GO_OTA_SUCCESS on success.
- * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx or out_resp is NULL.
- * @retval EL2GO_OTA_ERROR_NETWORK if not connected or a network error occurs.
- * @retval EL2GO_OTA_ERROR_ENCODE if request encoding fails.
- * @retval EL2GO_OTA_ERROR_DECODE if response parsing fails.
- * @retval EL2GO_OTA_ERROR_SERVER if the server returns a non-zero gRPC status.
+ * @return EL2GO_OTA_SUCCESS on success.
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if ctx or out_resp is NULL.
+ * @return EL2GO_OTA_ERROR_NETWORK if not connected or a network error occurs.
+ * @return EL2GO_OTA_ERROR_ENCODE if request encoding fails.
+ * @return EL2GO_OTA_ERROR_DECODE if response parsing fails.
+ * @return EL2GO_OTA_ERROR_SERVER if the server returns a non-zero gRPC status.
  */
 el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go_ota_attr_t *attrs,
                                                size_t attr_count,
@@ -242,19 +251,73 @@ el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go
  *                           aborts the download immediately.
  * @param[in] cb_ctx         Opaque user context passed to chunk_cb. May be NULL.
  *
- * @retval EL2GO_OTA_SUCCESS on success.
- * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx, update_id, package_id, or
+ * @return EL2GO_OTA_SUCCESS on success.
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if ctx, update_id, package_id, or
  *         chunk_cb is NULL.
- * @retval EL2GO_OTA_ERROR_NETWORK if not connected or a network error occurs
+ * @return EL2GO_OTA_ERROR_NETWORK if not connected or a network error occurs
  *         after all retries.
- * @retval EL2GO_OTA_ERROR_ENCODE if request encoding fails.
- * @retval EL2GO_OTA_ERROR_DECODE if response parsing fails.
- * @retval EL2GO_OTA_ERROR_SERVER if the server returns a non-zero gRPC status.
- * @retval Any non-zero status returned by chunk_cb.
+ * @return EL2GO_OTA_ERROR_ENCODE if request encoding fails.
+ * @return EL2GO_OTA_ERROR_DECODE if response parsing fails.
+ * @return EL2GO_OTA_ERROR_SERVER if the server returns a non-zero gRPC status.
+ * @return Any non-zero status returned by chunk_cb.
  */
 el2go_ota_status_t el2go_ota_download_package(
     el2go_ota_ctx_t *ctx, const char *update_id, const char *package_id, size_t resume_offset,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *cb_ctx),
     void *cb_ctx);
+
+/**
+ * @brief Report the OTA update outcome to the EL2GO backend.
+ *
+ * Persists the status to NVS before attempting delivery, so the report
+ * survives a reboot if the backend is unreachable. On successful delivery
+ * the NVS entry is cleared. On failure the entry is retained for retry
+ * via el2go_ota_report_pending_status().
+ *
+ * The library must be initialised and connected before calling this function.
+ *
+ * @param[in] ctx        Connected context. Must not be NULL.
+ * @param[in] update_id  Update identifier from the check_for_updates response.
+ *                       Must not be NULL.
+ * @param[in] package_id Package identifier from the check_for_updates response.
+ *                       Must not be NULL.
+ * @param[in] outcome    Outcome of the firmware update attempt.
+ *
+ * @return EL2GO_OTA_SUCCESS on success (backend acknowledged).
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if ctx, update_id, or package_id is
+ *         NULL, or outcome is not a valid el2go_ota_update_outcome_t value.
+ * @return EL2GO_OTA_ERROR_NETWORK if not connected or delivery failed
+ *         (NVS entry retained for retry).
+ * @return EL2GO_OTA_ERROR_SERVER on server error response.
+ * @return EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
+ */
+el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const char *update_id,
+                                           const char *package_id,
+                                           el2go_ota_update_outcome_t outcome);
+
+/**
+ * @brief Deliver any pending status report that was not yet acknowledged.
+ *
+ * Reads the NVS-persisted pending status (if any) and attempts delivery.
+ * If no pending status exists, returns EL2GO_OTA_SUCCESS immediately.
+ * On successful delivery the NVS entry is cleared.
+ * On failure the NVS entry is retained for the next retry.
+ *
+ * Call this function at OTA Agent startup to handle status reports that
+ * survived a reboot due to a previous network failure.
+ *
+ * The library must be initialised and connected before calling this function.
+ *
+ * @param[in] ctx  Connected context. Must not be NULL.
+ *
+ * @return EL2GO_OTA_SUCCESS if no pending status exists, or if the pending
+ *         status was successfully delivered.
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if ctx is NULL.
+ * @return EL2GO_OTA_ERROR_NETWORK if not connected or delivery failed
+ *         (entry retained).
+ * @return EL2GO_OTA_ERROR_SERVER on server error response.
+ * @return EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
+ */
+el2go_ota_status_t el2go_ota_report_pending_status(el2go_ota_ctx_t *ctx);
 
 #endif /* __EL2GO_OTA_LIB_H__ */

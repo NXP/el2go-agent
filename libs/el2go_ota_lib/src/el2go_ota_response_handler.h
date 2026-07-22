@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef EL2GO_OTA_RESPONSE_HANDLER_H
-#define EL2GO_OTA_RESPONSE_HANDLER_H
+#ifndef __EL2GO_OTA_RESPONSE_HANDLER_H__
+#define __EL2GO_OTA_RESPONSE_HANDLER_H__
 
 #include <stdint.h>
 #include <stddef.h>
@@ -81,4 +81,4 @@ el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t *buf, si
  */
 el2go_ota_status_t el2go_ota_parse_report_status_response(const uint8_t *buf, size_t buf_len);
 
-#endif /* EL2GO_OTA_RESPONSE_HANDLER_H */
+#endif /* __EL2GO_OTA_RESPONSE_HANDLER_H__ */

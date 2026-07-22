@@ -19,8 +19,8 @@
  *
  * @param[in] params Unused test parameter, pass NULL.
  *
- * @retval true  Test passed.
- * @retval false Test failed.
+ * @return true  Test passed.
+ * @return false Test failed.
  */
 static bool test_ota_agent_advanced_calls_fwual_init(void *params)
 {
@@ -45,8 +45,8 @@ static bool test_ota_agent_advanced_calls_fwual_init(void *params)
  *
  * @param[in] params Unused test parameter, pass NULL.
  *
- * @retval true  Test passed.
- * @retval false Test failed.
+ * @return true  Test passed.
+ * @return false Test failed.
  */
 static bool test_ota_agent_advanced_calls_ota_lib_init(void *params)
 {
