@@ -25,7 +25,7 @@ extern "C" {
 
 // Default subject name components 
 #ifndef CSR_SUBJECT_NAME
-#define CSR_SUBJECT_CN          "FRDM-MCXE31B"
+#define CSR_SUBJECT_CN          "EL2GO CSR EXAMPLE"
 #define CSR_SUBJECT_O           "NXP"
 #define CSR_SUBJECT_C           "NL"
 #define CSR_SUBJECT_NAME        "CN=" CSR_SUBJECT_CN ",O=" CSR_SUBJECT_O ",C=" CSR_SUBJECT_C
