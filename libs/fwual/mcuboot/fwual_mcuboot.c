@@ -26,6 +26,25 @@
 #define FWUAL_VERIFY_CHUNK_SIZE 4096U
 
 /*
+ * Primary-slot flash-area IDs indexed by MCUBoot image index.
+ * MCUBoot convention: image N uses slot(2N) as primary and slot(2N+1) as secondary.
+ * Used by fwual_list_installed() to read image headers from the running slots.
+ * Extend when CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT grows beyond 4.
+ */
+static const uint8_t s_primary_slot_ids[] = {
+    PARTITION_ID(slot0_partition),
+#if CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT >= 2
+    PARTITION_ID(slot2_partition),
+#endif
+#if CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT >= 3
+    PARTITION_ID(slot4_partition),
+#endif
+#if CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT >= 4
+    PARTITION_ID(slot6_partition),
+#endif
+};
+
+/*
  * Secondary-slot flash-area IDs indexed by MCUBoot image index.
  * MCUBoot convention: image N uses slot(2N) as primary and slot(2N+1) as secondary.
  * Extend the list when CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT grows beyond 4.
@@ -107,6 +126,47 @@ exit:
     return result;
 }
 
+/* NVS helpers for full device lifecycle state */
+
+static fwual_result_t fwual_nvs_read_lifecycle(fwual_state_t *out_state)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    ssize_t rc = 0;
+
+    rc = nvs_read(&s_nvs_fs, FWUAL_NVS_KEY_LIFECYCLE, out_state, sizeof(*out_state));
+    if (rc == -ENOENT) {
+        *out_state = FWUAL_STATE_IDLE;
+        result = FWUAL_OK;
+        goto exit;
+    }
+    if (rc < 0) {
+        EL2GO_DBG_PRINTF(ERROR, "nvs_read lifecycle failed: %d\n", (int)rc);
+        goto exit;
+    }
+
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+static fwual_result_t fwual_nvs_write_lifecycle(fwual_state_t state)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    ssize_t rc = 0;
+
+    rc = nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_LIFECYCLE, &state, sizeof(state));
+    if (rc < 0) {
+        EL2GO_DBG_PRINTF(ERROR, "nvs_write lifecycle failed: %d\n", (int)rc);
+        goto exit;
+    }
+
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
 /* MCUBoot slot helpers */
 
 static fwual_result_t fwual_slots_init(void)
@@ -117,7 +177,6 @@ static fwual_result_t fwual_slots_init(void)
     const struct flash_area *fa = NULL;
     uint8_t flash_area_id = 0U;
     int rc = 0;
-    uint8_t active_slot_id = 0U;
 
     if (s_slots_initialized) {
         result = FWUAL_OK;
@@ -294,6 +353,25 @@ __export fwual_result_t fwual_init(void)
     result = fwual_nvs_read_state(&s_fwual_state.update_state);
     if (result != FWUAL_OK) {
         goto exit;
+    }
+
+    result = fwual_nvs_read_lifecycle(&s_fwual_state.lifecycle_state);
+    if (result != FWUAL_OK) {
+        goto exit;
+    }
+
+    /* Post-reboot state detection: if the device rebooted while REBOOT_REQUIRED
+     * was persisted, the new firmware is now running -- transition to WAITING_CONFIRM
+     * so the OTA Agent can call fwual_confirm() to permanently accept it. */
+    if (s_fwual_state.lifecycle_state == FWUAL_STATE_REBOOT_REQUIRED) {
+        s_fwual_state.lifecycle_state = FWUAL_STATE_WAITING_CONFIRM;
+        result = fwual_nvs_write_lifecycle(s_fwual_state.lifecycle_state);
+        if (result != FWUAL_OK) {
+            EL2GO_DBG_PRINTF(ERROR, "fwual_init: failed to persist WAITING_CONFIRM: %d\n",
+                             (int)result);
+            goto exit;
+        }
+        EL2GO_DBG_PRINTF(INFO, "Post-reboot: state transitioned to WAITING_CONFIRM.\n");
     }
 
     /* Cache capabilities once — time-invariant for this boot. */
@@ -516,7 +594,8 @@ __export fwual_result_t fwual_prepare_image(fwual_session_t *session,
     new_slot->next_expected_offset = 0U;
     new_slot->slot_index = slot_index;
 
-    s_fwual_state.session.image_count++;
+    /* image_count was already incremented above in the new-slot path.
+     * For the reuse-cancelled-slot path image_count stays the same. */
     s_fwual_state.update_state = FWUAL_UPDATE_STATE_IMAGE_PREPARED;
 
     EL2GO_DBG_PRINTF(INFO, "Image prepared: id=%u slot=%u size=%llu\n", desc->image_id, slot_index,
@@ -1117,31 +1196,28 @@ __export fwual_result_t fwual_commit_session(fwual_session_t *session)
         }
     }
 
-    /* Request MCUBoot to swap to the secondary slot on next boot. */
-    image_count = s_fwual_state.session.image_count;
+    /* Mark each committed slot and advance lifecycle state.
+     * The actual MCUBoot upgrade request (boot_request_upgrade_multi) is
+     * deferred to fwual_activate(), which arms the bootloader for the swap. */
     for (i = 0U; i < image_count; i++) {
         fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
-        int rc = 0;
 
         if (!slot->prepared || slot->cancelled || !slot->verified) {
             continue;
         }
-
-        rc = boot_request_upgrade_multi((int)slot->image_id, BOOT_UPGRADE_TEST);
-        if (rc != 0) {
-            EL2GO_DBG_PRINTF(ERROR,
-                             "fwual_commit_session: boot_request_upgrade_multi failed for "
-                             "image_id=%u rc=%d\n",
-                             slot->image_id, rc);
-            result = FWUAL_ERR_PLATFORM;
-            goto exit;
-        }
-
-        EL2GO_DBG_PRINTF(INFO, "fwual_commit_session: upgrade requested for image_id=%u\n",
+        slot->committed = true;
+        EL2GO_DBG_PRINTF(INFO, "fwual_commit_session: image_id=%u marked committed\n",
                          slot->image_id);
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Session committed.\n");
+    s_fwual_state.lifecycle_state = FWUAL_STATE_COMMITTED;
+    result = fwual_nvs_write_lifecycle(s_fwual_state.lifecycle_state);
+    if (result != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_commit_session: NVS persist failed: %d\n", (int)result);
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Session committed. Call fwual_activate() to arm MCUBoot swap.\n");
     result = FWUAL_OK;
 
 exit:
@@ -1171,4 +1247,304 @@ __export bool fwual_is_image_staged(fwual_session_t *session, fwual_image_id_t i
     }
 
     return false;
+}
+
+/* Lifecycle management APIs */
+
+__export fwual_result_t fwual_activate(void)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    size_t i = 0U;
+    size_t image_count = 0U;
+
+    if (!s_fwual_state.initialized) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    if (s_fwual_state.lifecycle_state != FWUAL_STATE_COMMITTED) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_activate: wrong lifecycle state %d\n",
+                         (int)s_fwual_state.lifecycle_state);
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* Safety gate: re-verify all active image slots are finalized and verified. */
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
+        fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
+
+        if (!slot->prepared || slot->cancelled) {
+            continue;
+        }
+
+        if (!slot->verified || !slot->finalized) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "fwual_activate: blocked -- image_id=%u not verified/finalized\n",
+                             slot->image_id);
+            result = FWUAL_ERR_INVALID_STATE;
+            goto exit;
+        }
+    }
+
+    /* Confirm the pending swap so MCUBoot will execute it on next boot. */
+    for (i = 0U; i < image_count; i++) {
+        fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
+        int rc = 0;
+
+        if (!slot->prepared || slot->cancelled || !slot->verified) {
+            continue;
+        }
+
+        rc = boot_request_upgrade_multi((int)slot->image_id, BOOT_UPGRADE_PERMANENT);
+        if (rc != 0) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "fwual_activate: boot_request_upgrade_multi failed for "
+                             "image_id=%u rc=%d\n",
+                             slot->image_id, rc);
+            result = FWUAL_ERR_PLATFORM;
+            goto exit;
+        }
+    }
+
+    s_fwual_state.lifecycle_state = FWUAL_STATE_REBOOT_REQUIRED;
+    result = fwual_nvs_write_lifecycle(s_fwual_state.lifecycle_state);
+    if (result != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_activate: NVS persist failed: %d\n", (int)result);
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Activation complete. Reboot required.\n");
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+__export fwual_result_t fwual_check_storage(fwual_session_t *session, fwual_image_id_t image_id)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    size_t i = 0U;
+    size_t image_count = 0U;
+
+    if (session == NULL) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    if (session != &s_fwual_state.session || !s_fwual_state.session.active) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* Find the prepared slot for this image. */
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
+        fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
+
+        if (slot->image_id != image_id || !slot->prepared || slot->cancelled) {
+            continue;
+        }
+
+        /* fwual_prepare_image() already enforced size <= slot capacity.
+         * A non-zero slot size means storage was allocated successfully. */
+        if (s_slots[slot->slot_index].size == 0U) {
+            EL2GO_DBG_PRINTF(ERROR, "fwual_check_storage: image_id=%u slot size is 0\n", image_id);
+            result = FWUAL_ERR_NO_SPACE;
+        } else {
+            EL2GO_DBG_PRINTF(INFO,
+                             "fwual_check_storage: image_id=%u slot=%u size=%u bytes available\n",
+                             image_id, slot->slot_index, s_slots[slot->slot_index].size);
+            result = FWUAL_OK;
+        }
+        goto exit;
+    }
+
+    /* image_id was not found among prepared slots. */
+    EL2GO_DBG_PRINTF(ERROR, "fwual_check_storage: image_id=%u not prepared\n", image_id);
+    result = FWUAL_ERR_INVALID_STATE;
+
+exit:
+    return result;
+}
+
+__export fwual_result_t fwual_confirm(void)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    size_t i = 0U;
+    int rc = 0;
+
+    if (!s_fwual_state.initialized) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    if (s_fwual_state.lifecycle_state != FWUAL_STATE_WAITING_CONFIRM) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_confirm: wrong lifecycle state %d\n",
+                         (int)s_fwual_state.lifecycle_state);
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /*
+     * Confirm each updated image so MCUBoot marks them permanently active.
+     * For single-image builds (CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT == 1),
+     * boot_write_img_confirmed_multi(0) is equivalent to boot_write_img_confirmed().
+     * For multi-image builds each image must be confirmed independently.
+     */
+    for (i = 0U; i < s_slot_count; i++) {
+        rc = boot_write_img_confirmed_multi((int)i);
+        if (rc != 0) {
+            EL2GO_DBG_PRINTF(
+                ERROR, "fwual_confirm: boot_write_img_confirmed_multi(%zu) failed: %d\n", i, rc);
+            result = FWUAL_ERR_PLATFORM;
+            goto exit;
+        }
+    }
+
+    s_fwual_state.lifecycle_state = FWUAL_STATE_ACTIVE;
+    result = fwual_nvs_write_lifecycle(s_fwual_state.lifecycle_state);
+    if (result != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_confirm: NVS persist failed: %d\n", (int)result);
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Firmware confirmed as good. State: ACTIVE.\n");
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+__export fwual_result_t fwual_rollback(void)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    size_t i = 0U;
+    size_t image_count = 0U;
+    int rc = 0;
+
+    if (!s_fwual_state.initialized) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /*
+     * Erase the secondary (upgrade) slot for every image that was part of
+     * the current session.  The correct flash-area ID for each image is
+     * taken from s_slots[], which was populated at init time using
+     * s_secondary_slot_ids[].  This handles multi-image configurations
+     * correctly (image 0 -> slot1, image 1 -> slot3, image 2 -> slot5, ...).
+     *
+     * Post-reboot path: if there is no active session (image_count == 0),
+     * the device is in WAITING_CONFIRM and the caller just wants to abandon
+     * the new firmware.  In that case, MCUBoot will revert automatically on
+     * the next reboot without any flash erase -- nothing to do here.
+     */
+    image_count = s_fwual_state.session.image_count;
+    if (image_count == 0U) {
+        EL2GO_DBG_PRINTF(INFO, "fwual_rollback: no session images -- MCUBoot will "
+                               "revert automatically on next reboot.\n");
+    }
+
+    for (i = 0U; i < image_count; i++) {
+        fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
+
+        if (!slot->prepared || slot->cancelled) {
+            continue;
+        }
+
+        rc = boot_erase_img_bank(s_slots[slot->slot_index].flash_area_id);
+        if (rc != 0) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "fwual_rollback: boot_erase_img_bank failed for "
+                             "image_id=%u rc=%d\n",
+                             slot->image_id, rc);
+            result = FWUAL_ERR_PLATFORM;
+            goto exit;
+        }
+        EL2GO_DBG_PRINTF(INFO, "fwual_rollback: erased secondary slot for image_id=%u\n",
+                         slot->image_id);
+    }
+
+    s_fwual_state.lifecycle_state = FWUAL_STATE_ROLLED_BACK;
+    result = fwual_nvs_write_lifecycle(s_fwual_state.lifecycle_state);
+    if (result != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_rollback: NVS persist failed: %d\n", (int)result);
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(INFO,
+                     "Rollback initiated. Previous firmware will be restored on next boot.\n");
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+__export fwual_state_t fwual_get_state(void)
+{
+    if (!s_fwual_state.initialized) {
+        return FWUAL_STATE_FAILED;
+    }
+
+    return s_fwual_state.lifecycle_state;
+}
+
+__export fwual_result_t fwual_list_installed(fwual_installed_image_t *list, size_t *in_out_count)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    size_t capacity = 0U;
+    size_t written = 0U;
+    size_t num_slots = 0U;
+    size_t i = 0U;
+    struct mcuboot_img_header hdr = { 0 };
+    int rc = 0;
+
+    if (list == NULL || in_out_count == NULL) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    if (!s_fwual_state.initialized) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    capacity = *in_out_count;
+    num_slots = (s_slot_count < capacity) ? s_slot_count : capacity;
+
+    for (i = 0U; i < num_slots; i++) {
+        /*
+         * boot_read_bank_header() requires a flash-area ID, not a sequential
+         * image index.  Use the primary-slot ID table so image 0 reads slot0,
+         * image 1 reads slot2, etc., regardless of the on-flash layout.
+         */
+        if (i >= ARRAY_SIZE(s_primary_slot_ids)) {
+            EL2GO_DBG_PRINTF(ERROR, "fwual_list_installed: no primary slot mapping for image %zu\n",
+                             i);
+            break;
+        }
+        rc = boot_read_bank_header(s_primary_slot_ids[i], &hdr, sizeof(hdr));
+        if (rc != 0) {
+            EL2GO_DBG_PRINTF(ERROR, "fwual_list_installed: boot_read_bank_header slot=%zu rc=%d\n",
+                             i, rc);
+            /* Skip this slot; do not fail the whole call. */
+            continue;
+        }
+
+        list[written].image_id = (fwual_image_id_t)i;
+        /* Encode version as (major << 24 | minor << 16 | revision) for reporting. */
+        list[written].version = ((uint32_t)hdr.h.v1.sem_ver.major << 24U) |
+                                ((uint32_t)hdr.h.v1.sem_ver.minor << 16U) |
+                                ((uint32_t)hdr.h.v1.sem_ver.revision);
+        list[written].confirmed = false; /* confirmed status not available from header alone */
+        written++;
+    }
+
+    *in_out_count = written;
+    EL2GO_DBG_PRINTF(INFO, "fwual_list_installed: %zu image(s) found\n", written);
+    result = FWUAL_OK;
+
+exit:
+    return result;
 }

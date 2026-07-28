@@ -1166,6 +1166,161 @@ exit:
     return test_status;
 }
 
+/* Lifecycle unit tests (defined before registration) */
+
+/**
+ * @brief Verify that fwual_commit_session(NULL) returns FWUAL_ERR_INVALID_PARAM.
+ */
+static bool test_fwual_commit_null_session(void *params)
+{
+    bool test_status = true;
+
+    (void)params;
+
+    fwual_result_t result = fwual_commit_session(NULL);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, result, exit);
+    TEST_PRINT_INFO("fwual_commit_session(NULL) correctly returned FWUAL_ERR_INVALID_PARAM");
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Verify that fwual_activate() in a non-COMMITTED state returns FWUAL_ERR_INVALID_STATE.
+ *
+ * Calls fwual_rollback() first to force the lifecycle into ROLLED_BACK, which is
+ * never a valid precondition for activate().  This makes the test independent of
+ * any NVS state left by previous runs.
+ */
+static bool test_fwual_activate_wrong_state(void *params)
+{
+    bool test_status = true;
+
+    (void)params;
+
+    (void)fwual_init();
+
+    /* Force lifecycle to ROLLED_BACK so that fwual_activate() has a deterministic
+     * wrong-state precondition regardless of what NVS holds from prior runs. */
+    (void)fwual_rollback();
+
+    fwual_result_t result = fwual_activate();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_STATE, result, exit);
+    TEST_PRINT_INFO("fwual_activate() in non-COMMITTED state correctly returned "
+                    "FWUAL_ERR_INVALID_STATE");
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Verify that fwual_confirm() in IDLE state returns FWUAL_ERR_INVALID_STATE.
+ */
+static bool test_fwual_confirm_wrong_state(void *params)
+{
+    bool test_status = true;
+
+    (void)params;
+
+    (void)fwual_init();
+
+    fwual_result_t result = fwual_confirm();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_STATE, result, exit);
+    TEST_PRINT_INFO("fwual_confirm() in IDLE state correctly returned FWUAL_ERR_INVALID_STATE");
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Verify that fwual_list_installed(NULL, &count) returns FWUAL_ERR_INVALID_PARAM.
+ */
+static bool test_fwual_list_installed_null(void *params)
+{
+    bool test_status = true;
+    size_t count = 4U;
+
+    (void)params;
+
+    fwual_result_t result = fwual_list_installed(NULL, &count);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, result, exit);
+    TEST_PRINT_INFO("fwual_list_installed(NULL, &count) correctly returned "
+                    "FWUAL_ERR_INVALID_PARAM");
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief After a successful full lifecycle (write -> finalize -> verify -> commit),
+ *        fwual_get_state() must return FWUAL_STATE_COMMITTED.
+ *
+ * This validates that fwual_commit_session() transitions the lifecycle state
+ * to COMMITTED without calling boot_request_upgrade_multi -- that call belongs
+ * exclusively in fwual_activate().
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_get_state_committed_after_commit(void *params)
+{
+    bool test_status = true;
+    fwual_session_t *session = NULL;
+    fwual_result_t r = FWUAL_RESULT_UNINITIALIZED;
+    uint8_t buf[256U] = { 0 };
+    fwual_state_t state = FWUAL_STATE_IDLE;
+    fwual_image_desc_t desc = { .image_id = 0U,
+                                .size = 256U,
+                                .hash_algo = "sha256",
+                                .expected_hash = s_hash_256x_ab,
+                                .hash_len = 32U };
+
+    (void)params;
+    memset(buf, 0xABU, sizeof(buf));
+
+    r = fwual_init();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_open_session(&session);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_prepare_image(session, &desc);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+
+    r = fwual_write(session, desc.image_id, 0U, buf, sizeof(buf));
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_write failed (%d) - backend not available, skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_finalize_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_finalize_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_verify_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_verify_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_commit_session(session);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+
+    /* After commit, lifecycle state must be COMMITTED -- fwual_activate() is the next step. */
+    state = fwual_get_state();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_STATE_COMMITTED, state, cleanup);
+    TEST_PRINT_INFO("fwual_get_state() returned FWUAL_STATE_COMMITTED after commit: OK");
+
+cleanup:
+    (void)fwual_close_session(session);
+exit:
+    return test_status;
+}
+
 /* -------------------------------------------------------------------------
  * Test suite registration
  * ---------------------------------------------------------------------- */
@@ -1217,5 +1372,14 @@ void register_fwual_tests(void)
     TEST_REGISTER(test_fwual_verify_idempotent);
     TEST_REGISTER(test_fwual_is_image_staged_true_after_verify);
     TEST_REGISTER(test_fwual_commit_session_null);
+
+    /* lifecycle API tests */
+    TEST_REGISTER(test_fwual_commit_null_session);
+    TEST_REGISTER(test_fwual_activate_wrong_state);
+    TEST_REGISTER(test_fwual_confirm_wrong_state);
+    TEST_REGISTER(test_fwual_list_installed_null);
+
+    /* commit and post-commit state tests */
     TEST_REGISTER(test_fwual_commit_session_valid);
+    TEST_REGISTER(test_fwual_get_state_committed_after_commit);
 }

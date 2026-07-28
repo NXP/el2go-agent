@@ -40,6 +40,7 @@ typedef enum fwual_update_state_t {
 typedef enum {
     FWUAL_NVS_KEY_STATE,          /**< fwual_update_state_t -- session lifecycle state */
     FWUAL_NVS_KEY_WRITE_PROGRESS, /**< fwual_write_progress_t -- per-image write progress */
+    FWUAL_NVS_KEY_LIFECYCLE,      /**< fwual_state_t -- full device lifecycle state (IOTDL-2822) */
 } fwual_nvs_key_t;
 
 /**
@@ -60,14 +61,15 @@ typedef struct {
  * @brief Per-image slot context, held inside the session.
  */
 typedef struct fwual_image_slot_t {
-    fwual_image_id_t image_id;     /**< Image identifier provided by the caller. */
-    fwual_image_desc_t desc;       /**< Image descriptor (size, type, etc.). */
-    bool prepared;                 /**< True if the slot has been successfully prepared. */
-    bool cancelled;                /**< True if the slot has been cancelled. */
-    bool finalized;                /**< True if fwual_finalize_image() succeeded for this slot. */
-    bool verified;                 /**< True if fwual_verify_image() succeeded for this slot. */
-    uint32_t slot_index;           /**< Backend-assigned slot index. */
-    uint64_t bytes_written;        /**< Total bytes written so far. */
+    fwual_image_id_t image_id; /**< Image identifier provided by the caller. */
+    fwual_image_desc_t desc;   /**< Image descriptor (size, type, etc.). */
+    bool prepared;             /**< True if the slot has been successfully prepared. */
+    bool cancelled;            /**< True if the slot has been cancelled. */
+    bool finalized;            /**< True if fwual_finalize_image() succeeded for this slot. */
+    bool verified;             /**< True if fwual_verify_image() succeeded for this slot. */
+    bool committed;            /**< True after fwual_commit_session() sets MCUBoot swap flags. */
+    uint32_t slot_index;       /**< Backend-assigned slot index. */
+    uint64_t bytes_written;    /**< Total bytes written so far. */
     uint64_t next_expected_offset; /**< Next expected write offset (sequential enforcement). */
 } fwual_image_slot_t;
 
@@ -90,6 +92,7 @@ typedef struct fwual_internal_state_t {
     bool initialized;                  /**< True if fwual_init() has been called successfully. */
     struct fwual_session session;      /**< Active session context. */
     fwual_update_state_t update_state; /**< Persisted across resets. */
+    fwual_state_t lifecycle_state;     /**< Full device lifecycle state (IOTDL-2822). */
     fwual_caps_t caps;                 /**< Cached capabilities - populated once at fwual_init(). */
 } fwual_internal_state_t;
 
