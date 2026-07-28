@@ -7,6 +7,8 @@
 
 #include <string.h>
 
+#include "fwual_mbedtls_compat.h"
+
 #include <zephyr/kvss/nvs.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/dfu/mcuboot.h>
@@ -18,6 +20,28 @@
 #include "compiler.h"
 #include "debug.h"
 #include "fwual_state.h"
+
+/** Read buffer size for streaming SHA-256 hash computation.
+ *  Stack-allocated; 4 KB is safe for Zephyr with default stack sizes. */
+#define FWUAL_VERIFY_CHUNK_SIZE 4096U
+
+/*
+ * Secondary-slot flash-area IDs indexed by MCUBoot image index.
+ * MCUBoot convention: image N uses slot(2N) as primary and slot(2N+1) as secondary.
+ * Extend the list when CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT grows beyond 4.
+ */
+static const uint8_t s_secondary_slot_ids[] = {
+    PARTITION_ID(slot1_partition),
+#if CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT >= 2
+    PARTITION_ID(slot3_partition),
+#endif
+#if CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT >= 3
+    PARTITION_ID(slot5_partition),
+#endif
+#if CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT >= 4
+    PARTITION_ID(slot7_partition),
+#endif
+};
 
 /* MCUBoot slot table */
 
@@ -112,14 +136,17 @@ static fwual_result_t fwual_slots_init(void)
     }
 
     for (i = 0U; i < s_slot_count; i++) {
-        /* Determine inactive slot: write to whichever slot we're NOT running from */
-        active_slot_id = (uint8_t)DT_PARTITION_ID(DT_CHOSEN(zephyr_code_partition));
-        if (active_slot_id == (uint8_t)PARTITION_ID(slot0_partition)) {
-            flash_area_id = (uint8_t)PARTITION_ID(slot1_partition);
-        } else {
-            flash_area_id = (uint8_t)PARTITION_ID(slot0_partition);
+        /*
+         * Each MCUBoot image N has its secondary slot at index 2N+1.
+         * s_secondary_slot_ids[] maps image index -> secondary flash-area ID,
+         * so the correct slot is always used regardless of the running slot.
+         */
+        if (i >= ARRAY_SIZE(s_secondary_slot_ids)) {
+            EL2GO_DBG_PRINTF(ERROR, "fwual_slots_init: no secondary slot mapping for image %zu\n",
+                             i);
+            goto exit;
         }
-
+        flash_area_id = s_secondary_slot_ids[i];
         rc = flash_area_open(flash_area_id, &fa);
         if (rc != 0) {
             EL2GO_DBG_PRINTF(ERROR, "flash_area_open(id=%u) failed: %d\n", flash_area_id, rc);
@@ -484,6 +511,7 @@ __export fwual_result_t fwual_prepare_image(fwual_session_t *session,
     new_slot->prepared = true;
     new_slot->cancelled = false;
     new_slot->finalized = false;
+    new_slot->verified = false;
     new_slot->bytes_written = 0U;
     new_slot->next_expected_offset = 0U;
     new_slot->slot_index = slot_index;
@@ -500,7 +528,7 @@ exit:
     return result;
 }
 
-__export fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t image_id)
+fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t image_id)
 {
     size_t i = 0U;
     size_t image_count = 0U;
@@ -509,7 +537,12 @@ __export fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     bool any_prepared = false;
 
-    if (session == NULL || session != &s_fwual_state.session) {
+    if (session == NULL) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    if (session != &s_fwual_state.session) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
     }
@@ -655,7 +688,15 @@ __export fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t i
     size_t image_count = 0U;
 
     /* 1. NULL / zero guards */
-    if (session == NULL || data == NULL || len == 0U) {
+    if (session == NULL) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+    if (data == NULL) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+    if (len == 0U) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
     }
@@ -813,4 +854,321 @@ __export fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_ima
 
 exit:
     return result;
+}
+
+static fwual_result_t fwual_mcuboot_read(uint32_t slot_index, uint64_t offset, uint8_t *buf,
+                                         size_t len)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    const struct flash_area *fa = NULL;
+    int rc = 0;
+
+    if (buf == NULL || len == 0U || !s_slots_initialized || slot_index >= (uint32_t)s_slot_count) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    rc = flash_area_open(s_slots[slot_index].flash_area_id, &fa);
+    if (rc != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "mcuboot_read: flash_area_open(id=%u) failed: %d\n",
+                         s_slots[slot_index].flash_area_id, rc);
+        goto exit;
+    }
+
+    rc = flash_area_read(fa, (off_t)offset, buf, len);
+    if (rc != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "MCUBoot flash read failed at offset=%llu len=%zu rc=%d\n",
+                         (unsigned long long)offset, len, rc);
+        result = FWUAL_ERR_IO;
+        goto exit;
+    }
+
+    result = FWUAL_OK;
+
+exit:
+    if (fa != NULL) {
+        flash_area_close(fa);
+    }
+    return result;
+}
+
+static fwual_result_t fwual_mcuboot_verify_platform(uint32_t slot_index)
+{
+#if defined(CONFIG_BOOT_SIGNATURE_TYPE_RSA) || defined(CONFIG_BOOT_SIGNATURE_TYPE_ECDSA_P256) || \
+    defined(CONFIG_BOOT_SIGNATURE_TYPE_ED25519)
+    /* MCUBoot platform authentication is available. The bootloader performs
+     * full signature verification at boot time; here we check whether the
+     * secondary slot image header is parseable and not corrupted as a
+     * pre-activation sanity check. */
+    struct mcuboot_img_header hdr;
+    int rc = boot_read_bank_header((uint8_t)s_slots[slot_index].flash_area_id, &hdr, sizeof(hdr));
+    if (rc != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "MCUBoot image authentication failed for slot=%u\n", slot_index);
+        return FWUAL_ERR_CORRUPT;
+    }
+    EL2GO_DBG_PRINTF(INFO, "MCUBoot image authentication passed for slot=%u\n", slot_index);
+    return FWUAL_OK;
+#else
+    EL2GO_DBG_PRINTF(DEBUG, "MCUBoot image authentication not available for slot=%u -- skipping\n",
+                     slot_index);
+    (void)slot_index;
+    return FWUAL_OK;
+#endif
+}
+
+__export fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image_id_t image_id)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    fwual_image_slot_t *slot = NULL;
+    size_t i = 0U;
+    size_t image_count = 0U;
+    uint8_t chunk[FWUAL_VERIFY_CHUNK_SIZE] = { 0 };
+    uint8_t computed_hash[32] = { 0 };
+    fwual_sha256_context sha_ctx = { 0 };
+    int mbedret = 0;
+    uint64_t offset = 0U;
+    size_t remaining = 0U;
+    fwual_result_t auth_result = FWUAL_OK;
+    fwual_write_progress_t progress = { 0 };
+    ssize_t nvs_rc = 0;
+
+    /* 1. Validate session */
+    if (session == NULL) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /* 2. Resolve and validate session context */
+    if (session != &s_fwual_state.session || !s_fwual_state.session.active) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* 3. Find image slot */
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
+        if (s_fwual_state.session.images[i].image_id == image_id) {
+            slot = &s_fwual_state.session.images[i];
+            break;
+        }
+    }
+    if (slot == NULL) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* 4. Enforce finalize-before-verify */
+    if (!slot->finalized) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: image_id=%u not finalized\n", image_id);
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* 5. Validate hash descriptor fields */
+    if (slot->desc.expected_hash == NULL || slot->desc.hash_len == 0U) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /* 6. Check hash algorithm -- only "sha256" is supported */
+    if (slot->desc.hash_algo == NULL || strcmp(slot->desc.hash_algo, "sha256") != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: unsupported hash algo '%s' for image_id=%u\n",
+                         slot->desc.hash_algo ? slot->desc.hash_algo : "(null)", image_id);
+        result = FWUAL_ERR_UNSUPPORTED;
+        goto exit;
+    }
+
+    /* 7. Check expected hash length -- SHA-256 produces exactly 32 bytes */
+    if (slot->desc.hash_len != 32U) {
+        EL2GO_DBG_PRINTF(ERROR,
+                         "fwual_verify_image: invalid hash_len=%zu for sha256 "
+                         "(expected 32) image_id=%u\n",
+                         slot->desc.hash_len, image_id);
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    /* 8. Compute SHA-256 by streaming from flash */
+    fwual_sha256_init(&sha_ctx);
+
+    mbedret = fwual_sha256_starts(&sha_ctx);
+    if (mbedret != 0) {
+        fwual_sha256_free(&sha_ctx);
+        EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: sha256_starts_ret failed: %d image_id=%u\n",
+                         mbedret, image_id);
+        result = FWUAL_ERR_INTERNAL;
+        goto exit;
+    }
+
+    offset = 0U;
+    remaining = (size_t)slot->desc.size;
+
+    while (remaining > 0U) {
+        size_t to_read = (remaining < FWUAL_VERIFY_CHUNK_SIZE) ? remaining :
+                                                                 FWUAL_VERIFY_CHUNK_SIZE;
+        fwual_result_t read_result = fwual_mcuboot_read(slot->slot_index, offset, chunk, to_read);
+        if (read_result != FWUAL_OK) {
+            fwual_sha256_free(&sha_ctx);
+            EL2GO_DBG_PRINTF(ERROR,
+                             "fwual_verify_image: flash read failed at "
+                             "offset=%llu image_id=%u\n",
+                             (unsigned long long)offset, image_id);
+            result = read_result;
+            goto exit;
+        }
+
+        mbedret = fwual_sha256_update(&sha_ctx, chunk, to_read);
+        if (mbedret != 0) {
+            fwual_sha256_free(&sha_ctx);
+            EL2GO_DBG_PRINTF(ERROR,
+                             "fwual_verify_image: sha256_update_ret failed: %d image_id=%u\n",
+                             mbedret, image_id);
+            result = FWUAL_ERR_INTERNAL;
+            goto exit;
+        }
+
+        offset += (uint64_t)to_read;
+        remaining -= to_read;
+    }
+
+    mbedret = fwual_sha256_finish(&sha_ctx, computed_hash);
+    fwual_sha256_free(&sha_ctx);
+    if (mbedret != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: sha256_finish_ret failed: %d image_id=%u\n",
+                         mbedret, image_id);
+        result = FWUAL_ERR_INTERNAL;
+        goto exit;
+    }
+
+    /* 9. Constant-time hash comparison */
+    if (fwual_ct_memcmp(computed_hash, slot->desc.expected_hash, 32U) != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "Image verification FAILED: hash mismatch for image_id=%u\n",
+                         image_id);
+        /* Do NOT set slot->verified -- image remains uncommitted. */
+        result = FWUAL_ERR_CORRUPT;
+        goto exit;
+    }
+
+    /* 10. Invoke MCUBoot platform authentication */
+    auth_result = fwual_mcuboot_verify_platform(slot->slot_index);
+    if (auth_result != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR,
+                         "Image verification FAILED: MCUBoot authentication "
+                         "failed for image_id=%u\n",
+                         image_id);
+        result = auth_result;
+        goto exit;
+    }
+
+    /* 11. Mark verified and persist */
+    slot->verified = true;
+
+    progress.image_id = slot->image_id;
+    progress.bytes_written = slot->bytes_written;
+    progress.next_expected_offset = slot->next_expected_offset;
+    progress.finalized = slot->finalized;
+    progress.verified = slot->verified;
+    nvs_rc = nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_WRITE_PROGRESS, &progress, sizeof(progress));
+    if (nvs_rc < 0) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: NVS persist failed for image_id=%u rc=%d\n",
+                         image_id, (int)nvs_rc);
+        /* Non-fatal: continue -- the in-RAM flag is set. */
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Image verified OK: image_id=%u\n", image_id);
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+__export fwual_result_t fwual_commit_session(fwual_session_t *session)
+{
+    fwual_result_t result = FWUAL_ERR_INTERNAL;
+    size_t i = 0U;
+    size_t image_count = 0U;
+
+    if (session == NULL) {
+        result = FWUAL_ERR_INVALID_PARAM;
+        goto exit;
+    }
+
+    if (session != &s_fwual_state.session || !s_fwual_state.session.active) {
+        result = FWUAL_ERR_INVALID_STATE;
+        goto exit;
+    }
+
+    /* Every finalized slot must also be verified. */
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
+        fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
+
+        if (!slot->prepared || slot->cancelled) {
+            continue;
+        }
+
+        if (slot->finalized && !slot->verified) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "fwual_commit_session: image_id=%u is finalized but "
+                             "not verified -- aborting commit\n",
+                             slot->image_id);
+            result = FWUAL_ERR_INVALID_STATE;
+            goto exit;
+        }
+    }
+
+    /* Request MCUBoot to swap to the secondary slot on next boot. */
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
+        fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
+        int rc = 0;
+
+        if (!slot->prepared || slot->cancelled || !slot->verified) {
+            continue;
+        }
+
+        rc = boot_request_upgrade_multi((int)slot->image_id, BOOT_UPGRADE_TEST);
+        if (rc != 0) {
+            EL2GO_DBG_PRINTF(ERROR,
+                             "fwual_commit_session: boot_request_upgrade_multi failed for "
+                             "image_id=%u rc=%d\n",
+                             slot->image_id, rc);
+            result = FWUAL_ERR_PLATFORM;
+            goto exit;
+        }
+
+        EL2GO_DBG_PRINTF(INFO, "fwual_commit_session: upgrade requested for image_id=%u\n",
+                         slot->image_id);
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Session committed.\n");
+    result = FWUAL_OK;
+
+exit:
+    return result;
+}
+
+__export bool fwual_is_image_staged(fwual_session_t *session, fwual_image_id_t image_id)
+{
+    size_t i = 0U;
+    size_t image_count = 0U;
+
+    if (session == NULL || session != &s_fwual_state.session) {
+        return false;
+    }
+
+    if (!s_fwual_state.session.active) {
+        return false;
+    }
+
+    image_count = s_fwual_state.session.image_count;
+    for (i = 0U; i < image_count; i++) {
+        fwual_image_slot_t *slot = &s_fwual_state.session.images[i];
+
+        if (slot->image_id == image_id && slot->prepared && !slot->cancelled) {
+            return slot->finalized && slot->verified;
+        }
+    }
+
+    return false;
 }

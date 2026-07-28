@@ -20,7 +20,7 @@
 #endif
 
 /**
- * @brief Persisted update state — persisted on every transition.
+ * @brief Persisted update state -- persisted on every transition.
  *
  * This is the FWUAL-internal session lifecycle state, distinct from the
  * public fwual_state_t which covers the full device update lifecycle.
@@ -35,17 +35,17 @@ typedef enum fwual_update_state_t {
  * @brief NVS key identifiers for FWUAL persistent storage.
  *
  * These values are part of the on-flash NVS layout and MUST NOT be changed
- * once deployed — doing so would corrupt persisted state on existing devices.
+ * once deployed -- doing so would corrupt persisted state on existing devices.
  */
 typedef enum {
-    FWUAL_NVS_KEY_STATE,          /**< fwual_update_state_t — session lifecycle state */
-    FWUAL_NVS_KEY_WRITE_PROGRESS, /**< fwual_write_progress_t — per-image write progress */
+    FWUAL_NVS_KEY_STATE,          /**< fwual_update_state_t -- session lifecycle state */
+    FWUAL_NVS_KEY_WRITE_PROGRESS, /**< fwual_write_progress_t -- per-image write progress */
 } fwual_nvs_key_t;
 
 /**
  * @brief Minimal write-progress record persisted to NVS after each chunk.
  *
- * Intentionally small — avoids writing the full session struct (which
+ * Intentionally small -- avoids writing the full session struct (which
  * contains image descriptors with pointers) on every fwual_write() call.
  */
 typedef struct {
@@ -53,6 +53,7 @@ typedef struct {
     uint64_t bytes_written;        /**< Total bytes written so far. */
     uint64_t next_expected_offset; /**< Next expected write offset. */
     bool finalized;                /**< True after fwual_finalize_image(). */
+    bool verified;                 /**< True after fwual_verify_image(). */
 } fwual_write_progress_t;
 
 /**
@@ -64,13 +65,14 @@ typedef struct fwual_image_slot_t {
     bool prepared;                 /**< True if the slot has been successfully prepared. */
     bool cancelled;                /**< True if the slot has been cancelled. */
     bool finalized;                /**< True if fwual_finalize_image() succeeded for this slot. */
+    bool verified;                 /**< True if fwual_verify_image() succeeded for this slot. */
     uint32_t slot_index;           /**< Backend-assigned slot index. */
     uint64_t bytes_written;        /**< Total bytes written so far. */
     uint64_t next_expected_offset; /**< Next expected write offset (sequential enforcement). */
 } fwual_image_slot_t;
 
 /**
- * @brief Session context — valid only while session.active == true.
+ * @brief Session context -- valid only while session.active == true.
  *
  * The struct tag is 'fwual_session' to satisfy the forward declaration
  * in fwual_types.h: typedef struct fwual_session fwual_session_t;
@@ -82,7 +84,7 @@ struct fwual_session {
 };
 
 /**
- * @brief Top-level internal state — single static instance.
+ * @brief Top-level internal state -- single static instance.
  */
 typedef struct fwual_internal_state_t {
     bool initialized;                  /**< True if fwual_init() has been called successfully. */

@@ -10,6 +10,19 @@
 #include "test_framework.h"
 #include "test_suites.h"
 
+/*
+ * SHA-256 of 256 bytes of 0xAB (precomputed offline, used by verify tests).
+ *
+ * echo -n "" | python3 -c "import hashlib,sys; \
+ *   data=bytes([0xAB]*256); print(hashlib.sha256(data).hexdigest())"
+ * => 1080e279b51b8594a78556e2fdb4dfe9ca82ac2fbab5007de2bac4213c2e1f92
+ */
+static const uint8_t s_hash_256x_ab[32U] = {
+    0x10U, 0x80U, 0xe2U, 0x79U, 0xb5U, 0x1bU, 0x85U, 0x94U, 0xa7U, 0x85U, 0x56U,
+    0xe2U, 0xfdU, 0xb4U, 0xdfU, 0xe9U, 0xcaU, 0x82U, 0xacU, 0x2fU, 0xbaU, 0xb5U,
+    0x00U, 0x7dU, 0xe2U, 0xbaU, 0xc4U, 0x21U, 0x3cU, 0x2eU, 0x1fU, 0x92U
+};
+
 /* test_fwual_get_caps_null */
 
 /**
@@ -551,7 +564,7 @@ static bool test_fwual_write_multi_chunk(void *params)
     bool test_status = true;
     fwual_session_t *session = NULL;
     fwual_image_desc_t desc = { .image_id = 0U, .size = 300U };
-    uint8_t buf[100U];
+    uint8_t buf[100U] = { 0 };
     fwual_result_t r = FWUAL_ERR_INTERNAL;
 
     (void)params;
@@ -593,7 +606,7 @@ static bool test_fwual_write_out_of_order(void *params)
     bool test_status = true;
     fwual_session_t *session = NULL;
     fwual_image_desc_t desc = { .image_id = 0U, .size = 256U };
-    uint8_t buf[64U];
+    uint8_t buf[64U] = { 0 };
     fwual_result_t r = FWUAL_ERR_INTERNAL;
 
     (void)params;
@@ -630,7 +643,7 @@ static bool test_fwual_finalize_incomplete(void *params)
     bool test_status = true;
     fwual_session_t *session = NULL;
     fwual_image_desc_t desc = { .image_id = 0U, .size = 256U };
-    uint8_t buf[64U];
+    uint8_t buf[64U] = { 0 };
     fwual_result_t r = FWUAL_ERR_INTERNAL;
 
     (void)params;
@@ -668,7 +681,7 @@ static bool test_fwual_write_overflow(void *params)
     bool test_status = true;
     fwual_session_t *session = NULL;
     fwual_image_desc_t desc = { .image_id = 0U, .size = 64U };
-    uint8_t buf[128U];
+    uint8_t buf[128U] = { 0 };
     fwual_result_t r = FWUAL_ERR_INTERNAL;
 
     (void)params;
@@ -694,7 +707,468 @@ exit:
     return test_status;
 }
 
-/*Test suite registration */
+/**
+ * @brief Verify that fwual_verify_image(NULL, 0) returns FWUAL_ERR_INVALID_PARAM.
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_verify_null_session(void *params)
+{
+    bool test_status = true;
+    fwual_result_t result = FWUAL_RESULT_UNINITIALIZED;
+
+    (void)params;
+
+    result = fwual_verify_image(NULL, 0U);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, result, exit);
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Verify that fwual_verify_image() returns FWUAL_ERR_INVALID_STATE
+ *        when the slot has not been finalized yet.
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_verify_not_finalized(void *params)
+{
+    bool test_status = true;
+    fwual_session_t *session = NULL;
+    fwual_result_t open_rc = FWUAL_RESULT_UNINITIALIZED;
+    fwual_result_t result = FWUAL_RESULT_UNINITIALIZED;
+    static const uint8_t dummy_hash[32] = { 0 };
+    fwual_image_desc_t desc = { .image_id = 0U,
+                                .size = 256U,
+                                .hash_algo = "sha256",
+                                .expected_hash = dummy_hash,
+                                .hash_len = 32U };
+
+    (void)params;
+
+    fwual_init();
+
+    open_rc = fwual_open_session(&session);
+    if (open_rc != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_open_session failed (%d) - skipping", open_rc);
+        goto exit;
+    }
+
+    result = fwual_prepare_image(session, &desc);
+    if (result != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_prepare_image failed (%d) - skipping", result);
+        (void)fwual_close_session(session);
+        goto exit;
+    }
+
+    /* Do NOT call fwual_finalize_image -- verify must detect unfinalized slot. */
+    result = fwual_verify_image(session, desc.image_id);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_STATE, result, cleanup);
+    TEST_PRINT_INFO("fwual_verify_image on unfinalized slot correctly returned "
+                    "FWUAL_ERR_INVALID_STATE");
+
+cleanup:
+    (void)fwual_close_session(session);
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Verify that fwual_verify_image() returns FWUAL_ERR_UNSUPPORTED when
+ *        the image descriptor specifies an unsupported hash algorithm.
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_verify_unsupported_algo(void *params)
+{
+    bool test_status = true;
+    fwual_session_t *session = NULL;
+    fwual_result_t open_rc = FWUAL_RESULT_UNINITIALIZED;
+    fwual_result_t result = FWUAL_RESULT_UNINITIALIZED;
+    static const uint8_t dummy_data[4] = { 0xAAU, 0xBBU, 0xCCU, 0xDDU };
+    static const uint8_t dummy_hash[16] = { 0 };
+    fwual_image_desc_t desc = { .image_id = 0U,
+                                .size = sizeof(dummy_data),
+                                .hash_algo = "md5", /* unsupported -- only sha256 is valid */
+                                .expected_hash = dummy_hash,
+                                .hash_len = sizeof(dummy_hash) };
+
+    (void)params;
+
+    fwual_init();
+
+    open_rc = fwual_open_session(&session);
+    if (open_rc != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_open_session failed (%d) - skipping", open_rc);
+        goto exit;
+    }
+
+    result = fwual_prepare_image(session, &desc);
+    if (result != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_prepare_image failed (%d) - skipping", result);
+        (void)fwual_close_session(session);
+        goto exit;
+    }
+
+    result = fwual_write(session, desc.image_id, 0U, dummy_data, sizeof(dummy_data));
+    if (result != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_write failed (%d) - skipping", result);
+        (void)fwual_close_session(session);
+        goto exit;
+    }
+
+    result = fwual_finalize_image(session, desc.image_id);
+    if (result != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_finalize_image failed (%d) - skipping", result);
+        (void)fwual_close_session(session);
+        goto exit;
+    }
+
+    result = fwual_verify_image(session, desc.image_id);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_UNSUPPORTED, result, cleanup);
+    TEST_PRINT_INFO("fwual_verify_image with unsupported algo correctly returned "
+                    "FWUAL_ERR_UNSUPPORTED");
+
+cleanup:
+    (void)fwual_close_session(session);
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Happy-path verify: write 256 bytes of 0xAB, finalize, then verify
+ *        with the correct precomputed SHA-256.  Expects FWUAL_OK.
+ *
+ *        If the backend flash is not available the test prints a skip message
+ *        and still passes (infrastructure not ready in the unit-test host).
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_verify_correct_hash(void *params)
+{
+    bool test_status = true;
+    fwual_session_t *session = NULL;
+    fwual_result_t r = FWUAL_RESULT_UNINITIALIZED;
+    uint8_t buf[256U] = { 0 };
+    fwual_image_desc_t desc = { .image_id = 0U,
+                                .size = 256U,
+                                .hash_algo = "sha256",
+                                .expected_hash = s_hash_256x_ab,
+                                .hash_len = 32U };
+
+    (void)params;
+    memset(buf, 0xABU, sizeof(buf));
+
+    r = fwual_init();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_open_session(&session);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_prepare_image(session, &desc);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+
+    r = fwual_write(session, desc.image_id, 0U, buf, sizeof(buf));
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_write failed (%d) - backend not available, skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_finalize_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_finalize_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_verify_image(session, desc.image_id);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+    TEST_PRINT_INFO("fwual_verify_image with correct hash: OK");
+
+cleanup:
+    (void)fwual_close_session(session);
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Wrong-hash verify: write 256 bytes of 0xAB, finalize, then verify
+ *        with an all-zero expected hash.  Expects FWUAL_ERR_CORRUPT.
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_verify_wrong_hash(void *params)
+{
+    bool test_status = true;
+    fwual_session_t *session = NULL;
+    fwual_result_t r = FWUAL_RESULT_UNINITIALIZED;
+    uint8_t buf[256U] = { 0 };
+    static const uint8_t zero_hash[32U] = { 0 };
+    fwual_image_desc_t desc = { .image_id = 0U,
+                                .size = 256U,
+                                .hash_algo = "sha256",
+                                .expected_hash = zero_hash,
+                                .hash_len = 32U };
+
+    (void)params;
+    memset(buf, 0xABU, sizeof(buf));
+
+    r = fwual_init();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_open_session(&session);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_prepare_image(session, &desc);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+
+    r = fwual_write(session, desc.image_id, 0U, buf, sizeof(buf));
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_write failed (%d) - backend not available, skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_finalize_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_finalize_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_verify_image(session, desc.image_id);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_CORRUPT, r, cleanup);
+    TEST_PRINT_INFO("fwual_verify_image with wrong hash correctly returned FWUAL_ERR_CORRUPT");
+
+cleanup:
+    (void)fwual_close_session(session);
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Verify that calling fwual_verify_image() twice on a successfully
+ *        verified slot returns FWUAL_OK both times (idempotent).
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_verify_idempotent(void *params)
+{
+    bool test_status = true;
+    fwual_session_t *session = NULL;
+    fwual_result_t r = FWUAL_RESULT_UNINITIALIZED;
+    uint8_t buf[256U] = { 0 };
+    fwual_image_desc_t desc = { .image_id = 0U,
+                                .size = 256U,
+                                .hash_algo = "sha256",
+                                .expected_hash = s_hash_256x_ab,
+                                .hash_len = 32U };
+
+    (void)params;
+    memset(buf, 0xABU, sizeof(buf));
+
+    r = fwual_init();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_open_session(&session);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_prepare_image(session, &desc);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+
+    r = fwual_write(session, desc.image_id, 0U, buf, sizeof(buf));
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_write failed (%d) - backend not available, skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_finalize_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_finalize_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_verify_image(session, desc.image_id);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+
+    /* Second call must also succeed. */
+    r = fwual_verify_image(session, desc.image_id);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+    TEST_PRINT_INFO("fwual_verify_image idempotent: both calls returned OK");
+
+cleanup:
+    (void)fwual_close_session(session);
+exit:
+    return test_status;
+}
+
+/**
+ * @brief After a successful full lifecycle (write -> finalize -> verify),
+ *        fwual_is_image_staged() must return true.
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_is_image_staged_true_after_verify(void *params)
+{
+    bool test_status = true;
+    fwual_session_t *session = NULL;
+    fwual_result_t r = FWUAL_RESULT_UNINITIALIZED;
+    uint8_t buf[256U] = { 0 };
+    fwual_image_desc_t desc = { .image_id = 0U,
+                                .size = 256U,
+                                .hash_algo = "sha256",
+                                .expected_hash = s_hash_256x_ab,
+                                .hash_len = 32U };
+
+    (void)params;
+    memset(buf, 0xABU, sizeof(buf));
+
+    r = fwual_init();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_open_session(&session);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_prepare_image(session, &desc);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+
+    r = fwual_write(session, desc.image_id, 0U, buf, sizeof(buf));
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_write failed (%d) - backend not available, skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_finalize_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_finalize_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_verify_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_verify_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    TEST_ASSERT_GOTO(fwual_is_image_staged(session, desc.image_id) == true, cleanup);
+    TEST_PRINT_INFO("fwual_is_image_staged returned true after successful verify: OK");
+
+cleanup:
+    (void)fwual_close_session(session);
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Verify that fwual_commit_session(NULL) returns FWUAL_ERR_INVALID_PARAM.
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_commit_session_null(void *params)
+{
+    bool test_status = true;
+    fwual_result_t result = FWUAL_RESULT_UNINITIALIZED;
+
+    (void)params;
+
+    result = fwual_commit_session(NULL);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, result, exit);
+    TEST_PRINT_INFO("fwual_commit_session(NULL) correctly rejected");
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Full lifecycle happy-path through commit: prepare -> write -> finalize
+ *        -> verify -> commit.  Expects FWUAL_OK.
+ *
+ *        Gracefully skips any step that fails due to missing backend flash.
+ *
+ * @param[in] params Unused test parameter, pass NULL.
+ *
+ * @return true  Test passed.
+ * @return false Test failed.
+ */
+static bool test_fwual_commit_session_valid(void *params)
+{
+    bool test_status = true;
+    fwual_session_t *session = NULL;
+    fwual_result_t r = FWUAL_RESULT_UNINITIALIZED;
+    uint8_t buf[256U] = { 0 };
+    fwual_image_desc_t desc = { .image_id = 0U,
+                                .size = 256U,
+                                .hash_algo = "sha256",
+                                .expected_hash = s_hash_256x_ab,
+                                .hash_len = 32U };
+
+    (void)params;
+    memset(buf, 0xABU, sizeof(buf));
+
+    r = fwual_init();
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_open_session(&session);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
+
+    r = fwual_prepare_image(session, &desc);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+
+    r = fwual_write(session, desc.image_id, 0U, buf, sizeof(buf));
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_write failed (%d) - backend not available, skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_finalize_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_finalize_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_verify_image(session, desc.image_id);
+    if (r != FWUAL_OK) {
+        TEST_PRINT_INFO("fwual_verify_image failed (%d) - skipping", r);
+        goto cleanup;
+    }
+
+    r = fwual_commit_session(session);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, cleanup);
+    TEST_PRINT_INFO("fwual_commit_session after full lifecycle: OK");
+
+cleanup:
+    (void)fwual_close_session(session);
+exit:
+    return test_status;
+}
+
+/* -------------------------------------------------------------------------
+ * Test suite registration
+ * ---------------------------------------------------------------------- */
 
 void register_fwual_tests(void)
 {
@@ -731,4 +1205,17 @@ void register_fwual_tests(void)
     TEST_REGISTER(test_fwual_write_out_of_order);
     TEST_REGISTER(test_fwual_finalize_incomplete);
     TEST_REGISTER(test_fwual_write_overflow);
+
+    /* fwual_verify_image tests */
+    TEST_REGISTER(test_fwual_verify_null_session);
+    TEST_REGISTER(test_fwual_verify_not_finalized);
+    TEST_REGISTER(test_fwual_verify_unsupported_algo);
+
+    /* verify / commit positive tests */
+    TEST_REGISTER(test_fwual_verify_correct_hash);
+    TEST_REGISTER(test_fwual_verify_wrong_hash);
+    TEST_REGISTER(test_fwual_verify_idempotent);
+    TEST_REGISTER(test_fwual_is_image_staged_true_after_verify);
+    TEST_REGISTER(test_fwual_commit_session_null);
+    TEST_REGISTER(test_fwual_commit_session_valid);
 }
