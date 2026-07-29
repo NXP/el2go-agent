@@ -18,22 +18,11 @@
 /* NVS key for the pending status entry. */
 #define EL2GO_OTA_STATUS_NVS_KEY 1U
 
-/* Magic byte stored in el2go_ota_pending_status_t.valid to mark a live entry. */
-#define EL2GO_OTA_STATUS_VALID_MAGIC 0xA5U
-
-/**
- * @brief NVS-persisted pending status record.
- *
- * Written to NVS before attempting delivery. Cleared on successful ACK from
- * the backend. A valid field value of EL2GO_OTA_STATUS_VALID_MAGIC indicates
- * a live entry that requires delivery. Any other value means no entry.
+/*
+ * el2go_ota_pending_status_t and EL2GO_OTA_STATUS_VALID_MAGIC are defined in
+ * the public header include/ota/el2go_ota_lib.h, which is already included
+ * above via "ota/el2go_ota_lib.h".
  */
-typedef struct {
-    uint8_t outcome;     /**< el2go_ota_update_outcome_t cast to uint8_t */
-    char update_id[64];  /**< null-terminated update identifier */
-    char package_id[64]; /**< null-terminated package identifier */
-    uint8_t valid;       /**< EL2GO_OTA_STATUS_VALID_MAGIC = valid pending entry */
-} el2go_ota_pending_status_t;
 
 /**
  * @brief Internal implementation of el2go_ota_report_status().
@@ -56,6 +45,23 @@ el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transport_t *tran
                                                      el2go_ota_update_outcome_t outcome);
 
 /**
+ * @brief Internal implementation of el2go_ota_schedule_status_report().
+ *
+ * Persists the pending status entry to NVS without attempting delivery.
+ * Does not require an active network connection.  Called by el2go_ota_lib.c
+ * after parameter validation.
+ *
+ * @param[in] update_id   Update identifier. Guaranteed non-NULL.
+ * @param[in] package_id  Package identifier. Guaranteed non-NULL.
+ * @param[in] outcome     Update outcome. Guaranteed valid by caller.
+ * @return EL2GO_OTA_SUCCESS on success.
+ * @return EL2GO_OTA_ERROR_INTERNAL on KVS init or write failure.
+ */
+el2go_ota_status_t el2go_ota_status_reporting_schedule(const char *update_id,
+                                                       const char *package_id,
+                                                       el2go_ota_update_outcome_t outcome);
+
+/**
  * @brief Internal implementation of el2go_ota_report_pending_status().
  *
  * Called by el2go_ota_lib.c after parameter validation. Reads any persisted
@@ -69,5 +75,17 @@ el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transport_t *tran
  * @return EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
  */
 el2go_ota_status_t el2go_ota_status_reporting_retry_pending(el2go_ota_transport_t *transport);
+
+/**
+ * @brief Internal implementation of el2go_ota_get_pending_status().
+ *
+ * Reads the NVS entry into out without attempting delivery or clearing it.
+ * If no entry exists, returns EL2GO_OTA_SUCCESS with out->valid == 0.
+ *
+ * @param[out] out  Receives the pending entry. Guaranteed non-NULL by caller.
+ * @return EL2GO_OTA_SUCCESS on success.
+ * @return EL2GO_OTA_ERROR_INTERNAL on KVS init or read failure.
+ */
+el2go_ota_status_t el2go_ota_status_reporting_read_pending(el2go_ota_pending_status_t *out);
 
 #endif /* __EL2GO_OTA_STATUS_REPORTING_H__ */

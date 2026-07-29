@@ -27,6 +27,9 @@
 #define EL2GO_OTA_MAX_PACKAGES 4U
 #define EL2GO_OTA_MAX_FILE_METADATA 8U
 
+/* Magic byte stored in el2go_ota_pending_status_t.valid to mark a live entry. */
+#define EL2GO_OTA_STATUS_VALID_MAGIC 0xA5U
+
 /**
  * @brief Status codes returned by EL2GO OTA Library functions.
  */
@@ -112,6 +115,20 @@ typedef enum {
     EL2GO_OTA_OUTCOME_FAILURE = 1,  /**< Firmware installation failed. */
     EL2GO_OTA_OUTCOME_ROLLBACK = 2, /**< MCUBoot rolled back to the previous image. */
 } el2go_ota_update_outcome_t;
+
+/**
+ * @brief NVS-persisted pending status record.
+ *
+ * Read back via el2go_ota_get_pending_status(). The valid field equals
+ * EL2GO_OTA_STATUS_VALID_MAGIC when a live entry is present; any other value
+ * means the entry does not exist or has already been delivered.
+ */
+typedef struct {
+    uint8_t outcome;                             /**< el2go_ota_update_outcome_t cast to uint8_t */
+    char update_id[EL2GO_OTA_MAX_UPDATE_ID_LEN]; /**< null-terminated update identifier */
+    char package_id[EL2GO_OTA_MAX_PACKAGE_ID_LEN]; /**< null-terminated package identifier */
+    uint8_t valid;                                 /**< EL2GO_OTA_STATUS_VALID_MAGIC = live entry */
+} el2go_ota_pending_status_t;
 
 /**
  * @brief Allocate a context and prepare the mTLS security layer.
@@ -294,6 +311,50 @@ el2go_ota_status_t el2go_ota_download_package(
 el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const char *update_id,
                                            const char *package_id,
                                            el2go_ota_update_outcome_t outcome);
+
+/**
+ * @brief Schedule an OTA update status report to be delivered on the next boot.
+ *
+ * Persists the update outcome to NVS without attempting network delivery.
+ * This function does not require an active connection and is intended to be
+ * called before rebooting after fwual_activate(). On the next boot, call
+ * el2go_ota_report_pending_status() to deliver the report once connected.
+ *
+ * @param[in] update_id   Update identifier from the check_for_updates response.
+ *                        Must not be NULL.
+ * @param[in] package_id  Package identifier from the check_for_updates response.
+ *                        Must not be NULL.
+ * @param[in] outcome     Outcome of the firmware update attempt.
+ *
+ * @return EL2GO_OTA_SUCCESS on success (entry written to NVS).
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if update_id or package_id is NULL,
+ *         or outcome is not a valid el2go_ota_update_outcome_t value.
+ * @return EL2GO_OTA_ERROR_INTERNAL on KVS init or write failure.
+ */
+el2go_ota_status_t el2go_ota_schedule_status_report(const char *update_id, const char *package_id,
+                                                    el2go_ota_update_outcome_t outcome);
+
+/**
+ * @brief Read the pending status entry from NVS without delivering it.
+ *
+ * Allows the caller to inspect a status report that was previously written by
+ * el2go_ota_schedule_status_report() but not yet delivered. The typical use
+ * case is Boot N+1 rollback detection: the agent reads the entry, overrides
+ * the outcome to EL2GO_OTA_OUTCOME_ROLLBACK, rewrites it via
+ * el2go_ota_schedule_status_report(), then delivers it with
+ * el2go_ota_report_pending_status().
+ *
+ * Returns EL2GO_OTA_SUCCESS with out->valid == 0 if no entry exists.
+ * Does not require an active network connection. No ctx needed.
+ *
+ * @param[out] out  Receives the pending entry. Must not be NULL.
+ *
+ * @return EL2GO_OTA_SUCCESS on success (out->valid indicates whether an
+ *         entry was found: EL2GO_OTA_STATUS_VALID_MAGIC = live entry, 0 = none).
+ * @return EL2GO_OTA_ERROR_INVALID_PARAM if out is NULL.
+ * @return EL2GO_OTA_ERROR_INTERNAL on KVS init or read failure.
+ */
+el2go_ota_status_t el2go_ota_get_pending_status(el2go_ota_pending_status_t *out);
 
 /**
  * @brief Deliver any pending status report that was not yet acknowledged.

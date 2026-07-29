@@ -133,6 +133,65 @@ el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transport_t *tran
     return result;
 }
 
+el2go_ota_status_t el2go_ota_status_reporting_schedule(const char *update_id,
+                                                       const char *package_id,
+                                                       el2go_ota_update_outcome_t outcome)
+{
+    el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
+    el2go_ota_pending_status_t entry = { 0 };
+
+    result = el2go_ota_kvs_init();
+    if (result != EL2GO_OTA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "KVS init failed; cannot schedule status report\n");
+        return result;
+    }
+
+    entry.outcome = (uint8_t)outcome;
+    (void)strncpy(entry.update_id, update_id, sizeof(entry.update_id) - 1U);
+    (void)strncpy(entry.package_id, package_id, sizeof(entry.package_id) - 1U);
+    entry.valid = EL2GO_OTA_STATUS_VALID_MAGIC;
+
+    result = el2go_ota_kvs_write(EL2GO_OTA_STATUS_NVS_KEY, &entry, sizeof(entry));
+    if (result != EL2GO_OTA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to persist scheduled status to KVS\n");
+        return result;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Status report scheduled (update_id=%s, outcome=%d)\n", update_id,
+                     (int)outcome);
+
+    return EL2GO_OTA_SUCCESS;
+}
+
+el2go_ota_status_t el2go_ota_status_reporting_read_pending(el2go_ota_pending_status_t *out)
+{
+    el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
+    bool found = false;
+
+    result = el2go_ota_kvs_init();
+    if (result != EL2GO_OTA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "KVS init failed; cannot read pending status\n");
+        return result;
+    }
+
+    result = el2go_ota_kvs_read(EL2GO_OTA_STATUS_NVS_KEY, out, sizeof(*out), &found);
+    if (result != EL2GO_OTA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "KVS read failed: %d\n", (int)result);
+        return result;
+    }
+
+    if (!found) {
+        /* No entry present -- return a zeroed struct with valid == 0 */
+        out->valid = 0U;
+    } else {
+        /* Ensure null-termination of strings read from KVS */
+        out->update_id[sizeof(out->update_id) - 1U] = '\0';
+        out->package_id[sizeof(out->package_id) - 1U] = '\0';
+    }
+
+    return EL2GO_OTA_SUCCESS;
+}
+
 el2go_ota_status_t el2go_ota_status_reporting_retry_pending(el2go_ota_transport_t *transport)
 {
     el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;

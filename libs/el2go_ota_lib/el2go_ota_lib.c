@@ -356,6 +356,38 @@ __export el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const 
     return el2go_ota_status_reporting_report(&ctx->transport, update_id, package_id, outcome);
 }
 
+__export el2go_ota_status_t el2go_ota_schedule_status_report(const char *update_id,
+                                                             const char *package_id,
+                                                             el2go_ota_update_outcome_t outcome)
+{
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (!update_id || !package_id) {
+        EL2GO_DBG_PRINTF(ERROR, "update_id and package_id must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    if (outcome != EL2GO_OTA_OUTCOME_SUCCESS && outcome != EL2GO_OTA_OUTCOME_FAILURE &&
+        outcome != EL2GO_OTA_OUTCOME_ROLLBACK) {
+        EL2GO_DBG_PRINTF(ERROR, "invalid outcome value: %d\n", (int)outcome);
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    return el2go_ota_status_reporting_schedule(update_id, package_id, outcome);
+}
+
+__export el2go_ota_status_t el2go_ota_get_pending_status(el2go_ota_pending_status_t *out)
+{
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (!out) {
+        EL2GO_DBG_PRINTF(ERROR, "out must not be NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
+    return el2go_ota_status_reporting_read_pending(out);
+}
+
 __export el2go_ota_status_t el2go_ota_report_pending_status(el2go_ota_ctx_t *ctx)
 {
     EL2GO_DBG_TRACE_API_CALL;
