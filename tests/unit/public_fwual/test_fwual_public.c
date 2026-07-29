@@ -1321,9 +1321,7 @@ exit:
     return test_status;
 }
 
-/* -------------------------------------------------------------------------
- * Test suite registration
- * ---------------------------------------------------------------------- */
+/* Test suite registration */
 
 void register_fwual_tests(void)
 {

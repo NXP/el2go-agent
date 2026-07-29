@@ -1,0 +1,40 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+if EL2GO_OTA_LIBRARY_SOURCES
+
+# OTA mTLS credential provider
+
+choice EL2GO_OTA_CRED_PROVIDER
+    prompt "OTA mTLS credential provider"
+    default EL2GO_OTA_CRED_PSA
+    help
+      Select the backend that supplies the mTLS client certificate and
+      private key used during the OTA TLS handshake.
+
+config EL2GO_OTA_CRED_PSA
+    bool "PSA ITS (EdgeLock 2GO)"
+    help
+      Retrieves the client certificate and key from PSA Internal Trusted
+      Storage, provisioned by the EdgeLock 2GO secure element.
+
+endchoice # EL2GO_OTA_CRED_PROVIDER
+
+# OTA message transport backend
+
+choice EL2GO_OTA_TRANSPORT_BACKEND
+    prompt "OTA message transport backend"
+    default EL2GO_OTA_TRANSPORT_GRPC
+    help
+      Select the wire protocol used to communicate with the EL2GO OTA
+      service.
+
+config EL2GO_OTA_TRANSPORT_GRPC
+    bool "gRPC over TLS"
+    help
+      Uses gRPC framing over a TLS-secured TCP connection to exchange
+      OTA request and response protobuf messages with the EL2GO service.
+
+endchoice # EL2GO_OTA_TRANSPORT_BACKEND
+
+endif # EL2GO_OTA_LIBRARY_SOURCES

@@ -285,7 +285,7 @@ static size_t hpack_encode_grpc_request(uint8_t *buf, size_t buf_size, const cha
 /*
  * Standard gRPC status code names (indices 0-16, RFC: https://grpc.github.io/grpc/core/md_doc_statuscodes.html).
  */
-static const char *grpc_status_name(uint32_t code)
+static __attribute__((unused)) const char *grpc_status_name(uint32_t code)
 {
     switch (code) {
     case 0U:

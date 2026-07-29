@@ -112,6 +112,8 @@ target_include_directories(${PUBLIC_TEST_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/libs/osal/include
         ${CMAKE_SOURCE_DIR}/priv
         ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src
+        ${CMAKE_SOURCE_DIR}/libs/protobuf/nanopb
+        ${CMAKE_SOURCE_DIR}/libs/protobuf/ota 
 )
 
 target_link_libraries(${PUBLIC_TEST_EXECUTABLE}

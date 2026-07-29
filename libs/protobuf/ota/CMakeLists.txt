@@ -5,12 +5,7 @@
 
 include(add_target_sources)
 
-# OTA delivery protobuf definitions.
-# declare_library creates an OBJECT library in non-Zephyr builds; in Zephyr
-# builds it is a no-op because sources are contributed to the Zephyr library
-# directly via the add_private_sources / add_public_directories macros below.
-
-declare_library(ota_protobuf)
+declare_static_library(ota_protobuf)
 
 add_private_sources(ota_protobuf
     ota_delivery.pb.c

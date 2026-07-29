@@ -36,9 +36,7 @@
 /** Minimal valid CA cert placeholder -- content not verified in param tests. */
 static const uint8_t s_dummy_ca[] = { 0x30, 0x01, 0x00 };
 
-/* ========================================================================== */
-/* Parameter Validation Tests -- el2go_ota_init()                             */
-/* ========================================================================== */
+/* Parameter Validation Tests -- el2go_ota_init() */
 
 /**
  * @brief el2go_ota_init(NULL, valid_config) must return
@@ -144,9 +142,7 @@ static bool test_el2go_ota_init_zero_ca_chain_size(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Parameter Validation Tests -- el2go_ota_connect() / disconnect()           */
-/* ========================================================================== */
+/* Parameter Validation Tests -- el2go_ota_connect() / disconnect() */
 
 /**
  * @brief el2go_ota_connect(NULL) must return EL2GO_OTA_ERROR_INVALID_PARAM.
@@ -172,9 +168,7 @@ static bool test_el2go_ota_disconnect_null_ctx(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Diagnostics Tests                                                          */
-/* ========================================================================== */
+/* Diagnostics Tests */
 
 /**
  * @brief el2go_ota_is_connected(NULL) must return false.
@@ -315,9 +309,7 @@ static bool test_el2go_ota_get_error_string_after_failed_init(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Request Builder -- Happy-path round-trip tests                             */
-/* ========================================================================== */
+/* Request Builder -- Happy-path round-trip tests */
 
 /**
  * @brief Encode a FetchPackage request and decode it back with nanopb to verify
@@ -502,9 +494,7 @@ static bool test_encode_check_update_with_attrs(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Wire-buffer helpers for AvailableUpdatesResponse                           */
-/* ========================================================================== */
+/* Wire-buffer helpers for AvailableUpdatesResponse */
 
 /**
  * @brief Encode a minimal Package sub-message (packageId, name, version) into
@@ -573,9 +563,7 @@ static size_t encode_test_update(uint8_t *upd_buf, size_t upd_buf_size, const ch
     return us.bytes_written;
 }
 
-/* ========================================================================== */
-/* Response Handler -- round-trip / correctness tests                         */
-/* ========================================================================== */
+/* Response Handler -- round-trip / correctness tests */
 
 /**
  * @brief Parse a CheckUpdate response built from a known nanopb-encoded buffer
@@ -653,9 +641,7 @@ static bool test_parse_check_update_empty_buf(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Request Builder -- Additional coverage                                     */
-/* ========================================================================== */
+/* Request Builder -- Additional coverage */
 
 /**
  * @brief Encode a ReportStatus request with STATUS_ERROR and no status message.
@@ -774,9 +760,7 @@ static bool test_encode_check_update_buf_too_small(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Response Handler -- Additional coverage                                    */
-/* ========================================================================== */
+/* Response Handler -- Additional coverage */
 
 /**
  * @brief parse_check_update_response with NULL buf and non-zero len must return
@@ -901,9 +885,7 @@ static bool test_parse_check_update_four_updates(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Request Builder Tests -- parameter validation                              */
-/* ========================================================================== */
+/* Request Builder Tests -- parameter validation */
 
 /**
  * @brief el2go_ota_encode_check_update() with NULL req must return
@@ -1028,9 +1010,7 @@ static bool test_encode_report_status_null_req(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Response Handler Tests                                                     */
-/* ========================================================================== */
+/* Response Handler Tests */
 
 /**
  * @brief el2go_ota_parse_check_update_response() with NULL out must return
@@ -1135,9 +1115,7 @@ static bool test_parse_fetch_package_roundtrip(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Download Engine -- Parameter Validation Tests                              */
-/* ========================================================================== */
+/* Download Engine -- Parameter Validation Tests */
 
 /** No-op chunk callback used to satisfy the non-NULL callback requirement. */
 static el2go_ota_status_t s_noop_chunk_cb(const uint8_t *data, size_t len, size_t offset, void *ctx)
@@ -1236,13 +1214,7 @@ static bool test_download_package_null_callback(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Test Registration                                                          */
-/* ========================================================================== */
-
-/* ========================================================================== */
-/* Status Reporting API -- Parameter Validation Tests                         */
-/* ========================================================================== */
+/* Status Reporting API -- Parameter Validation Tests */
 
 /**
  * @brief el2go_ota_report_status(NULL, ...) must return
@@ -1332,9 +1304,7 @@ static bool test_pending_status_struct_layout(void *params)
     return true;
 }
 
-/* ========================================================================== */
-/* Test Registration                                                          */
-/* ========================================================================== */
+/* Test Registration */
 
 /**
  * @brief Register all public EL2GO OTA Library tests with the test framework.

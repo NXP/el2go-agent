@@ -607,7 +607,7 @@ exit:
     return result;
 }
 
-fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t image_id)
+__export fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t image_id)
 {
     size_t i = 0U;
     size_t image_count = 0U;
@@ -616,12 +616,7 @@ fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t ima
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     bool any_prepared = false;
 
-    if (session == NULL) {
-        result = FWUAL_ERR_INVALID_PARAM;
-        goto exit;
-    }
-
-    if (session != &s_fwual_state.session) {
+    if (session == NULL || session != &s_fwual_state.session) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
     }

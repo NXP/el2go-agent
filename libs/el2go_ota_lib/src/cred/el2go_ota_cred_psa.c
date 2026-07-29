@@ -94,7 +94,8 @@ el2go_status_t el2go_ota_prepare_client_credentials(el2go_platform_ctx_t *platfo
 
     EL2GO_DBG_PRINTF(INFO, "Client key ID: 0x%08" PRIx32 "\n", config->client_key_object_id);
 
-    cert_buf = NULL; /* ownership transferred — do not free in cleanup */
+    status = EL2GO_STATUS_SUCCESS;
+    cert_buf = NULL; /* ownership transferred -- do not free in cleanup */
 
 cleanup:
     if (cert_buf)

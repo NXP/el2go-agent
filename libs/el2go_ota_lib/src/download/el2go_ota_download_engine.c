@@ -68,8 +68,7 @@ el2go_ota_download_engine_check_for_updates(el2go_ota_transport_t *transport,
     if (out_resp->update_available) {
         EL2GO_DBG_PRINTF(INFO, "Update available: %zu update(s)\n", out_resp->update_count);
         {
-            size_t i;
-            for (i = 0U; i < out_resp->update_count; i++) {
+            for (size_t i = 0U; i < out_resp->update_count; i++) {
                 EL2GO_DBG_PRINTF(INFO, "  update_id=%s (packages: %zu)\n",
                                  out_resp->updates[i].update_id,
                                  out_resp->updates[i].package_count);

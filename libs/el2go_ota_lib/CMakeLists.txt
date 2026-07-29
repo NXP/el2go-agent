@@ -5,27 +5,47 @@
 
 include(add_target_sources)
 
-set(EL2GO_OTA_CRED_PROVIDER "psa" CACHE STRING
-    "OTA mTLS credential provider: psa")
 
-set(EL2GO_OTA_TRANSPORT_BACKEND "grpc" CACHE STRING
-    "OTA message transport backend: grpc")
+# Credential provider and transport backend selection
 
-if(EL2GO_OTA_CRED_PROVIDER STREQUAL "psa")
+if(BUILD_ZEPHYR)
+    if(CONFIG_EL2GO_OTA_CRED_PSA)
+        set(_EL2GO_OTA_CRED "psa")
+    endif()
+
+    if(CONFIG_EL2GO_OTA_TRANSPORT_GRPC)
+        set(_EL2GO_OTA_TRANSPORT "grpc")
+    endif()
+else()
+    set(EL2GO_OTA_CRED_PROVIDER "psa" CACHE STRING
+        "OTA mTLS credential provider")
+    set_property(CACHE EL2GO_OTA_CRED_PROVIDER PROPERTY STRINGS psa)
+
+    set(EL2GO_OTA_TRANSPORT_BACKEND "grpc" CACHE STRING
+        "OTA message transport backend")
+    set_property(CACHE EL2GO_OTA_TRANSPORT_BACKEND PROPERTY STRINGS grpc)
+
+    set(_EL2GO_OTA_CRED      "${EL2GO_OTA_CRED_PROVIDER}")
+    set(_EL2GO_OTA_TRANSPORT "${EL2GO_OTA_TRANSPORT_BACKEND}")
+endif()
+
+# Resolve credential provider source
+if(_EL2GO_OTA_CRED STREQUAL "psa")
     set(EL2GO_OTA_CRED_SOURCE src/cred/el2go_ota_cred_psa.c)
 else()
     message(FATAL_ERROR
-        "Unknown EL2GO_OTA_CRED_PROVIDER '${EL2GO_OTA_CRED_PROVIDER}'. "
+        "Unknown credential provider '${_EL2GO_OTA_CRED}'. "
         "Valid values: psa. See src/cred/el2go_ota_cred.h to add a new provider.")
 endif()
 
-if(EL2GO_OTA_TRANSPORT_BACKEND STREQUAL "grpc")
+# Resolve transport backend sources
+if(_EL2GO_OTA_TRANSPORT STREQUAL "grpc")
     set(EL2GO_OTA_TRANSPORT_SOURCE
         src/transport/grpc/el2go_ota_grpc.c
         src/transport/el2go_ota_transport_init.c)
 else()
     message(FATAL_ERROR
-        "Unknown EL2GO_OTA_TRANSPORT_BACKEND '${EL2GO_OTA_TRANSPORT_BACKEND}'. "
+        "Unknown transport backend '${_EL2GO_OTA_TRANSPORT}'. "
         "Valid values: grpc. See src/transport/ to add a new backend.")
 endif()
 
@@ -37,14 +57,9 @@ else()
     set(EL2GO_OTA_KVS_SOURCE "")
 endif()
 
-message(STATUS "EL2GO OTA credential provider:  ${EL2GO_OTA_CRED_PROVIDER}")
-message(STATUS "EL2GO OTA transport backend:    ${EL2GO_OTA_TRANSPORT_BACKEND}")
+message(STATUS "EL2GO OTA credential provider: ${_EL2GO_OTA_CRED}")
+message(STATUS "EL2GO OTA transport backend: ${_EL2GO_OTA_TRANSPORT}")
 
-# ---------------------------------------------------------------------------
-# Linux-only: create the full shared/static library target with versioning
-# and install rules. In Zephyr the target is managed by the Zephyr build
-# system; only sources and include dirs are contributed below.
-# ---------------------------------------------------------------------------
 if(NOT BUILD_ZEPHYR)
     project(el2go_ota_lib VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 
@@ -58,10 +73,6 @@ if(NOT BUILD_ZEPHYR)
         ${EL2GO_OTA_TRANSPORT_SOURCE}
         ${EL2GO_OTA_KVS_FALLBACK}
         ${EL2GO_OTA_KVS_SOURCE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/ota/ota_delivery.pb.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_common.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_decode.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/../protobuf/nanopb/pb_encode.c
         ${EL2GO_OTA_CRED_SOURCE}
     )
 
@@ -130,10 +141,9 @@ else()
     )
 endif()
 
-# ---------------------------------------------------------------------------
 # Private include directories and link libraries — shared by both build
 # systems via the add_target_sources.cmake macros.
-# ---------------------------------------------------------------------------
+
 add_private_directories(el2go_ota_lib
     ${CMAKE_CURRENT_SOURCE_DIR}/../../priv
     ${CMAKE_CURRENT_SOURCE_DIR}/../osal/include
