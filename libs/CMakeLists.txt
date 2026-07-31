@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+if(NOT DEFINED PROJECT_ROOT)
+    set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
+endif()
+
 # Add common component subdirectories (shared between main libraries)
 add_subdirectory(protobuf)
 add_subdirectory(platforms)

@@ -38,8 +38,9 @@
 
 #include "debug.h"
 #include "osal.h"
-#include "transport/grpc/el2go_ota_grpc.h"
+#include "el2go_ota_transport.h"
 #include "el2go_ota_tls.h"
+#include "builtin_macros.h"
 
 /* Constants */
 
@@ -70,6 +71,9 @@ static const uint8_t HTTP2_PREFACE[24] = {
 #define H2_PING_PAYLOAD_LEN 8U
 #define H2_WINDOW_UPDATE_LEN 4U
 #define H2_INITIAL_WINDOW_SIZE 65535U /* RFC 7540 s6.9.2: default flow-control window */
+#define H2_BYTE_MASK 0xFFU            /* extract the low 8 bits of a multi-byte field */
+#define H2_MSB_RESERVED_MASK \
+    0x7FU /* mask off the reserved MSB of a 32-bit stream/increment field (RFC 7540 s4.1) */
 
 /* gRPC message prefix. */
 #define GRPC_MSG_HDR_LEN 5U
@@ -98,16 +102,16 @@ typedef struct {
 static void h2_build_frame_hdr(uint8_t *dst, uint32_t payload_len, uint8_t type, uint8_t flags,
                                uint32_t stream_id)
 {
-    dst[0] = (uint8_t)((payload_len >> 16U) & 0xFFU);
-    dst[1] = (uint8_t)((payload_len >> 8U) & 0xFFU);
-    dst[2] = (uint8_t)(payload_len & 0xFFU);
+    dst[0] = (uint8_t)((payload_len >> 16U) & H2_BYTE_MASK);
+    dst[1] = (uint8_t)((payload_len >> 8U) & H2_BYTE_MASK);
+    dst[2] = (uint8_t)(payload_len & H2_BYTE_MASK);
     dst[3] = type;
     dst[4] = flags;
     /* Stream identifier: MSB (reserved) = 0, then 31-bit stream ID. */
-    dst[5] = (uint8_t)((stream_id >> 24U) & 0x7FU);
-    dst[6] = (uint8_t)((stream_id >> 16U) & 0xFFU);
-    dst[7] = (uint8_t)((stream_id >> 8U) & 0xFFU);
-    dst[8] = (uint8_t)(stream_id & 0xFFU);
+    dst[5] = (uint8_t)((stream_id >> 24U) & H2_MSB_RESERVED_MASK);
+    dst[6] = (uint8_t)((stream_id >> 16U) & H2_BYTE_MASK);
+    dst[7] = (uint8_t)((stream_id >> 8U) & H2_BYTE_MASK);
+    dst[8] = (uint8_t)(stream_id & H2_BYTE_MASK);
 }
 
 /*
@@ -134,10 +138,10 @@ static el2go_ota_status_t h2_send_window_update(grpc_ctx_t *ctx, uint32_t stream
     el2go_status_t s = EL2GO_STATUS_FAILURE;
 
     h2_build_frame_hdr(frame, H2_WINDOW_UPDATE_LEN, H2_TYPE_WINDOW_UPDATE, 0x00U, stream_id);
-    frame[9] = (uint8_t)((increment >> 24U) & 0x7FU);
-    frame[10] = (uint8_t)((increment >> 16U) & 0xFFU);
-    frame[11] = (uint8_t)((increment >> 8U) & 0xFFU);
-    frame[12] = (uint8_t)(increment & 0xFFU);
+    frame[9] = (uint8_t)((increment >> 24U) & H2_MSB_RESERVED_MASK);
+    frame[10] = (uint8_t)((increment >> 16U) & H2_BYTE_MASK);
+    frame[11] = (uint8_t)((increment >> 8U) & H2_BYTE_MASK);
+    frame[12] = (uint8_t)(increment & H2_BYTE_MASK);
     s = el2go_ota_tls_write(ctx->tls_ctx, frame, sizeof(frame));
     return (s == EL2GO_STATUS_SUCCESS) ? EL2GO_OTA_SUCCESS : EL2GO_OTA_ERROR_NETWORK;
 }
@@ -180,6 +184,8 @@ static bool hpack_put_string(uint8_t *buf, size_t buf_size, size_t *pos, const c
 {
     size_t i = 0U;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (len >= 128U) {
         return false; /* multi-byte integer not needed for our use case */
     }
@@ -212,6 +218,8 @@ static size_t hpack_encode_grpc_request(uint8_t *buf, size_t buf_size, const cha
     size_t pos = 0U;
     size_t method_path_len = 0U;
     size_t hostname_len = 0U;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     /* :method POST -- static index 3, fully indexed. */
     if (!hpack_put_byte(buf, buf_size, &pos, 0x80U | 3U)) {
@@ -349,6 +357,10 @@ static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block
     uint8_t val_len = 0U;
     size_t val_start = 0U;
     size_t j = 0U;
+    uint32_t mul_result = 0U;
+    uint32_t add_result = 0U;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     if (block == NULL || block_len < sizeof(NAME_PREFIX) + 2U) {
         return EL2GO_OTA_SUCCESS; /* no trailers to parse -- treat as OK */
@@ -374,7 +386,7 @@ static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block
         val_len = block[i + sizeof(NAME_PREFIX)];
         val_start = i + sizeof(NAME_PREFIX) + 1U;
 
-        if (val_start + (size_t)val_len > block_len) {
+        if (val_start >= block_len || (size_t)val_len > block_len - val_start) {
             break; /* truncated -- bail out */
         }
 
@@ -385,7 +397,11 @@ static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block
             if (c < (uint8_t)'0' || c > (uint8_t)'9') {
                 break; /* non-digit -- stop */
             }
-            code = code * 10U + (uint32_t)(c - (uint8_t)'0');
+            if (MUL_OVERFLOW(code, 10U, &mul_result) ||
+                ADD_OVERFLOW(mul_result, (uint32_t)(c - (uint8_t)'0'), &add_result)) {
+                break; /* overflow -- malformed status code, bail out */
+            }
+            code = add_result;
         }
 
         if (code != 0U) {
@@ -421,6 +437,8 @@ static el2go_ota_status_t h2_do_settings_exchange(grpc_ctx_t *ctx)
     el2go_status_t s = EL2GO_STATUS_FAILURE;
     bool server_settings_acked = false;
     uint32_t iterations = 0U;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     while (!server_settings_acked && iterations < 16U) {
         iterations++;
@@ -502,6 +520,8 @@ static el2go_ota_status_t h2_init_connection(grpc_ctx_t *ctx)
     el2go_status_t s = EL2GO_STATUS_FAILURE;
     el2go_ota_status_t status = EL2GO_OTA_ERROR_INTERNAL;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     s = el2go_ota_tls_write(ctx->tls_ctx, HTTP2_PREFACE, sizeof(HTTP2_PREFACE));
     if (s != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "h2 init: preface write failed\n");
@@ -539,11 +559,16 @@ static el2go_ota_status_t grpc_send(el2go_ota_transport_t *t, const char *method
     el2go_status_t s = EL2GO_STATUS_FAILURE;
     el2go_ota_status_t status = EL2GO_OTA_ERROR_INTERNAL;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (t == NULL || method_path == NULL || msg == NULL || msg_len == 0U) {
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
 
     ctx = (grpc_ctx_t *)t->impl_ctx;
+    if (ctx == NULL) {
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
 
     /* Step 1: one-time HTTP/2 connection preface + SETTINGS exchange. */
     if (!ctx->http2_ready) {
@@ -582,6 +607,10 @@ static el2go_ota_status_t grpc_send(el2go_ota_transport_t *t, const char *method
      * Step 4: DATA frame (gRPC message, END_STREAM).
      *   DATA payload = 5-byte gRPC prefix + protobuf message.
      */
+    if (msg_len > (size_t)(UINT32_MAX - GRPC_MSG_HDR_LEN)) {
+        EL2GO_DBG_PRINTF(ERROR, "gRPC send: message too large\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
     data_payload_len = (uint32_t)(GRPC_MSG_HDR_LEN + msg_len);
 
     h2_build_frame_hdr(frame_hdr, data_payload_len, H2_TYPE_DATA, H2_FLAG_END_STREAM, stream_id);
@@ -593,10 +622,10 @@ static el2go_ota_status_t grpc_send(el2go_ota_transport_t *t, const char *method
 
     /* gRPC message prefix: compressed=0, big-endian length. */
     grpc_prefix[0] = 0x00U;
-    grpc_prefix[1] = (uint8_t)((msg_len >> 24U) & 0xFFU);
-    grpc_prefix[2] = (uint8_t)((msg_len >> 16U) & 0xFFU);
-    grpc_prefix[3] = (uint8_t)((msg_len >> 8U) & 0xFFU);
-    grpc_prefix[4] = (uint8_t)(msg_len & 0xFFU);
+    grpc_prefix[1] = (uint8_t)((msg_len >> 24U) & H2_BYTE_MASK);
+    grpc_prefix[2] = (uint8_t)((msg_len >> 16U) & H2_BYTE_MASK);
+    grpc_prefix[3] = (uint8_t)((msg_len >> 8U) & H2_BYTE_MASK);
+    grpc_prefix[4] = (uint8_t)(msg_len & H2_BYTE_MASK);
 
     s = el2go_ota_tls_write(ctx->tls_ctx, grpc_prefix, GRPC_MSG_HDR_LEN);
     if (s != EL2GO_STATUS_SUCCESS) {
@@ -645,11 +674,16 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
     uint32_t iterations = 0U;
     bool data_received = false;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (t == NULL || buf == NULL || out_len == NULL) {
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
 
     ctx = (grpc_ctx_t *)t->impl_ctx;
+    if (ctx == NULL) {
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
     *out_len = 0U;
     data_received = false;
     iterations = 0U;
@@ -876,10 +910,12 @@ static void grpc_deinit(el2go_ota_transport_t *t)
     }
 }
 
-el2go_ota_status_t el2go_ota_transport_grpc_init(el2go_ota_transport_t *t,
-                                                 el2go_ota_tls_ctx_t *tls_ctx, const char *hostname)
+el2go_ota_status_t el2go_ota_transport_init(el2go_ota_transport_t *t, el2go_ota_tls_ctx_t *tls_ctx,
+                                            const char *hostname)
 {
     grpc_ctx_t *ctx = NULL;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (t == NULL || tls_ctx == NULL || hostname == NULL) {
         return EL2GO_OTA_ERROR_INVALID_PARAM;

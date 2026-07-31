@@ -11,7 +11,7 @@
 
 #include "osal.h"
 #include "debug.h"
-#include "cred/el2go_ota_cred.h"
+#include "el2go_ota_cred.h"
 
 el2go_status_t el2go_ota_prepare_client_credentials(el2go_platform_ctx_t *platform_ctx,
                                                     const el2go_ota_mtls_config_t *config,

@@ -39,6 +39,8 @@ static bool encode_string_map_cb(pb_ostream_t *stream, const pb_field_t *field, 
     size_t i = 0U;
     bool status = false;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     for (i = 0U; i < ctx->attr_count; i++) {
         /* Two-pass: size the sub-message first using a counting-only stream. */
         memset(&sizing, 0, sizeof(sizing));
@@ -102,7 +104,9 @@ el2go_ota_status_t el2go_ota_encode_check_update(const el2go_ota_check_update_re
     pb_ostream_t stream = { 0 };
     el2go_ota_status_t status = EL2GO_OTA_ERROR_ENCODE;
 
-    if (!req || !buf || !out_len) {
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (req == NULL || buf == NULL || out_len == NULL || buf_len == 0U) {
         EL2GO_DBG_PRINTF(ERROR, "encode_check_update: NULL argument\n");
         status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
@@ -140,13 +144,15 @@ el2go_ota_status_t el2go_ota_encode_fetch_package(const el2go_ota_fetch_pkg_req_
     pb_ostream_t stream = { 0 };
     el2go_ota_status_t status = EL2GO_OTA_ERROR_ENCODE;
 
-    if (!req || !buf || !out_len) {
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (req == NULL || buf == NULL || out_len == NULL || buf_len == 0U) {
         EL2GO_DBG_PRINTF(ERROR, "encode_fetch_package: NULL argument\n");
         status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
 
-    if (!req->update_id || !req->package_id) {
+    if (req->update_id == NULL || req->package_id == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "encode_fetch_package: update_id or package_id is NULL\n");
         status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
@@ -196,13 +202,15 @@ el2go_ota_status_t el2go_ota_encode_report_status(const el2go_ota_report_status_
     pb_ostream_t stream = { 0 };
     el2go_ota_status_t status = EL2GO_OTA_ERROR_ENCODE;
 
-    if (!req || !buf || !out_len) {
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (req == NULL || buf == NULL || out_len == NULL || buf_len == 0U) {
         EL2GO_DBG_PRINTF(ERROR, "encode_report_status: NULL argument\n");
         status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
 
-    if (!req->update_id) {
+    if (req->update_id == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "encode_report_status: update_id is NULL\n");
         status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;

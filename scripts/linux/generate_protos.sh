@@ -163,69 +163,70 @@ add_license_header() {
     mv "${tmp_file}" "${file}"
 }
 
-# Process each .proto file using two-step method
-for proto_file in ${PROTO_DIR}/*.proto; do
-    if [ -f "$proto_file" ]; then
-        basename=$(basename "$proto_file" .proto)
-        echo -e "${GREEN}Processing ${basename}.proto...${NC}"
+# Process each .proto file recursively using two-step method
+while IFS= read -r -d '' proto_file; do
+    basename=$(basename "$proto_file" .proto)
+    proto_subdir=$(dirname "$proto_file")
+    echo -e "${GREEN}Processing ${basename}.proto...${NC}"
 
-        # Step 1: Generate descriptor set in output directory
-        echo "  - Generating descriptor set..."
-        ${PROTOC_CMD} -I="${PROTO_DIR}" \
-               --descriptor_set_out="${OUTPUT_DIR}/${basename}.pb" \
-               "$proto_file"
+    # Step 1: Generate descriptor set in output directory
+    echo "  - Generating descriptor set..."
+    ${PROTOC_CMD} -I="${PROTO_DIR}" \
+           -I="${proto_subdir}" \
+           --descriptor_set_out="${OUTPUT_DIR}/${basename}.pb" \
+           "$proto_file"
 
-        if [ $? -ne 0 ]; then
-            echo -e "${RED}  ✗ Error: Failed to generate descriptor for ${basename}${NC}"
-            FAIL_COUNT=$((FAIL_COUNT + 1))
-            FAILED_FILES+=("${basename} (protoc failed)")
-            continue
-        fi
-
-        # Step 2: Generate C files with nanopb
-        echo "  - Generating C files..."
-
-        # Check if options file exists
-        OPTIONS_FLAG=""
-        if [ -f "${PROTO_DIR}/${basename}.options" ]; then
-            OPTIONS_FLAG="-f ${PROTO_DIR}/${basename}.options"
-            echo "  - Using options file: ${basename}.options"
-        fi
-
-        python "${NANOPB_GENERATOR}" \
-               -I "${PROTO_DIR}" \
-               ${OPTIONS_FLAG} \
-               "${OUTPUT_DIR}/${basename}.pb"
-
-        if [ $? -eq 0 ]; then
-            # Check if files were generated in output directory
-            if [ -f "${OUTPUT_DIR}/${basename}.pb.h" ] && [ -f "${OUTPUT_DIR}/${basename}.pb.c" ]; then
-                echo -e "${GREEN}  ✓ Successfully generated ${basename}.pb.h and ${basename}.pb.c${NC}"
-
-                # Add license header if license file is provided
-                if [ -n "${LICENSE_FILE}" ]; then
-                    add_license_header "${OUTPUT_DIR}/${basename}.pb.h"
-                    add_license_header "${OUTPUT_DIR}/${basename}.pb.c"
-                    echo "  - Added license header"
-                fi
-
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-            else
-                echo -e "${RED}  ✗ Error: Generated files not found in ${OUTPUT_DIR}/${NC}"
-                FAIL_COUNT=$((FAIL_COUNT + 1))
-                FAILED_FILES+=("${basename} (files not found)")
-            fi
-        else
-            echo -e "${RED}  ✗ Error: Failed to generate C files for ${basename}${NC}"
-            FAIL_COUNT=$((FAIL_COUNT + 1))
-            FAILED_FILES+=("${basename} (nanopb failed)")
-        fi
-
-        # Clean up descriptor file
-        rm -f "${OUTPUT_DIR}/${basename}.pb"
-        echo ""
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}  x Error: Failed to generate descriptor for ${basename}${NC}"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        FAILED_FILES+=("${basename} (protoc failed)")
+        continue
     fi
-done
+
+    # Step 2: Generate C files with nanopb
+    echo "  - Generating C files..."
+
+    # Check if options file exists in the same directory as the proto file
+    OPTIONS_FLAG=""
+    if [ -f "${proto_subdir}/${basename}.options" ]; then
+        OPTIONS_FLAG="-f ${proto_subdir}/${basename}.options"
+        echo "  - Using options file: ${basename}.options"
+    fi
+
+    python "${NANOPB_GENERATOR}" \
+           -I "${PROTO_DIR}" \
+           -I "${proto_subdir}" \
+           ${OPTIONS_FLAG} \
+           "${OUTPUT_DIR}/${basename}.pb"
+
+    if [ $? -eq 0 ]; then
+        # Check if files were generated in output directory
+        if [ -f "${OUTPUT_DIR}/${basename}.pb.h" ] && [ -f "${OUTPUT_DIR}/${basename}.pb.c" ]; then
+            echo -e "${GREEN}  + Successfully generated ${basename}.pb.h and ${basename}.pb.c${NC}"
+
+            # Add license header if license file is provided
+            if [ -n "${LICENSE_FILE}" ]; then
+                add_license_header "${OUTPUT_DIR}/${basename}.pb.h"
+                add_license_header "${OUTPUT_DIR}/${basename}.pb.c"
+                echo "  - Added license header"
+            fi
+
+            SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        else
+            echo -e "${RED}  x Error: Generated files not found in ${OUTPUT_DIR}/${NC}"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
+            FAILED_FILES+=("${basename} (files not found)")
+        fi
+    else
+        echo -e "${RED}  x Error: Failed to generate C files for ${basename}${NC}"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        FAILED_FILES+=("${basename} (nanopb failed)")
+    fi
+
+    # Clean up descriptor file
+    rm -f "${OUTPUT_DIR}/${basename}.pb"
+    echo ""
+done < <(find "${PROTO_DIR}" -name "*.proto" -print0)
 
 echo "========================================="
 echo -e "${GREEN}Protobuf generation complete!${NC}"

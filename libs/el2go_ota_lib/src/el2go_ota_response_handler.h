@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 #include "ota/el2go_ota_lib.h"
+#include "compiler.h"
 
 typedef el2go_ota_package_info_t el2go_ota_pkg_metadata_t;
 
@@ -50,8 +51,8 @@ typedef struct {
  * @return EL2GO_OTA_ERROR_INVALID_PARAM if buf or out is NULL (and buf_len > 0).
  * @return EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
  */
-el2go_ota_status_t el2go_ota_parse_check_update_response(const uint8_t *buf, size_t buf_len,
-                                                         el2go_ota_check_update_resp_t *out);
+__export el2go_ota_status_t el2go_ota_parse_check_update_response(
+    const uint8_t *buf, size_t buf_len, el2go_ota_check_update_resp_t *out);
 
 /**
  * @brief Parse a FileResponse from a wire buffer.
@@ -65,8 +66,9 @@ el2go_ota_status_t el2go_ota_parse_check_update_response(const uint8_t *buf, siz
  * @return EL2GO_OTA_ERROR_INVALID_PARAM if buf or out is NULL, or buf_len == 0.
  * @return EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
  */
-el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t *buf, size_t buf_len,
-                                                          el2go_ota_fetch_pkg_resp_t *out);
+__export el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t *buf,
+                                                                   size_t buf_len,
+                                                                   el2go_ota_fetch_pkg_resp_t *out);
 
 /**
  * @brief Validate an UpdateStatusNotificationResponse wire buffer.
@@ -79,6 +81,7 @@ el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t *buf, si
  * @return EL2GO_OTA_SUCCESS on success.
  * @return EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
  */
-el2go_ota_status_t el2go_ota_parse_report_status_response(const uint8_t *buf, size_t buf_len);
+__export el2go_ota_status_t el2go_ota_parse_report_status_response(const uint8_t *buf,
+                                                                   size_t buf_len);
 
 #endif /* __EL2GO_OTA_RESPONSE_HANDLER_H__ */

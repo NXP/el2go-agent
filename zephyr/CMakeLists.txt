@@ -10,7 +10,7 @@ set(CMAKE_MODULE_PATH
 )
 
 # ---------------------------------------------------------------------------
-# Default PLATFORM for Zephyr — ELS PKC for RW6xx family.
+# Default PLATFORM for Zephyr -- ELS PKC for RW6xx family.
 # Can be overridden by the application CMake before including this file.
 # ---------------------------------------------------------------------------
 if(NOT DEFINED PLATFORM)
@@ -18,7 +18,7 @@ if(NOT DEFINED PLATFORM)
 endif()
 
 # ---------------------------------------------------------------------------
-# Default CRYPTO_BACKEND for Zephyr — mbedTLS is provided by the Zephyr SDK.
+# Default CRYPTO_BACKEND for Zephyr -- mbedTLS is provided by the Zephyr SDK.
 # Can be overridden by the application CMake before including this file.
 # ---------------------------------------------------------------------------
 if(NOT DEFINED CRYPTO_BACKEND)
@@ -26,14 +26,29 @@ if(NOT DEFINED CRYPTO_BACKEND)
 endif()
 
 # ---------------------------------------------------------------------------
-# Shared public include root — resolves <ota/...> and <fwual/...> headers.
+# OS -- identifies the OS backend for subdirectory dispatch (e.g. osal/${OS})
+# ---------------------------------------------------------------------------
+if(NOT DEFINED OS)
+    set(OS zephyr)
+endif()
+
+# ---------------------------------------------------------------------------
+# PROJECT_ROOT -- absolute path to the repository root, used by all
+# CMakeLists.txt files to reference headers and sources without ../../..
+# ---------------------------------------------------------------------------
+if(NOT DEFINED PROJECT_ROOT)
+    set(PROJECT_ROOT ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR})
+endif()
+
+# ---------------------------------------------------------------------------
+# Shared public include root -- resolves <ota/...> and <fwual/...> headers.
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES OR CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
     zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include)
 endif()
 
 # ---------------------------------------------------------------------------
-# OSAL — OS Abstraction Layer (alloc, print, file, uuid)
+# OSAL -- OS Abstraction Layer (alloc, print, file, uuid)
 # Must come before any library that depends on it.
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES OR CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
@@ -44,7 +59,7 @@ if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES OR CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
 endif()
 
 # ---------------------------------------------------------------------------
-# FWUAL — Firmware Update Abstraction Layer
+# FWUAL -- Firmware Update Abstraction Layer
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
     add_subdirectory(
@@ -54,7 +69,7 @@ if(CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
 endif()
 
 # ---------------------------------------------------------------------------
-# net_crypto — mbedTLS backend for mTLS
+# net_crypto -- mbedTLS backend for mTLS
 # Must come before el2go_ota_lib (it's a dependency).
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES AND CONFIG_MBEDTLS)
@@ -65,7 +80,7 @@ if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES AND CONFIG_MBEDTLS)
 endif()
 
 # ---------------------------------------------------------------------------
-# Platform backend — PSA crypto init, hardware-specific glue
+# Platform backend -- PSA crypto init, hardware-specific glue
 # Must come before el2go_ota_lib (it's a dependency).
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_PLATFORM_SOURCES)

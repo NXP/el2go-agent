@@ -753,7 +753,7 @@ static bool test_fwual_verify_not_finalized(void *params)
 
     (void)params;
 
-    fwual_init();
+    (void)fwual_init();
 
     open_rc = fwual_open_session(&session);
     if (open_rc != FWUAL_OK) {
@@ -806,7 +806,7 @@ static bool test_fwual_verify_unsupported_algo(void *params)
 
     (void)params;
 
-    fwual_init();
+    (void)fwual_init();
 
     open_rc = fwual_open_session(&session);
     if (open_rc != FWUAL_OK) {

@@ -16,6 +16,7 @@ ZTEST(el2go_ota_tests, test_run_all_ota_suites)
     test_framework_init();
     register_fwual_tests();
     register_ota_lib_tests();
+    register_ota_lib_internal_tests();
     register_ota_agent_core_tests();
     register_ota_agent_advanced_tests();
     int result = test_framework_run();

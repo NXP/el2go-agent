@@ -15,6 +15,7 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/error.h>
 #include <mbedtls/debug.h>
+#include <mbedtls/constant_time.h>
 
 #include "osal.h"
 #include "compiler.h"
@@ -1154,4 +1155,9 @@ el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
+}
+
+int net_crypto_ct_memcmp(const void *a, const void *b, size_t len)
+{
+    return mbedtls_ct_memcmp(a, b, len);
 }

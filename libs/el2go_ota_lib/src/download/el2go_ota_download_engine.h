@@ -12,9 +12,10 @@
 #include <stddef.h>
 
 #include "ota/el2go_ota_lib.h"
-#include "transport/el2go_ota_transport.h"
+#include "el2go_ota_transport.h"
 #include "el2go_ota_request_builder.h"
 #include "el2go_ota_response_handler.h"
+#include "compiler.h"
 
 /* Retry policy constants for el2go_ota_download_engine_fetch_package(). */
 #define EL2GO_OTA_DOWNLOAD_MAX_RETRIES 3U
@@ -32,10 +33,9 @@
  * @return EL2GO_OTA_ERROR_NETWORK on send/receive failure.
  * @return EL2GO_OTA_ERROR_DECODE on response parsing failure.
  */
-el2go_ota_status_t
-el2go_ota_download_engine_check_for_updates(el2go_ota_transport_t *transport,
-                                            const el2go_ota_attr_t *attrs, size_t attr_count,
-                                            el2go_ota_check_update_resp_t *out_resp);
+__export el2go_ota_status_t el2go_ota_download_engine_check_for_updates(
+    el2go_ota_transport_t *transport, const el2go_ota_attr_t *attrs, size_t attr_count,
+    el2go_ota_check_update_resp_t *out_resp);
 
 /**
  * @brief Internal implementation of el2go_ota_download_package().
@@ -51,7 +51,7 @@ el2go_ota_download_engine_check_for_updates(el2go_ota_transport_t *transport,
  * @return EL2GO_OTA_ERROR_NETWORK on unrecoverable network failure after retries.
  * @return EL2GO_OTA_ERROR_DECODE on decoding failure (not retried).
  */
-el2go_ota_status_t el2go_ota_download_engine_fetch_package(
+__export el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     el2go_ota_transport_t *transport, const char *update_id, const char *package_id,
     size_t resume_offset,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *ctx),

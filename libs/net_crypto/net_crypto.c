@@ -161,3 +161,12 @@ __weak el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch
 
     return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
+
+__weak int net_crypto_ct_memcmp(const void *a, const void *b, size_t len)
+{
+    (void)a;
+    (void)b;
+    (void)len;
+
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
+}

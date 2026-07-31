@@ -111,9 +111,6 @@ target_include_directories(${PUBLIC_TEST_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/libs/osal/include
         ${CMAKE_SOURCE_DIR}/priv
-        ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src
-        ${CMAKE_SOURCE_DIR}/libs/protobuf/nanopb
-        ${CMAKE_SOURCE_DIR}/libs/protobuf/ota 
 )
 
 target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
@@ -140,19 +137,22 @@ target_include_directories(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib
-	${CMAKE_SOURCE_DIR}/include
-	${CMAKE_SOURCE_DIR}/priv
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/priv
+        ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src
+        ${CMAKE_SOURCE_DIR}/libs/protobuf/nanopb
+        ${CMAKE_SOURCE_DIR}/libs/protobuf/ota
 )
 
 target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
         unit_test_framework
         el2go_platform
-        el2go_platform
         el2go_keystore
         el2go_datastore
         osal
         el2go_protobuf
+        el2go_ota_lib
         net_crypto
         el2go_common
         test_osal

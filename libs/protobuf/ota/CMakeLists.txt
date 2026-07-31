@@ -5,7 +5,7 @@
 
 include(add_target_sources)
 
-declare_static_library(ota_protobuf)
+declare_library(ota_protobuf)
 
 add_private_sources(ota_protobuf
     ota_delivery.pb.c

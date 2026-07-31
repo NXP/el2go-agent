@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-#include "fwual_mbedtls_compat.h"
+#include "net_crypto.h"
 
 #include <zephyr/kvss/nvs.h>
 #include <zephyr/storage/flash_map.h>
@@ -21,8 +21,8 @@
 #include "debug.h"
 #include "fwual_state.h"
 
-/** Read buffer size for streaming SHA-256 hash computation.
- *  Stack-allocated; 4 KB is safe for Zephyr with default stack sizes. */
+/** Buffer size used by fwual_sha_fetch for each flash read during SHA-256 streaming.
+ *  Stack-allocated inside net_crypto_sha256_stream; 4 KB is safe for Zephyr. */
 #define FWUAL_VERIFY_CHUNK_SIZE 4096U
 
 /*
@@ -63,7 +63,6 @@ static const uint8_t s_secondary_slot_ids[] = {
 };
 
 /* MCUBoot slot table */
-
 typedef struct {
     uint8_t flash_area_id; /**< Zephyr flash_area ID for the inactive slot. */
     uint32_t size;         /**< Slot size in bytes, from flash_area_get_size(). */
@@ -71,6 +70,19 @@ typedef struct {
         write_block_size; /**< Flash write alignment in bytes, from flash_area_get_write_block_size(). */
     bool in_use;          /**< true when claimed by a prepare_image call. */
 } fwual_mcuboot_slot_t;
+
+/**
+ * @brief Context passed to fwual_sha_fetch() by net_crypto_sha256_stream().
+ *
+ * Tracks the current read position and remaining byte count within a flash
+ * slot so the fetch callback can serve successive chunks until the image is
+ * fully consumed.
+ */
+typedef struct {
+    uint32_t slot_index; /**< Index into s_slots[] of the slot being hashed. */
+    uint64_t offset;     /**< Byte offset of the next flash read within the slot. */
+    size_t remaining;    /**< Number of bytes still to be read. */
+} fwual_sha_fetch_ctx_t;
 
 static fwual_mcuboot_slot_t s_slots[FWUAL_MAX_IMAGES];
 static size_t s_slot_count;
@@ -90,6 +102,8 @@ static fwual_result_t fwual_nvs_read_state(fwual_update_state_t *out_state)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     ssize_t rc = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     rc = nvs_read(&s_nvs_fs, FWUAL_NVS_KEY_STATE, out_state, sizeof(*out_state));
     if (rc == -ENOENT) {
@@ -114,9 +128,16 @@ static fwual_result_t fwual_nvs_write_state(fwual_update_state_t state)
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     ssize_t rc = 0;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     rc = nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_STATE, &state, sizeof(state));
     if (rc < 0) {
         EL2GO_DBG_PRINTF(ERROR, "nvs_write failed: %d\n", (int)rc);
+        goto exit;
+    }
+    /* rc == 0 means the value was already stored unchanged -- treat as success. */
+    if (rc > 0 && rc != (ssize_t)sizeof(state)) {
+        EL2GO_DBG_PRINTF(ERROR, "nvs_write partial write: %d of %zu\n", (int)rc, sizeof(state));
         goto exit;
     }
 
@@ -132,6 +153,8 @@ static fwual_result_t fwual_nvs_read_lifecycle(fwual_state_t *out_state)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     ssize_t rc = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     rc = nvs_read(&s_nvs_fs, FWUAL_NVS_KEY_LIFECYCLE, out_state, sizeof(*out_state));
     if (rc == -ENOENT) {
@@ -150,14 +173,41 @@ exit:
     return result;
 }
 
+static fwual_result_t fwual_nvs_write_progress(const fwual_write_progress_t *progress)
+{
+    ssize_t rc = nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_WRITE_PROGRESS, progress, sizeof(*progress));
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (rc < 0) {
+        EL2GO_DBG_PRINTF(ERROR, "nvs_write progress failed: %d\n", (int)rc);
+        return FWUAL_ERR_INTERNAL;
+    }
+    /* rc == 0 means the value was already stored unchanged -- treat as success. */
+    if (rc > 0 && rc != (ssize_t)sizeof(*progress)) {
+        EL2GO_DBG_PRINTF(ERROR, "nvs_write progress partial write: %d of %zu\n", (int)rc,
+                         sizeof(*progress));
+        return FWUAL_ERR_INTERNAL;
+    }
+    return FWUAL_OK;
+}
+
 static fwual_result_t fwual_nvs_write_lifecycle(fwual_state_t state)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     ssize_t rc = 0;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     rc = nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_LIFECYCLE, &state, sizeof(state));
     if (rc < 0) {
         EL2GO_DBG_PRINTF(ERROR, "nvs_write lifecycle failed: %d\n", (int)rc);
+        goto exit;
+    }
+    /* rc == 0 means the value was already stored unchanged -- treat as success. */
+    if (rc > 0 && rc != (ssize_t)sizeof(state)) {
+        EL2GO_DBG_PRINTF(ERROR, "nvs_write lifecycle partial write: %d of %zu\n", (int)rc,
+                         sizeof(state));
         goto exit;
     }
 
@@ -177,6 +227,8 @@ static fwual_result_t fwual_slots_init(void)
     const struct flash_area *fa = NULL;
     uint8_t flash_area_id = 0U;
     int rc = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     if (s_slots_initialized) {
         result = FWUAL_OK;
@@ -238,6 +290,8 @@ static fwual_result_t fwual_mcuboot_prepare_slot(uint32_t image_id, uint64_t siz
     const struct flash_area *fa = NULL;
     int rc = 0;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (out_slot_index == NULL) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
@@ -296,6 +350,8 @@ static fwual_result_t fwual_mcuboot_cancel_slot(uint32_t slot_index)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (!s_slots_initialized) {
         goto exit;
     }
@@ -319,6 +375,8 @@ __export fwual_result_t fwual_init(void)
     struct flash_pages_info info = { 0 };
     int rc = 0;
 
+    EL2GO_DBG_TRACE_API_CALL;
+
     if (s_fwual_state.initialized) {
         result = FWUAL_OK;
         goto exit;
@@ -336,6 +394,10 @@ __export fwual_result_t fwual_init(void)
     }
 
     s_nvs_fs.sector_size = (uint32_t)info.size;
+    if (s_nvs_fs.sector_size == 0U) {
+        EL2GO_DBG_PRINTF(ERROR, "flash page size is zero -- cannot mount NVS\n");
+        goto exit;
+    }
     s_nvs_fs.sector_count = (uint16_t)(PARTITION_SIZE(storage_partition) / s_nvs_fs.sector_size);
 
     rc = nvs_mount(&s_nvs_fs);
@@ -396,6 +458,8 @@ __export fwual_result_t fwual_get_caps(fwual_caps_t *out_caps)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
 
+    EL2GO_DBG_TRACE_API_CALL;
+
     if (out_caps == NULL) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
@@ -418,6 +482,8 @@ exit:
 __export fwual_result_t fwual_open_session(fwual_session_t **out_session)
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (out_session == NULL) {
         result = FWUAL_ERR_INVALID_PARAM;
@@ -460,6 +526,8 @@ __export fwual_result_t fwual_close_session(fwual_session_t *session)
     size_t i = 0U;
     size_t image_count = 0U;
     fwual_result_t result = FWUAL_ERR_INTERNAL;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (session == NULL) {
         result = FWUAL_OK;
@@ -521,6 +589,8 @@ __export fwual_result_t fwual_prepare_image(fwual_session_t *session,
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     fwual_image_slot_t *new_slot = NULL;
     bool has_free = false;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (session == NULL || desc == NULL) {
         result = FWUAL_ERR_INVALID_PARAM;
@@ -616,6 +686,8 @@ __export fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     bool any_prepared = false;
 
+    EL2GO_DBG_TRACE_API_CALL;
+
     if (session == NULL || session != &s_fwual_state.session) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
@@ -686,6 +758,8 @@ static fwual_result_t fwual_mcuboot_write(uint32_t slot_index, uint64_t offset, 
     off_t physical_addr = 0;
     int rc = 0;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (data == NULL || len == 0U || !s_slots_initialized || slot_index >= (uint32_t)s_slot_count) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
@@ -732,6 +806,8 @@ static fwual_result_t fwual_mcuboot_finalize(uint32_t slot_index, uint64_t expec
 {
     fwual_result_t result = FWUAL_ERR_INTERNAL;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     EL2GO_DBG_PRINTF(INFO, "mcuboot_finalize: slot=%u expected_size=%llu\n", slot_index,
                      (unsigned long long)expected_size);
 
@@ -760,6 +836,8 @@ __export fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t i
     fwual_image_slot_t *slot = NULL;
     size_t i = 0U;
     size_t image_count = 0U;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     /* 1. NULL / zero guards */
     if (session == NULL) {
@@ -841,10 +919,8 @@ __export fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t i
         .finalized = slot->finalized,
     };
 
-    ssize_t nvs_rc =
-        nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_WRITE_PROGRESS, &progress, sizeof(progress));
-    if (nvs_rc < 0) {
-        EL2GO_DBG_PRINTF(ERROR, "fwual_write: NVS persist failed (non-fatal): %d\n", (int)nvs_rc);
+    if (fwual_nvs_write_progress(&progress) != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_write: NVS persist failed (non-fatal)\n");
     }
 
     /* 10. Log and return */
@@ -862,6 +938,8 @@ __export fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_ima
     fwual_image_slot_t *slot = NULL;
     size_t i = 0U;
     size_t image_count = 0U;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     /* 1. NULL guard */
     if (session == NULL) {
@@ -914,11 +992,8 @@ __export fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_ima
         .finalized = slot->finalized,
     };
 
-    ssize_t nvs_rc =
-        nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_WRITE_PROGRESS, &progress, sizeof(progress));
-    if (nvs_rc < 0) {
-        EL2GO_DBG_PRINTF(ERROR, "fwual_finalize_image: NVS persist failed (non-fatal): %d\n",
-                         (int)nvs_rc);
+    if (fwual_nvs_write_progress(&progress) != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_finalize_image: NVS persist failed (non-fatal)\n");
     }
 
     /* 8. Log and return */
@@ -936,6 +1011,8 @@ static fwual_result_t fwual_mcuboot_read(uint32_t slot_index, uint64_t offset, u
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     const struct flash_area *fa = NULL;
     int rc = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     if (buf == NULL || len == 0U || !s_slots_initialized || slot_index >= (uint32_t)s_slot_count) {
         result = FWUAL_ERR_INVALID_PARAM;
@@ -964,6 +1041,31 @@ exit:
         flash_area_close(fa);
     }
     return result;
+}
+
+/* Fetch callback: reads one chunk from flash into buffer and advances state.
+ * Returns bytes_read=0 to signal end-of-data to net_crypto_sha256_stream. */
+static el2go_status_t fwual_sha_fetch(void *context, uint8_t *buffer, size_t buffer_size,
+                                      size_t *bytes_read)
+{
+    fwual_sha_fetch_ctx_t *cb = (fwual_sha_fetch_ctx_t *)context;
+    size_t to_read = (cb->remaining < buffer_size) ? cb->remaining : buffer_size;
+
+    if (to_read == 0U) {
+        *bytes_read = 0U;
+        return EL2GO_STATUS_SUCCESS;
+    }
+
+    if (fwual_mcuboot_read(cb->slot_index, cb->offset, buffer, to_read) != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR, "fwual_sha_fetch: flash read failed at offset=%llu\n",
+                         (unsigned long long)cb->offset);
+        return EL2GO_STATUS_FAILURE;
+    }
+
+    cb->offset += (uint64_t)to_read;
+    cb->remaining -= to_read;
+    *bytes_read = to_read;
+    return EL2GO_STATUS_SUCCESS;
 }
 
 static fwual_result_t fwual_mcuboot_verify_platform(uint32_t slot_index)
@@ -996,15 +1098,11 @@ __export fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image
     fwual_image_slot_t *slot = NULL;
     size_t i = 0U;
     size_t image_count = 0U;
-    uint8_t chunk[FWUAL_VERIFY_CHUNK_SIZE] = { 0 };
     uint8_t computed_hash[32] = { 0 };
-    fwual_sha256_context sha_ctx = { 0 };
-    int mbedret = 0;
-    uint64_t offset = 0U;
-    size_t remaining = 0U;
     fwual_result_t auth_result = FWUAL_OK;
     fwual_write_progress_t progress = { 0 };
-    ssize_t nvs_rc = 0;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     /* 1. Validate session */
     if (session == NULL) {
@@ -1063,59 +1161,24 @@ __export fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image
     }
 
     /* 8. Compute SHA-256 by streaming from flash */
-    fwual_sha256_init(&sha_ctx);
-
-    mbedret = fwual_sha256_starts(&sha_ctx);
-    if (mbedret != 0) {
-        fwual_sha256_free(&sha_ctx);
-        EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: sha256_starts_ret failed: %d image_id=%u\n",
-                         mbedret, image_id);
-        result = FWUAL_ERR_INTERNAL;
-        goto exit;
-    }
-
-    offset = 0U;
-    remaining = (size_t)slot->desc.size;
-
-    while (remaining > 0U) {
-        size_t to_read = (remaining < FWUAL_VERIFY_CHUNK_SIZE) ? remaining :
-                                                                 FWUAL_VERIFY_CHUNK_SIZE;
-        fwual_result_t read_result = fwual_mcuboot_read(slot->slot_index, offset, chunk, to_read);
-        if (read_result != FWUAL_OK) {
-            fwual_sha256_free(&sha_ctx);
-            EL2GO_DBG_PRINTF(ERROR,
-                             "fwual_verify_image: flash read failed at "
-                             "offset=%llu image_id=%u\n",
-                             (unsigned long long)offset, image_id);
-            result = read_result;
-            goto exit;
-        }
-
-        mbedret = fwual_sha256_update(&sha_ctx, chunk, to_read);
-        if (mbedret != 0) {
-            fwual_sha256_free(&sha_ctx);
-            EL2GO_DBG_PRINTF(ERROR,
-                             "fwual_verify_image: sha256_update_ret failed: %d image_id=%u\n",
-                             mbedret, image_id);
+    {
+        fwual_sha_fetch_ctx_t cb_ctx = {
+            .slot_index = slot->slot_index,
+            .offset = 0U,
+            .remaining = (size_t)slot->desc.size,
+        };
+        el2go_status_t sha_status =
+            net_crypto_sha256_stream(fwual_sha_fetch, &cb_ctx, computed_hash);
+        if (sha_status != EL2GO_STATUS_SUCCESS) {
+            EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: sha256_stream failed: %d image_id=%u\n",
+                             sha_status, image_id);
             result = FWUAL_ERR_INTERNAL;
             goto exit;
         }
-
-        offset += (uint64_t)to_read;
-        remaining -= to_read;
-    }
-
-    mbedret = fwual_sha256_finish(&sha_ctx, computed_hash);
-    fwual_sha256_free(&sha_ctx);
-    if (mbedret != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: sha256_finish_ret failed: %d image_id=%u\n",
-                         mbedret, image_id);
-        result = FWUAL_ERR_INTERNAL;
-        goto exit;
     }
 
     /* 9. Constant-time hash comparison */
-    if (fwual_ct_memcmp(computed_hash, slot->desc.expected_hash, 32U) != 0) {
+    if (net_crypto_ct_memcmp(computed_hash, slot->desc.expected_hash, 32U) != 0) {
         EL2GO_DBG_PRINTF(ERROR, "Image verification FAILED: hash mismatch for image_id=%u\n",
                          image_id);
         /* Do NOT set slot->verified -- image remains uncommitted. */
@@ -1142,10 +1205,10 @@ __export fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image
     progress.next_expected_offset = slot->next_expected_offset;
     progress.finalized = slot->finalized;
     progress.verified = slot->verified;
-    nvs_rc = nvs_write(&s_nvs_fs, FWUAL_NVS_KEY_WRITE_PROGRESS, &progress, sizeof(progress));
-    if (nvs_rc < 0) {
-        EL2GO_DBG_PRINTF(ERROR, "fwual_verify_image: NVS persist failed for image_id=%u rc=%d\n",
-                         image_id, (int)nvs_rc);
+    if (fwual_nvs_write_progress(&progress) != FWUAL_OK) {
+        EL2GO_DBG_PRINTF(ERROR,
+                         "fwual_verify_image: NVS persist failed for image_id=%u (non-fatal)\n",
+                         image_id);
         /* Non-fatal: continue -- the in-RAM flag is set. */
     }
 
@@ -1161,6 +1224,8 @@ __export fwual_result_t fwual_commit_session(fwual_session_t *session)
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     size_t i = 0U;
     size_t image_count = 0U;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (session == NULL) {
         result = FWUAL_ERR_INVALID_PARAM;
@@ -1224,6 +1289,8 @@ __export bool fwual_is_image_staged(fwual_session_t *session, fwual_image_id_t i
     size_t i = 0U;
     size_t image_count = 0U;
 
+    EL2GO_DBG_TRACE_API_CALL;
+
     if (session == NULL || session != &s_fwual_state.session) {
         return false;
     }
@@ -1251,6 +1318,8 @@ __export fwual_result_t fwual_activate(void)
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     size_t i = 0U;
     size_t image_count = 0U;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (!s_fwual_state.initialized) {
         result = FWUAL_ERR_INVALID_STATE;
@@ -1322,6 +1391,8 @@ __export fwual_result_t fwual_check_storage(fwual_session_t *session, fwual_imag
     size_t i = 0U;
     size_t image_count = 0U;
 
+    EL2GO_DBG_TRACE_API_CALL;
+
     if (session == NULL) {
         result = FWUAL_ERR_INVALID_PARAM;
         goto exit;
@@ -1368,6 +1439,8 @@ __export fwual_result_t fwual_confirm(void)
     fwual_result_t result = FWUAL_ERR_INTERNAL;
     size_t i = 0U;
     int rc = 0;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (!s_fwual_state.initialized) {
         result = FWUAL_ERR_INVALID_STATE;
@@ -1417,6 +1490,8 @@ __export fwual_result_t fwual_rollback(void)
     size_t i = 0U;
     size_t image_count = 0U;
     int rc = 0;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (!s_fwual_state.initialized) {
         result = FWUAL_ERR_INVALID_STATE;
@@ -1478,6 +1553,8 @@ exit:
 
 __export fwual_state_t fwual_get_state(void)
 {
+    EL2GO_DBG_TRACE_API_CALL;
+
     if (!s_fwual_state.initialized) {
         return FWUAL_STATE_FAILED;
     }
@@ -1494,6 +1571,8 @@ __export fwual_result_t fwual_list_installed(fwual_installed_image_t *list, size
     size_t i = 0U;
     struct mcuboot_img_header hdr = { 0 };
     int rc = 0;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (list == NULL || in_out_count == NULL) {
         result = FWUAL_ERR_INVALID_PARAM;

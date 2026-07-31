@@ -41,6 +41,11 @@ void register_fwual_tests(void);
 void register_ota_lib_tests(void);
 
 /**
+ * @brief Register all internal EL2GO OTA Library tests.
+ */
+void register_ota_lib_internal_tests(void);
+
+/**
  * @brief Register all el2go_ota_agent_core tests.
  */
 void register_ota_agent_core_tests(void);

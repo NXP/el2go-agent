@@ -242,6 +242,18 @@ el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch_callba
 el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *hash_out);
 
 /**
+ * @brief Constant-time memory comparison (no early exit).
+ *
+ * Suitable for comparing cryptographic values such as hash digests.
+ *
+ * @param[in] a    First buffer.
+ * @param[in] b    Second buffer.
+ * @param[in] len  Number of bytes to compare.
+ * @return 0 if equal, non-zero otherwise.
+ */
+int net_crypto_ct_memcmp(const void *a, const void *b, size_t len);
+
+/**
  * @brief Configure ALPN protocol list for TLS negotiation.
  *
  * Must be called after net_crypto_configure and before net_crypto_connect.

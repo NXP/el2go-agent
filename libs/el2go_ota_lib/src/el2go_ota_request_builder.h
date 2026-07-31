@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 #include "ota/el2go_ota_lib.h"
+#include "compiler.h"
 
 /**
  * @brief Input for encoding a GetAvailableUpdates request.
@@ -79,8 +80,9 @@ typedef struct {
  * @return EL2GO_OTA_ERROR_INVALID_PARAM if req, buf, or out_len is NULL.
  * @return EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
  */
-el2go_ota_status_t el2go_ota_encode_check_update(const el2go_ota_check_update_req_t *req,
-                                                 uint8_t *buf, size_t buf_len, size_t *out_len);
+__export el2go_ota_status_t el2go_ota_encode_check_update(const el2go_ota_check_update_req_t *req,
+                                                          uint8_t *buf, size_t buf_len,
+                                                          size_t *out_len);
 
 /**
  * @brief Encode a FileRequest into a flat byte buffer.
@@ -94,8 +96,9 @@ el2go_ota_status_t el2go_ota_encode_check_update(const el2go_ota_check_update_re
  *         or package_id is NULL.
  * @return EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
  */
-el2go_ota_status_t el2go_ota_encode_fetch_package(const el2go_ota_fetch_pkg_req_t *req,
-                                                  uint8_t *buf, size_t buf_len, size_t *out_len);
+__export el2go_ota_status_t el2go_ota_encode_fetch_package(const el2go_ota_fetch_pkg_req_t *req,
+                                                           uint8_t *buf, size_t buf_len,
+                                                           size_t *out_len);
 
 /**
  * @brief Encode an UpdateStatusNotification into a flat byte buffer.
@@ -109,7 +112,8 @@ el2go_ota_status_t el2go_ota_encode_fetch_package(const el2go_ota_fetch_pkg_req_
  *         is NULL.
  * @return EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
  */
-el2go_ota_status_t el2go_ota_encode_report_status(const el2go_ota_report_status_req_t *req,
-                                                  uint8_t *buf, size_t buf_len, size_t *out_len);
+__export el2go_ota_status_t el2go_ota_encode_report_status(const el2go_ota_report_status_req_t *req,
+                                                           uint8_t *buf, size_t buf_len,
+                                                           size_t *out_len);
 
 #endif /* __EL2GO_OTA_REQUEST_BUILDER_H__ */

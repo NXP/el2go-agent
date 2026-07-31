@@ -14,12 +14,12 @@
 #include "plat_crypto_params.h"
 
 #include "el2go_ota_tls.h"
-#include "cred/el2go_ota_cred.h"
+#include "el2go_ota_cred.h"
 
 static const char *alpn_protos[] = { "h2", NULL };
 
 /**
- * @brief Internal TLS context — wraps a net_crypto context.
+ * @brief Internal TLS context -- wraps a net_crypto context.
  */
 struct el2go_ota_tls_ctx {
     net_crypto_ctx_t *net_ctx; /**< Underlying net_crypto context. */
@@ -39,7 +39,7 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
 
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!out_ctx || !platform_ctx || !config) {
+    if (out_ctx == NULL || platform_ctx == NULL || config == NULL) {
         return EL2GO_STATUS_INVALID_PARAMETER;
     }
 
@@ -47,7 +47,7 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
 
     /* Allocate and zero-initialise the wrapper context. */
     ctx = osal_calloc(1U, sizeof(*ctx));
-    if (!ctx) {
+    if (ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "Failed to allocate TLS context\n");
         return EL2GO_STATUS_ALLOCATION_ERROR;
     }
@@ -100,7 +100,7 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
     }
 
     /* Step 6: Associate the private key.
-     *         The key never leaves the platform keystore — net_crypto
+     *         The key never leaves the platform keystore -- net_crypto
      *         delegates signing to the platform during the TLS handshake. */
     status = net_crypto_associate_key(ctx->net_ctx, key_id);
     if (status != EL2GO_STATUS_SUCCESS) {
@@ -125,9 +125,7 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
         goto cleanup;
     }
 
-    /* ------------------------------------------------------------------
-     * Step 8: Configure ALPN — server requires HTTP/2 (gRPC).
-     * ------------------------------------------------------------------ */
+    /* Step 8: Configure ALPN -- server requires HTTP/2 (gRPC). */
     status = net_crypto_set_alpn(ctx->net_ctx, alpn_protos);
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "net_crypto_set_alpn failed: %d\n", status);
@@ -136,14 +134,14 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
 
     status = EL2GO_STATUS_SUCCESS; /* explicitly set before transferring ownership */
     *out_ctx = ctx;
-    ctx = NULL; /* ownership transferred — do not free in cleanup */
+    ctx = NULL; /* ownership transferred -- do not free in cleanup */
 
 cleanup:
     /* Certificate buffer no longer needed once passed to net_crypto. */
-    if (client_cert)
+    if (client_cert != NULL)
         osal_free(client_cert);
 
-    if (ctx)
+    if (ctx != NULL)
         el2go_ota_tls_deinit(ctx);
 
     if (status != EL2GO_STATUS_SUCCESS)
@@ -159,7 +157,7 @@ el2go_status_t el2go_ota_tls_connect(el2go_ota_tls_ctx_t *ctx)
 
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx || !ctx->net_ctx) {
+    if (ctx == NULL || ctx->net_ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "el2go_ota_tls_connect: ctx must not be NULL\n");
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
@@ -185,7 +183,7 @@ void el2go_ota_tls_disconnect(el2go_ota_tls_ctx_t *ctx)
 
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx || !ctx->net_ctx)
+    if (ctx == NULL || ctx->net_ctx == NULL)
         return;
 
     status = net_crypto_disconnect(ctx->net_ctx);
@@ -200,10 +198,10 @@ void el2go_ota_tls_deinit(el2go_ota_tls_ctx_t *ctx)
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx)
+    if (ctx == NULL)
         return;
 
-    if (ctx->net_ctx)
+    if (ctx->net_ctx != NULL)
         net_crypto_free(&ctx->net_ctx);
 
     osal_free(ctx);
@@ -215,7 +213,9 @@ el2go_status_t el2go_ota_tls_write(el2go_ota_tls_ctx_t *ctx, const uint8_t *buf,
     int ret = 0;
     el2go_status_t status = EL2GO_STATUS_FAILURE;
 
-    if (!ctx || !buf || len == 0U) {
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (ctx == NULL || buf == NULL || len == 0U) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
@@ -243,7 +243,9 @@ el2go_status_t el2go_ota_tls_read(el2go_ota_tls_ctx_t *ctx, uint8_t *buf, size_t
     int ret = 0;
     el2go_status_t status = EL2GO_STATUS_FAILURE;
 
-    if (!ctx || !buf || !out_len) {
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (ctx == NULL || buf == NULL || out_len == NULL) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }

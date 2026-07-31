@@ -13,6 +13,10 @@
 #include "el2go_ota_response_handler.h"
 #include "ota_delivery.pb.h"
 
+/* proto3 map<string,string> entry field numbers (wire format, RFC 3.10). */
+#define MAP_ENTRY_KEY_FIELD_TAG 1U   /* field 1 = key   */
+#define MAP_ENTRY_VALUE_FIELD_TAG 2U /* field 2 = value */
+
 /* Internal helpers -- string decode callback */
 
 typedef struct {
@@ -31,6 +35,8 @@ static bool decode_str_cb(pb_istream_t *stream, const pb_field_t *field, void **
     size_t len = stream->bytes_left;
     bool status = false;
     (void)field;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     if (len >= ctx->dst_size) {
         EL2GO_DBG_PRINTF(ERROR, "decode_str_cb: string too long (%zu >= %zu), truncating\n", len,
@@ -76,8 +82,10 @@ static bool decode_attr_map_cb(pb_istream_t *stream, const pb_field_t *field, vo
     (void)field;
     (void)arg;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (!pb_make_string_substream(stream, &sub)) {
-        goto exit;
+        goto exit; /* sub not open -- skip close_sub */
     }
 
     while (sub.bytes_left > 0U) {
@@ -88,32 +96,34 @@ static bool decode_attr_map_cb(pb_istream_t *stream, const pb_field_t *field, vo
             break;
         }
 
-        if (wire_type == PB_WT_STRING && (tag == 1U || tag == 2U)) {
+        if (wire_type == PB_WT_STRING &&
+            (tag == MAP_ENTRY_KEY_FIELD_TAG || tag == MAP_ENTRY_VALUE_FIELD_TAG)) {
             if (!pb_make_string_substream(&sub, &fld)) {
-                pb_close_string_substream(stream, &sub);
-                goto exit;
+                goto close_sub;
             }
-            dest = (tag == 1U) ? key : value;
-            dest_max = (tag == 1U) ? (sizeof(key) - 1U) : (sizeof(value) - 1U);
+            dest = (tag == MAP_ENTRY_KEY_FIELD_TAG) ? key : value;
+            dest_max = (tag == MAP_ENTRY_KEY_FIELD_TAG) ? (sizeof(key) - 1U) : (sizeof(value) - 1U);
             len = fld.bytes_left < dest_max ? fld.bytes_left : dest_max;
             if (!pb_read(&fld, (pb_byte_t *)dest, len)) {
-                pb_close_string_substream(&sub, &fld);
-                pb_close_string_substream(stream, &sub);
-                goto exit;
+                (void)pb_close_string_substream(&sub, &fld);
+                goto close_sub;
             }
             dest[len] = '\0';
-            pb_close_string_substream(&sub, &fld);
+            if (!pb_close_string_substream(&sub, &fld)) {
+                goto close_sub;
+            }
         } else {
             if (!pb_skip_field(&sub, wire_type)) {
-                pb_close_string_substream(stream, &sub);
-                goto exit;
+                goto close_sub;
             }
         }
     }
 
     EL2GO_DBG_PRINTF(INFO, "attribute: \"%s\" = \"%s\"\n", key, value);
-    pb_close_string_substream(stream, &sub);
     status = true;
+
+close_sub:
+    (void)pb_close_string_substream(stream, &sub);
 
 exit:
     return status;
@@ -140,6 +150,8 @@ static bool decode_file_metadata_cb(pb_istream_t *stream, const pb_field_t *fiel
     com_nxp_iot_ota_FileMetadata fmsg = com_nxp_iot_ota_FileMetadata_init_zero;
     bool status = false;
     (void)field;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     if (ctx->pkg->file_count >= EL2GO_OTA_MAX_FILE_METADATA) {
         EL2GO_DBG_PRINTF(ERROR, "decode_file_metadata_cb: "
@@ -211,6 +223,8 @@ static bool decode_package_cb(pb_istream_t *stream, const pb_field_t *field, voi
     bool status = false;
     (void)field;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (ctx->upd->package_count >= EL2GO_OTA_MAX_PACKAGES) {
         EL2GO_DBG_PRINTF(ERROR, "decode_package_cb: "
                                 "too many Package entries, skipping extra\n");
@@ -279,6 +293,8 @@ static bool decode_update_cb(pb_istream_t *stream, const pb_field_t *field, void
     bool status = false;
     (void)field;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     if (ctx->resp->update_count >= EL2GO_OTA_MAX_UPDATES) {
         EL2GO_DBG_PRINTF(ERROR, "decode_update_cb: "
                                 "too many Update entries, skipping extra\n");
@@ -340,6 +356,8 @@ static bool decode_data_cb(pb_istream_t *stream, const pb_field_t *field, void *
     bool status = false;
     (void)field;
 
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
     /* For pb_istream_from_buffer() streams, stream->state points to the
      * next byte to be read.  Capture it before draining. */
     *ctx->data_ptr = (const uint8_t *)stream->state;
@@ -364,6 +382,8 @@ el2go_ota_status_t el2go_ota_parse_check_update_response(const uint8_t *buf, siz
         com_nxp_iot_ota_AvailableUpdatesResponse_init_zero;
     pb_istream_t stream = { 0 };
     el2go_ota_status_t status = EL2GO_OTA_ERROR_DECODE;
+
+    EL2GO_DBG_TRACE_API_CALL;
 
     if (out == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "parse_check_update_response: out is NULL\n");
@@ -422,6 +442,8 @@ el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t *buf, si
     pb_istream_t stream = { 0 };
     el2go_ota_status_t status = EL2GO_OTA_ERROR_DECODE;
 
+    EL2GO_DBG_TRACE_API_CALL;
+
     if ((buf == NULL) || (out == NULL) || (buf_len == 0U)) {
         EL2GO_DBG_PRINTF(ERROR, "parse_fetch_package_response: invalid arguments\n");
         status = EL2GO_OTA_ERROR_INVALID_PARAM;
@@ -459,9 +481,17 @@ el2go_ota_status_t el2go_ota_parse_report_status_response(const uint8_t *buf, si
     pb_istream_t stream = { 0 };
     el2go_ota_status_t status = EL2GO_OTA_ERROR_DECODE;
 
+    EL2GO_DBG_TRACE_API_CALL;
+
     /* google.protobuf.Empty produces a zero-byte wire encoding. */
     if (buf_len == 0U) {
         status = EL2GO_OTA_SUCCESS;
+        goto exit;
+    }
+
+    if (buf == NULL) {
+        EL2GO_DBG_PRINTF(ERROR, "parse_report_status_response: buf is NULL\n");
+        status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
 

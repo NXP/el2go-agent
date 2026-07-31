@@ -69,27 +69,28 @@ typedef struct {
 
 /** @brief Parsed file metadata entry returned by el2go_ota_check_for_updates(). */
 typedef struct {
-    char file_id[EL2GO_OTA_MAX_FILE_ID_LEN];
-    char name[EL2GO_OTA_MAX_NAME_LEN];
-    int64_t size;
-    char checksum[EL2GO_OTA_MAX_CHECKSUM_LEN];
+    char file_id[EL2GO_OTA_MAX_FILE_ID_LEN];   /**< Null-terminated file identifier. */
+    char name[EL2GO_OTA_MAX_NAME_LEN];         /**< Null-terminated human-readable file name. */
+    int64_t size;                              /**< File size in bytes. */
+    char checksum[EL2GO_OTA_MAX_CHECKSUM_LEN]; /**< Null-terminated checksum string. */
 } el2go_ota_file_metadata_t;
 
 /** @brief Parsed package entry returned by el2go_ota_check_for_updates(). */
 typedef struct {
-    char package_id[EL2GO_OTA_MAX_PACKAGE_ID_LEN];
-    char name[EL2GO_OTA_MAX_NAME_LEN];
-    char version[EL2GO_OTA_MAX_VERSION_LEN];
-    el2go_ota_file_metadata_t files[EL2GO_OTA_MAX_FILE_METADATA];
-    size_t file_count;
+    char package_id[EL2GO_OTA_MAX_PACKAGE_ID_LEN]; /**< Null-terminated package identifier. */
+    char name[EL2GO_OTA_MAX_NAME_LEN];       /**< Null-terminated human-readable package name. */
+    char version[EL2GO_OTA_MAX_VERSION_LEN]; /**< Null-terminated package version string. */
+    el2go_ota_file_metadata_t
+        files[EL2GO_OTA_MAX_FILE_METADATA]; /**< Array of file metadata entries. */
+    size_t file_count;                      /**< Number of valid entries in files[]. */
 } el2go_ota_package_info_t;
 
 /** @brief Parsed update entry returned by el2go_ota_check_for_updates(). */
 typedef struct {
-    char update_id[EL2GO_OTA_MAX_UPDATE_ID_LEN];
-    char name[EL2GO_OTA_MAX_NAME_LEN];
-    el2go_ota_package_info_t packages[EL2GO_OTA_MAX_PACKAGES];
-    size_t package_count;
+    char update_id[EL2GO_OTA_MAX_UPDATE_ID_LEN]; /**< Null-terminated update identifier. */
+    char name[EL2GO_OTA_MAX_NAME_LEN];           /**< Null-terminated human-readable update name. */
+    el2go_ota_package_info_t packages[EL2GO_OTA_MAX_PACKAGES]; /**< Array of package entries. */
+    size_t package_count; /**< Number of valid entries in packages[]. */
 } el2go_ota_update_info_t;
 
 /**
@@ -100,11 +101,12 @@ typedef struct {
  * pointers into updates[0] for the common single-update case.
  */
 typedef struct {
-    bool update_available;
-    el2go_ota_update_info_t updates[EL2GO_OTA_MAX_UPDATES];
-    size_t update_count;
-    const char *first_update_id;  /**< Points into updates[0].update_id. */
-    const char *first_package_id; /**< Points into updates[0].packages[0].package_id. */
+    bool update_available; /**< true if at least one update is available. */
+    el2go_ota_update_info_t
+        updates[EL2GO_OTA_MAX_UPDATES]; /**< Array of parsed update descriptors. */
+    size_t update_count;                /**< Number of valid entries in updates[]. */
+    const char *first_update_id;        /**< Points into updates[0].update_id. */
+    const char *first_package_id;       /**< Points into updates[0].packages[0].package_id. */
 } el2go_ota_check_update_resp_t;
 
 /**

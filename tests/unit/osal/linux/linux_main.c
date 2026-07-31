@@ -73,6 +73,9 @@ int main(int argc, char **argv)
     if (!suite || strcmp(suite, "ota_lib") == 0)
         register_ota_lib_tests();
 
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_internal_tests();
+
     if (!suite || strcmp(suite, "ota_agent_core") == 0)
         register_ota_agent_core_tests();
 

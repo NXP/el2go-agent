@@ -13,8 +13,8 @@
 #include "ota/el2go_ota_lib.h"
 #include "common/el2go_platform.h"
 #include "el2go_ota_tls.h"
-#include "transport/el2go_ota_transport.h"
-#include "download/el2go_ota_download_engine.h"
+#include "el2go_ota_transport.h"
+#include "el2go_ota_download_engine.h"
 #include "el2go_ota_status_reporting.h"
 #include "debug.h"
 
@@ -62,7 +62,7 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
 
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx) {
+    if (ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
@@ -70,13 +70,13 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
 
     *ctx = NULL;
 
-    if (!config) {
+    if (config == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "config must not be NULL\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
     }
 
-    if (!config->hostname) {
+    if (config->hostname == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "config->hostname must not be NULL\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
@@ -88,7 +88,7 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
         goto exit;
     }
 
-    if (!config->server_ca_chain || config->server_ca_chain_size == 0U) {
+    if (config->server_ca_chain == NULL || config->server_ca_chain_size == 0U) {
         EL2GO_DBG_PRINTF(ERROR, "server_ca_chain must not be NULL "
                                 "and server_ca_chain_size must be > 0\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
@@ -96,7 +96,7 @@ __export el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx,
     }
 
     c = osal_calloc(1U, sizeof(*c));
-    if (!c) {
+    if (c == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "Failed to allocate context\n");
         ota_status = EL2GO_OTA_ERROR_MEMORY;
         goto exit;
@@ -143,7 +143,7 @@ __export el2go_ota_status_t el2go_ota_connect(el2go_ota_ctx_t *ctx)
 
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx) {
+    if (ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         ota_status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
@@ -184,7 +184,7 @@ __export el2go_ota_status_t el2go_ota_disconnect(el2go_ota_ctx_t *ctx)
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx) {
+    if (ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -194,7 +194,7 @@ __export el2go_ota_status_t el2go_ota_disconnect(el2go_ota_ctx_t *ctx)
         return EL2GO_OTA_SUCCESS;
     }
 
-    if (ctx->transport.deinit) {
+    if (ctx->transport.deinit != NULL) {
         ctx->transport.deinit(&ctx->transport);
     }
 
@@ -210,12 +210,12 @@ __export void el2go_ota_cleanup(el2go_ota_ctx_t **ctx)
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx || !*ctx) {
+    if (ctx == NULL || *ctx == NULL) {
         return;
     }
 
     if ((*ctx)->connected) {
-        if ((*ctx)->transport.deinit) {
+        if ((*ctx)->transport.deinit != NULL) {
             (*ctx)->transport.deinit(&(*ctx)->transport);
         }
 
@@ -225,7 +225,7 @@ __export void el2go_ota_cleanup(el2go_ota_ctx_t **ctx)
 
     el2go_ota_tls_deinit((*ctx)->tls_ctx);
 
-    if ((*ctx)->platform_ctx)
+    if ((*ctx)->platform_ctx != NULL)
         el2go_platform_free(&(*ctx)->platform_ctx);
 
     osal_free(*ctx);
@@ -236,7 +236,7 @@ __export void el2go_ota_cleanup(el2go_ota_ctx_t **ctx)
 
 __export bool el2go_ota_is_connected(const el2go_ota_ctx_t *ctx)
 {
-    if (!ctx) {
+    if (ctx == NULL) {
         return false;
     }
     return ctx->connected;
@@ -281,7 +281,7 @@ __export el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx,
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx) {
+    if (ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -291,7 +291,7 @@ __export el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx,
         return EL2GO_OTA_ERROR_NETWORK;
     }
 
-    if (!out_resp) {
+    if (out_resp == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "out_resp must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -307,7 +307,7 @@ __export el2go_ota_status_t el2go_ota_download_package(
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx) {
+    if (ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -317,7 +317,7 @@ __export el2go_ota_status_t el2go_ota_download_package(
         return EL2GO_OTA_ERROR_NETWORK;
     }
 
-    if (!update_id || !package_id || !chunk_cb) {
+    if (update_id == NULL || package_id == NULL || chunk_cb == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "update_id, package_id, and chunk_cb must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -332,7 +332,7 @@ __export el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const 
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx) {
+    if (ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -342,7 +342,7 @@ __export el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const 
         return EL2GO_OTA_ERROR_NETWORK;
     }
 
-    if (!update_id || !package_id) {
+    if (update_id == NULL || package_id == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "update_id and package_id must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -362,7 +362,7 @@ __export el2go_ota_status_t el2go_ota_schedule_status_report(const char *update_
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!update_id || !package_id) {
+    if (update_id == NULL || package_id == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "update_id and package_id must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -380,7 +380,7 @@ __export el2go_ota_status_t el2go_ota_get_pending_status(el2go_ota_pending_statu
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!out) {
+    if (out == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "out must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
@@ -392,7 +392,7 @@ __export el2go_ota_status_t el2go_ota_report_pending_status(el2go_ota_ctx_t *ctx
 {
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!ctx) {
+    if (ctx == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "ctx must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }

@@ -8,12 +8,9 @@
 #ifndef __EL2GO_OTA_STATUS_REPORTING_H__
 #define __EL2GO_OTA_STATUS_REPORTING_H__
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-
 #include "ota/el2go_ota_lib.h"
-#include "transport/el2go_ota_transport.h"
+#include "el2go_ota_transport.h"
+#include "compiler.h"
 
 /* NVS key for the pending status entry. */
 #define EL2GO_OTA_STATUS_NVS_KEY 1U
@@ -40,9 +37,10 @@
  * @return EL2GO_OTA_ERROR_SERVER on server error response.
  * @return EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
  */
-el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transport_t *transport,
-                                                     const char *update_id, const char *package_id,
-                                                     el2go_ota_update_outcome_t outcome);
+__export el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transport_t *transport,
+                                                              const char *update_id,
+                                                              const char *package_id,
+                                                              el2go_ota_update_outcome_t outcome);
 
 /**
  * @brief Internal implementation of el2go_ota_schedule_status_report().
@@ -57,9 +55,9 @@ el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transport_t *tran
  * @return EL2GO_OTA_SUCCESS on success.
  * @return EL2GO_OTA_ERROR_INTERNAL on KVS init or write failure.
  */
-el2go_ota_status_t el2go_ota_status_reporting_schedule(const char *update_id,
-                                                       const char *package_id,
-                                                       el2go_ota_update_outcome_t outcome);
+__export el2go_ota_status_t el2go_ota_status_reporting_schedule(const char *update_id,
+                                                                const char *package_id,
+                                                                el2go_ota_update_outcome_t outcome);
 
 /**
  * @brief Internal implementation of el2go_ota_report_pending_status().
@@ -74,7 +72,8 @@ el2go_ota_status_t el2go_ota_status_reporting_schedule(const char *update_id,
  * @return EL2GO_OTA_ERROR_SERVER on server error response.
  * @return EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
  */
-el2go_ota_status_t el2go_ota_status_reporting_retry_pending(el2go_ota_transport_t *transport);
+__export el2go_ota_status_t
+el2go_ota_status_reporting_retry_pending(el2go_ota_transport_t *transport);
 
 /**
  * @brief Internal implementation of el2go_ota_get_pending_status().
@@ -86,6 +85,6 @@ el2go_ota_status_t el2go_ota_status_reporting_retry_pending(el2go_ota_transport_
  * @return EL2GO_OTA_SUCCESS on success.
  * @return EL2GO_OTA_ERROR_INTERNAL on KVS init or read failure.
  */
-el2go_ota_status_t el2go_ota_status_reporting_read_pending(el2go_ota_pending_status_t *out);
+__export el2go_ota_status_t el2go_ota_status_reporting_read_pending(el2go_ota_pending_status_t *out);
 
 #endif /* __EL2GO_OTA_STATUS_REPORTING_H__ */

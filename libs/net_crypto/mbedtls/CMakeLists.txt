@@ -16,8 +16,8 @@ if(BUILD_ZEPHYR)
     set(MBEDTLS_EXTRA_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/port/net_zephyr.c)
     set(MBEDTLS_EXTRA_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}/port
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/net_crypto
+        ${PROJECT_ROOT}/libs/platforms
+        ${PROJECT_ROOT}/libs/net_crypto
     )
     set(MBEDTLS_LIBS "")
     set(mbedtls_INCLUDE_DIRS "")

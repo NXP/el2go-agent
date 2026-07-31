@@ -74,8 +74,8 @@ if(NOT BUILD_ZEPHYR)
 else()
     add_private_sources(fwual ${FWUAL_SOURCES})
     add_private_directories(fwual
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
+        ${PROJECT_ROOT}/include
+        ${PROJECT_ROOT}/priv
         ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
 

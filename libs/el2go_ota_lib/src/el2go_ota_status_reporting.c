@@ -13,9 +13,9 @@
 #include "el2go_ota_request_builder.h"
 #include "el2go_ota_response_handler.h"
 
-/* gRPC method path for ReportPackageStatus */
+/* gRPC method path for ReportUpdateStatus */
 #define STATUS_REPORTING_GRPC_METHOD \
-    "/com.nxp.iot.ota.update.poc.proto.OtaUpdateDeliveryService/ReportPackageStatus"
+    "/com.nxp.iot.ota.update.poc.proto.OtaUpdateDeliveryService/ReportUpdateStatus"
 
 /* Wire buffer size -- enough for UpdateStatusNotification + gRPC framing */
 #define STATUS_WIRE_BUF_SIZE 320U
@@ -55,7 +55,14 @@ static el2go_ota_status_t status_reporting_deliver(el2go_ota_transport_t *transp
     uint8_t wire_buf[STATUS_WIRE_BUF_SIZE] = { 0 };
     size_t encoded_len = 0U;
     size_t recv_len = 0U;
-    int rc = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (transport->send == NULL || transport->recv == NULL) {
+        EL2GO_DBG_PRINTF(ERROR, "transport vtable not fully initialised\n");
+        result = EL2GO_OTA_ERROR_INVALID_PARAM;
+        goto exit;
+    }
 
     req.update_id = update_id;
     req.status = outcome_to_wire_status(outcome);
@@ -67,17 +74,15 @@ static el2go_ota_status_t status_reporting_deliver(el2go_ota_transport_t *transp
         goto exit;
     }
 
-    rc = transport->send(transport, STATUS_REPORTING_GRPC_METHOD, wire_buf, encoded_len);
-    if (rc != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "transport send failed: %d\n", rc);
-        result = EL2GO_OTA_ERROR_NETWORK;
+    result = transport->send(transport, STATUS_REPORTING_GRPC_METHOD, wire_buf, encoded_len);
+    if (result != EL2GO_OTA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "transport send failed: %d\n", (int)result);
         goto exit;
     }
 
-    rc = transport->recv(transport, wire_buf, sizeof(wire_buf), &recv_len);
-    if (rc != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "transport recv failed: %d\n", rc);
-        result = EL2GO_OTA_ERROR_NETWORK;
+    result = transport->recv(transport, wire_buf, sizeof(wire_buf), &recv_len);
+    if (result != EL2GO_OTA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "transport recv failed: %d\n", (int)result);
         goto exit;
     }
 
@@ -100,6 +105,13 @@ el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transport_t *tran
 {
     el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
     el2go_ota_pending_status_t entry = { 0 };
+
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (transport == NULL || update_id == NULL || package_id == NULL) {
+        EL2GO_DBG_PRINTF(ERROR, "status_reporting_report: NULL argument\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
 
     result = el2go_ota_kvs_init();
     if (result != EL2GO_OTA_SUCCESS) {
@@ -140,6 +152,13 @@ el2go_ota_status_t el2go_ota_status_reporting_schedule(const char *update_id,
     el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
     el2go_ota_pending_status_t entry = { 0 };
 
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (update_id == NULL || package_id == NULL) {
+        EL2GO_DBG_PRINTF(ERROR, "status_reporting_schedule: NULL argument\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
+
     result = el2go_ota_kvs_init();
     if (result != EL2GO_OTA_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "KVS init failed; cannot schedule status report\n");
@@ -167,6 +186,13 @@ el2go_ota_status_t el2go_ota_status_reporting_read_pending(el2go_ota_pending_sta
 {
     el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
     bool found = false;
+
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (out == NULL) {
+        EL2GO_DBG_PRINTF(ERROR, "status_reporting_read_pending: out is NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
 
     result = el2go_ota_kvs_init();
     if (result != EL2GO_OTA_SUCCESS) {
@@ -198,6 +224,13 @@ el2go_ota_status_t el2go_ota_status_reporting_retry_pending(el2go_ota_transport_
     el2go_ota_pending_status_t entry = { 0 };
     el2go_ota_update_outcome_t outcome = EL2GO_OTA_OUTCOME_FAILURE;
     bool found = false;
+
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (transport == NULL) {
+        EL2GO_DBG_PRINTF(ERROR, "status_reporting_retry_pending: transport is NULL\n");
+        return EL2GO_OTA_ERROR_INVALID_PARAM;
+    }
 
     result = el2go_ota_kvs_init();
     if (result != EL2GO_OTA_SUCCESS) {

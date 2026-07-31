@@ -11,10 +11,10 @@
 
 #include "osal.h"
 #include "debug.h"
-#include "download/el2go_ota_download_engine.h"
+#include "builtin_macros.h"
+#include "el2go_ota_download_engine.h"
 #include "el2go_ota_request_builder.h"
 #include "el2go_ota_response_handler.h"
-#include "ota/el2go_ota_lib.h"
 #include "ota/el2go_ota_config.h"
 
 /* Wire buffer size: chunk data plus gRPC/protobuf framing overhead. */
@@ -36,6 +36,15 @@ el2go_ota_download_engine_check_for_updates(el2go_ota_transport_t *transport,
     size_t encoded_len = 0U;
     size_t recv_len = 0U;
     el2go_ota_status_t status = EL2GO_OTA_ERROR_NETWORK;
+
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (transport == NULL || out_resp == NULL || transport->send == NULL ||
+        transport->recv == NULL || (attr_count > 0U && attrs == NULL)) {
+        EL2GO_DBG_PRINTF(ERROR, "check_for_updates: invalid parameter (NULL pointer)\n");
+        status = EL2GO_OTA_ERROR_INVALID_PARAM;
+        goto exit;
+    }
 
     req.attrs = attrs;
     req.attr_count = attr_count;
@@ -100,6 +109,15 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     el2go_ota_status_t status = EL2GO_OTA_ERROR_NETWORK;
     el2go_ota_status_t cb_status = EL2GO_OTA_ERROR_NETWORK;
 
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (transport == NULL || update_id == NULL || package_id == NULL || chunk_cb == NULL ||
+        transport->send == NULL || transport->recv == NULL) {
+        EL2GO_DBG_PRINTF(ERROR, "fetch_package: invalid parameter (NULL pointer)\n");
+        status = EL2GO_OTA_ERROR_INVALID_PARAM;
+        goto exit;
+    }
+
     byte_offset = resume_offset;
 
     EL2GO_DBG_PRINTF(INFO, "Downloading package: update_id=%s package_id=%s offset=%zu\n",
@@ -110,9 +128,17 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
         req.package_id = package_id;
         req.artifact_id = NULL;
         req.has_range_start = true;
-        req.range_start = (int64_t)byte_offset;
+        if (SET_OVERFLOW(byte_offset, req.range_start)) {
+            EL2GO_DBG_PRINTF(ERROR, "fetch_package: byte_offset overflows range_start\n");
+            status = EL2GO_OTA_ERROR_INVALID_PARAM;
+            goto exit;
+        }
         req.has_range_end = true;
-        req.range_end = (int64_t)(byte_offset + EL2GO_OTA_CHUNK_SIZE - 1U);
+        if (ADD_OVERFLOW(req.range_start, (int64_t)(EL2GO_OTA_CHUNK_SIZE - 1U), &req.range_end)) {
+            EL2GO_DBG_PRINTF(ERROR, "fetch_package: range_end overflow\n");
+            status = EL2GO_OTA_ERROR_INVALID_PARAM;
+            goto exit;
+        }
 
         /* Encoding failure is not retried. */
         status = el2go_ota_encode_fetch_package(&req, wire_buf, sizeof(wire_buf), &encoded_len);
