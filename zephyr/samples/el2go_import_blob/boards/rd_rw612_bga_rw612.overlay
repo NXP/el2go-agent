@@ -1,0 +1,23 @@
+/*
+ * Copyright 2024-2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		secure_storage_its_partition = &its_partition;
+	};
+};
+
+&mx25u51245g {
+	partitions {
+		/delete-node/ partition@760000;
+
+		its_partition: partition@840000 {
+			compatible = "zephyr,mapped-partition";
+			label = "its";
+			reg = <0x00840000 DT_SIZE_K(128)>;
+		};
+	};
+};

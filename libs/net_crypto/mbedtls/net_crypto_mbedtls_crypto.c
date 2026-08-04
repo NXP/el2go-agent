@@ -9,7 +9,7 @@
  * Pure-crypto subset of the mbedTLS net_crypto backend.
  *
  * Contains: SHA-256 (one-shot and streaming), certificate public-key
- *           extraction, and self-signed certificate generation.
+ *           extraction, DN extraction, and self-signed certificate generation.
  *
  * CSR generation lives in net_crypto_mbedtls_crypto_csr.c, which is
  * compiled only when PEM write support is available (MBEDTLS_CSR_ENABLED).
@@ -163,6 +163,43 @@ el2go_status_t net_crypto_cert_get_pubkey(const uint8_t *cert_der, size_t cert_d
     }
 
     EL2GO_DBG_PRINTF(VERBOSE, "Public key extracted (%zu bytes)\n", *pubkey_len);
+
+exit:
+    mbedtls_x509_crt_free(&cert);
+
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
+}
+
+el2go_status_t net_crypto_cert_get_dn(const uint8_t *cert_der, size_t cert_der_len, bool is_subject,
+                                      char *dn_out, size_t dn_out_size)
+{
+    int ret = 0;
+    mbedtls_x509_crt cert = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!cert_der || !cert_der_len || !dn_out || !dn_out_size)
+        return EL2GO_STATUS_INVALID_PARAMETER;
+
+    mbedtls_x509_crt_init(&cert);
+
+    ret = mbedtls_x509_crt_parse(&cert, cert_der, cert_der_len);
+    if (ret != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "Certificate parse failed: -0x%04x\n", -ret);
+        status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
+        goto exit;
+    }
+
+    ret = mbedtls_x509_dn_gets(dn_out, dn_out_size, is_subject ? &cert.subject : &cert.issuer);
+    if (ret < 0) {
+        EL2GO_DBG_PRINTF(ERROR, "DN extraction failed: -0x%04x\n", -ret);
+        status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(VERBOSE, "%s DN extracted: %s\n", is_subject ? "Subject" : "Issuer", dn_out);
 
 exit:
     mbedtls_x509_crt_free(&cert);

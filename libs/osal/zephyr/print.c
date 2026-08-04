@@ -7,9 +7,9 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <zephyr/logging/log.h>
 #include "osal.h"
 
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(el2go_osal, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define HEX_DUMP_LINE_LENGTH 16
@@ -18,6 +18,10 @@ void osal_printf(unsigned int level, const char *fmt, ...)
 {
     va_list args;
     char buf[256] = { 0 };
+
+    if (level == DBG_LEVEL_NONE) {
+        return;
+    }
 
     va_start(args, fmt);
     (void)vsnprintf(buf, sizeof(buf), fmt, args);
@@ -37,7 +41,6 @@ void osal_printf(unsigned int level, const char *fmt, ...)
     case DBG_LEVEL_EXTRA:
         LOG_DBG("%s", buf);
         break;
-    case DBG_LEVEL_NONE:
     default:
         break;
     }

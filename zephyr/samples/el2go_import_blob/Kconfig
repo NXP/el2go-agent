@@ -1,0 +1,39 @@
+# Copyright 2024-2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+source "Kconfig.zephyr"
+
+config VALIDATE_PSA_IMPORT_MASTER_KEY
+	bool "Validate imported AES master key blob via PSA cipher operation"
+	help
+	  When enabled, the sample calls psa_cipher_encrypt() with the imported
+	  AES master key to confirm that the key was provisioned and imported
+	  successfully.
+
+config VALIDATE_PSA_IMPORT_KEY_PAIR
+	bool "Validate imported ECC key-pair blob via PSA sign operation"
+	help
+	  When enabled, the sample calls psa_sign_message() with the imported
+	  ECC key pair to confirm that the key was provisioned and imported
+	  successfully.
+
+config VALIDATE_PSA_IMPORT_CERT
+	bool "Validate imported certificate blob by parsing it with mbedTLS"
+	depends on VALIDATE_PSA_IMPORT_KEY_PAIR
+	help
+	  When enabled, the sample exports the certificate blob via
+	  psa_export_key() and parses it with mbedTLS to print the subject,
+	  issuer, and public key fields.  Requires VALIDATE_PSA_IMPORT_KEY_PAIR.
+
+config BLOB_AREA
+	hex "Flash address of the blob area"
+	default 0x088B0000
+	help
+	  Physical address of the flash region where EL2GO provisioned blobs
+	  are stored.  Must match the address used during provisioning.
+
+config BLOB_AREA_SIZE
+	hex "Size of the blob flash area in bytes"
+	default 0x2000
+	help
+	  Size of the flash region where EL2GO provisioned blobs are stored.

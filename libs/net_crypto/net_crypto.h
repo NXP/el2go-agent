@@ -284,6 +284,20 @@ el2go_status_t net_crypto_cert_get_pubkey(const uint8_t *cert_der, size_t cert_d
                                           size_t *pubkey_len);
 
 /**
+ * @brief Extract the subject or issuer Distinguished Name from a DER-encoded X.509 certificate.
+ *
+ * @param[in]  cert_der      DER or PEM encoded certificate buffer.
+ * @param[in]  cert_der_len  Length of the certificate buffer in bytes.
+ * @param[in]  is_subject    true to extract the subject DN, false for the issuer DN.
+ * @param[out] dn_out        Output buffer for the null-terminated DN string.
+ * @param[in]  dn_out_size   Size of the output buffer in bytes.
+ *
+ * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
+ */
+el2go_status_t net_crypto_cert_get_dn(const uint8_t *cert_der, size_t cert_der_len, bool is_subject,
+                                      char *dn_out, size_t dn_out_size);
+
+/**
  * @brief Calculate SHA-256 hash of in-memory data.
  *
  * @param data      Input data buffer.

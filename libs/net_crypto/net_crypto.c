@@ -172,6 +172,18 @@ __weak el2go_status_t net_crypto_cert_get_pubkey(const uint8_t *cert_der, size_t
     return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
 
+__weak el2go_status_t net_crypto_cert_get_dn(const uint8_t *cert_der, size_t cert_der_len,
+                                             bool is_subject, char *dn_out, size_t dn_out_size)
+{
+    (void)cert_der;
+    (void)cert_der_len;
+    (void)is_subject;
+    (void)dn_out;
+    (void)dn_out_size;
+
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
+}
+
 __weak el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *hash_out)
 {
     (void)data;

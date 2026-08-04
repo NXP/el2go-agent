@@ -15,4 +15,5 @@ endif()
 # the Linux host build.
 if(NOT OS STREQUAL "linux")
     add_subdirectory(el2go_csr)
+    add_subdirectory(el2go_import_blob)
 endif()
