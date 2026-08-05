@@ -15,6 +15,7 @@
 #include "common/el2go_datastore.h"
 #include "common/el2go_keystore.h"
 #include "common/el2go_status.h"
+#include "rtp/el2go_rtp.h"
 
 /**
  * @brief Check if the EdgeLock 2GO datastore needs update

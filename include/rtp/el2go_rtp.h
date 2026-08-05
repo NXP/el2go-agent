@@ -16,6 +16,14 @@
 #include "common/el2go_platform.h"
 
 /*
+ * Binary data buffer (e.g. for passing a server certificate to the RTP agent)
+ */
+typedef struct {
+    uint8_t *data; /* Pointer to data */
+    size_t len;    /* Length in bytes */
+} el2go_buffer_t;
+
+/*
  * RTP Agent context
  *
  * This is an opaque structure. Users should not access its members directly.

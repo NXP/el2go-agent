@@ -25,6 +25,7 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_FILE_CLOSE_ERROR,         /**< Failed to close a file */
     EL2GO_STATUS_FILE_WRITE_ERROR,         /**< Failed to write or flush a file */
     EL2GO_STATUS_FILE_SEEK_ERROR,          /**< Failed to seek within a file */
+    EL2GO_STATUS_FILE_TELL_ERROR,          /**< Failed to query file position */
     EL2GO_STATUS_INVALID_POINTER,          /**< A required pointer is NULL or invalid */
     EL2GO_STATUS_ALLOCATION_ERROR,         /**< Memory allocation failed */
     EL2GO_STATUS_BUFFER_TOO_SMALL,         /**< Provided buffer is too small for the output */

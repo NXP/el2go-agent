@@ -13,6 +13,7 @@
 #include "debug.h"
 
 #include "el2go_datastore_fs.h"
+#include "datastore_priv.h"
 
 #define FILE_POINTER_NUMBER 2U
 #define MAX_UINT_DECIMAL_DIGITS 20U
@@ -31,6 +32,7 @@ static el2go_status_t el2go_datastore_fs_read(void *context, void *dest, size_t 
 static el2go_status_t el2go_datastore_fs_write(void *context, const void *src, size_t offset,
                                                size_t len, size_t *bytes_written);
 static el2go_status_t el2go_datastore_fs_commit(void *context);
+static el2go_status_t el2go_datastore_fs_get_size(void *context, size_t *size);
 static el2go_status_t el2go_datastore_fs_free(void *context);
 
 static const el2go_datastore_ops_t fs_ops = {
@@ -39,6 +41,7 @@ static const el2go_datastore_ops_t fs_ops = {
     .read = el2go_datastore_fs_read,
     .write = el2go_datastore_fs_write,
     .commit = el2go_datastore_fs_commit,
+    .get_size = el2go_datastore_fs_get_size,
     .free = el2go_datastore_fs_free,
 };
 
@@ -296,6 +299,13 @@ static el2go_status_t el2go_datastore_fs_write(void *context, const void *src, s
         goto exit;
     }
 
+    /* Verify a write transaction is in progress (allocate must precede write). */
+    if (ctx->idx_read == ctx->idx_write) {
+        EL2GO_DBG_PRINTF(ERROR, "No write transaction in progress\n");
+        status = EL2GO_STATUS_INVALID_STATE;
+        goto exit;
+    }
+
     if (!ctx->fp[ctx->idx_write]) {
         EL2GO_DBG_PRINTF(ERROR, "Write file pointer is NULL\n");
         status = EL2GO_STATUS_INVALID_POINTER;
@@ -420,6 +430,51 @@ static el2go_status_t el2go_datastore_fs_commit(void *context)
         EL2GO_DBG_PRINTF(ERROR, "Failed to reopen read file\n");
         goto exit;
     }
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
+}
+
+static el2go_status_t el2go_datastore_fs_get_size(void *context, size_t *size)
+{
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    el2go_datastore_fs_context_t *ctx = (el2go_datastore_fs_context_t *)context;
+    long file_size = 0;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!ctx || !size) {
+        status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    if (ctx->idx_read >= FILE_POINTER_NUMBER) {
+        EL2GO_DBG_PRINTF(ERROR, "Read index out of bounds\n");
+        status = EL2GO_STATUS_INVALID_STATE;
+        goto exit;
+    }
+
+    if (!ctx->fp[ctx->idx_read]) {
+        EL2GO_DBG_PRINTF(ERROR, "Read file pointer is NULL\n");
+        status = EL2GO_STATUS_INVALID_POINTER;
+        goto exit;
+    }
+
+    if (osal_fseek(ctx->fp[ctx->idx_read], 0, OSAL_SEEK_END) != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to seek to end of file\n");
+        status = EL2GO_STATUS_FILE_SEEK_ERROR;
+        goto exit;
+    }
+
+    file_size = osal_ftell(ctx->fp[ctx->idx_read]);
+    if (file_size < 0) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to get file size\n");
+        status = EL2GO_STATUS_FILE_TELL_ERROR;
+        goto exit;
+    }
+
+    *size = (size_t)file_size;
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);

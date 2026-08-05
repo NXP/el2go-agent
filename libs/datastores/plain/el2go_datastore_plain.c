@@ -12,11 +12,19 @@
 #include "debug.h"
 
 #include "el2go_datastore_plain.h"
+#include "datastore_priv.h"
 
 #define BUFFER_NUMBER 2U
 
+/* Internal buffer slot: tracks both the allocation and how many bytes have been written. */
+typedef struct {
+    uint8_t *data;     /* Pointer to allocated memory */
+    size_t len;        /* Total allocated length */
+    size_t bytes_used; /* High-water mark of bytes written */
+} plain_slot_t;
+
 typedef struct el2go_datastore_plain_context {
-    el2go_buffer_t buffers[BUFFER_NUMBER];
+    plain_slot_t slots[BUFFER_NUMBER];
     unsigned int idx_read;
     unsigned int idx_write;
 } el2go_datastore_plain_context_t;
@@ -29,14 +37,15 @@ static el2go_status_t el2go_datastore_plain_read(void *context, void *dest, size
 static el2go_status_t el2go_datastore_plain_write(void *context, const void *src, size_t offset,
                                                   size_t len, size_t *bytes_written);
 static el2go_status_t el2go_datastore_plain_commit(void *context);
+static el2go_status_t el2go_datastore_plain_get_size(void *context, size_t *size);
 static el2go_status_t el2go_datastore_plain_free(void *context);
-
 static const el2go_datastore_ops_t plain_ops = {
     .init = el2go_datastore_plain_init,
     .allocate = el2go_datastore_plain_allocate,
     .read = el2go_datastore_plain_read,
     .write = el2go_datastore_plain_write,
     .commit = el2go_datastore_plain_commit,
+    .get_size = el2go_datastore_plain_get_size,
     .free = el2go_datastore_plain_free,
 };
 
@@ -113,11 +122,12 @@ static el2go_status_t el2go_datastore_plain_allocate(void *context, size_t len)
 	 * (without commit) the ongoing transaction and starting a fresh one.
 	 */
     if (ctx->idx_read != ctx->idx_write) {
-        if (ctx->buffers[ctx->idx_write].data) {
-            osal_free(ctx->buffers[ctx->idx_write].data);
-            ctx->buffers[ctx->idx_write].data = NULL;
+        if (ctx->slots[ctx->idx_write].data) {
+            osal_free(ctx->slots[ctx->idx_write].data);
+            ctx->slots[ctx->idx_write].data = NULL;
         }
-        ctx->buffers[ctx->idx_write].len = 0;
+        ctx->slots[ctx->idx_write].len = 0;
+        ctx->slots[ctx->idx_write].bytes_used = 0;
     } else {
         ctx->idx_write = (ctx->idx_write + 1) & 0x01;
     }
@@ -128,14 +138,15 @@ static el2go_status_t el2go_datastore_plain_allocate(void *context, size_t len)
         goto exit;
     }
 
-    ctx->buffers[ctx->idx_write].data = (uint8_t *)osal_calloc(len, sizeof(uint8_t));
-    if (!ctx->buffers[ctx->idx_write].data) {
+    ctx->slots[ctx->idx_write].data = (uint8_t *)osal_calloc(len, sizeof(uint8_t));
+    if (!ctx->slots[ctx->idx_write].data) {
         EL2GO_DBG_PRINTF(ERROR, "Allocation error\n");
         status = EL2GO_STATUS_ALLOCATION_ERROR;
         goto exit;
     }
 
-    ctx->buffers[ctx->idx_write].len = len;
+    ctx->slots[ctx->idx_write].len = len;
+    ctx->slots[ctx->idx_write].bytes_used = 0;
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
@@ -167,14 +178,14 @@ static el2go_status_t el2go_datastore_plain_write(void *context, const void *src
         goto exit;
     }
 
-    write_buffer = ctx->buffers[ctx->idx_write].data;
+    write_buffer = ctx->slots[ctx->idx_write].data;
     if (!write_buffer) {
         EL2GO_DBG_PRINTF(ERROR, "Write buffer is NULL\n");
         status = EL2GO_STATUS_INVALID_POINTER;
         goto exit;
     }
 
-    write_buffer_size = ctx->buffers[ctx->idx_write].len;
+    write_buffer_size = ctx->slots[ctx->idx_write].len;
 
     /* Check if offset is within bounds */
     if (offset >= write_buffer_size) {
@@ -202,6 +213,13 @@ static el2go_status_t el2go_datastore_plain_write(void *context, const void *src
 
     memcpy(write_buffer + offset, src, actual_written);
     *bytes_written = actual_written;
+
+    /* Update high-water mark of bytes written for this slot. */
+    {
+        size_t new_end = offset + actual_written;
+        if (new_end > ctx->slots[ctx->idx_write].bytes_used)
+            ctx->slots[ctx->idx_write].bytes_used = new_end;
+    }
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
@@ -233,14 +251,15 @@ static el2go_status_t el2go_datastore_plain_read(void *context, void *dest, size
         goto exit;
     }
 
-    read_buffer = ctx->buffers[ctx->idx_read].data;
+    read_buffer = ctx->slots[ctx->idx_read].data;
     if (!read_buffer) {
         EL2GO_DBG_PRINTF(ERROR, "Read buffer is NULL\n");
         status = EL2GO_STATUS_INVALID_POINTER;
         goto exit;
     }
 
-    read_buffer_size = ctx->buffers[ctx->idx_read].len;
+    /* Use bytes actually written, not the allocation size. */
+    read_buffer_size = ctx->slots[ctx->idx_read].bytes_used;
 
     /* Check if offset is within bounds */
     if (offset >= read_buffer_size) {
@@ -293,14 +312,40 @@ static el2go_status_t el2go_datastore_plain_commit(void *context)
     }
 
     /* Free the current read buffer */
-    if (ctx->buffers[ctx->idx_read].data) {
-        osal_free(ctx->buffers[ctx->idx_read].data);
-        ctx->buffers[ctx->idx_read].data = NULL;
+    if (ctx->slots[ctx->idx_read].data) {
+        osal_free(ctx->slots[ctx->idx_read].data);
+        ctx->slots[ctx->idx_read].data = NULL;
     }
-    ctx->buffers[ctx->idx_read].len = 0;
+    ctx->slots[ctx->idx_read].len = 0;
+    ctx->slots[ctx->idx_read].bytes_used = 0;
 
     /* Make reads point to the write buffer */
     ctx->idx_read = ctx->idx_write;
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
+}
+
+static el2go_status_t el2go_datastore_plain_get_size(void *context, size_t *size)
+{
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    el2go_datastore_plain_context_t *ctx = (el2go_datastore_plain_context_t *)context;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!ctx || !size) {
+        status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    if (ctx->idx_read >= BUFFER_NUMBER) {
+        EL2GO_DBG_PRINTF(ERROR, "Overflow in read index\n");
+        status = EL2GO_STATUS_INVALID_STATE;
+        goto exit;
+    }
+
+    *size = ctx->slots[ctx->idx_read].bytes_used;
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
@@ -319,11 +364,12 @@ static el2go_status_t el2go_datastore_plain_free(void *context)
         goto exit;
 
     for (; i < BUFFER_NUMBER; i++) {
-        if (ctx->buffers[i].data) {
-            osal_free(ctx->buffers[i].data);
-            ctx->buffers[i].data = NULL;
+        if (ctx->slots[i].data) {
+            osal_free(ctx->slots[i].data);
+            ctx->slots[i].data = NULL;
         }
-        ctx->buffers[i].len = 0;
+        ctx->slots[i].len = 0;
+        ctx->slots[i].bytes_used = 0;
     }
 
     ctx->idx_read = 0;

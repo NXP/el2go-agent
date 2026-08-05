@@ -15,10 +15,17 @@ add_library(el2go_datastore OBJECT
 
 target_include_directories(el2go_datastore
     PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/fs
         ${CMAKE_CURRENT_SOURCE_DIR}/plain
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/priv
         ${CMAKE_SOURCE_DIR}/libs/osal/include
+)
+
+target_link_libraries(el2go_datastore
+    PRIVATE
+        el2go_protobuf
+        pb_utils
 )

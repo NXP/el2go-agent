@@ -22,13 +22,16 @@ typedef enum {
     EL2GO_DATASTORE_TYPE_CUSTOM /* Custom user-provided datastore */
 } el2go_datastore_type_t;
 
-/*
- * Binary data buffer
+/**
+ * @brief Chunk size in bytes used when streaming datastore read/write data.
+ *
+ * Data is transferred between the datastore and the protobuf stream in chunks
+ * of this size. Increasing the value reduces loop iterations at the cost of
+ * more stack space.
  */
-typedef struct {
-    uint8_t *data; /* Pointer to data */
-    size_t len;    /* Length in bytes */
-} el2go_buffer_t;
+#ifndef EL2GO_DATASTORE_CHUNK_SIZE
+#define EL2GO_DATASTORE_CHUNK_SIZE 64U
+#endif
 
 /* Forward declarations */
 typedef struct el2go_datastore el2go_datastore_t;
@@ -123,6 +126,16 @@ typedef el2go_status_t (*el2go_datastore_write_t)(void *context, const void *src
 typedef el2go_status_t (*el2go_datastore_commit_t)(void *context);
 
 /**
+ * el2go_datastore_get_size_t - Get the number of bytes currently stored
+ * @context: User-provided context pointer
+ * @size:    Output: number of bytes available for reading from the current
+ *           read slot (i.e. excluding the write-in-progress slot)
+ *
+ * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+typedef el2go_status_t (*el2go_datastore_get_size_t)(void *context, size_t *size);
+
+/**
  * el2go_datastore_free_t - Free datastore resources
  * @context: User-provided context pointer
  *
@@ -139,6 +152,7 @@ struct el2go_datastore_ops {
     el2go_datastore_read_t read;         /* Read data from the datastore */
     el2go_datastore_write_t write;       /* Write data to the datastore */
     el2go_datastore_commit_t commit;     /* Commit pending changes */
+    el2go_datastore_get_size_t get_size; /* Get stored data size */
     el2go_datastore_free_t free;         /* Free datastore resources */
 };
 
@@ -251,6 +265,20 @@ el2go_status_t el2go_datastore_write(el2go_datastore_t *datastore, const void *s
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_datastore_commit(el2go_datastore_t *datastore);
+
+/**
+ * el2go_datastore_get_size - Get the number of bytes available for reading
+ * @datastore: Datastore
+ * @size:      Output: number of bytes available from the current read slot
+ *
+ * Returns the size of the data currently readable from the datastore.
+ * For FS datastores this is the file size; for PLAIN datastores this is
+ * the allocated buffer length. Does not read any data.
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+el2go_status_t el2go_datastore_get_size(el2go_datastore_t *datastore, size_t *size);
 
 /**
  * el2go_datastore_free - Free a datastore
