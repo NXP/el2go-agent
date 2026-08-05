@@ -184,7 +184,10 @@ __export el2go_status_t el2go_platform_destroy_key(el2go_platform_ctx_t *platfor
     id = *(psa_key_id_t *)key_id;
     psa_status = psa_its_remove(id);
 
-    if (psa_status == PSA_ERROR_INVALID_HANDLE) {
+    /* Treat both INVALID_HANDLE and DOES_NOT_EXIST as NOT_FOUND so that
+     * the caller can report PSA_ERROR_DOES_NOT_EXIST to the server rather
+     * than leaving an unhandled error code that triggers PROVISIONING_FAILED. */
+    if (psa_status == PSA_ERROR_INVALID_HANDLE || psa_status == PSA_ERROR_DOES_NOT_EXIST) {
         el2go_status = EL2GO_STATUS_NOT_FOUND;
         goto exit;
     }

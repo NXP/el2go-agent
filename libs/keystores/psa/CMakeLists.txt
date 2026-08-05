@@ -12,4 +12,5 @@ target_sources(el2go_keystore PRIVATE
 target_link_libraries(el2go_keystore PRIVATE
     el2go_protobuf
     el2go_platform
+    pb_utils
 )

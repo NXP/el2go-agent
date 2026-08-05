@@ -11,7 +11,11 @@
 #include "common/el2go_keystore.h"
 #include "common/el2go_status.h"
 
+#include <stdbool.h>
+
 #include "pb.h"
+#include "pb_encode.h"
+#include "Dispatcher.pb.h"
 #include "ServiceDescriptor.pb.h"
 
 /**
@@ -21,20 +25,23 @@
  */
 
 /**
- * @brief Handle a keystore request
+ * @brief Handle a keystore provisioning request.
  *
- * Processes incoming keystore requests by decoding the request, executing
- * the appropriate command, and encoding the response.
+ * Processes an incoming keystore request by decoding it, executing the
+ * appropriate command, and encoding the response into ostream.
+ * Conforms to endpoint_handle_request_t so it can be registered directly
+ * in the dispatcher endpoint table without a wrapper.
  *
- * @param[in]  keystore      Pointer to keystore structure.
- * @param[in]  message_type  Message type fields.
- * @param[in]  istream       Input stream with request data.
- * @param[out] ostream       Output stream for response data.
+ * @param[in]  ctx          Pointer to the el2go_keystore_t (void * for callback compatibility).
+ * @param[in]  message_type nanopb fields descriptor identifying the request type.
+ * @param[in]  istream      Input stream positioned at the start of the request.
+ * @param[out] ostream      Output stream for the encoded response payload.
  *
- * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
+ * @retval EL2GO_STATUS_SUCCESS on success.
+ * @retval el2go_status_t error code on decode or provisioning failure.
  */
-el2go_status_t el2go_keystore_handle_request(el2go_keystore_t *keystore, const void *message_type,
-                                             void *istream, void *ostream);
+el2go_status_t el2go_keystore_handle_request(void *ctx, const pb_field_t *message_type,
+                                             pb_istream_t *istream, pb_ostream_t *ostream);
 
 /**
  * el2go_keystore_get_el2go_key_id - Get the ECC key ID for EdgeLock 2GO server connection
@@ -93,6 +100,33 @@ el2go_status_t
 el2go_keystore_get_cert_from_srv_desc(el2go_keystore_t *keystore,
                                       const nxp_iot_ServiceDescriptor *service_descriptor,
                                       const uint8_t **client_cert, size_t *client_cert_len);
+
+/**
+ * @brief Return the nxp_iot_EndpointType corresponding to a keystore's type.
+ *
+ * Maps the el2go_keystore_type_t stored in the keystore to the protobuf
+ * EndpointType value used in the dispatcher endpoint table and HelloResponse.
+ *
+ * @param[in] keystore  Keystore to query.
+ *
+ * @retval nxp_iot_EndpointType for the keystore, or nxp_iot_EndpointType_INVALID
+ *         if the type is not recognized.
+ */
+nxp_iot_EndpointType el2go_keystore_get_endpoint_type(const el2go_keystore_t *keystore);
+
+/**
+ * @brief Populate endpoint information for a keystore endpoint.
+ *
+ * Endpoint get_info callback for the dispatcher endpoint table.
+ * The type and endpointId fields are pre-filled by the dispatcher before this
+ * function is called; this function marks them as present in the message.
+ *
+ * @param[in]  ctx   Pointer to the el2go_keystore_t (void * for callback compatibility).
+ * @param[out] info  Endpoint information structure to populate.
+ *
+ * @retval true always.
+ */
+el2go_status_t el2go_keystore_get_endpoint_info(void *ctx, nxp_iot_EndpointInformation *info);
 
 /** @} */ /* end of el2go_keystore_int */
 

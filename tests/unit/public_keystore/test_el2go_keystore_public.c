@@ -168,27 +168,6 @@ static bool test_keystore_close_session_null_pointer(void *params)
 }
 
 /**
- * @brief Test keystore handle request with NULL keystore.
- *
- * Verifies that passing @c NULL for the keystore parameter returns an
- * invalid parameter error.
- *
- * @param params Unused.
- * @return @c true if all assertions pass, @c false otherwise.
- */
-static bool test_keystore_handle_request_null_keystore(void *params)
-{
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
-
-    (void)params;
-
-    status = el2go_keystore_handle_request(NULL, NULL, NULL, NULL);
-    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
-
-    return true;
-}
-
-/**
  * @brief Test basic keystore lifecycle operations.
  *
  * Verifies that a keystore can be successfully initialized, a session can
@@ -238,7 +217,6 @@ void register_keystore_tests(void)
     TEST_REGISTER(test_keystore_free_null_pointer);
     TEST_REGISTER(test_keystore_open_session_null_pointer);
     TEST_REGISTER(test_keystore_close_session_null_pointer);
-    TEST_REGISTER(test_keystore_handle_request_null_keystore);
 
     /* Basic lifecycle tests */
     TEST_REGISTER(test_keystore_basic_lifecycle);

@@ -8,3 +8,4 @@
 add_subdirectory(nanopb)
 add_subdirectory(el2go)
 add_subdirectory(ota)
+add_subdirectory(utils)

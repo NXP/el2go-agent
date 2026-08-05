@@ -13,6 +13,7 @@
 #include "osal.h"
 
 #include "common/el2go_keystore.h"
+#include "keystore_priv.h"
 #include "test_el2go_keystore_internal_common.h"
 
 #include "pb.h"
@@ -51,18 +52,17 @@ static bool test_psa_keystore_init_with_id(void *params)
  */
 static bool test_handle_request_null_keystore(void *params)
 {
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
     pb_istream_t input_stream = { 0 };
     pb_ostream_t output_stream = { 0 };
-    bool test_status = true;
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
 
     (void)params;
 
+    /* NULL ctx must return EL2GO_STATUS_INVALID_PARAMETER. */
     status = el2go_keystore_handle_request(NULL, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
     TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
-
-    return test_status;
+    return true;
 }
 
 /**
@@ -165,10 +165,10 @@ static bool test_handle_request_unsupported_message_type(void *params)
     status = el2go_keystore_init(0x50000000, NULL, &keystore);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
-    /* Use a different message type (not PsaRequest) */
+    /* Use a different message type (not PsaRequest) - must return EL2GO_STATUS_RTP_DECODE_ERROR. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_ResponsePayload_fields, &input_stream,
                                            &output_stream);
-    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_UNSUPPORTED_OPERATION, status, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_RTP_DECODE_ERROR, status, exit);
 
 exit:
     el2go_keystore_free(&keystore);
@@ -196,9 +196,10 @@ static bool test_handle_request_malformed_protobuf(void *params)
     status = el2go_keystore_init(0x50000000, NULL, &keystore);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
+    /* Malformed data - must return EL2GO_STATUS_RTP_DECODE_ERROR. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
-    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_REQUEST, status, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_RTP_DECODE_ERROR, status, exit);
 
 exit:
     el2go_keystore_free(&keystore);
@@ -221,6 +222,7 @@ static bool test_handle_request_unknown_command(void *params)
     pb_istream_t input_stream = { 0 };
     uint8_t output_buffer[256] = { 0 };
     pb_ostream_t output_stream = pb_ostream_from_buffer(output_buffer, sizeof(output_buffer));
+    bool encoded = false;
     bool test_status = true;
 
     (void)params;
@@ -232,15 +234,16 @@ static bool test_handle_request_unknown_command(void *params)
     request.which_command = (pb_size_t)99; /* Invalid command */
 
     /* Encode the request */
-    TEST_ASSERT_GOTO(pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request),
-                     exit);
+    encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
+    TEST_ASSERT_GOTO(encoded, exit);
 
     /* Create input stream from encoded data */
     input_stream = pb_istream_from_buffer(encode_buffer, encode_stream.bytes_written);
 
+    /* Unknown command - must return EL2GO_STATUS_RTP_DECODE_ERROR. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
-    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_UNSUPPORTED_OPERATION, status, exit);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_RTP_DECODE_ERROR, status, exit);
 
 exit:
     el2go_keystore_free(&keystore);
@@ -263,6 +266,7 @@ static bool test_destroy_key_missing_identifier(void *params)
     pb_istream_t input_stream = { 0 };
     uint8_t output_buffer[256] = { 0 };
     pb_ostream_t output_stream = pb_ostream_from_buffer(output_buffer, sizeof(output_buffer));
+    bool encoded = false;
     bool test_status = true;
 
     (void)params;
@@ -275,12 +279,13 @@ static bool test_destroy_key_missing_identifier(void *params)
     request.command.destroy_key.has_identifier = false;
 
     /* Encode the request */
-    TEST_ASSERT_GOTO(pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request),
-                     exit);
+    encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
+    TEST_ASSERT_GOTO(encoded, exit);
 
     /* Create input stream from encoded data */
     input_stream = pb_istream_from_buffer(encode_buffer, encode_stream.bytes_written);
 
+    /* Missing identifier - must return EL2GO_STATUS_INVALID_REQUEST. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_REQUEST, status, exit);
@@ -306,6 +311,7 @@ static bool test_import_key_missing_fields(void *params)
     pb_istream_t input_stream = { 0 };
     uint8_t output_buffer[256] = { 0 };
     pb_ostream_t output_stream = pb_ostream_from_buffer(output_buffer, sizeof(output_buffer));
+    bool encoded = false;
     bool test_status = true;
 
     (void)params;
@@ -320,12 +326,13 @@ static bool test_import_key_missing_fields(void *params)
     /* Missing: type, usage, algorithm, key_data_format, lifetime, data */
 
     /* Encode the request */
-    TEST_ASSERT_GOTO(pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request),
-                     exit);
+    encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
+    TEST_ASSERT_GOTO(encoded, exit);
 
     /* Create input stream from encoded data */
     input_stream = pb_istream_from_buffer(encode_buffer, encode_stream.bytes_written);
 
+    /* Missing fields - must return EL2GO_STATUS_INVALID_REQUEST. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_REQUEST, status, exit);
@@ -341,7 +348,6 @@ exit:
  * @param params Unused.
  * @return @c true if all assertions pass, @c false otherwise.
  */
-
 static bool test_import_key_zero_size(void *params)
 {
     el2go_keystore_t keystore = { 0 };
@@ -353,6 +359,7 @@ static bool test_import_key_zero_size(void *params)
     uint8_t output_buffer[256] = { 0 };
     pb_ostream_t output_stream = pb_ostream_from_buffer(output_buffer, sizeof(output_buffer));
     PB_BYTES_ARRAY_T(1) key_data = { .size = 0 };
+    bool encoded = false;
     bool test_status = true;
 
     (void)params;
@@ -377,12 +384,13 @@ static bool test_import_key_zero_size(void *params)
     request.command.import_key.data = (pb_bytes_array_t *)&key_data;
 
     /* Encode the request */
-    TEST_ASSERT_GOTO(pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request),
-                     exit);
+    encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
+    TEST_ASSERT_GOTO(encoded, exit);
 
     /* Create input stream from encoded data */
     input_stream = pb_istream_from_buffer(encode_buffer, encode_stream.bytes_written);
 
+    /* Zero-size key data - must return EL2GO_STATUS_INVALID_REQUEST. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_REQUEST, status, exit);
@@ -409,6 +417,7 @@ static bool test_import_key_unsupported_key_format(void *params)
     uint8_t output_buffer[256] = { 0 };
     pb_ostream_t output_stream = pb_ostream_from_buffer(output_buffer, sizeof(output_buffer));
     PB_BYTES_ARRAY_T(32) key_data = { .size = 32 };
+    bool encoded = false;
     bool test_status = true;
 
     (void)params;
@@ -433,12 +442,13 @@ static bool test_import_key_unsupported_key_format(void *params)
     request.command.import_key.data = (pb_bytes_array_t *)&key_data;
 
     /* Encode the request */
-    TEST_ASSERT_GOTO(pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request),
-                     exit);
+    encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
+    TEST_ASSERT_GOTO(encoded, exit);
 
     /* Create input stream from encoded data */
     input_stream = pb_istream_from_buffer(encode_buffer, encode_stream.bytes_written);
 
+    /* Unsupported key format - must return EL2GO_STATUS_INVALID_REQUEST. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_REQUEST, status, exit);
@@ -464,6 +474,7 @@ static bool test_read_object_missing_identifier(void *params)
     pb_istream_t input_stream = { 0 };
     uint8_t output_buffer[256] = { 0 };
     pb_ostream_t output_stream = pb_ostream_from_buffer(output_buffer, sizeof(output_buffer));
+    bool encoded = false;
     bool test_status = true;
 
     (void)params;
@@ -476,12 +487,13 @@ static bool test_read_object_missing_identifier(void *params)
     request.command.read_object.has_identifier = false;
 
     /* Encode the request */
-    TEST_ASSERT_GOTO(pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request),
-                     exit);
+    encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
+    TEST_ASSERT_GOTO(encoded, exit);
 
     /* Create input stream from encoded data */
     input_stream = pb_istream_from_buffer(encode_buffer, encode_stream.bytes_written);
 
+    /* Missing identifier - must return EL2GO_STATUS_INVALID_REQUEST. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_REQUEST, status, exit);
@@ -507,6 +519,7 @@ static bool test_remove_object_missing_identifier(void *params)
     pb_istream_t input_stream = { 0 };
     uint8_t output_buffer[256] = { 0 };
     pb_ostream_t output_stream = pb_ostream_from_buffer(output_buffer, sizeof(output_buffer));
+    bool encoded = false;
     bool test_status = true;
 
     (void)params;
@@ -519,12 +532,13 @@ static bool test_remove_object_missing_identifier(void *params)
     request.command.remove_object.has_identifier = false;
 
     /* Encode the request */
-    TEST_ASSERT_GOTO(pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request),
-                     exit);
+    encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
+    TEST_ASSERT_GOTO(encoded, exit);
 
     /* Create input stream from encoded data */
     input_stream = pb_istream_from_buffer(encode_buffer, encode_stream.bytes_written);
 
+    /* Missing identifier - must return EL2GO_STATUS_INVALID_REQUEST. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_REQUEST, status, exit);
@@ -550,6 +564,7 @@ static bool test_get_version_success(void *params)
     pb_istream_t input_stream = { 0 };
     uint8_t output_buffer[256] = { 0 };
     pb_ostream_t output_stream = pb_ostream_from_buffer(output_buffer, sizeof(output_buffer));
+    bool encoded = false;
     bool test_status = true;
 
     (void)params;
@@ -561,12 +576,13 @@ static bool test_get_version_success(void *params)
     request.which_command = nxp_iot_PsaRequest_get_version_tag;
 
     /* Encode the request */
-    TEST_ASSERT_GOTO(pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request),
-                     exit);
+    encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
+    TEST_ASSERT_GOTO(encoded, exit);
 
     /* Create input stream from encoded data */
     input_stream = pb_istream_from_buffer(encode_buffer, encode_stream.bytes_written);
 
+    /* get_version must return EL2GO_STATUS_SUCCESS. */
     status = el2go_keystore_handle_request(&keystore, nxp_iot_PsaRequest_fields, &input_stream,
                                            &output_stream);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);

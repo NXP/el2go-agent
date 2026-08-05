@@ -94,6 +94,7 @@ set(PUBLIC_API_TEST_SOURCES
 set(INTERNAL_API_TEST_SOURCES
     osal/linux/linux_main.c
     ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_rtp.c
+    ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_rtp_dispatcher.c
     ${INTERNAL_TEST_SOURCES}
 )
 
@@ -160,6 +161,7 @@ target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
         osal
         el2go_protobuf
         el2go_ota_lib
+        pb_utils
         net_crypto
         el2go_common
         test_osal

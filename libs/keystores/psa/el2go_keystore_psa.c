@@ -23,8 +23,10 @@
 #include "Agent.pb.h"
 #include "PSA.pb.h"
 #include "ServiceDescriptor.pb.h"
+#include "pb_utils.h"
 
 #include "common/el2go_keystore.h"
+#include "keystore_priv.h"
 #include "platform_priv.h"
 #include "plat_keys.h"
 
@@ -50,6 +52,7 @@ static el2go_status_t handle_get_version(el2go_keystore_t *keystore, nxp_iot_Psa
     response->message.psa.which_response = nxp_iot_PsaResponse_get_version_tag;
 
     get_version_resp = &response->message.psa.response.get_version;
+    *get_version_resp = (nxp_iot_GetVersionResponse)nxp_iot_GetVersionResponse_init_default;
     get_version_resp->has_crypto_api_version = true;
     get_version_resp->crypto_api_version = (PSA_CRYPTO_API_VERSION_MAJOR << 16) |
                                            (PSA_CRYPTO_API_VERSION_MINOR << 8);
@@ -91,6 +94,7 @@ static el2go_status_t handle_destroy_key(el2go_keystore_t *keystore, nxp_iot_Psa
     response->message.psa.which_response = nxp_iot_PsaResponse_destroy_key_tag;
 
     destroy_key_resp = &response->message.psa.response.destroy_key;
+    *destroy_key_resp = (nxp_iot_DestroyKeyResponse)nxp_iot_DestroyKeyResponse_init_default;
     destroy_key_resp->has_status = true;
 
     id = destroy_key_req->identifier;
@@ -165,6 +169,7 @@ static el2go_status_t handle_import_key(el2go_keystore_t *keystore, nxp_iot_PsaR
     response->message.psa.which_response = nxp_iot_PsaResponse_import_key_tag;
 
     import_key_resp = &response->message.psa.response.import_key;
+    *import_key_resp = (nxp_iot_ImportKeyResponse)nxp_iot_ImportKeyResponse_init_default;
     import_key_resp->has_status = true;
 
     if (SET_OVERFLOW(import_key_req->type, type)) {
@@ -209,8 +214,6 @@ static el2go_status_t handle_read_object(el2go_keystore_t *keystore, nxp_iot_Psa
     nxp_iot_ReadObjectRequest *read_object_req = NULL;
     nxp_iot_ReadObjectResponse *read_object_resp = NULL;
 
-    static PB_BYTES_ARRAY_T(1) empty_data = { 0 };
-
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
     (void)keystore;
@@ -232,12 +235,15 @@ static el2go_status_t handle_read_object(el2go_keystore_t *keystore, nxp_iot_Psa
     response->message.psa.which_response = nxp_iot_PsaResponse_read_object_tag;
 
     read_object_resp = &response->message.psa.response.read_object;
+    /* Explicitly zero the response struct: nxp_iot_ResponsePayload_init_default does not
+     * guarantee the full union is zeroed, so data (FT_POINTER) could be a garbage stack
+     * value if we take an error path without setting it. */
+    *read_object_resp = (nxp_iot_ReadObjectResponse)nxp_iot_ReadObjectResponse_init_default;
     read_object_resp->has_status = true;
 
     psa_status = psa_its_get_info(uid, &info);
     if (psa_status != PSA_SUCCESS) {
         read_object_resp->status = (nxp_iot_StatusCode)psa_status;
-        read_object_resp->data = (pb_bytes_array_t *)&empty_data;
         EL2GO_DBG_PRINTF(ERROR, "Failed to get object info (uid: 0x%016" PRIx64 ", status: %d)\n",
                          uid, (int)psa_status);
         goto exit;
@@ -247,7 +253,6 @@ static el2go_status_t handle_read_object(el2go_keystore_t *keystore, nxp_iot_Psa
     if (read_object_req->has_length) {
         if (SUB_OVERFLOW(info.size, read_object_req->offset, &remaining)) {
             read_object_resp->status = (nxp_iot_StatusCode)PSA_ERROR_INVALID_ARGUMENT;
-            read_object_resp->data = (pb_bytes_array_t *)&empty_data;
             EL2GO_DBG_PRINTF(ERROR, "Invalid offset (offset: %" PRIu32 ", size: %zu)\n",
                              read_object_req->offset, info.size);
             goto exit;
@@ -258,7 +263,6 @@ static el2go_status_t handle_read_object(el2go_keystore_t *keystore, nxp_iot_Psa
 
     if (chunk_size > EL2GO_MAX_KEY_DATA_SIZE) {
         read_object_resp->status = (nxp_iot_StatusCode)PSA_ERROR_INVALID_ARGUMENT;
-        read_object_resp->data = (pb_bytes_array_t *)&empty_data;
         EL2GO_DBG_PRINTF(ERROR, "Object size exceeds maximum allowed size (size: %zu, max: %d)\n",
                          chunk_size, EL2GO_MAX_KEY_DATA_SIZE);
         goto exit;
@@ -267,7 +271,6 @@ static el2go_status_t handle_read_object(el2go_keystore_t *keystore, nxp_iot_Psa
     read_object_resp->data = osal_calloc(1, PB_BYTES_ARRAY_T_ALLOCSIZE(chunk_size));
     if (!read_object_resp->data) {
         read_object_resp->status = (nxp_iot_StatusCode)PSA_ERROR_INSUFFICIENT_MEMORY;
-        read_object_resp->data = (pb_bytes_array_t *)&empty_data;
         EL2GO_DBG_PRINTF(ERROR, "Failed to allocate memory for read object\n");
         goto exit;
     }
@@ -318,6 +321,7 @@ static el2go_status_t handle_remove_object(el2go_keystore_t *keystore, nxp_iot_P
     response->message.psa.which_response = nxp_iot_PsaResponse_remove_object_tag;
 
     remove_object_resp = &response->message.psa.response.remove_object;
+    *remove_object_resp = (nxp_iot_RemoveObjectResponse)nxp_iot_RemoveObjectResponse_init_default;
     remove_object_resp->has_status = true;
 
     uid = remove_object_req->identifier;
@@ -366,38 +370,30 @@ exit:
     return status;
 }
 
-__export el2go_status_t el2go_keystore_handle_request(el2go_keystore_t *keystore,
-                                                      const void *message_type, void *istream,
-                                                      void *ostream)
+el2go_status_t el2go_keystore_handle_request(void *ctx, const pb_field_t *message_type,
+                                             pb_istream_t *istream, pb_ostream_t *ostream)
 {
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
-    bool res = true;
-
-    pb_istream_t *input_stream = (pb_istream_t *)istream;
-    pb_ostream_t *output_stream = (pb_ostream_t *)ostream;
-    const pb_field_t *msg_type = (const pb_field_t *)message_type;
+    el2go_keystore_t *keystore = (el2go_keystore_t *)ctx;
+    el2go_status_t status = EL2GO_STATUS_RTP_DECODE_ERROR;
     nxp_iot_PsaRequest request = nxp_iot_PsaRequest_init_default;
     nxp_iot_ResponsePayload response = nxp_iot_ResponsePayload_init_default;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (!keystore || !input_stream || !output_stream || !msg_type) {
+    if (!keystore || !istream || !ostream || !message_type) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }
 
-    if (msg_type != nxp_iot_PsaRequest_fields) {
-        EL2GO_DBG_PRINTF(ERROR, "Unsupported message type: tag: %u\n", (unsigned int)msg_type->tag);
-        status = EL2GO_STATUS_UNSUPPORTED_OPERATION;
+    if (message_type != nxp_iot_PsaRequest_fields) {
+        EL2GO_DBG_PRINTF(ERROR, "Unsupported message type: tag: %u\n",
+                         (unsigned int)message_type->tag);
         goto exit;
     }
 
     /* Decode the incoming request */
-    res = pb_decode_delimited(input_stream, nxp_iot_PsaRequest_fields, &request);
-    if (!res) {
-        EL2GO_DBG_PRINTF(ERROR, "Decoding of server message failed: %s\n",
-                         PB_GET_ERROR(input_stream));
-        status = EL2GO_STATUS_INVALID_REQUEST;
+    if (!pb_decode_delimited(istream, nxp_iot_PsaRequest_fields, &request)) {
+        EL2GO_DBG_PRINTF(ERROR, "Decoding of server message failed: %s\n", PB_GET_ERROR(istream));
         goto exit;
     }
 
@@ -425,19 +421,20 @@ __export el2go_status_t el2go_keystore_handle_request(el2go_keystore_t *keystore
 
     default:
         EL2GO_DBG_PRINTF(ERROR, "Unknown command: %d\n", (int)request.which_command);
-        status = EL2GO_STATUS_UNSUPPORTED_OPERATION;
         goto exit;
     }
 
     if (status != EL2GO_STATUS_SUCCESS)
         goto exit;
 
-    /* Encode the response */
-    res = pb_encode_delimited(output_stream, nxp_iot_ResponsePayload_fields, &response);
-    if (!res) {
+    /* Encode the response wrapped in nxp_iot_Responses */
+    if (!encode_responses_from_payload(ostream, &response)) {
         EL2GO_DBG_PRINTF(ERROR, "encode_responses_from_payload failed\n");
-        status = EL2GO_STATUS_INVALID_REQUEST;
+        status = EL2GO_STATUS_RTP_ENCODE_ERROR;
+        goto exit;
     }
+
+    status = EL2GO_STATUS_SUCCESS;
 
 exit:
     pb_release(nxp_iot_PsaRequest_fields, &request);

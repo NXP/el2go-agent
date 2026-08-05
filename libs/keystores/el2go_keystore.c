@@ -6,11 +6,16 @@
  */
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #include "compiler.h"
 #include "debug.h"
 
 #include "common/el2go_keystore.h"
+
+#include "pb.h"
+#include "pb_encode.h"
+#include "Dispatcher.pb.h"
 
 #include "keystore_priv.h"
 
@@ -56,15 +61,15 @@ __export __weak el2go_status_t el2go_keystore_close_session(el2go_keystore_t *ke
     return EL2GO_STATUS_SUCCESS;
 }
 
-__weak el2go_status_t el2go_keystore_handle_request(el2go_keystore_t *keystore,
-                                                    const void *message_type, void *istream,
-                                                    void *ostream)
+__weak el2go_status_t el2go_keystore_handle_request(void *ctx, const pb_field_t *message_type,
+                                                    pb_istream_t *istream, pb_ostream_t *ostream)
 {
-    if (!keystore || !istream || !ostream || !message_type) {
-        return EL2GO_STATUS_INVALID_PARAMETER;
-    }
+    (void)ctx;
+    (void)message_type;
+    (void)istream;
+    (void)ostream;
 
-    return EL2GO_STATUS_SUCCESS;
+    return EL2GO_STATUS_RTP_DECODE_ERROR;
 }
 
 __weak el2go_status_t el2go_keystore_get_cert_from_srv_desc(
@@ -79,4 +84,29 @@ __weak el2go_status_t el2go_keystore_get_cert_from_srv_desc(
     EL2GO_DBG_PRINTF(ERROR, "el2go_keystore_get_cert_from_srv_desc not implemented "
                             "for this keystore type\n");
     return EL2GO_STATUS_UNSUPPORTED_OPERATION;
+}
+
+__weak nxp_iot_EndpointType el2go_keystore_get_endpoint_type(const el2go_keystore_t *keystore)
+{
+    if (!keystore)
+        return nxp_iot_EndpointType_INVALID;
+
+    switch (keystore->type) {
+    case EL2GO_KEYSTORE_PSA:
+        return nxp_iot_EndpointType_KS_PSA;
+    case EL2GO_KEYSTORE_SSS:
+        return nxp_iot_EndpointType_KS_SSS_SE05X;
+    default:
+        return nxp_iot_EndpointType_INVALID;
+    }
+}
+
+__weak el2go_status_t el2go_keystore_get_endpoint_info(void *ctx, nxp_iot_EndpointInformation *info)
+{
+    (void)ctx;
+    /* type and endpointId are pre-filled by the dispatcher build step */
+    info->has_type = true;
+    info->has_endpointId = true;
+
+    return EL2GO_STATUS_SUCCESS;
 }

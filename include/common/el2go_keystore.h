@@ -94,19 +94,4 @@ el2go_status_t el2go_keystore_open_session(el2go_keystore_t *keystore);
  */
 el2go_status_t el2go_keystore_close_session(el2go_keystore_t *keystore);
 
-/**
- * el2go_keystore_handle_request - Handle a keystore request
- * @keystore: Keystore structure
- * @istream: Input stream with request data
- * @ostream: Output stream for response data
- * @message_type: Message type fields
- *
- * This function handles incoming requests for keystore operations.
- *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
- */
-el2go_status_t el2go_keystore_handle_request(el2go_keystore_t *keystore, const void *message_type,
-                                             void *istream, void *ostream);
-
 #endif /* __EL2GO_KEYSTORE_H__ */
