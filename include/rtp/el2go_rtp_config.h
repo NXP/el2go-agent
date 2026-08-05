@@ -95,6 +95,16 @@
 #define EL2GO_RTP_SUBJECT "CN=EdgeLock2GO,O=NXP"
 #endif
 
+/**
+ * @brief Request a Certificate Revocation List from EdgeLock 2GO during provisioning.
+ *
+ * When set to 1, the agent requests a CRL from the EdgeLock 2GO cloud service
+ * during the provisioning session. Set to 0 to disable CRL retrieval.
+ */
+#ifndef EL2GO_RTP_REQUEST_CRL
+#define EL2GO_RTP_REQUEST_CRL 1
+#endif
+
 /** @} */ /* end of el2go_rtp_config */
 
 #endif /* __EL2GO_RTP_CONFIG_H__ */

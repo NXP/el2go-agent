@@ -7,6 +7,7 @@
 
 #include "pb_utils.h"
 #include "pb_encode.h"
+#include "pb_decode.h"
 #include "Dispatcher.pb.h"
 
 /* ========================================================================== */
@@ -45,4 +46,34 @@ bool encode_responses_from_payload(pb_ostream_t *ostream, nxp_iot_ResponsePayloa
         return false;
     }
     return true;
+}
+
+/* ========================================================================== */
+/* Union message type detection helper                                         */
+/* ========================================================================== */
+
+const pb_field_t *pb_decode_unionmessage_type(pb_istream_t *stream, const pb_field_t *fields)
+{
+    pb_wire_type_t wire_type = (pb_wire_type_t)0;
+    uint32_t tag = 0U;
+    bool eof = false;
+    const pb_field_t *f = NULL;
+
+    while (pb_decode_tag(stream, &wire_type, &tag, &eof)) {
+        if (wire_type == PB_WT_STRING) {
+            /* Walk the fields table looking for a tag match. */
+            for (f = fields; f->tag != 0; f++) {
+                if (f->tag == (pb_size_t)tag && PB_LTYPE(f->type) == PB_LTYPE_SUBMESSAGE) {
+                    /* Return the sub-message's own fields descriptor. */
+                    return (const pb_field_t *)f->ptr;
+                }
+            }
+        }
+
+        /* Unknown tag or non-submessage wire type - skip the field and keep looking. */
+        if (!pb_skip_field(stream, wire_type))
+            break;
+    }
+
+    return NULL;
 }

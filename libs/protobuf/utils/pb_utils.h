@@ -28,4 +28,22 @@
  */
 bool encode_responses_from_payload(pb_ostream_t *ostream, nxp_iot_ResponsePayload *response);
 
+/**
+ * @brief Peek at the next tag in a nanopb stream and identify the active oneof member.
+ *
+ * Reads one tag from the stream (without consuming the payload), then walks
+ * the fields array to find the entry whose tag matches. Returns the
+ * sub-message field descriptor pointer (field->ptr) so the caller can
+ * dispatch to the correct pb_decode call.
+ *
+ * This mirrors the decode_unionmessage_type() helper from the nanopb examples.
+ *
+ * @param[in] stream  nanopb input stream positioned before the first field tag.
+ * @param[in] fields  The pb_field_t array for the oneof/union message.
+ *
+ * @retval Pointer to the matching sub-message fields descriptor on success.
+ * @retval NULL if no matching field is found or a stream error occurs.
+ */
+const pb_field_t *pb_decode_unionmessage_type(pb_istream_t *stream, const pb_field_t *fields);
+
 #endif /* __PB_UTILS_H__ */

@@ -152,21 +152,38 @@ el2go_status_t el2go_rtp_get_datastore_by_id(el2go_rtp_ctx_t *ctx, uint32_t id,
                                              el2go_datastore_t **datastore);
 
 /**
-  * el2go_rtp_provision - Provision keys and certificates from server
-  * @ctx: RTP Agent context
-  * @verbosity: Status report verbosity level
-  *
-  * Connects to the EdgeLock 2GO server and provisions device keys and certificates.
-  *
-  * The function can optionally print the provisioning report received from the server.
-  * Note: The report data is not currently exposed to the caller as it uses internal
-  * protobuf structures. The API can be modified to provide a simplified or abstracted report
-  * structure to avoid exposing protobuf implementation details to users.
-  *
-  * Return:
-  * EL2GO_STATUS_SUCCESS on success, error code otherwise
-  */
-el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, el2go_verbosity_t verbosity);
+ * el2go_rtp_provision - Provision keys and certificates from the EdgeLock 2GO server
+ * @ctx:           RTP Agent context
+ * @status_report: Optional output parameter. If non-NULL, receives an opaque pointer to
+ *                 the server provisioning status report on return. The caller must release
+ *                 this with el2go_rtp_free_status_report() when no longer needed.
+ *                 Pass NULL if the report is not required.
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_report);
+
+/**
+ * el2go_rtp_free_status_report - Release a provisioning status report
+ * @status_report: Pointer to the opaque report pointer returned by el2go_rtp_provision().
+ *                 The pointed-to pointer is set to NULL after the call.
+ *                 No-op if status_report or *status_report is NULL.
+ *
+ * Must be called to free any report obtained from el2go_rtp_provision() when
+ * the caller has finished with it.
+ */
+el2go_status_t el2go_rtp_free_status_report(void **status_report);
+
+/**
+ * el2go_rtp_print_status_report - Print a provisioning status report
+ * @status_report: Opaque report pointer returned by el2go_rtp_provision(), or NULL.
+ *
+ * Logs the overall update outcome, correlation ID, and per-subsystem details
+ * (claim, RTP, CSP) using the EL2GO INFO log level.
+ * Safe to call with NULL (prints "(none)").
+ */
+el2go_status_t el2go_rtp_print_status_report(const void *status_report);
 
 /**
  * el2go_rtp_datastore_el2go - Configure EdgeLock 2GO datastore

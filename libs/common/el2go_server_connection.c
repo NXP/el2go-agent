@@ -112,7 +112,6 @@ el2go_status_t el2go_conn_write_datastore(el2go_datastore_t *datastore,
     svc_desc.client_key_sss_ref.has_object_id = true;
     svc_desc.client_key_sss_ref.object_id = object_id;
 
-    /* Get client certificate from service descriptor */
     /* Setup client certificate in service descriptor */
     status = el2go_keystore_set_cert_in_srv_desc(keystore_ctx, client_cert, &svc_desc);
     if (status != EL2GO_STATUS_SUCCESS) {
@@ -123,6 +122,11 @@ el2go_status_t el2go_conn_write_datastore(el2go_datastore_t *datastore,
         goto exit;
     }
 
+    EL2GO_DBG_PRINTF(EXTRA, "client_cert size=%u\n", (unsigned)client_cert->size);
+    if (server_cert != NULL) {
+        EL2GO_DBG_PRINTF(EXTRA, "server_cert size=%u\n", (unsigned)server_cert->size);
+    }
+
     pb_status = pb_encode_delimited(&stream, nxp_iot_ServiceDescriptor_fields, &svc_desc);
     if (!pb_status) {
         EL2GO_DBG_PRINTF(ERROR, "pb_encode_delimited sizing failed\n");
@@ -131,7 +135,7 @@ el2go_status_t el2go_conn_write_datastore(el2go_datastore_t *datastore,
     }
 
     encoded_size = stream.bytes_written;
-    EL2GO_DBG_PRINTF(VERBOSE, "Encoded service descriptor size: %zu bytes\n", encoded_size);
+    EL2GO_DBG_PRINTF(EXTRA, "Encoded service descriptor size: %zu bytes\n", encoded_size);
 
     if (ADD_OVERFLOW(sizeof(config_data_hdr_t), encoded_size, &total_size)) {
         EL2GO_DBG_PRINTF(ERROR, "Overflow in total size calculation\n");
@@ -158,6 +162,8 @@ el2go_status_t el2go_conn_write_datastore(el2go_datastore_t *datastore,
     header->length = (uint32_t)total_size;
     header->number_of_services = 1U;
     header->version = EL2GO_CONFIGURATION_DATA_VERSION;
+
+    EL2GO_DBG_PRINTF(EXTRA, "config_data_hdr total_size=%zu\n", total_size);
 
     /* Calculate SHA-256 checksum over everything after the checksum field */
     status = net_crypto_sha256(buffer + sizeof(header->checksum),

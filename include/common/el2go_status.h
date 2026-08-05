@@ -58,7 +58,12 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_UNSUPPORTED_OPERATION,    /**< Operation is not supported */
     EL2GO_STATUS_INVALID_REQUEST,          /**< Request is invalid */
     EL2GO_STATUS_PSA_ERROR,                /**< A function in the PSA API returned an error */
-    EL2GO_STATUS_INVALID_DATASTORE         /**< Datastore is invalid or corrupted */
+    EL2GO_STATUS_INVALID_DATASTORE,        /**< Datastore is invalid or corrupted */
+    EL2GO_STATUS_RTP_DECODE_ERROR,         /**< Failed to decode an RTP protobuf message */
+    EL2GO_STATUS_RTP_ENCODE_ERROR,         /**< Failed to encode an RTP protobuf response */
+    EL2GO_STATUS_RTP_ENDPOINT_NOT_FOUND,   /**< No registered endpoint matches the request */
+    EL2GO_STATUS_RTP_CRL_NOT_VERIFIED,     /**< Non-CRL message received before CRL verification */
+    EL2GO_STATUS_RTP_PROVISIONING_FAILED /**< Server reported provisioning failure in GoodbyeRequest */
 } el2go_status_t;
 
 /**

@@ -95,6 +95,7 @@ set(INTERNAL_API_TEST_SOURCES
     osal/linux/linux_main.c
     ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_rtp.c
     ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_rtp_dispatcher.c
+    ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_agent_endpoint.c
     ${INTERNAL_TEST_SOURCES}
 )
 

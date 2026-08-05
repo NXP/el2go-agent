@@ -11,6 +11,9 @@ project(el2go_rtp VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 # ============================================================================
 add_library(${PROJECT_NAME}
     el2go_rtp.c
+    el2go_rtp_dispatcher.c
+    el2go_agent_endpoint.c
+    el2go_rtp_status_report.c
 )
 
 # Set library version
@@ -40,6 +43,7 @@ target_link_libraries(${PROJECT_NAME}
         el2go_datastore
         osal
         el2go_protobuf
+        pb_utils
         net_crypto
         el2go_common
         $<TARGET_PROPERTY:el2go_platform,INTERFACE_LINK_LIBRARIES>

@@ -29,19 +29,19 @@
  * configuration data. The checksum covers all data after the checksum
  * field itself.
  */
-typedef struct __packed config_data_hdr_t {
+typedef struct {
     /** @brief SHA-256 checksum of all data after this field. */
     uint8_t checksum[EL2GO_SHA256_CHECKSUM_SIZE];
 
     /** @brief Total length of the stored data (incl. all fields of config_data_hdr_t). */
     uint32_t length;
 
-    /** @brief Number of services stored in the datastore. */
-    uint32_t number_of_services;
-
     /** @brief Version of the configuration data format. */
     uint32_t version;
-} config_data_hdr_t;
+
+    /** @brief Number of services stored in the datastore. */
+    uint32_t number_of_services;
+} __packed __aligned(1) config_data_hdr_t;
 
 /**
  * @brief Version of the configuration data format.

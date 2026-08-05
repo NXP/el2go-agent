@@ -28,9 +28,65 @@
 
 #include "pb.h"
 #include "pb_decode.h"
+#include "Agent.pb.h"
 #include "ServiceDescriptor.pb.h"
 
 #include "el2go_rtp_internal.h"
+#include "el2go_dispatcher_priv.h"
+
+/* ========================================================================== */
+/* nanopb network stream adaptors                                               */
+/* ========================================================================== */
+
+/**
+ * @brief nanopb ostream write callback - forwards encoded bytes to the TLS layer.
+ */
+static bool net_write_callback(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
+{
+    net_crypto_ctx_t *net_ctx = (net_crypto_ctx_t *)stream->state;
+    int written = net_crypto_write(net_ctx, buf, count);
+    if (written < 0)
+        return false;
+    return (size_t)written == count;
+}
+
+/**
+ * @brief nanopb istream read callback - receives bytes from the TLS layer.
+ */
+static bool net_read_callback(pb_istream_t *stream, pb_byte_t *buf, size_t count)
+{
+    net_crypto_ctx_t *net_ctx = (net_crypto_ctx_t *)stream->state;
+    int rd = 0;
+
+    while (count > 0U) {
+        rd = net_crypto_read(net_ctx, buf, count);
+        if (rd <= 0) {
+            stream->bytes_left = 0U;
+            break;
+        }
+        buf += rd;
+        count -= (size_t)rd;
+    }
+    return (count == 0U);
+}
+
+/**
+ * @brief Construct a nanopb output stream backed by a TLS connection.
+ */
+static pb_ostream_t ostream_from_net(net_crypto_ctx_t *net_ctx)
+{
+    pb_ostream_t s = { &net_write_callback, net_ctx, SIZE_MAX, 0U, NULL };
+    return s;
+}
+
+/**
+ * @brief Construct a nanopb input stream backed by a TLS connection.
+ */
+static pb_istream_t istream_from_net(net_crypto_ctx_t *net_ctx)
+{
+    pb_istream_t s = { &net_read_callback, net_ctx, SIZE_MAX, NULL };
+    return s;
+}
 
 /**
  * @brief Get or generate the client certificate for EL2GO connection
@@ -576,7 +632,7 @@ exit:
     return status;
 }
 
-__export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, el2go_verbosity_t verbosity)
+__export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_report)
 {
     el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
     const char *hostname = NULL;
@@ -596,10 +652,9 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, el2go_verbosit
     net_crypto_config_t net_config = { 0 };
     el2go_cipher_list_t cipher_list = { 0 };
     el2go_curve_list_t curve_list = { 0 };
+    nxp_iot_UpdateStatusReport *report = NULL;
 
     EL2GO_DBG_TRACE_API_CALL;
-
-    (void)verbosity;
 
     if (!ctx)
         goto exit;
@@ -767,10 +822,26 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, el2go_verbosit
 
     EL2GO_DBG_PRINTF(INFO, "Connected to EL2GO server successfully\n");
 
-    /* TODO: Provision keys and certificates */
-    /* TODO: Set result based on provisioning outcome */
+    /* 9. Allocate status report buffer unconditionally so that dispatch always
+     * has a place to write the provisioning outcome.  If the caller did not
+     * request the report it will be freed in the exit block. */
+    report = (nxp_iot_UpdateStatusReport *)osal_calloc(1, sizeof(nxp_iot_UpdateStatusReport));
+    if (!report) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to allocate status report buffer\n");
+        status = EL2GO_STATUS_ALLOCATION_ERROR;
+        goto exit;
+    }
 
-    status = EL2GO_STATUS_SUCCESS;
+    /* 10. Run the provisioning dispatch loop */
+    pb_istream_t istream = istream_from_net(net_ctx);
+    pb_ostream_t ostream = ostream_from_net(net_ctx);
+    status = el2go_rtp_dispatch(ctx, &istream, &ostream, report);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Provisioning dispatch failed: 0x%04x\n", status);
+        goto exit;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Provisioning completed successfully\n");
 
 exit:
     if (net_ctx) {
@@ -781,6 +852,17 @@ exit:
     if (client_cert_buf)
         osal_free(client_cert_buf);
     pb_release(nxp_iot_ServiceDescriptor_fields, &service_descriptor);
+
+    /* Transfer report ownership to the caller unconditionally.
+     * The report is valid whenever dispatch ran (including server-side failures).
+     * If the caller did not request a report, free any allocated buffer. */
+    if (status_report != NULL) {
+        *status_report = report;
+    } else if (report) {
+        pb_release(nxp_iot_UpdateStatusReport_fields, report);
+        osal_free(report);
+    }
+
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
 }

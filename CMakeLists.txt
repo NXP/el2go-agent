@@ -37,7 +37,7 @@ if(VERBOSE)
     endif()
 
     if(NOT VERBOSE EQUAL 0)
-        add_definitions(-DENABLE_TRACE)
+        add_compile_definitions(ENABLE_TRACE)
     endif()
 
     if(${VERBOSE} GREATER 5)
@@ -50,11 +50,11 @@ if(VERBOSE)
         endif()
     endif()
 
-    add_definitions(-DTRACE_LEVEL=${VERBOSE})
+    add_compile_definitions(TRACE_LEVEL=${VERBOSE})
     message(STATUS TRACE_LEVEL: ${VERBOSE})
 else()
     set(VERBOSE 0)
-    add_definitions(-DTRACE_LEVEL=0)
+    add_compile_definitions(TRACE_LEVEL=0)
 endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -81,6 +81,18 @@ if(NOT DEFINED KEYSTORE)
     set(KEYSTORE psa)
 endif()
 message(STATUS "Using keystore: ${KEYSTORE}")
+
+# CRL verification during RTP provisioning (default: enabled)
+# The value is always passed explicitly so that the #ifndef guard in
+# el2go_rtp_config.h cannot silently override a -DEL2GO_RTP_REQUEST_CRL=OFF
+# selection made at configure time.
+option(EL2GO_RTP_REQUEST_CRL "Request CRL verification during RTP provisioning" ON)
+if(EL2GO_RTP_REQUEST_CRL)
+    add_compile_definitions(EL2GO_RTP_REQUEST_CRL=1)
+else()
+    add_compile_definitions(EL2GO_RTP_REQUEST_CRL=0)
+endif()
+message(STATUS "EL2GO_RTP_REQUEST_CRL: ${EL2GO_RTP_REQUEST_CRL}")
 
 # Enable compiler warnings
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
