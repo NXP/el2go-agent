@@ -118,6 +118,7 @@ int main(int argc, char **argv)
     uint8_t device_uuid[EL2GO_UUID_MAX_LEN];
     size_t uuid_size = 0;
     el2go_rtp_datastore_config_t el2go_config = { 0 };
+    void *report = NULL;
 
     printf("EL2GO RTP Agent Demo\n");
     printf("====================\n\n");
@@ -223,7 +224,10 @@ int main(int argc, char **argv)
 
     /* Provision device from EdgeLock 2GO server */
     printf("Provisioning device from EdgeLock 2GO server...\n");
-    status = el2go_rtp_provision(agent_ctx, EL2GO_STATUS_ALWAYS);
+
+    status = el2go_rtp_provision(agent_ctx, &report);
+    el2go_rtp_print_status_report(report);
+    el2go_rtp_free_status_report(&report);
     if (status != EL2GO_STATUS_SUCCESS) {
         printf("Failed to provision device (status: %d)\n", status);
         goto cleanup_datastore;
