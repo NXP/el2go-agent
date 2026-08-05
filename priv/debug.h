@@ -75,4 +75,10 @@
         exit(EXIT_FAILURE);                                   \
     } while (0)
 
+/* Always-on print - not gated by ENABLE_TRACE, for user-requested output */
+#define EL2GO_PRINTF_ALWAYS(...)         \
+    do {                                 \
+        osal_printf_always(__VA_ARGS__); \
+    } while (0)
+
 #endif /* __DEBUG_H__ */

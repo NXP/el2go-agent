@@ -43,6 +43,18 @@ void osal_printf(unsigned int level, const char *fmt, ...)
     }
 }
 
+void osal_printf_always(const char *fmt, ...)
+{
+    va_list args;
+    char buf[256] = { 0 };
+
+    va_start(args, fmt);
+    (void)vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    LOG_INF("%s", buf);
+}
+
 int osal_snprintf(char *str, size_t size, const char *format, ...)
 {
     va_list args;

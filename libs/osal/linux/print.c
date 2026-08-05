@@ -66,6 +66,16 @@ void osal_printf(unsigned int level, const char *fmt, ...)
     (void)fflush(stddebug);
 }
 
+void osal_printf_always(const char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+    (void)vfprintf(stdout, fmt, args);
+    va_end(args);
+    (void)fflush(stdout);
+}
+
 int osal_sprintf(char *str, const char *format, ...)
 {
     va_list args;

@@ -78,6 +78,20 @@ void osal_free(void *ptr);
 void osal_printf(unsigned int level, const char *fmt, ...);
 
 /**
+ * osal_printf_always - Unconditional formatted output to stdout
+ *
+ * Bypasses the log level filter entirely. Use for user-requested output
+ * (e.g. status reports) that must always be visible.
+ *
+ * @fmt: Printf-style format string
+ * @...: Variable arguments for format string
+ *
+ * Return:
+ * none.
+ */
+void osal_printf_always(const char *fmt, ...);
+
+/**
  * osal_sprintf - Format string into buffer (unbounded)
  *
  * @str: Destination buffer (must be large enough to hold the result)
