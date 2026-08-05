@@ -10,22 +10,20 @@
 #include "fsl_romapi.h"
 #include "fsl_common.h"
 
-/* Singleton to track init status of the memory device. */
-static uint8_t s_memInitialized = 0U;
-
-/* ROM API flash driver configuration structure. */
+/* Dummy ROM API flash driver configuration structure. */
+/* Will not be used, since this is done in SPE! */
 static flash_config_t s_flashConfig;
 
 #define FLASH_SECTOR_SIZE               (0x2000U)   /* 8 KB sector size */
 
-/* = end of NS partition */
-#define FLASH_STORAGE_END               (FLASH_S_PARTITION_SIZE + FLASH_NS_PARTITION_SIZE)  
-#define FLASH_STORAGE_BASE              (FLASH_STORAGE_END - 0x2000U)                 
+/* = NSC flash region */
+#define FLASH_STORAGE_END               (FLASH_TOTAL_SIZE)  
+#define FLASH_STORAGE_BASE              (NXP_FLASH_NS_STORAGE_OFFSET)                 
 
 /* configuration block is written to this address by the Host Tool (default).
  * Please refer to the README.md for further information. */
-#define EL2GO_CSR_CONF_DATA_ADDR        (FLASH_STORAGE_END - 128U)  /* 0x7FF80 */
-#define EL2GO_CSR_APP_STATUSCODE_ADDR   (FLASH_STORAGE_END - 4U)    /* 0x7FFFC */
+#define EL2GO_CSR_CONF_DATA_ADDR        (FLASH_STORAGE_END - 128U) 
+#define EL2GO_CSR_APP_STATUSCODE_ADDR   (FLASH_STORAGE_END - 4U)   
 #define EL2GO_CSR_CONF_DATA_SIZE        (124U)
 
 uint8_t* const el2go_csr_conf_data      = (uint8_t*)EL2GO_CSR_CONF_DATA_ADDR;
@@ -60,32 +58,6 @@ static void speculation_buffer_clear(void)
             SYSCON->NVM_CTRL &= ~SYSCON_NVM_CTRL_DIS_DATA_SPEC_MASK;
         }
     }
-}
-
-/**
- * @brief Initialize flash driver.
- *
- * @retval kStatus_CSR_MEM_SUCCESS PFlash driver initialized successfully
- */
-static csr_mem_status_t flash_init(void)
-{
-    status_t result;
-
-    if (s_memInitialized != 0U)
-    {
-        return kStatus_CSR_MEM_SUCCESS;
-    }
-
-    (void)memset(&s_flashConfig, 0, sizeof(flash_config_t));
-
-    result = FLASH_Init(&s_flashConfig);
-    if (result != kStatus_Success)
-    {
-        return kStatus_CSR_MEM_INIT_FAILED;
-    }
-
-    s_memInitialized = 1U;
-    return kStatus_CSR_MEM_SUCCESS;
 }
 
 /**
@@ -212,14 +184,6 @@ csr_mem_status_t mem_read(uint32_t addr, uint8_t *buffer, uint32_t size)
         return kStatus_CSR_MEM_INVALID_ARG;
     }
 
-    if (s_memInitialized == 0U)
-    {
-        if (flash_init() != kStatus_CSR_MEM_SUCCESS)
-        {
-            return kStatus_CSR_MEM_FAILED;
-        }
-    }
-
     if (!validate_flash_address(addr, size))
     {
         return kStatus_CSR_MEM_INVALID_ARG;
@@ -245,14 +209,6 @@ csr_mem_status_t mem_write(uint32_t addr, const uint8_t *buffer, uint32_t size)
     if ((buffer == NULL) || (size == 0U))
     {
         return kStatus_CSR_MEM_INVALID_ARG;
-    }
-
-    if (s_memInitialized == 0U)
-    {
-        if (flash_init() != kStatus_CSR_MEM_SUCCESS)
-        {
-            return kStatus_CSR_MEM_FAILED;
-        }
     }
 
     if (!validate_flash_address(addr, size))
