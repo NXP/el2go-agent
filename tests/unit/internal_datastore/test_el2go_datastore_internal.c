@@ -16,6 +16,10 @@
 #include "el2go_datastore_fs.h"
 #include "common/el2go_datastore.h"
 
+/* Forward declaration - implemented in test_el2go_datastore_handle_request.c */
+void register_datastore_handle_request_tests(bool include_fs_tests);
+void register_datastore_get_size_tests(bool include_fs_tests);
+
 /* ========================================================================== */
 /* Suite Setup                                                                */
 /* ========================================================================== */
@@ -1418,7 +1422,7 @@ exit:
 /* Test Registration                                                          */
 /* ========================================================================== */
 
-void register_datastore_tests(void)
+void register_datastore_tests(bool include_fs_tests)
 {
     /* Set suite-level setup function */
     TEST_SET_SUITE_SETUP(suite_setup);
@@ -1475,4 +1479,10 @@ void register_datastore_tests(void)
     /* Zero bytes scenarios */
     TEST_REGISTER(test_datastore_plain_read_at_end);
     TEST_REGISTER(test_datastore_plain_write_at_end);
+
+    /* handle_request tests (in test_el2go_datastore_handle_request.c) */
+    register_datastore_handle_request_tests(include_fs_tests);
+
+    /* get_size tests (in test_el2go_datastore_get_size.c) */
+    register_datastore_get_size_tests(include_fs_tests);
 }

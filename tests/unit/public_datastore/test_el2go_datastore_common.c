@@ -311,14 +311,16 @@ bool common_test_ds_read_out_of_bounds(el2go_datastore_type_t type, const char *
     status = el2go_datastore_commit(&datastore);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
+    /* read_buffer_size is bytes_used (64), not alloc_len (100). */
     status = el2go_datastore_read(&datastore, read_data, 0, sizeof(read_data), &bytes_read);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INCOMPLETE_READ, status, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(100, bytes_read, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_read, cleanup);
 
     bytes_read = 0;
     status = el2go_datastore_read(&datastore, read_data, 50, 100, &bytes_read);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INCOMPLETE_READ, status, cleanup);
-    TEST_ASSERT_EQUAL_CONTINUE(50, bytes_read);
+    /* bytes_used (64) - offset (50) = 14 bytes available. */
+    TEST_ASSERT_EQUAL_CONTINUE(sizeof(write_data) - 50, bytes_read);
 
 cleanup:
     status = el2go_datastore_free(&datastore);
@@ -460,10 +462,10 @@ bool common_test_ds_partial_read(el2go_datastore_type_t type, const char *name,
     status = el2go_datastore_commit(&datastore);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
-    /* Try to read more than available */
+    /* Try to read more than available - capped at bytes_used (64), not alloc_len (80). */
     status = el2go_datastore_read(&datastore, read_data, 0, sizeof(read_data), &bytes_read);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INCOMPLETE_READ, status, cleanup);
-    TEST_ASSERT_EQUAL_GOTO(80, bytes_read, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(sizeof(write_data), bytes_read, cleanup);
 
     /* Verify partial data is correct */
     TEST_ASSERT_MEMORY_EQUAL_CONTINUE(write_data, read_data, sizeof(write_data));
@@ -522,8 +524,9 @@ exit:
 /* Test Registration                                                          */
 /* ========================================================================== */
 
-void register_datastore_tests(void)
+void register_datastore_tests(bool include_fs_tests)
 {
+    (void)include_fs_tests;
     /* Set suite-level setup and teardown */
     TEST_SET_SUITE_SETUP(suite_setup);
     TEST_SET_SUITE_TEARDOWN(suite_teardown);

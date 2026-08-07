@@ -27,8 +27,11 @@ void register_el2go_rtp_tests(bool include_fs_tests);
 
 /**
  * @brief Register all datastore tests.
+ *
+ * @param include_fs_tests  If true, also register tests that require
+ *                          filesystem datastore support.
  */
-void register_datastore_tests(void);
+void register_datastore_tests(bool include_fs_tests);
 
 /**
  * @brief Register all FWUAL library tests.

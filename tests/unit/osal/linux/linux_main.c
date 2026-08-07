@@ -60,7 +60,7 @@ int main(int argc, char **argv)
         register_el2go_rtp_tests(true);
 
     if (!suite || strcmp(suite, "datastore") == 0)
-        register_datastore_tests();
+        register_datastore_tests(true);
 
     if (!suite || strcmp(suite, "keystore") == 0)
         register_keystore_tests();

@@ -21,10 +21,12 @@
 
 typedef struct {
     uint8_t *buffer;
-    size_t size;
+    size_t size;       /* allocation size of committed buffer */
+    size_t bytes_used; /* high-water mark of bytes written to committed buffer */
     bool transaction_active;
     uint8_t *temp_buffer;
     size_t temp_size;
+    size_t temp_bytes_used; /* high-water mark for the pending transaction */
 } custom_datastore_ctx_t;
 
 static el2go_status_t custom_datastore_init(void *context, el2go_datastore_validator_t validator)
@@ -41,9 +43,11 @@ static el2go_status_t custom_datastore_init(void *context, el2go_datastore_valid
 
     ctx->buffer = NULL;
     ctx->size = 0;
+    ctx->bytes_used = 0;
     ctx->transaction_active = false;
     ctx->temp_buffer = NULL;
     ctx->temp_size = 0;
+    ctx->temp_bytes_used = 0;
 
 exit:
     return status;
@@ -72,6 +76,7 @@ static el2go_status_t custom_datastore_allocate(void *context, size_t len)
     }
 
     ctx->temp_size = len;
+    ctx->temp_bytes_used = 0;
     ctx->transaction_active = true;
 
 exit:
@@ -83,6 +88,7 @@ static el2go_status_t custom_datastore_read(void *context, void *dest, size_t of
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     custom_datastore_ctx_t *ctx = (custom_datastore_ctx_t *)context;
+    size_t read_size = 0;
     size_t end_offset = 0;
     size_t actual_read = 0;
 
@@ -98,8 +104,11 @@ static el2go_status_t custom_datastore_read(void *context, void *dest, size_t of
         goto exit;
     }
 
+    /* Use bytes actually written, not the allocation size. */
+    read_size = ctx->bytes_used;
+
     /* Check if offset is within bounds */
-    if (offset >= ctx->size) {
+    if (offset >= read_size) {
         status = EL2GO_STATUS_BUFFER_TOO_SMALL;
         goto exit;
     }
@@ -109,9 +118,9 @@ static el2go_status_t custom_datastore_read(void *context, void *dest, size_t of
         goto exit;
     }
 
-    /* Perform partial read if requested length exceeds buffer */
-    if (end_offset > ctx->size) {
-        actual_read = ctx->size - offset;
+    /* Perform partial read if requested length exceeds written data */
+    if (end_offset > read_size) {
+        actual_read = read_size - offset;
         status = EL2GO_STATUS_INCOMPLETE_READ;
     } else {
         actual_read = len;
@@ -166,6 +175,13 @@ static el2go_status_t custom_datastore_write(void *context, const void *src, siz
     memcpy(ctx->temp_buffer + offset, src, actual_written);
     *bytes_written = actual_written;
 
+    /* Update high-water mark of bytes written for the pending transaction. */
+    {
+        size_t new_end = offset + actual_written;
+        if (new_end > ctx->temp_bytes_used)
+            ctx->temp_bytes_used = new_end;
+    }
+
 exit:
     return status;
 }
@@ -192,9 +208,11 @@ static el2go_status_t custom_datastore_commit(void *context)
 
     ctx->buffer = ctx->temp_buffer;
     ctx->size = ctx->temp_size;
+    ctx->bytes_used = ctx->temp_bytes_used;
 
     ctx->temp_buffer = NULL;
     ctx->temp_size = 0;
+    ctx->temp_bytes_used = 0;
     ctx->transaction_active = false;
 
 exit:
@@ -222,7 +240,9 @@ static el2go_status_t custom_datastore_free(void *context)
     }
 
     ctx->size = 0;
+    ctx->bytes_used = 0;
     ctx->temp_size = 0;
+    ctx->temp_bytes_used = 0;
     ctx->transaction_active = false;
 
 exit:
