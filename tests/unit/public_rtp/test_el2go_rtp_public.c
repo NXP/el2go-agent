@@ -335,7 +335,7 @@ static bool test_el2go_get_datastore_by_id_success(void *params)
         status = el2go_rtp_get_datastore_by_id(ctx, datastores[i].id, &retrieved_datastore);
         TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
         TEST_ASSERT_NOT_NULL_GOTO(retrieved_datastore, cleanup);
-        TEST_ASSERT_EQUAL_GOTO(datastores[i].id, retrieved_datastore->id, cleanup);
+        TEST_ASSERT_GOTO(datastores[i].id == retrieved_datastore->id, cleanup);
         TEST_ASSERT_PTR_EQUAL_GOTO(&datastores[i], retrieved_datastore, cleanup);
     }
 
@@ -652,7 +652,7 @@ static bool test_el2go_get_keystore_by_id_success(void *params)
         status = el2go_rtp_get_keystore_by_id(ctx, keystores[i].id, &retrieved_keystore);
         TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
         TEST_ASSERT_NOT_NULL_GOTO(retrieved_keystore, cleanup);
-        TEST_ASSERT_EQUAL_GOTO(keystores[i].id, retrieved_keystore->id, cleanup);
+        TEST_ASSERT_GOTO(keystores[i].id == retrieved_keystore->id, cleanup);
         TEST_ASSERT_PTR_EQUAL_GOTO(&keystores[i], retrieved_keystore, cleanup);
     }
 

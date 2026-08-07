@@ -25,6 +25,7 @@
 #include "pb.h"
 #include "pb_decode.h"
 #include "ServiceDescriptor.pb.h"
+#include "Agent.pb.h"
 
 #include "el2go_service.h"
 #include "el2go_server_connection.h"
@@ -35,6 +36,10 @@
 #include "test_utils.h"
 #include "rtp_test_utils.h"
 #include "test_el2go_service_internal.h"
+
+/* Forward declaration for dispatcher negative tests defined in
+ * test_el2go_rtp_dispatch.c */
+void register_el2go_rtp_dispatch_tests(void);
 
 /** @defgroup test_el2go_rtp_internal Internal RTP Tests
  * @brief Unit tests for the internal RTP module.
@@ -211,7 +216,7 @@ static bool test_el2go_rtp_datastore_internal_storage(void *params)
         status = el2go_rtp_add_datastore(ctx, &datastores[i]);
         TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
         TEST_ASSERT_EQUAL_GOTO(i + 1, ctx->num_datastores, cleanup);
-        TEST_ASSERT_EQUAL_GOTO(datastores[i].id, ctx->datastores[i]->id, cleanup);
+        TEST_ASSERT_GOTO(datastores[i].id == ctx->datastores[i]->id, cleanup);
     }
 
 cleanup:
@@ -306,7 +311,7 @@ static bool test_el2go_rtp_keystore_internal_storage(void *params)
         status = el2go_rtp_add_keystore(ctx, &keystores[i]);
         TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
         TEST_ASSERT_EQUAL_GOTO(i + 1, ctx->num_keystores, cleanup);
-        TEST_ASSERT_EQUAL_GOTO(keystores[i].id, ctx->keystores[i]->id, cleanup);
+        TEST_ASSERT_GOTO(keystores[i].id == ctx->keystores[i]->id, cleanup);
     }
 
 cleanup:
@@ -1163,6 +1168,174 @@ exit:
     return test_status;
 }
 
+/* ========================================================================== */
+/* el2go_rtp_print_status_report / el2go_rtp_free_status_report tests         */
+/* ========================================================================== */
+
+/**
+ * @brief Test el2go_rtp_print_status_report() with a NULL pointer.
+ *
+ * Verifies that the function accepts NULL (printing "(none)") and still
+ * returns EL2GO_STATUS_INVALID_PARAMETER, as documented.
+ */
+static bool test_el2go_rtp_print_status_report_null(void *params)
+{
+    el2go_status_t status;
+    bool test_status = true;
+
+    (void)params;
+
+    /* NULL is a valid sentinel value - function should return INVALID_PARAMETER
+     * after printing the "(none)" line. */
+    status = el2go_rtp_print_status_report(NULL);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_INVALID_PARAMETER, status);
+
+    return test_status;
+}
+
+/**
+ * @brief Test el2go_rtp_print_status_report() with a minimal empty report.
+ *
+ * Builds an nxp_iot_UpdateStatusReport with no optional sub-fields set and
+ * verifies that the function succeeds and does not access any sub-fields.
+ */
+static bool test_el2go_rtp_print_status_report_empty(void *params)
+{
+    nxp_iot_UpdateStatusReport report = nxp_iot_UpdateStatusReport_init_default;
+    el2go_status_t status;
+    bool test_status = true;
+
+    (void)params;
+
+    /* No has_* fields set - only the overall status line is printed. */
+    status = el2go_rtp_print_status_report(&report);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
+
+    return test_status;
+}
+
+/**
+ * @brief Test el2go_rtp_print_status_report() with a fully populated report.
+ *
+ * Builds an nxp_iot_UpdateStatusReport that exercises every branch in the
+ * print function: overall status, correlationId, claimStatus with one
+ * detailed entry, rtpStatus with one detailed entry, and cspStatus with
+ * one detailed entry.
+ */
+static bool test_el2go_rtp_print_status_report_full(void *params)
+{
+    nxp_iot_UpdateStatusReport report = nxp_iot_UpdateStatusReport_init_default;
+    nxp_iot_AgentClaimStatus_DetailedClaimStatus claim_detail = { 0 };
+    nxp_iot_AgentRtpStatus_RtpObjectStatus rtp_detail = { 0 };
+    nxp_iot_AgentCspStatus_CspServiceStatus csp_detail = { 0 };
+    el2go_status_t status;
+    bool test_status = true;
+
+    (void)params;
+
+    /* Overall status */
+    report.has_status = true;
+    report.status = nxp_iot_UpdateStatusReport_UpdateStatus_SUCCESS;
+
+    /* Correlation ID */
+    report.has_correlationId = true;
+    (void)memcpy(report.correlationId, "test-correlation-id", sizeof("test-correlation-id"));
+
+    /* Claim status with one detailed entry - details is a pointer, must be set */
+    claim_detail.endpointId = 0x10000001U;
+    claim_detail.has_status = true;
+    claim_detail.status = nxp_iot_AgentClaimStatus_ClaimStatus_SUCCESS;
+    report.has_claimStatus = true;
+    report.claimStatus.status = nxp_iot_AgentClaimStatus_ClaimStatus_SUCCESS;
+    report.claimStatus.details_count = 1U;
+    report.claimStatus.details = &claim_detail;
+
+    /* RTP status with one detailed entry */
+    rtp_detail.endpointId = 0x20000001U;
+    rtp_detail.objectId = 0xDEADBEEFU;
+    rtp_detail.has_status = true;
+    rtp_detail.status = nxp_iot_AgentRtpStatus_RtpStatus_SUCCESS;
+    report.has_rtpStatus = true;
+    report.rtpStatus.status = nxp_iot_AgentRtpStatus_RtpStatus_SUCCESS;
+    report.rtpStatus.details_count = 1U;
+    report.rtpStatus.details = &rtp_detail;
+
+    /* CSP status with one detailed entry */
+    csp_detail.endpointId = 0x30000001U;
+    csp_detail.serviceId = 12345U;
+    csp_detail.has_status = true;
+    csp_detail.status = nxp_iot_AgentCspStatus_CspStatus_SUCCESS;
+    report.has_cspStatus = true;
+    report.cspStatus.status = nxp_iot_AgentCspStatus_CspStatus_SUCCESS;
+    report.cspStatus.details_count = 1U;
+    report.cspStatus.details = &csp_detail;
+
+    status = el2go_rtp_print_status_report(&report);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
+
+    return test_status;
+}
+
+/**
+ * @brief Test el2go_rtp_free_status_report() with NULL arguments.
+ *
+ * Verifies that passing NULL as the pointer-to-pointer, or a pointer-to-NULL,
+ * returns EL2GO_STATUS_INVALID_PARAMETER without crashing.
+ */
+static bool test_el2go_rtp_free_status_report_null(void *params)
+{
+    void *null_ptr = NULL;
+    el2go_status_t status;
+    bool test_status = true;
+
+    (void)params;
+
+    /* NULL pointer-to-pointer */
+    status = el2go_rtp_free_status_report(NULL);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_PARAMETER, status, exit);
+
+    /* Pointer-to-NULL - the pointee is already NULL */
+    status = el2go_rtp_free_status_report(&null_ptr);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_INVALID_PARAMETER, status);
+
+exit:
+    return test_status;
+}
+
+/**
+ * @brief Test el2go_rtp_free_status_report() with a heap-allocated report.
+ *
+ * Allocates an nxp_iot_UpdateStatusReport on the heap, wraps it in a void*,
+ * calls el2go_rtp_free_status_report(), and verifies that the pointer is set
+ * to NULL and the function returns EL2GO_STATUS_SUCCESS.
+ */
+static bool test_el2go_rtp_free_status_report_valid(void *params)
+{
+    nxp_iot_UpdateStatusReport *report = NULL;
+    void *report_ptr = NULL;
+    el2go_status_t status;
+    bool test_status = true;
+
+    (void)params;
+
+    report = (nxp_iot_UpdateStatusReport *)osal_malloc(sizeof(nxp_iot_UpdateStatusReport));
+    TEST_ASSERT_NOT_NULL_GOTO(report, exit);
+
+    *report = (nxp_iot_UpdateStatusReport)nxp_iot_UpdateStatusReport_init_default;
+    report_ptr = report;
+
+    status = el2go_rtp_free_status_report(&report_ptr);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    TEST_ASSERT_NULL(report_ptr);
+
+exit:
+    /* If el2go_rtp_free_status_report did not free, avoid a leak by freeing here.
+     * This can only happen if the test failed before the call. */
+    if (report_ptr != NULL)
+        osal_free(report_ptr);
+    return test_status;
+}
+
 /**
  * @brief Register all internal RTP tests with the test framework.
  *
@@ -1211,8 +1384,18 @@ void register_el2go_rtp_tests(bool include_fs_tests)
     TEST_REGISTER(test_el2go_rtp_datastore_malformed_services);
     TEST_REGISTER(test_el2go_rtp_datastore_correct_checksum_malformed_services);
 
+    /* el2go_rtp_print_status_report / el2go_rtp_free_status_report tests */
+    TEST_REGISTER(test_el2go_rtp_print_status_report_null);
+    TEST_REGISTER(test_el2go_rtp_print_status_report_empty);
+    TEST_REGISTER(test_el2go_rtp_print_status_report_full);
+    TEST_REGISTER(test_el2go_rtp_free_status_report_null);
+    TEST_REGISTER(test_el2go_rtp_free_status_report_valid);
+
     /* el2go_service tests */
     register_el2go_service_tests(include_fs_tests);
+
+    /* el2go_rtp_dispatch negative tests */
+    register_el2go_rtp_dispatch_tests();
 }
 
 /** @} */ /* end of test_el2go_rtp_internal */
