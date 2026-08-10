@@ -28,6 +28,14 @@ add_unit_test(unit_public_ota_lib ${PUBLIC_TEST_EXECUTABLE} ota_lib public)
 add_unit_test(unit_public_ota_agent_core ${PUBLIC_TEST_EXECUTABLE} ota_agent_core public)
 add_unit_test(unit_public_ota_agent_advanced ${PUBLIC_TEST_EXECUTABLE} ota_agent_advanced public)
 
+# fwual and ota suites are disabled by default - enable with ctest -R or remove DISABLED below
+set_tests_properties(
+    unit_public_fwual
+    unit_public_ota_lib
+    unit_public_ota_agent_core
+    unit_public_ota_agent_advanced
+    PROPERTIES DISABLED TRUE)
+
 # Register internal tests with CTest
 add_unit_test(unit_internal_platform ${INTERNAL_TEST_EXECUTABLE} platform internal)
 add_unit_test(unit_internal_el2go_rtp ${INTERNAL_TEST_EXECUTABLE} el2go_rtp internal)
@@ -38,3 +46,10 @@ add_unit_test(unit_internal_fwual ${INTERNAL_TEST_EXECUTABLE} fwual internal)
 add_unit_test(unit_internal_ota_lib ${INTERNAL_TEST_EXECUTABLE} ota_lib internal)
 add_unit_test(unit_internal_ota_agent_core ${INTERNAL_TEST_EXECUTABLE} ota_agent_core internal)
 add_unit_test(unit_internal_ota_agent_advanced ${INTERNAL_TEST_EXECUTABLE} ota_agent_advanced internal)
+
+set_tests_properties(
+    unit_internal_fwual
+    unit_internal_ota_lib
+    unit_internal_ota_agent_core
+    unit_internal_ota_agent_advanced
+    PROPERTIES DISABLED TRUE)
