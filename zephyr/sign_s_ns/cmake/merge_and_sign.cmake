@@ -13,7 +13,7 @@ function(merge_and_sign)
         set(TFM_S_BIN "${CMAKE_BINARY_DIR}/../tfm/bin/tfm_s.bin")
         set(TFM_NS_BIN "${CMAKE_BINARY_DIR}/zephyr.bin")
     else()
-        set(TFM_S_BIN "${CMAKE_BINARY_DIR}/../tfm/bin/tfm_s_signed.bin")
+        set(TFM_S_BIN "${CMAKE_BINARY_DIR}/tfm_s_signed.bin")
         set(TFM_NS_BIN "${CMAKE_BINARY_DIR}/zephyr_ns_signed.bin")
     endif()
     set(TFM_MERGED_HEADERLESS_SIGNED_BIN
