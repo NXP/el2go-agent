@@ -8,76 +8,8 @@
 #include "el2go_csr_integrity_verifier.h"
 #include "el2go_csr_console.h"
 #include "byte_utils.h"
+#include "crc_sw_util.h"
 
-#define CRC32_POLYNOMIAL_REFLECTED  0xEDB88320U
-#define CRC32_INITIAL_VALUE         0xFFFFFFFFU
-#define CRC32_FINAL_XOR             0xFFFFFFFFU
-
-static csr_integrity_verifier_t crc32_calculate(uint8_t *data, size_t size, uint32_t *crc)
-{
-    uint32_t crc_value = 0U;
-    size_t i = 0U;
-    uint8_t j = 0U;
-
-    if (!data || !crc || !size)
-    {
-        return kStatus_CSR_INT_VERIFY_INVALID_ARG;
-    }
-
-    crc_value = CRC32_INITIAL_VALUE;
-
-    for (i = 0U; i < size; i++)
-    {
-        crc_value ^= data[i];
-
-        for (j = 0U; j < 8U; j++)
-        {
-            if ((crc_value & 1U) != 0U)
-            {
-                crc_value = (crc_value >> 1U) ^ CRC32_POLYNOMIAL_REFLECTED;
-            }
-            else
-            {
-                crc_value = crc_value >> 1U;
-            }
-        }
-    }
-
-    *crc = crc_value ^ CRC32_FINAL_XOR;
-
-    return kStatus_CSR_INT_VERIFY_SUCCESS;
-}
-
-csr_integrity_verifier_t crc32_verify_sw(uint8_t *data, size_t size, const uint8_t* expected_crc)
-{
-    csr_integrity_verifier_t status = kStatus_CSR_INT_VERIFY_SUCCESS;
-    uint32_t calculated_crc = 0U;
-    uint32_t expected_crc_value = 0U;
-
-    if (data == NULL || size == 0U || expected_crc == NULL)
-    {
-        status = kStatus_CSR_INT_VERIFY_INVALID_ARG;
-        goto exit;
-    }
-
-    status = crc32_calculate(data, size, &calculated_crc);
-    if (status != kStatus_CSR_INT_VERIFY_SUCCESS)
-    {
-         goto exit;
-    }
-    
-    expected_crc_value = get_uint32_val(expected_crc);
-    LOG(LOG_DEBUG, "Computed CRC32: 0x%08X, Expected CRC32: 0x%08X\r\n", calculated_crc, expected_crc_value);
-
-    if (calculated_crc != expected_crc_value)
-    {
-        status = kStatus_CSR_INT_VERIFY_FAILED;
-        goto exit;
-    }
-
-exit:
-    return status;
-}
 
 csr_integrity_verifier_t 
 verify_integrity(uint8_t *data, size_t size, const uint8_t *checksum, integrity_algorithms_t algo)
@@ -85,8 +17,8 @@ verify_integrity(uint8_t *data, size_t size, const uint8_t *checksum, integrity_
     switch (algo)
     {
         case CRC_32:
-			LOG(LOG_TRACE, "Verifying data integrity using CRC-32 algorithm\r\n");
-            return crc32_verify_sw(data, size, checksum);
+            LOG(LOG_TRACE, "Verifying data integrity using CRC-32 algorithm\r\n");
+            return crc32_calculate_sw(data, size, checksum);
         break; 
 
         default:

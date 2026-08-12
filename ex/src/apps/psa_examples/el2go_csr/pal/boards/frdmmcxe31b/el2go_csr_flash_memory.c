@@ -170,7 +170,7 @@ static csr_mem_status_t program_sector_rmw(uint32_t sector_addr,
  */
 static bool validate_flash_address(uint32_t addr, uint32_t size)
 {   
-    return !((addr < s_flashConfig.DataFlashBase) || ((addr + size) > (uint32_t)FLASH_END_ADDR));
+    return ((addr >= s_flashConfig.DataFlashBase) && (addr <= (uint32_t)FLASH_END_ADDR) && (size <= ((uint32_t)FLASH_END_ADDR - addr)));
 }
 
 

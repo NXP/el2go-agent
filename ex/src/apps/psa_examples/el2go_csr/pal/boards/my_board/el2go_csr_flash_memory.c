@@ -87,7 +87,7 @@ static csr_mem_status_t program_page_rmw(uint32_t page_addr,
 
 static uint8_t validate_flash_address(uint32_t addr, uint32_t size)
 {
-    return !((addr < FLASH_STORAGE_BASE) || ((addr + size) > FLASH_STORAGE_END));
+    return ((addr >= FLASH_STORAGE_BASE) && (addr <= FLASH_STORAGE_END) && (size <= (FLASH_STORAGE_END - addr)));
 }
 
 csr_mem_status_t mem_read(uint32_t addr, uint8_t *buffer, uint32_t size)

@@ -17,8 +17,8 @@ static flash_config_t s_flashConfig;
 #define FLASH_SECTOR_SIZE               (0x2000U)   /* 8 KB sector size */
 
 /* = NSC flash region */
-#define FLASH_STORAGE_END               (FLASH_TOTAL_SIZE)  
-#define FLASH_STORAGE_BASE              (NXP_FLASH_NS_STORAGE_OFFSET)                 
+#define FLASH_STORAGE_BASE              (NXP_FLASH_NS_STORAGE_OFFSET)  
+#define FLASH_STORAGE_END               (FLASH_STORAGE_BASE + NXP_FLASH_NS_STORAGE_SIZE)  
 
 /* configuration block is written to this address by the Host Tool (default).
  * Please refer to the README.md for further information. */
@@ -172,7 +172,7 @@ static csr_mem_status_t program_sector_rmw(uint32_t sector_addr,
  */
 static bool validate_flash_address(uint32_t addr, uint32_t size)
 {
-    return !((addr < FLASH_STORAGE_BASE) || ((addr + size) > (uint32_t)FLASH_STORAGE_END));
+    return ((addr >= FLASH_STORAGE_BASE) && (addr <= (uint32_t)FLASH_STORAGE_END) && (size <= ((uint32_t)FLASH_STORAGE_END - addr)));
 }
 
 
