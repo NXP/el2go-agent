@@ -50,19 +50,6 @@ el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx);
 el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platform_ctx);
 
 /**
- * @brief Import claim code for device provisioning.
- *
- * Imports the claim code required for device provisioning with EdgeLock 2GO.
- *
- * @param[in] platform_ctx  Platform context.
- * @param[in] claimcode     Claim code string.
- *
- * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
- */
-el2go_status_t el2go_platform_import_claimcode(el2go_platform_ctx_t *platform_ctx,
-                                               const char *claimcode);
-
-/**
  * @brief Recommended buffer size for el2go_platform_get_uuid().
  *
  * Allocate at least this many bytes when calling el2go_platform_get_uuid().

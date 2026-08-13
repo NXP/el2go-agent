@@ -110,3 +110,15 @@ __weak el2go_status_t el2go_keystore_get_endpoint_info(void *ctx, nxp_iot_Endpoi
 
     return EL2GO_STATUS_SUCCESS;
 }
+
+__export __weak el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore,
+                                                               const char *claimcode,
+                                                               size_t claimcode_len)
+{
+    (void)keystore;
+    (void)claimcode;
+    (void)claimcode_len;
+
+    /* not mandatory for all keystore implementations */
+    return EL2GO_STATUS_SUCCESS;
+}

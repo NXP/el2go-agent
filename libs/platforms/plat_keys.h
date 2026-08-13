@@ -33,6 +33,16 @@
 #endif
 
 /**
+ * @brief Data object identifier for the EdgeLock 2GO claim code.
+ *
+ * Identifies the secure data object where the claim code is stored.
+ * Defined per-platform in el2go_platform_defs.h.
+ */
+#ifndef EDGELOCK2GO_CLAIMCODE_DATA_ID
+#define EDGELOCK2GO_CLAIMCODE_DATA_ID 0xF00000E0U
+#endif
+
+/**
  * @brief Get the ECC key ID for EdgeLock 2GO server connection
  *
  * Returns the ECC key ID used for client authentication with the

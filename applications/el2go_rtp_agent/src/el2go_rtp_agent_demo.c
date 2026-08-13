@@ -28,6 +28,7 @@ static void print_usage(const char *prog_name)
     printf("                          (default: %s)\n", EL2GO_RTP_EDGELOCK2GO_HOSTNAME);
     printf("  --port <port>           EdgeLock 2GO server port\n");
     printf("                          (default: %u)\n", EL2GO_RTP_EDGELOCK2GO_PORT);
+    printf("  --claimcode <code>      Claim code to import before provisioning\n");
     printf("  --help                  Print this help message\n");
     printf("\n");
 }
@@ -39,6 +40,7 @@ static void print_usage(const char *prog_name)
 typedef struct {
     const char *hostname;
     uint16_t port;
+    const char *claimcode;
 } demo_args_t;
 
 static int parse_args(int argc, char **argv, demo_args_t *args)
@@ -46,6 +48,7 @@ static int parse_args(int argc, char **argv, demo_args_t *args)
     /* No defaults - NULL and 0 mean use compile-time constants */
     args->hostname = NULL;
     args->port = 0;
+    args->claimcode = NULL;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0) {
@@ -67,6 +70,12 @@ static int parse_args(int argc, char **argv, demo_args_t *args)
                 return -1;
             }
             args->port = (uint16_t)port;
+        } else if (strcmp(argv[i], "--claimcode") == 0) {
+            if (i + 1 >= argc) {
+                (void)fprintf(stderr, "Error: --claimcode requires an argument\n");
+                return -1;
+            }
+            args->claimcode = argv[++i];
         } else {
             (void)fprintf(stderr, "Error: unknown option: %s\n", argv[i]);
             return -1;
@@ -130,8 +139,9 @@ int main(int argc, char **argv)
     }
 
     printf("Configuration:\n");
-    printf("  Hostname: %s\n", args.hostname ? args.hostname : EL2GO_RTP_EDGELOCK2GO_HOSTNAME);
-    printf("  Port:     %u\n", args.port ? args.port : EL2GO_RTP_EDGELOCK2GO_PORT);
+    printf("  Hostname:   %s\n", args.hostname ? args.hostname : EL2GO_RTP_EDGELOCK2GO_HOSTNAME);
+    printf("  Port:       %u\n", args.port ? args.port : EL2GO_RTP_EDGELOCK2GO_PORT);
+    printf("  Claimcode:  %s\n", args.claimcode ? args.claimcode : "(none)");
     printf("\n");
 
     /* Initialize EL2GO RTP Agent */
@@ -181,6 +191,18 @@ int main(int argc, char **argv)
         goto cleanup_platform;
     }
     printf("Keystore initialized successfully\n\n");
+
+    /* Import claim code if provided */
+    if (args.claimcode != NULL) {
+        printf("Importing claim code...\n");
+        status =
+            el2go_keystore_import_claimcode(&keystore_ctx, args.claimcode, strlen(args.claimcode));
+        if (status != EL2GO_STATUS_SUCCESS) {
+            printf("Failed to import claim code (status: %d)\n", status);
+            goto cleanup_keystore_free;
+        }
+        printf("Claim code imported successfully\n\n");
+    }
 
     /* Add keystore to agent */
     printf("Adding keystore to agent...\n");

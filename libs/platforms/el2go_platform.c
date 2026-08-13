@@ -35,15 +35,15 @@ __export __weak el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platfo
     return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
 
-__export __weak el2go_status_t el2go_platform_import_claimcode(el2go_platform_ctx_t *platform_ctx,
-                                                               const char *claimcode)
+__weak el2go_status_t el2go_platform_import_claimcode(el2go_platform_ctx_t *platform_ctx,
+                                                      const char *claimcode, size_t claimcode_len)
 {
-    if (!platform_ctx || !claimcode) {
-        return EL2GO_STATUS_INVALID_PARAMETER;
-    }
+    (void)platform_ctx;
+    (void)claimcode;
+    (void)claimcode_len;
 
-    /* this function is not mandatory for all platforms*/
-    return EL2GO_STATUS_SUCCESS;
+    /* no generic default; keystore layer provides the fallback */
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
 
 __export __weak el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_ctx,

@@ -9,6 +9,7 @@
 #define __EL2GO_KEYSTORE_H__
 
 #include <stdint.h>
+#include <stddef.h>
 #include "common/el2go_status.h"
 
 typedef struct el2go_platform_ctx el2go_platform_ctx_t;
@@ -93,5 +94,21 @@ el2go_status_t el2go_keystore_open_session(el2go_keystore_t *keystore);
  * EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_keystore_close_session(el2go_keystore_t *keystore);
+
+/**
+ * el2go_keystore_import_claimcode - Import claim code via the keystore
+ * @keystore: Keystore structure
+ * @claimcode: Null-terminated claim code string
+ *
+ * Stores the claim code for device provisioning. The keystore PSA
+ * implementation first delegates to the platform layer; if no platform
+ * override is present it uses a generic PSA ITS fallback. Non-PSA keystores
+ * may provide their own override or rely on the default no-op stub.
+ *
+ * Return:
+ * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ */
+el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore, const char *claimcode,
+                                               size_t claimcode_len);
 
 #endif /* __EL2GO_KEYSTORE_H__ */

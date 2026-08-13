@@ -595,6 +595,76 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Test import_claimcode with NULL keystore.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_import_claimcode_null_keystore(void *params)
+{
+    el2go_status_t status;
+
+    (void)params;
+
+    /* NULL keystore must return EL2GO_STATUS_INVALID_PARAMETER. */
+    status = el2go_keystore_import_claimcode(NULL, "test-code", 9U);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+    return true;
+}
+
+/**
+ * @brief Test import_claimcode with NULL claimcode pointer.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_import_claimcode_null_claimcode(void *params)
+{
+    el2go_keystore_t keystore = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+
+    (void)params;
+
+    status = el2go_keystore_init(0x50000000, NULL, &keystore);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+
+    /* NULL claimcode pointer must return EL2GO_STATUS_INVALID_PARAMETER. */
+    status = el2go_keystore_import_claimcode(&keystore, NULL, 9U);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_PARAMETER, status, exit);
+
+exit:
+    el2go_keystore_free(&keystore);
+    return test_status;
+}
+
+/**
+ * @brief Test import_claimcode with zero length.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_import_claimcode_zero_length(void *params)
+{
+    el2go_keystore_t keystore = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+
+    (void)params;
+
+    status = el2go_keystore_init(0x50000000, NULL, &keystore);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+
+    /* Zero length must return EL2GO_STATUS_INVALID_PARAMETER. */
+    status = el2go_keystore_import_claimcode(&keystore, "test-code", 0U);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_PARAMETER, status, exit);
+
+exit:
+    el2go_keystore_free(&keystore);
+    return test_status;
+}
+
 void register_keystore_specific_tests(void)
 {
     /* Register PSA keystore initialization test */
@@ -625,6 +695,11 @@ void register_keystore_specific_tests(void)
 
     /* Register positive test for coverage */
     TEST_REGISTER(test_get_version_success);
+
+    /* Register import_claimcode negative tests */
+    TEST_REGISTER(test_import_claimcode_null_keystore);
+    TEST_REGISTER(test_import_claimcode_null_claimcode);
+    TEST_REGISTER(test_import_claimcode_zero_length);
 }
 
 /** @} */ /* end of test_el2go_keystore_internal_psa */

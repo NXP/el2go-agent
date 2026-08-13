@@ -34,6 +34,23 @@
  */
 el2go_status_t el2go_platform_destroy_key(el2go_platform_ctx_t *platform_ctx, const void *key_id);
 
+/**
+ * @brief Import claim code into platform-specific secure storage.
+ *
+ * Stores the claim code required for device provisioning. Platform-specific
+ * implementations use hardware-backed storage (e.g. SMW encrypted store).
+ * The default weak implementation returns EL2GO_STATUS_NOT_IMPLEMENTED,
+ * signaling the keystore layer to use its own generic fallback.
+ *
+ * @param[in] platform_ctx  Platform context.
+ * @param[in] claimcode     Null-terminated claim code string.
+ *
+ * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success,
+ *         @ref EL2GO_STATUS_NOT_IMPLEMENTED if no platform override is present.
+ */
+el2go_status_t el2go_platform_import_claimcode(el2go_platform_ctx_t *platform_ctx,
+                                               const char *claimcode, size_t claimcode_len);
+
 /** @} */ /* end of el2go_platform_int */
 
 #endif /* __PLATFORM_PRIV_H__ */

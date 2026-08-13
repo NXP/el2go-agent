@@ -495,3 +495,15 @@ el2go_status_t el2go_keystore_set_cert_in_srv_desc(el2go_keystore_t *keystore,
 
     return EL2GO_STATUS_SUCCESS;
 }
+
+el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore, const char *claimcode,
+                                               size_t claimcode_len)
+{
+    if (!keystore || !claimcode || claimcode_len == 0U)
+        return EL2GO_STATUS_INVALID_PARAMETER;
+
+    /* Delegate to the platform-specific implementation.
+     * If no platform support is available (EL2GO_STATUS_NOT_IMPLEMENTED), a generic
+     * PSA ITS fallback can be added here in the future. */
+    return el2go_platform_import_claimcode(keystore->platform_ctx, claimcode, claimcode_len);
+}

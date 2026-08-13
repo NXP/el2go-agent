@@ -10,6 +10,8 @@
 
 #include <smw_osal.h>
 #include <smw_device.h>
+#include <smw_storage.h>
+#include <smw_keymgr.h>
 #include <psa/crypto.h>
 #include <psa/internal_trusted_storage.h>
 
@@ -19,6 +21,7 @@
 
 #include "common/el2go_platform.h"
 #include "platform_priv.h"
+#include "platform_defs.h"
 
 struct el2go_platform_ctx {
     bool smw_initialized;
@@ -201,4 +204,59 @@ __export el2go_status_t el2go_platform_destroy_key(el2go_platform_ctx_t *platfor
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, el2go_status);
     return el2go_status;
+}
+
+el2go_status_t el2go_platform_import_claimcode(el2go_platform_ctx_t *platform_ctx,
+                                               const char *claimcode, size_t claimcode_len)
+{
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    enum smw_status_code smw_status = SMW_STATUS_OK;
+    struct smw_store_data_args args = { 0 };
+    struct smw_data_descriptor data_descriptor = { 0 };
+    struct smw_encryption_args encr_args = { 0 };
+    struct smw_sign_args sign_args = { 0 };
+    struct smw_key_descriptor encr_key = { 0 };
+    struct smw_key_descriptor *encr_key_ptr = &encr_key;
+    struct smw_key_descriptor sign_key = { 0 };
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!platform_ctx || !claimcode || claimcode_len == 0U) {
+        status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    data_descriptor.identifier = EDGELOCK2GO_CLAIMCODE_DATA_ID;
+    data_descriptor.data = (unsigned char *)(uintptr_t)claimcode;
+    data_descriptor.length = claimcode_len;
+    data_descriptor.attributes.attributes =
+        SMW_ATTR_SET_LC_CURRENT(data_descriptor.attributes.attributes);
+
+    encr_key.type_name = SMW_KEY_TYPE_NAME_AES;
+    encr_key.id = EDGELOCK2GO_CLAIMCODE_ENC_KEY_ID;
+    encr_key.security_size = 256;
+    encr_args.nb_keys = 1;
+    encr_args.mode_name = SMW_CIPHER_MODE_NAME_CBC;
+    encr_args.keys_desc = &encr_key_ptr;
+
+    sign_key.type_name = SMW_KEY_TYPE_NAME_AES;
+    sign_key.id = EDGELOCK2GO_CLAIMCODE_AUTH_KEY_ID;
+    sign_key.security_size = 256;
+    sign_args.algo_name = SMW_MAC_ALGO_NAME_CMAC;
+    sign_args.key_descriptor = &sign_key;
+
+    args.data_descriptor = &data_descriptor;
+    args.encryption_args = &encr_args;
+    args.sign_args = &sign_args;
+    args.subsystem_name = SMW_SUBSYSTEM_NAME_ELE;
+
+    smw_status = smw_store_data(&args);
+    if (smw_status != SMW_STATUS_OK) {
+        EL2GO_DBG_PRINTF(ERROR, "smw_store_data failed: %d\n", (int)smw_status);
+        status = EL2GO_STATUS_PLATFORM_SMW_ERROR;
+    }
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
 }
