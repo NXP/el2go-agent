@@ -101,6 +101,24 @@ __weak nxp_iot_EndpointType el2go_keystore_get_endpoint_type(const el2go_keystor
     }
 }
 
+__weak el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore,
+                                                      const char *claimcode, size_t claimcode_len)
+{
+    (void)keystore;
+    (void)claimcode;
+    (void)claimcode_len;
+
+    /* default no-op: keystores that do not need claim injection succeed silently */
+    return EL2GO_STATUS_SUCCESS;
+}
+
+__export __weak el2go_status_t el2go_keystore_import_claimcode_from_flash(el2go_keystore_t *keystore)
+{
+    (void)keystore;
+    /* default no-op: platforms without flash claimcode injection succeed silently */
+    return EL2GO_STATUS_SUCCESS;
+}
+
 __weak el2go_status_t el2go_keystore_get_endpoint_info(void *ctx, nxp_iot_EndpointInformation *info)
 {
     (void)ctx;

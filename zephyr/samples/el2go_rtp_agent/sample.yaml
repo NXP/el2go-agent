@@ -1,0 +1,21 @@
+sample:
+  name: EdgeLock 2GO RTP Agent
+  description: >
+    Provisions device credentials from the EdgeLock 2GO service using the
+    RTP (Remote Trusted Provisioning) agent. Supports PSA Crypto via ELS PKC
+    hardware (no TF-M), PSA ITS via Zephyr SECURE_STORAGE+ZMS, and optional
+    MQTT connectivity verification after provisioning.
+  boards:
+    - frdm_rw612
+    - rd_rw612_bga
+tests:
+  sample.el2go_rtp_agent:
+    tags:
+      - el2go
+      - rtp
+      - provisioning
+    platform_allow:
+      - frdm_rw612
+      - rd_rw612_bga
+    integration_platforms:
+      - frdm_rw612

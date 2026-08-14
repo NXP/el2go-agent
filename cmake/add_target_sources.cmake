@@ -3,8 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Declares an OBJECT library
-# Must be called before add_private_sources / add_private_directories
+# Declares an OBJECT library (non-Zephyr). In Zephyr mode the caller must
+# call zephyr_library() or zephyr_library_named() directly before using
+# add_private_sources / add_private_directories.
 function(declare_library target)
     if(NOT BUILD_ZEPHYR)
         add_library(${target} OBJECT)

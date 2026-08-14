@@ -74,16 +74,27 @@
  *
  * This is specific to your customer account, the needed value can be obtained in the GUI of the
  * EdgeLock 2GO cloud service in the company settings of the account.
+ * On Zephyr, set CONFIG_EL2GO_RTP_EDGELOCK2GO_HOSTNAME in prj.conf to override this default.
  */
+#if defined(CONFIG_EL2GO_RTP_EDGELOCK2GO_HOSTNAME)
+#define EL2GO_RTP_EDGELOCK2GO_HOSTNAME CONFIG_EL2GO_RTP_EDGELOCK2GO_HOSTNAME
+#else
 #define EL2GO_RTP_EDGELOCK2GO_HOSTNAME "CHANGE THIS! - company specific hostname"
 #endif
+#endif /* EL2GO_RTP_EDGELOCK2GO_HOSTNAME */
 
 #ifndef EL2GO_RTP_EDGELOCK2GO_PORT
 /**
  * @brief The port to use for the communication to the EdgeLock 2GO cloud service
+ *
+ * On Zephyr, set CONFIG_EL2GO_RTP_EDGELOCK2GO_PORT in prj.conf to override this default.
  */
+#if defined(CONFIG_EL2GO_RTP_EDGELOCK2GO_PORT)
+#define EL2GO_RTP_EDGELOCK2GO_PORT ((uint16_t)CONFIG_EL2GO_RTP_EDGELOCK2GO_PORT)
+#else
 #define EL2GO_RTP_EDGELOCK2GO_PORT 443U
 #endif
+#endif /* EL2GO_RTP_EDGELOCK2GO_PORT */
 
 /** @brief Maximum size of the self-signed client certificate in bytes */
 #ifndef EL2GO_RTP_CLIENT_CERT_MAX_SIZE
@@ -92,7 +103,7 @@
 
 /** @brief Certificate subject used for client certificate generation */
 #ifndef EL2GO_RTP_SUBJECT
-#define EL2GO_RTP_SUBJECT "CN=EdgeLock2GO,O=NXP"
+#define EL2GO_RTP_SUBJECT "O=NXP,OU=Plug and Trust,CN=NXP_DIE_ID_AUTH"
 #endif
 
 /**
@@ -102,7 +113,7 @@
  * during the provisioning session. Set to 0 to disable CRL retrieval.
  */
 #ifndef EL2GO_RTP_REQUEST_CRL
-#define EL2GO_RTP_REQUEST_CRL 1
+#define EL2GO_RTP_REQUEST_CRL 0
 #endif
 
 /** @} */ /* end of el2go_rtp_config */

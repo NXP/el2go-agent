@@ -10,8 +10,16 @@ set(OSAL_SOURCES
     osal.c
     print.c
     file.c
-    uuid.c
 )
+
+# el2go_uuid_zephyr.c provides osal_uuid() via hwinfo and replaces uuid.c
+# when the RTP agent is enabled. Only one of the two may be compiled at a time
+# to avoid conflicting definitions.
+if(CONFIG_EL2GO_RTP_AGENT)
+    list(APPEND OSAL_SOURCES el2go_uuid_zephyr.c)
+else()
+    list(APPEND OSAL_SOURCES uuid.c)
+endif()
 
 declare_library(osal)
 

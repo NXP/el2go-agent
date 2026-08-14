@@ -58,6 +58,21 @@ void osal_printf_always(const char *fmt, ...)
     LOG_INF("%s", buf);
 }
 
+int osal_sprintf(char *str, const char *format, ...)
+{
+    va_list args;
+    int ret = 0;
+
+    if (!str || !format)
+        return -1;
+
+    va_start(args, format);
+    ret = vsprintf(str, format, args);
+    va_end(args);
+
+    return (ret < 0) ? -1 : ret;
+}
+
 int osal_snprintf(char *str, size_t size, const char *format, ...)
 {
     va_list args;

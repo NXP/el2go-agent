@@ -364,6 +364,193 @@ config EL2GO_OTA_STATUS_NVS_SECTOR_COUNT
     depends on EL2GO_OTA_LIBRARY_SOURCES
     default 2
 
+# ---------------------------------------------------------------------------
+# EdgeLock2GO RTP Agent
+# ---------------------------------------------------------------------------
+menu "EdgeLock2GO RTP Agent"
+
+config EL2GO_RTP_AGENT
+    bool "EdgeLock2GO RTP Agent library sources"
+    help
+      Enables the el2go_rtp_lib and its dependencies (keystores, datastores,
+      platforms, net_crypto, protobuf, osal) for Zephyr builds.
+
+config EL2GO_RTP_CLAIMCODE_INJECT
+    bool "Enable claimcode injection from flash"
+    depends on EL2GO_RTP_AGENT
+    help
+      Reads a claimcode blob from a fixed flash address and imports it into
+      PSA ITS before provisioning.
+
+config EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
+    hex "Flash address of the claimcode blob"
+    depends on EL2GO_RTP_CLAIMCODE_INJECT
+    default 0x088A0000
+    help
+      Physical flash address where the claimcode blob is stored.
+      Layout: { uint8_t indicator[4]; uint32_t size; uint8_t data[size]; }
+
+config EL2GO_RTP_MQTT_VERIFY
+    bool "Enable MQTT connectivity verification after provisioning"
+    depends on EL2GO_RTP_AGENT
+    help
+      After provisioning, verifies MQTT connectivity using provisioned
+      credentials. At least one MQTT backend (AWS or Azure) must be
+      enabled via CONFIG_EL2GO_RTP_MQTT_AWS / CONFIG_EL2GO_RTP_MQTT_AZURE.
+
+config EL2GO_RTP_MQTT_AWS
+    bool "Enable AWS IoT Core MQTT verification"
+    depends on EL2GO_RTP_MQTT_VERIFY
+    help
+      Verifies the AWS IoT Core device key (PSA key ID 0x4000) and
+      certificate (PSA ITS UID 0x4001) by performing a TLS handshake
+      against the configured AWS IoT Core endpoint.
+
+config EL2GO_RTP_MQTT_AWS_HOSTNAME
+    string "AWS IoT Core endpoint hostname"
+    depends on EL2GO_RTP_MQTT_AWS
+    default ""
+    help
+      The AWS IoT Core device endpoint hostname, e.g.
+      "<account-id>-ats.iot.<region>.amazonaws.com".
+
+config EL2GO_RTP_MQTT_AWS_KEY_ID
+    hex "PSA key ID for the AWS IoT Core device private key"
+    depends on EL2GO_RTP_MQTT_AWS
+    default 0x83000101
+    help
+      PSA key store ID of the device private key provisioned by EdgeLock 2GO
+      for AWS IoT Core authentication. Must match the key object ID configured
+      in the EL2GO service template (AWS_SERVICE_KEY_PAIR_ID in the old repo).
+
+config EL2GO_RTP_MQTT_AWS_CERT_ID
+    hex "PSA ITS UID for the AWS IoT Core device certificate"
+    depends on EL2GO_RTP_MQTT_AWS
+    default 0x83000102
+    help
+      PSA ITS UID of the device certificate provisioned by EdgeLock 2GO
+      for AWS IoT Core authentication. Must match the cert object ID configured
+      in the EL2GO service template (AWS_SERVICE_DEVICE_CERT_ID in the old repo).
+
+config EL2GO_RTP_MQTT_AZURE
+    bool "Enable Azure IoT Hub MQTT verification"
+    depends on EL2GO_RTP_MQTT_VERIFY
+    help
+      Verifies the Azure IoT Hub device key and certificate by performing a
+      TLS handshake against the configured Azure IoT Hub or DPS endpoint.
+
+config EL2GO_RTP_MQTT_AZURE_HOSTNAME
+    string "Azure IoT Hub / DPS hostname"
+    depends on EL2GO_RTP_MQTT_AZURE
+    default "global.azure-devices-provisioning.net"
+    help
+      The Azure IoT Hub or DPS hostname for MQTT TLS verification.
+
+config EL2GO_RTP_MQTT_AZURE_KEY_ID
+    hex "PSA key ID for the Azure IoT Hub device private key"
+    depends on EL2GO_RTP_MQTT_AZURE
+    default 0x83000211
+    help
+      PSA key store ID of the device private key provisioned by EdgeLock 2GO
+      for Azure IoT Hub authentication. Must match the key object ID configured
+      in the EL2GO service template (AZURE_SERVICE_KEY_PAIR_ID in the old repo).
+
+config EL2GO_RTP_MQTT_AZURE_CERT_ID
+    hex "PSA ITS UID for the Azure IoT Hub device certificate"
+    depends on EL2GO_RTP_MQTT_AZURE
+    default 0x83000212
+    help
+      PSA ITS UID of the device certificate provisioned by EdgeLock 2GO
+      for Azure IoT Hub authentication. Must match the cert object ID configured
+      in the EL2GO service template (AZURE_SERVICE_DEVICE_CERT_ID in the old repo).
+
+config EL2GO_RTP_MQTT_AZURE_ID_SCOPE
+    string "Azure DPS ID scope"
+    depends on EL2GO_RTP_MQTT_AZURE
+    default ""
+    help
+      The ID scope assigned to the Azure Device Provisioning Service (DPS)
+      account, e.g. "0ne004510C6". Corresponds to AZURE_ID_SCOPE in the
+      old iot_agent_demo_config.h. Required when connecting to Azure DPS.
+
+config EL2GO_RTP_MQTT_AWS_CLIENT_ID
+    string "AWS IoT Core MQTT client ID (optional)"
+    depends on EL2GO_RTP_MQTT_AWS
+    default ""
+    help
+      Optional MQTT client ID for the AWS IoT Core connection. If left empty
+      the client ID is derived dynamically from the Common Name of the device
+      leaf certificate. Corresponds to AWS_CLIENT_ID in the old
+      iot_agent_demo_config.h.
+
+config EL2GO_RTP_MQTT_AZURE_REGISTRATION_ID
+    string "Azure DPS device registration ID (optional)"
+    depends on EL2GO_RTP_MQTT_AZURE
+    default ""
+    help
+      Optional DPS registration ID. If left empty it is derived dynamically
+      from the Common Name of the device leaf certificate. Corresponds to
+      AZURE_REGISTRATION_ID in the old iot_agent_demo_config.h.
+
+config EL2GO_RTP_EDGELOCK2GO_HOSTNAME
+    string "EdgeLock 2GO server hostname"
+    depends on EL2GO_RTP_AGENT
+    default ""
+    help
+      The hostname of the EdgeLock 2GO cloud service to connect to during
+      provisioning. This value is company-specific and can be found in the
+      EdgeLock 2GO portal under company settings.
+      Leave empty to fall back to the compile-time default in el2go_rtp_config.h.
+
+config EL2GO_RTP_EDGELOCK2GO_PORT
+    int "EdgeLock 2GO server port"
+    depends on EL2GO_RTP_AGENT
+    default 443
+    help
+      TCP port number for the EdgeLock 2GO cloud service connection.
+      Defaults to 443 (HTTPS/TLS).
+
+config EL2GO_RTP_WHITELISTING
+    bool "Enable whitelisting mode"
+    depends on EL2GO_RTP_AGENT
+    help
+      Enables whitelisting-based provisioning flow.
+
+config EL2GO_RTP_PSA_BACKEND_TFM
+    bool "Use TF-M as PSA backend (future)"
+    depends on EL2GO_RTP_AGENT && BUILD_WITH_TFM
+    default n
+    help
+      When enabled, PSA Crypto and ITS are backed by TF-M Secure Partition.
+      Requires tfm_ns_interface_init() at startup.
+      Currently not enabled -- reserved for future TF-M re-enablement.
+
+endmenu # EdgeLock2GO RTP Agent
+
+# ---------------------------------------------------------------------------
+# Network backend (shared between OTA and RTP samples)
+# ---------------------------------------------------------------------------
+config EL2GO_OTA_NETWORK_BACKEND_ZEPHYR_WIFI
+    bool "Zephyr WiFi network backend"
+    depends on WIFI
+    help
+      Enables the Zephyr WiFi network backend that connects to an AP and
+      waits for DHCP before returning from el2go_ota_net_init().
+
+config EL2GO_NET_WIFI_SSID
+    string "WiFi SSID"
+    depends on EL2GO_OTA_NETWORK_BACKEND_ZEPHYR_WIFI
+    default "your_ssid"
+    help
+      SSID of the WiFi access point to connect to.
+
+config EL2GO_NET_WIFI_PSK
+    string "WiFi pre-shared key (password)"
+    depends on EL2GO_OTA_NETWORK_BACKEND_ZEPHYR_WIFI
+    default "your_password"
+    help
+      Password (pre-shared key) for the WiFi access point.
+
 if EL2GO_OTA_FWUAL_LIBRARY_SOURCES && BOOTLOADER_MCUBOOT
 source "${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/fwual/mcuboot/Kconfig"
 endif

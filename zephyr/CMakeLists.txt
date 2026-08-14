@@ -156,42 +156,105 @@ if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES)
         ${CMAKE_CURRENT_BINARY_DIR}/el2go_ota_lib
     )
 endif()
-
-# ---------------------------------------------------------------------------
 # Cross-agent application common (network, system, time)
-# ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_NETWORK_SOURCES)
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/network)
-endif()
+    # Public include root for <rtp/...> and <common/...> headers.
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include)
 
+    # OSAL public headers needed by app-level sources.
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/osal/include)
+
+    # Network public headers needed by app-level sources.
+
+    # Keystores private headers needed by app-level sources (included as "keystores/keystore_priv.h").
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs)
+
+    # Nanopb headers needed by keystore_priv.h and other app-level sources.
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/nanopb)
+
+    # EL2GO generated protobuf headers (Dispatcher.pb.h, ServiceDescriptor.pb.h, etc.).
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/el2go)
+
+    # MQTT transport headers for the RTP agent (included as "mqtt/el2go_mqtt.h").
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/el2go_rtp_agent)
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv)
+
+    # OSAL -- shared with OTA if already added; guard against duplicate targets.
+    if(NOT TARGET osal)
+        add_subdirectory(
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/osal/zephyr
+            ${CMAKE_CURRENT_BINARY_DIR}/osal
+        )
 if(CONFIG_EL2GO_SYSTEM_SOURCES)
+    # Must come before el2go_rtp_lib which links against el2go_platform.
+    if(NOT TARGET el2go_platform)
+        add_subdirectory(
     zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/system)
-endif()
+            ${CMAKE_CURRENT_BINARY_DIR}/platforms_rtp
+        )
+    # Core RTP library.
+    add_subdirectory(
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_rtp_lib
+        ${CMAKE_CURRENT_BINARY_DIR}/el2go_rtp_lib
+    )
 
+    # PSA keystore.
+    add_subdirectory(
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/keystores
+        ${CMAKE_CURRENT_BINARY_DIR}/keystores
+    )
+
+    # Datastores.
+    add_subdirectory(
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/datastores
+        ${CMAKE_CURRENT_BINARY_DIR}/datastores
+    )
+
+    # net_crypto (mbedTLS wrapper).
 if(CONFIG_EL2GO_TIME_SOURCES)
+        add_subdirectory(
     zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/time)
-endif()
-
+            ${CMAKE_CURRENT_BINARY_DIR}/net_crypto_rtp
+        )
 if(CONFIG_EL2GO_NETWORK_SOURCES OR CONFIG_EL2GO_SYSTEM_SOURCES OR
    CONFIG_EL2GO_TIME_SOURCES)
-    add_subdirectory(
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common
         ${CMAKE_CURRENT_BINARY_DIR}/app_common
-    )
-endif()
-
-# ---------------------------------------------------------------------------
 # OTA-agent application common (diag, persist, event)
-# ---------------------------------------------------------------------------
-if(CONFIG_EL2GO_OTA_DIAG_SOURCES OR CONFIG_EL2GO_OTA_PERSIST_SOURCES OR
-   CONFIG_EL2GO_OTA_EVENT_SOURCES)
     zephyr_include_directories(
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/diag
+        ${CMAKE_CURRENT_BINARY_DIR}/common_rtp
+    )
+
+    # Network backend (WiFi or Ethernet).
+    if(CONFIG_EL2GO_OTA_NETWORK_BACKEND_ZEPHYR_WIFI OR CONFIG_EL2GO_OTA_NETWORK_BACKEND_ZEPHYR_ETHERNET)
+        add_subdirectory(
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/persist
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/event
-    )
-    add_subdirectory(
+    endif()
+
+    # MQTT transport layer for the RTP agent.
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common
         ${CMAKE_CURRENT_BINARY_DIR}/ota_app_common
+
+    # Compile definitions.
+    zephyr_compile_definitions(
+        AX_EMBEDDED=1
+        PB_FIELD_32BIT
+        USE_RTOS=1
     )
-endif()
+
+    if(CONFIG_EL2GO_RTP_PSA_BACKEND_TFM)
+        zephyr_compile_definitions(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1)
+    else()
+        zephyr_compile_definitions(
+            NXP_IOT_AGENT_HAVE_PSA_IMPL_ELS_PKC=1
+            MCUXCLPSADRIVER_KEY_RECIPE_IMPORT_ENABLE
+            )
+
+    if(CONFIG_EL2GO_RTP_CLAIMCODE_INJECT)
+        zephyr_compile_definitions(
+            EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS=CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
+        )
+    endif()
+endif() # CONFIG_EL2GO_RTP_AGENT

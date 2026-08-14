@@ -25,6 +25,7 @@
 #include "el2go_service.h"
 
 #include "keystore_priv.h"
+#include "platform_priv.h"
 
 #include "pb.h"
 #include "pb_decode.h"
@@ -117,7 +118,7 @@ static el2go_status_t get_el2go_client_cert(el2go_keystore_t *keystore_ctx, uint
     if (status == EL2GO_STATUS_CERT_NOT_AVAILABLE) {
         EL2GO_DBG_PRINTF(VERBOSE, "No platform certificate, generating self-signed\n");
 
-        /* Get device UUID from platform */
+        /* Get device UUID from platform into stack buffer */
         status = el2go_platform_get_uuid(keystore_ctx->platform_ctx, device_uuid,
                                          sizeof(device_uuid), &device_uuid_len);
         if (status != EL2GO_STATUS_SUCCESS) {
@@ -150,7 +151,6 @@ static el2go_status_t get_el2go_client_cert(el2go_keystore_t *keystore_ctx, uint
     }
 
 exit:
-
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
 }

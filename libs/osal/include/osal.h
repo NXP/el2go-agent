@@ -240,4 +240,21 @@ void osal_sleep_ms(uint32_t ms);
  */
 void osal_lib_init(void);
 
+/**
+ * osal_start_task - Run the application entry function in the correct task context
+ *
+ * On RTOS targets that require work to run inside a task (e.g. FreeRTOS),
+ * this spawns a task, starts the scheduler, and returns the task exit code.
+ * On targets where main() already runs as a thread (Zephyr, Linux, POSIX),
+ * this is a direct passthrough that calls fn(argc, argv) inline.
+ *
+ * @fn:   Pointer to the function to run
+ * @argc: Argument count forwarded from main()
+ * @argv: Argument vector forwarded from main()
+ *
+ * Return:
+ * Return value of fn(), or a negative error code on task launch failure.
+ */
+int osal_start_task(int (*fn)(int argc, const char *argv[]), int argc, const char *argv[]);
+
 #endif /* __OSAL_H__ */

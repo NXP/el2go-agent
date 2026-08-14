@@ -16,6 +16,6 @@
  * the secure enclave — signing is delegated to the S50 during
  * the TLS handshake.
  */
-#define EDGELOCK2GO_KEYID_ECC 0x00003010U
+#define EDGELOCK2GO_KEYID_ECC 0x3fff0201U
 
 #endif /* __ELS_PKC_PLATFORM_DEFS_H__ */

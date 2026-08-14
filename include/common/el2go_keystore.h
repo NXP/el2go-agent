@@ -96,14 +96,14 @@ el2go_status_t el2go_keystore_open_session(el2go_keystore_t *keystore);
 el2go_status_t el2go_keystore_close_session(el2go_keystore_t *keystore);
 
 /**
- * el2go_keystore_import_claimcode - Import claim code via the keystore
- * @keystore: Keystore structure
- * @claimcode: Null-terminated claim code string
+ * el2go_keystore_import_claimcode - Import claim code for device provisioning
+ * @keystore: Initialized keystore
+ * @claimcode: Claim code string (not necessarily null-terminated)
+ * @claimcode_len: Length of the claim code in bytes
  *
- * Stores the claim code for device provisioning. The keystore PSA
- * implementation first delegates to the platform layer; if no platform
- * override is present it uses a generic PSA ITS fallback. Non-PSA keystores
- * may provide their own override or rely on the default no-op stub.
+ * Stores the claim code using the keystore backend. The PSA keystore
+ * delegates to the platform layer first; if the platform has no specific
+ * handling it falls back to PSA ITS. Other keystore types silently succeed.
  *
  * Return:
  * EL2GO_STATUS_SUCCESS on success, error code otherwise

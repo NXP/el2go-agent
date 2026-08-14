@@ -8,9 +8,13 @@
 #ifndef __EL2GO_PLATFORM_H__
 #define __EL2GO_PLATFORM_H__
 
-#include "common/el2go_status.h"
 #include <stddef.h>
 #include <stdint.h>
+
+#include "common/el2go_status.h"
+
+/** Maximum number of bytes a device UUID can occupy. */
+#define EL2GO_UUID_MAX_LEN 20U
 
 /**
  * @defgroup el2go_platform_pub Platform Public API
@@ -50,25 +54,18 @@ el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx);
 el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platform_ctx);
 
 /**
- * @brief Recommended buffer size for el2go_platform_get_uuid().
- *
- * Allocate at least this many bytes when calling el2go_platform_get_uuid().
- * The actual UUID length is returned via the uuid_len output parameter.
- */
-#define EL2GO_UUID_MAX_LEN 20U
-
-/**
  * @brief Retrieve the device UUID.
  *
- * Writes the platform-specific device UUID into the caller-provided buffer.
- * The caller must supply a buffer of at least @ref EL2GO_UUID_MAX_LEN bytes.
+ * Reads the platform-specific device unique identifier into a caller-provided
+ * buffer. The UUID may originate from hardware sources (HSM, OTP, eFuses) or
+ * fall back to the OSAL layer (e.g. Zephyr hwinfo).
  *
- * @param[in]  platform_ctx  Platform context.
- * @param[out] buf           Buffer to receive the UUID bytes.
- * @param[in]  buf_len       Size of @p buf in bytes.
- * @param[out] uuid_len      Set to the actual number of UUID bytes written.
+ * @param[in]  platform_ctx  Platform context (may be NULL on some platforms).
+ * @param[out] buf           Caller-provided buffer to receive the raw UUID bytes.
+ * @param[in]  buf_len       Size of the caller-provided buffer in bytes.
+ * @param[out] uuid_len      Number of bytes written to buf on success.
  *
- * @return @ref EL2GO_STATUS_SUCCESS on success.
+ * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  * @return @ref EL2GO_STATUS_BUFFER_TOO_SMALL if @p buf_len is too small.
  * @return @ref EL2GO_STATUS_INVALID_PARAMETER if any pointer is NULL.
  */

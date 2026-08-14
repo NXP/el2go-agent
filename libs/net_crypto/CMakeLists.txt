@@ -5,6 +5,9 @@
 
 include(add_target_sources)
 
+if(BUILD_ZEPHYR)
+    zephyr_library()
+endif()
 declare_library(net_crypto)
 
 add_private_sources(net_crypto
@@ -13,12 +16,13 @@ add_private_sources(net_crypto
 
 add_public_directories(net_crypto
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_ROOT}/libs/platforms
 )
 
 add_private_directories(net_crypto
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/priv
-    ${CMAKE_SOURCE_DIR}/libs/osal/include
+    ${PROJECT_ROOT}/include
+    ${PROJECT_ROOT}/priv
+    ${PROJECT_ROOT}/libs/osal/include
 )
 
 # Add crypto backend sources if backend is specified

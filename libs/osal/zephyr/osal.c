@@ -20,3 +20,9 @@ void osal_lib_init(void)
      * to read from.
      */
 }
+
+int osal_start_task(int (*fn)(int argc, const char *argv[]), int argc, const char *argv[])
+{
+    /* On Zephyr, main() already runs as a thread; call fn directly. */
+    return fn(argc, argv);
+}

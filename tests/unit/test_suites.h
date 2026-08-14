@@ -69,7 +69,7 @@ void register_net_crypto_tests(void);
 void register_keystore_tests(void);
 
 /**
- * @brief Register all platform tests.
+ * @brief Register all platform public API tests.
  */
 void register_platform_tests(void);
 

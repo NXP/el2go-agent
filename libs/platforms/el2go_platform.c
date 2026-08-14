@@ -11,6 +11,7 @@
 #include "osal.h"
 
 #include "common/el2go_platform.h"
+#include "platform_priv.h"
 #include "plat_keys.h"
 
 __export __weak el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
@@ -38,11 +39,13 @@ __export __weak el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platfo
 __weak el2go_status_t el2go_platform_import_claimcode(el2go_platform_ctx_t *platform_ctx,
                                                       const char *claimcode, size_t claimcode_len)
 {
-    (void)platform_ctx;
-    (void)claimcode;
+    if (!platform_ctx || !claimcode || claimcode_len == 0U) {
+        return EL2GO_STATUS_INVALID_PARAMETER;
+    }
+
     (void)claimcode_len;
 
-    /* no generic default; keystore layer provides the fallback */
+    /* this function is not mandatory for all platforms */
     return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
 
@@ -52,15 +55,13 @@ __export __weak el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *pla
 {
     (void)platform_ctx;
 
-    if (!buf || !uuid_len)
+    if (!buf || buf_len == 0U || !uuid_len) {
         return EL2GO_STATUS_INVALID_PARAMETER;
+    }
 
-    if (buf_len == 0U)
-        return EL2GO_STATUS_BUFFER_TOO_SMALL;
-
-    /* Delegate to OSAL layer which writes directly into the caller's buffer.
-     * Platform-specific implementations can override this function to retrieve
-     * the UUID directly from hardware sources (HSM, OTP, eFuses, etc.).
+    /* Default implementation delegates to OSAL layer.
+     * Platform-specific implementations can override this to retrieve
+     * UUID from hardware sources (HSM, OTP, eFuses, etc.)
      */
     return osal_uuid(buf, buf_len, uuid_len);
 }

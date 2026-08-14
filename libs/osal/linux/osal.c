@@ -23,3 +23,9 @@ void osal_lib_init(void)
     set_log_file();
     set_log_level();
 }
+
+int osal_start_task(int (*fn)(int argc, const char *argv[]), int argc, const char *argv[])
+{
+    /* On Linux/POSIX, main() runs in a normal process context; call fn directly. */
+    return fn(argc, argv);
+}

@@ -243,9 +243,19 @@ static el2go_status_t handle_read_object(el2go_keystore_t *keystore, nxp_iot_Psa
 
     psa_status = psa_its_get_info(uid, &info);
     if (psa_status != PSA_SUCCESS) {
+#if !defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM)
+        /* Without TF-M, Zephyr's PSA ITS rejects UIDs in the reserved range
+         * (e.g. 0xf00000e0 for claim code) with PSA_ERROR_INVALID_ARGUMENT.
+         * Normalize to PSA_ERROR_DOES_NOT_EXIST so the server treats it as
+         * "object not present" and proceeds with whitelisting. */
+        if (psa_status == PSA_ERROR_INVALID_ARGUMENT) {
+            psa_status = PSA_ERROR_DOES_NOT_EXIST;
+        }
+#endif
         read_object_resp->status = (nxp_iot_StatusCode)psa_status;
         EL2GO_DBG_PRINTF(ERROR, "Failed to get object info (uid: 0x%016" PRIx64 ", status: %d)\n",
                          uid, (int)psa_status);
+        read_object_resp->data = osal_calloc(1, PB_BYTES_ARRAY_T_ALLOCSIZE(0));
         goto exit;
     }
 
@@ -481,6 +491,30 @@ el2go_keystore_get_cert_from_srv_desc(el2go_keystore_t *keystore,
     *client_cert_len = service_descriptor->client_certificate->size;
 
     return EL2GO_STATUS_SUCCESS;
+}
+
+el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore, const char *claimcode,
+                                               size_t claimcode_len)
+{
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+
+    EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    if (!keystore || !claimcode || claimcode_len == 0U) {
+        status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    /* try platform-specific storage first */
+    status = el2go_platform_import_claimcode(keystore->platform_ctx, claimcode, claimcode_len);
+    if (status == EL2GO_STATUS_NOT_IMPLEMENTED) {
+        /* TODO: PSA ITS generic fallback implementation goes here */
+        status = EL2GO_STATUS_NOT_IMPLEMENTED;
+    }
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
 }
 
 el2go_status_t el2go_keystore_set_cert_in_srv_desc(el2go_keystore_t *keystore,
