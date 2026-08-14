@@ -11,7 +11,6 @@
 #include "osal.h"
 
 #include "plat_keys.h"
-#include "platform_priv.h"
 #include "net_crypto.h"
 #include "common/el2go_platform.h"
 #include "rtp/el2go_rtp_config.h"
@@ -213,7 +212,7 @@ static bool test_net_crypto_self_signed_cert(void *params)
     uint8_t cert_buffer[2048];
     size_t cert_len = sizeof(cert_buffer);
     uint32_t test_key_id = 0x12345678;
-    uint8_t *device_uuid = NULL;
+    uint8_t device_uuid[EL2GO_UUID_MAX_LEN];
     size_t device_uuid_len = 0;
     el2go_platform_ctx_t *platform_ctx = NULL;
     bool test_status = true;
@@ -225,7 +224,8 @@ static bool test_net_crypto_self_signed_cert(void *params)
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     /* Get device UUID */
-    status = el2go_platform_get_uuid(platform_ctx, &device_uuid, &device_uuid_len);
+    status =
+        el2go_platform_get_uuid(platform_ctx, device_uuid, sizeof(device_uuid), &device_uuid_len);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
 
     TEST_PRINT_INFO("Retrieved device UUID (%zu bytes)", device_uuid_len);
@@ -246,8 +246,6 @@ static bool test_net_crypto_self_signed_cert(void *params)
 
 exit:
     /* Cleanup */
-    if (device_uuid)
-        osal_free(device_uuid);
     if (platform_ctx)
         el2go_platform_free(&platform_ctx);
 
@@ -399,7 +397,7 @@ static bool test_net_crypto_el2go_connection_common(const char *subject, bool us
     uint8_t client_cert[2048];
     size_t client_cert_len = sizeof(client_cert);
     uint32_t key_id = EDGELOCK2GO_KEYID_ECC;
-    uint8_t *device_uuid = NULL;
+    uint8_t device_uuid[EL2GO_UUID_MAX_LEN];
     size_t device_uuid_len = 0;
     /* Fake UUID for unauthorized certificate test */
     uint8_t fake_uuid[16] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE,
@@ -425,7 +423,8 @@ static bool test_net_crypto_el2go_connection_common(const char *subject, bool us
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     /* 2. Get device UUID */
-    status = el2go_platform_get_uuid(platform_ctx, &device_uuid, &device_uuid_len);
+    status =
+        el2go_platform_get_uuid(platform_ctx, device_uuid, sizeof(device_uuid), &device_uuid_len);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
 
     TEST_PRINT_INFO("Retrieved device UUID (%zu bytes)", device_uuid_len);
@@ -541,8 +540,6 @@ static bool test_net_crypto_el2go_connection_common(const char *subject, bool us
 
 cleanup:
     /* Cleanup */
-    if (device_uuid)
-        osal_free(device_uuid);
     if (ctx)
         net_crypto_free(&ctx);
     if (platform_ctx)

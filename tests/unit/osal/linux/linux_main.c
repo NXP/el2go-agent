@@ -14,8 +14,9 @@ static void print_usage(const char *prog_name)
     printf("Usage: %s [OPTIONS]\n", prog_name);
     printf("Options:\n");
     printf("  -s, --suite=<name>    Run only tests from specified suite\n");
-    printf("                        (el2go_rtp, datastore, net_crypto)\n");
-    printf("                         fwual, ota_lib, ota_agent_core, ota_agent_advanced)\n");
+    printf("                        (el2go_rtp, datastore, keystore, platform,\n");
+    printf("                         net_crypto, fwual, ota_lib, ota_agent_core,\n");
+    printf("                         ota_agent_advanced)\n");
     printf("  -a, --all             Run all tests (default)\n");
     printf("  -h, --help            Show this help message\n");
 }
@@ -63,6 +64,9 @@ int main(int argc, char **argv)
 
     if (!suite || strcmp(suite, "keystore") == 0)
         register_keystore_tests();
+
+    if (!suite || strcmp(suite, "platform") == 0)
+        register_platform_tests();
 
     if (!suite || strcmp(suite, "net_crypto") == 0)
         register_net_crypto_tests();

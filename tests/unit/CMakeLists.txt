@@ -41,6 +41,12 @@ add_subdirectory(internal_datastore)
 # Collect public keystore tests
 add_subdirectory(public_keystore)
 
+# Collect public platform tests
+add_subdirectory(public_platform)
+
+# Collect internal platform tests
+add_subdirectory(internal_platform)
+
 # Collect internal keystore tests
 add_subdirectory(internal_keystore)
 
@@ -117,6 +123,7 @@ target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
     PRIVATE
         unit_test_framework
         el2go_rtp
+        el2go_platform
         fwual
         el2go_ota_lib
         test_osal

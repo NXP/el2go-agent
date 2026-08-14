@@ -92,18 +92,22 @@ exit:
     return status;
 }
 
-__export el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_ctx, uint8_t **uuid,
-                                                size_t *uuid_len)
+__export el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_ctx, uint8_t *buf,
+                                                size_t buf_len, size_t *uuid_len)
 {
     struct smw_device_uuid_args device_args = { 0 };
     enum smw_status_code smw_status = SMW_STATUS_OK;
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
-    uint8_t *uuid_buffer = NULL;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (!platform_ctx || !uuid || !uuid_len) {
+    if (!platform_ctx || !buf || !uuid_len) {
         status = EL2GO_STATUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    if (buf_len == 0U) {
+        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
         goto exit;
     }
 
@@ -115,7 +119,7 @@ __export el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_c
 
     EL2GO_DBG_PRINTF(VERBOSE, "Getting device UUID from SMW\n");
 
-    /* Setup SMW device UUID arguments for first call to get length */
+    /* First call: query required UUID length */
     device_args.version = 0;
     device_args.subsystem_name = SMW_SUBSYSTEM_NAME_ELE;
     device_args.certificate_length = 0;
@@ -123,24 +127,22 @@ __export el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_c
     device_args.uuid = NULL;
     device_args.uuid_length = 0;
 
-    /* First call: Get required UUID length */
     smw_status = smw_device_get_uuid(&device_args);
     if (smw_status != SMW_STATUS_OK) {
-        EL2GO_DBG_PRINTF(ERROR, "SMW UUID length failed: %d\n", smw_status);
+        EL2GO_DBG_PRINTF(ERROR, "SMW UUID length query failed: %d\n", smw_status);
         status = EL2GO_STATUS_PLATFORM_SMW_ERROR;
         goto exit;
     }
 
-    /* Allocate buffer for UUID */
-    uuid_buffer = osal_malloc(device_args.uuid_length);
-    if (!uuid_buffer) {
-        EL2GO_DBG_PRINTF(ERROR, "Failed to allocate UUID buffer\n");
-        status = EL2GO_STATUS_ALLOCATION_ERROR;
+    if (device_args.uuid_length > buf_len) {
+        EL2GO_DBG_PRINTF(ERROR, "UUID buffer too small: need %u, got %zu\n",
+                         device_args.uuid_length, buf_len);
+        status = EL2GO_STATUS_BUFFER_TOO_SMALL;
         goto exit;
     }
 
-    /* Second call: Get actual UUID */
-    device_args.uuid = uuid_buffer;
+    /* Second call: write UUID directly into caller's buffer */
+    device_args.uuid = buf;
 
     smw_status = smw_device_get_uuid(&device_args);
     if (smw_status != SMW_STATUS_OK) {
@@ -149,19 +151,13 @@ __export el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_c
         goto exit;
     }
 
-    /* Transfer ownership to caller */
-    *uuid = uuid_buffer;
     *uuid_len = device_args.uuid_length;
 
     EL2GO_DBG_PRINTF(INFO, "Device UUID retrieved successfully (%u bytes)\n",
                      device_args.uuid_length);
-    EL2GO_DBG_HEX_DUMP(DEBUG, *uuid, *uuid_len);
+    EL2GO_DBG_HEX_DUMP(EXTRA, buf, *uuid_len);
 
 exit:
-    /* Free buffer only if ownership was not transferred */
-    if (status != EL2GO_STATUS_SUCCESS && uuid_buffer)
-        osal_free(uuid_buffer);
-
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
 }

@@ -15,8 +15,6 @@
 #include "common/el2go_platform.h"
 #include "rtp/el2go_rtp_config.h"
 
-#define DEVICEID_LENGTH 16U
-
 /* ========================================================================== */
 /* Usage                                                                      */
 /* ========================================================================== */
@@ -90,6 +88,20 @@ static int parse_args(int argc, char **argv, demo_args_t *args)
 }
 
 /* ========================================================================== */
+/* Helpers                                                                    */
+/* ========================================================================== */
+
+static void print_uuid(const uint8_t *uuid, size_t uuid_len)
+{
+    size_t i = 0;
+
+    printf("Device UUID (%zu bytes): 0x", uuid_len);
+    for (i = 0; i < uuid_len; i++)
+        printf("%02X", uuid[i]);
+    printf("\n");
+}
+
+/* ========================================================================== */
 /* Main                                                                       */
 /* ========================================================================== */
 
@@ -103,6 +115,9 @@ int main(int argc, char **argv)
     el2go_keystore_t keystore_ctx = { 0 };
     el2go_datastore_t datastore_ctx = { 0 };
     demo_args_t args = { 0 };
+    uint8_t device_uuid[EL2GO_UUID_MAX_LEN];
+    size_t uuid_size = 0;
+    el2go_rtp_datastore_config_t el2go_config = { 0 };
 
     printf("EL2GO RTP Agent Demo\n");
     printf("====================\n\n");
@@ -148,13 +163,12 @@ int main(int argc, char **argv)
 
     /* Get device UUID */
     printf("Getting device UUID...\n");
-    char device_uuid[DEVICEID_LENGTH] = { 0 };
-    size_t uuid_size = sizeof(device_uuid);
-    status = el2go_rtp_get_device_uuid(agent_ctx, device_uuid, &uuid_size);
+    status = el2go_platform_get_uuid(platform_ctx, device_uuid, sizeof(device_uuid), &uuid_size);
     if (status == EL2GO_STATUS_SUCCESS) {
-        printf("Device UUID: %s (size: %zu)\n\n", device_uuid, uuid_size);
+        print_uuid(device_uuid, uuid_size);
+        printf("\n");
     } else {
-        printf("Failed to get device UUID (status: %d, required size: %zu)\n", status, uuid_size);
+        printf("Failed to get device UUID (status: %d)\n", status);
         goto cleanup_platform;
     }
 
@@ -197,9 +211,9 @@ int main(int argc, char **argv)
 
     /* Configure EdgeLock 2GO communication parameters */
     printf("Configuring EdgeLock 2GO datastore...\n");
-    el2go_rtp_datastore_config_t el2go_config = { .hostname = args.hostname,
-                                                  .port = args.port,
-                                                  .certificate = NULL };
+    el2go_config.hostname = args.hostname;
+    el2go_config.port = args.port;
+    el2go_config.certificate = NULL;
     status = el2go_rtp_datastore_el2go(&datastore_ctx, &keystore_ctx, &el2go_config);
     if (status != EL2GO_STATUS_SUCCESS) {
         printf("Failed to configure EdgeLock 2GO (status: %d)\n", status);

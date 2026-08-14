@@ -161,22 +161,6 @@ el2go_status_t el2go_rtp_get_datastore_by_id(el2go_rtp_ctx_t *ctx, uint32_t id,
 el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, el2go_verbosity_t verbosity);
 
 /**
- * el2go_rtp_get_device_uuid - Get device UUID in hexadecimal format
- * @ctx: RTP Agent context
- * @uuid_buffer: Buffer to store UUID hex string
- * @buffer_size: Input: Size of the provided buffer, Output: Actual size written (including null terminator)
- *
- * Retrieves the device's unique identifier (UUID) and formats it as a
- * hexadecimal string. The UUID is typically derived from the device's
- * hardware security module or platform-specific identifier.
- *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
- */
-el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx, char *uuid_buffer,
-                                         size_t *buffer_size);
-
-/**
  * el2go_rtp_datastore_el2go - Configure EdgeLock 2GO datastore
  * @datastore: Datastore
  * @keystore_ctx: Keystore context for secure operations

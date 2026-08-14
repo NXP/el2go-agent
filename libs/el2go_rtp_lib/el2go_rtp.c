@@ -25,7 +25,6 @@
 #include "el2go_service.h"
 
 #include "keystore_priv.h"
-#include "platform_priv.h"
 
 #include "pb.h"
 #include "pb_decode.h"
@@ -52,7 +51,7 @@ static el2go_status_t get_el2go_client_cert(el2go_keystore_t *keystore_ctx, uint
                                             uint8_t *client_cert_buf, size_t *client_cert_len)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
-    uint8_t *device_uuid = NULL;
+    uint8_t device_uuid[EL2GO_UUID_MAX_LEN];
     size_t device_uuid_len = 0;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
@@ -63,8 +62,8 @@ static el2go_status_t get_el2go_client_cert(el2go_keystore_t *keystore_ctx, uint
         EL2GO_DBG_PRINTF(VERBOSE, "No platform certificate, generating self-signed\n");
 
         /* Get device UUID from platform */
-        status =
-            el2go_platform_get_uuid(keystore_ctx->platform_ctx, &device_uuid, &device_uuid_len);
+        status = el2go_platform_get_uuid(keystore_ctx->platform_ctx, device_uuid,
+                                         sizeof(device_uuid), &device_uuid_len);
         if (status != EL2GO_STATUS_SUCCESS) {
             EL2GO_DBG_PRINTF(ERROR, "Failed to get device UUID: 0x%04x\n", status);
             goto exit;
@@ -95,8 +94,6 @@ static el2go_status_t get_el2go_client_cert(el2go_keystore_t *keystore_ctx, uint
     }
 
 exit:
-    if (device_uuid)
-        osal_free(device_uuid);
 
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
@@ -897,23 +894,6 @@ __export el2go_status_t el2go_rtp_get_keystore_by_id(el2go_rtp_ctx_t *ctx, uint3
     }
 
     *keystore = ctx->keystores[index];
-
-    status = EL2GO_STATUS_SUCCESS;
-
-exit:
-    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
-    return status;
-}
-
-__export el2go_status_t el2go_rtp_get_device_uuid(el2go_rtp_ctx_t *ctx, char *uuid_buffer,
-                                                  size_t *buffer_size)
-{
-    el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
-
-    EL2GO_DBG_TRACE_API_CALL;
-
-    if (!ctx || !uuid_buffer || !buffer_size)
-        goto exit;
 
     status = EL2GO_STATUS_SUCCESS;
 

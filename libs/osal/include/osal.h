@@ -195,16 +195,18 @@ long osal_ftell(osal_file_t *file);
 el2go_status_t osal_fflush(osal_file_t *file);
 
 /**
- * osal_uuid - Retrieve the device UUID
+ * osal_uuid - Retrieve the device UUID into a caller-provided buffer
  *
- * @uuid: Pointer to buffer where UUID will be stored
- * @uuid_len: Pointer to size_t containing buffer size on input,
- *            actual UUID length on output
+ * @buf:      Buffer to write the UUID bytes into
+ * @buf_len:  Size of @buf in bytes
+ * @uuid_len: Set to the actual number of UUID bytes written on success
  *
  * Return:
- * EL2GO_STATUS_SUCCESS on success, error on failure
+ * EL2GO_STATUS_SUCCESS on success,
+ * EL2GO_STATUS_BUFFER_TOO_SMALL if @buf_len is insufficient,
+ * other error code on failure
  */
-el2go_status_t osal_uuid(uint8_t **uuid, size_t *uuid_len);
+el2go_status_t osal_uuid(uint8_t *buf, size_t buf_len, size_t *uuid_len);
 
 /**
  * osal_sleep_ms - Sleep for a given number of milliseconds
