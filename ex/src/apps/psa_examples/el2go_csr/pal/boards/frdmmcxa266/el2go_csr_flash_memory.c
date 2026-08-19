@@ -20,7 +20,7 @@ static flash_config_t s_flashConfig;
 /* Configuration block is written to this address by the Host Tool (default).
 * Please refer to the README.md for further information. */
 #define EL2GO_CSR_CONF_DATA_ADDR (0xEFF80U)
-#define EL2GO_CSR_APP_STATUSCODE_ADDR (0xEFFFFCU)
+#define EL2GO_CSR_APP_STATUSCODE_ADDR (0xEFFFCU)
 #define EL2GO_CSR_CONF_DATA_SIZE (124U) 
 
 uint8_t* const el2go_csr_conf_data = (uint8_t*)EL2GO_CSR_CONF_DATA_ADDR;

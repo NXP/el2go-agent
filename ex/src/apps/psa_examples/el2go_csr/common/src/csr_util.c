@@ -6,6 +6,7 @@
  */
 
 #include "csr_util.h"
+#include "csr_mbedtls_compat.h"
 
 psa_status_t generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t csr_output_buf_size, size_t *csr_output_len)
 {
@@ -20,7 +21,7 @@ psa_status_t generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t c
     }
 
     mbedtls_pk_init(&pk);
-    if (mbedtls_pk_setup_opaque(&pk, key_id))
+    if (csr_compat_pk_bind_psa(&pk, key_id))
     {
             status = PSA_ERROR_GENERIC_ERROR;
             goto exit;
@@ -38,7 +39,7 @@ psa_status_t generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t c
         goto exit;
     }
 
-    if (mbedtls_x509write_csr_pem(&csr, csr_output_buf, csr_output_buf_size, NULL, NULL))
+    if (csr_compat_x509write_csr_pem(&csr, csr_output_buf, csr_output_buf_size))
     {
         status = PSA_ERROR_GENERIC_ERROR;
         goto exit;
@@ -63,15 +64,11 @@ psa_status_t verify_certificate(psa_key_id_t key_id, const uint8_t *cert_buf, si
     mbedtls_x509_crt cert = {0U};
     size_t hash_len = 0U;
     size_t signature_len = 0U;
-    size_t public_key_len = 0U;
     psa_key_id_t temp_key_id = 0U;
-    mbedtls_ecp_keypair *ecp = NULL;
     uint8_t* challenge = NULL;
-    uint8_t* public_key_raw = NULL;
-    uint8_t* hash = NULL; 
-    uint8_t* signature = NULL; 
-    const challenge_response_config_t *config = NULL; 
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+    uint8_t* hash = NULL;
+    uint8_t* signature = NULL;
+    const challenge_response_config_t *config = NULL;
     psa_status_t status = PSA_ERROR_GENERIC_ERROR;
     
     // Get the challenge response configs from the PAL layer
@@ -86,13 +83,6 @@ psa_status_t verify_certificate(psa_key_id_t key_id, const uint8_t *cert_buf, si
     
     challenge = (uint8_t *)malloc(config->challenge_size);
     if (challenge == NULL)
-    {
-        status = PSA_ERROR_INSUFFICIENT_MEMORY;
-        goto exit;
-    }
-
-    public_key_raw = (uint8_t *)malloc(config->max_pub_key_size);
-    if (public_key_raw == NULL)
     {
         status = PSA_ERROR_INSUFFICIENT_MEMORY;
         goto exit;
@@ -138,35 +128,14 @@ psa_status_t verify_certificate(psa_key_id_t key_id, const uint8_t *cert_buf, si
         goto exit;
     }
 
-    // Extract raw public key from certificate (uncompressed format: 0x04 || X || Y)
-    ecp = mbedtls_pk_ec(cert.pk);
-    if (ecp == NULL)
-    {
-        status = PSA_ERROR_INVALID_ARGUMENT;
-        goto exit;
-    }
-
-    if (mbedtls_ecp_point_write_binary(&ecp->private_grp, &ecp->private_Q,
-                                        MBEDTLS_ECP_PF_UNCOMPRESSED,
-                                        &public_key_len, public_key_raw,
-                                        config->max_pub_key_size) != 0)
-    {
-        status = PSA_ERROR_GENERIC_ERROR;
-        goto exit;
-    }
-    
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_VERIFY_HASH);
-    psa_set_key_algorithm(&attributes, config->sig_alg);
-    psa_set_key_type(&attributes, config->key_type);
-
-    status = psa_import_key(&attributes, public_key_raw, public_key_len, &temp_key_id);
+    status = csr_compat_cert_pubkey_to_psa(&cert, config->sig_alg, config->key_type, &temp_key_id);
     if (status != PSA_SUCCESS)
     {
         goto exit;
     }
 
     status = psa_verify_hash(temp_key_id, config->sig_alg, hash, hash_len, signature, signature_len);
-    
+
     psa_destroy_key(temp_key_id);
 
 exit:
@@ -174,11 +143,6 @@ exit:
     {
         memset(challenge, 0, config->challenge_size);
         free(challenge);
-    }
-    if (public_key_raw)
-    {
-        memset(public_key_raw, 0, config->max_pub_key_size);
-        free(public_key_raw);
     }
     if (hash)
     {
@@ -191,7 +155,6 @@ exit:
         free(signature);
     }
 
-    psa_reset_key_attributes(&attributes);
     mbedtls_x509_crt_free(&cert);
 
     return status;

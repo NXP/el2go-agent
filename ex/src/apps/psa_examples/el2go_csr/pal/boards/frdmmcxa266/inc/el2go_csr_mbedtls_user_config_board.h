@@ -26,18 +26,20 @@
     #undef MBEDTLS_ENTROPY_C
 #endif 
 
-#ifdef MBEDTLS_PSA_CRYPTO_STORAGE_C
-    #undef MBEDTLS_PSA_CRYPTO_STORAGE_C
-#endif 
-
 #ifdef MBEDTLS_CIPHER_C
     #undef MBEDTLS_CIPHER_C
-#endif
+#endif 
 
 #ifdef MBEDTLS_PLATFORM_MEMORY
     #undef MBEDTLS_PLATFORM_MEMORY
+#endif 
+
+#ifdef MBEDTLS_TIMING_C
+    #undef MBEDTLS_TIMING_C
 #endif
 
-
+#ifdef MBEDTLS_NET_C
+    #undef MBEDTLS_NET_C
+#endif
 
 #endif /* __MBEDTLS_USER_CONFIG_BOARD_H__ */
