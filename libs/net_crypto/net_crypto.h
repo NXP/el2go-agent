@@ -333,6 +333,18 @@ int net_crypto_ct_memcmp(const void *a, const void *b, size_t len);
  */
 el2go_status_t net_crypto_set_alpn(net_crypto_ctx_t *ctx, const char **alpn_protos);
 
+/**
+ * @brief Extract the Common Name (CN) from a DER-encoded X.509 certificate.
+ *
+ * @param cert_der     DER-encoded certificate buffer.
+ * @param cert_der_len Length of cert_der in bytes.
+ * @param cn_out       Output buffer for the null-terminated CN string.
+ * @param cn_out_len   Size of cn_out buffer in bytes.
+ * @return EL2GO_STATUS_SUCCESS on success, EL2GO_STATUS_FAILURE otherwise.
+ */
+el2go_status_t net_crypto_get_cert_cn(const uint8_t *cert_der, size_t cert_der_len, char *cn_out,
+                                      size_t cn_out_len);
+
 /** @} */ /* end of net_crypto */
 
 #endif /* __NET_CRYPTO_H__ */

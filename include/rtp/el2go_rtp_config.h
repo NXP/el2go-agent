@@ -113,7 +113,7 @@
  * during the provisioning session. Set to 0 to disable CRL retrieval.
  */
 #ifndef EL2GO_RTP_REQUEST_CRL
-#define EL2GO_RTP_REQUEST_CRL 0
+#define EL2GO_RTP_REQUEST_CRL 1
 #endif
 
 /** @} */ /* end of el2go_rtp_config */

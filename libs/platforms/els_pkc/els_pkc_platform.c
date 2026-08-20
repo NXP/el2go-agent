@@ -36,6 +36,7 @@ static el2go_status_t el2go_platform_register_el2go_key(void)
     psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_id_t id = 0U;
     psa_status_t psa_status;
+    size_t recipe_size = 0u;
 
     psa_set_key_algorithm(&attr, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
     psa_set_key_type(&attr, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
@@ -49,8 +50,14 @@ static el2go_status_t el2go_platform_register_el2go_key(void)
     psa_set_key_id(&attr, EDGELOCK2GO_KEYID_ECC);  // 0x3FFF0201U
 
     psa_status =
-        psa_import_key(&attr, (const uint8_t *)&recipe_el2goconn_auth_prk,
-                       mcuxClPsaDriver_Oracle_Utils_GetRecipeSize(&recipe_el2goconn_auth_prk), &id);
+        mcuxClPsaDriver_Oracle_Utils_GetRecipeSize(&recipe_el2goconn_auth_prk, &recipe_size);
+    if (psa_status != PSA_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "[EL2GO ELS_PKC] Failed to get recipe size: %d\n", (int)psa_status);
+        return EL2GO_STATUS_FAILURE;
+    }
+
+    psa_status =
+        psa_import_key(&attr, (const uint8_t *)&recipe_el2goconn_auth_prk, recipe_size, &id);
 
     /* Key already persisted from a previous boot — not an error */
     if (psa_status == PSA_ERROR_ALREADY_EXISTS) {

@@ -90,27 +90,28 @@ int osal_snprintf(char *str, size_t size, const char *format, ...)
 
 void osal_hex_dump(unsigned int level, const void *buffer, size_t length)
 {
-    const unsigned char *buf = (const unsigned char *)buffer;
-    size_t i = 0;
-
     if (level == DBG_LEVEL_NONE)
         return;
     if (!buffer) {
-        osal_printf(level, "(null)\n");
+        osal_printf(level, "(null)");
         return;
     }
     if (!length) {
-        osal_printf(level, "(empty)\n");
+        osal_printf(level, "(empty)");
         return;
     }
 
-    for (; i < length; i++) {
-        osal_printf(level, "%02x", buf[i]);
-        if ((i + 1) % HEX_DUMP_LINE_LENGTH == 0)
-            osal_printf(level, "\n");
-        else if (i < length - 1)
-            osal_printf(level, " ");
+    /* Use Zephyr native hex-dump: one log record per 16-byte row,
+     * avoiding per-byte log calls that flood the log buffer. */
+    switch (level) {
+    case DBG_LEVEL_ERROR:
+        LOG_HEXDUMP_ERR(buffer, length, "");
+        break;
+    case DBG_LEVEL_INFO:
+        LOG_HEXDUMP_INF(buffer, length, "");
+        break;
+    default:
+        LOG_HEXDUMP_DBG(buffer, length, "");
+        break;
     }
-    if (length % HEX_DUMP_LINE_LENGTH)
-        osal_printf(level, "\n");
 }

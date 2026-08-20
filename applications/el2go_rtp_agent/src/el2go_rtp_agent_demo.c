@@ -165,12 +165,9 @@ static int agent_start(int argc, const char *argv[])
     osal_printf(DBG_LEVEL_INFO, "Provisioning completed successfully");
 
     /* Verify provisioned MQTT credentials by connecting to the broker */
-    osal_printf(DBG_LEVEL_INFO, "Verifying MQTT credentials...");
     rc = el2go_mqtt_verify(&keystore_ctx);
     if (rc != 0) {
         osal_printf(DBG_LEVEL_ERROR, "MQTT verify failed (%d)", rc);
-    } else {
-        osal_printf(DBG_LEVEL_INFO, "MQTT verify succeeded");
     }
 
     osal_printf(DBG_LEVEL_INFO, "EL2GO RTP Agent demo completed successfully");

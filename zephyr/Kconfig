@@ -393,6 +393,9 @@ config EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
 config EL2GO_RTP_MQTT_VERIFY
     bool "Enable MQTT connectivity verification after provisioning"
     depends on EL2GO_RTP_AGENT
+    select MQTT_LIB
+    select MQTT_LIB_CUSTOM_TRANSPORT
+    select JSON_LIBRARY
     help
       After provisioning, verifies MQTT connectivity using provisioned
       credentials. At least one MQTT backend (AWS or Azure) must be
@@ -409,7 +412,7 @@ config EL2GO_RTP_MQTT_AWS
 config EL2GO_RTP_MQTT_AWS_HOSTNAME
     string "AWS IoT Core endpoint hostname"
     depends on EL2GO_RTP_MQTT_AWS
-    default ""
+    default "aw9969rp3sm22-ats.iot.eu-central-1.amazonaws.com"
     help
       The AWS IoT Core device endpoint hostname, e.g.
       "<account-id>-ats.iot.<region>.amazonaws.com".
@@ -467,7 +470,7 @@ config EL2GO_RTP_MQTT_AZURE_CERT_ID
 config EL2GO_RTP_MQTT_AZURE_ID_SCOPE
     string "Azure DPS ID scope"
     depends on EL2GO_RTP_MQTT_AZURE
-    default ""
+    default "0ne004510C6"
     help
       The ID scope assigned to the Azure Device Provisioning Service (DPS)
       account, e.g. "0ne004510C6". Corresponds to AZURE_ID_SCOPE in the

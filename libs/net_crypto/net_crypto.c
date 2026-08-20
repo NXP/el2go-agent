@@ -211,3 +211,13 @@ __weak int net_crypto_ct_memcmp(const void *a, const void *b, size_t len)
 
     return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
+
+__weak el2go_status_t net_crypto_get_cert_cn(const uint8_t *cert_der, size_t cert_der_len,
+                                             char *cn_out, size_t cn_out_len)
+{
+    (void)cert_der;
+    (void)cert_der_len;
+    (void)cn_out;
+    (void)cn_out_len;
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
+}

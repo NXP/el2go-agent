@@ -57,10 +57,7 @@
  * If CONFIG_EL2GO_RTP_MQTT_AWS_CLIENT_ID is empty the client ID is derived
  * dynamically from the Common Name of the device leaf certificate at runtime.
  */
-#if defined(CONFIG_EL2GO_RTP_MQTT_AWS_CLIENT_ID) && \
-    (sizeof(CONFIG_EL2GO_RTP_MQTT_AWS_CLIENT_ID) > 1)
 #define AWS_CLIENT_ID CONFIG_EL2GO_RTP_MQTT_AWS_CLIENT_ID
-#endif
 
 /* Internal service ID used by the MQTT client to identify this service */
 #define AWS_SERVICE_ID 101
@@ -100,10 +97,7 @@
  * If CONFIG_EL2GO_RTP_MQTT_AZURE_REGISTRATION_ID is empty the registration ID
  * is derived dynamically from the Common Name of the device leaf certificate.
  */
-#if defined(CONFIG_EL2GO_RTP_MQTT_AZURE_REGISTRATION_ID) && \
-    (sizeof(CONFIG_EL2GO_RTP_MQTT_AZURE_REGISTRATION_ID) > 1)
 #define AZURE_REGISTRATION_ID CONFIG_EL2GO_RTP_MQTT_AZURE_REGISTRATION_ID
-#endif
 
 /* Internal service ID used by the MQTT client to identify this service */
 #define AZURE_SERVICE_ID 102

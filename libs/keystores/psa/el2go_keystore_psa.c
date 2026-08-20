@@ -493,30 +493,6 @@ el2go_keystore_get_cert_from_srv_desc(el2go_keystore_t *keystore,
     return EL2GO_STATUS_SUCCESS;
 }
 
-el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore, const char *claimcode,
-                                               size_t claimcode_len)
-{
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
-
-    EL2GO_DBG_TRACE_FUNCTION_CALL;
-
-    if (!keystore || !claimcode || claimcode_len == 0U) {
-        status = EL2GO_STATUS_INVALID_PARAMETER;
-        goto exit;
-    }
-
-    /* try platform-specific storage first */
-    status = el2go_platform_import_claimcode(keystore->platform_ctx, claimcode, claimcode_len);
-    if (status == EL2GO_STATUS_NOT_IMPLEMENTED) {
-        /* TODO: PSA ITS generic fallback implementation goes here */
-        status = EL2GO_STATUS_NOT_IMPLEMENTED;
-    }
-
-exit:
-    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
-    return status;
-}
-
 el2go_status_t el2go_keystore_set_cert_in_srv_desc(el2go_keystore_t *keystore,
                                                    const pb_bytes_array_t *client_cert,
                                                    nxp_iot_ServiceDescriptor *service_descriptor)
