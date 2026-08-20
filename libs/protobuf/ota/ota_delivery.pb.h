@@ -85,7 +85,9 @@ typedef struct _com_nxp_iot_ota_FileRequest {
 } com_nxp_iot_ota_FileRequest;
 
 typedef struct _com_nxp_iot_ota_FileResponse {
+    bool has_rangeStart;
     int64_t rangeStart; /* int64 -- static */
+    bool has_rangeEnd;
     int64_t rangeEnd;   /* int64 -- static */
     pb_callback_t data; /* bytes -- callback (zero-copy) */
 } com_nxp_iot_ota_FileResponse;
@@ -146,7 +148,7 @@ typedef struct _com_nxp_iot_ota_UpdateStatusNotificationResponse {
     }
 #define com_nxp_iot_ota_FileResponse_init_default \
     {                                             \
-        0, 0,                                     \
+        false, 0, false, 0,                       \
         {                                         \
             { NULL }, NULL                        \
         }                                         \

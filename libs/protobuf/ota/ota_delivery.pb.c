@@ -83,9 +83,9 @@ const pb_field_t com_nxp_iot_ota_FileRequest_fields[6] = {
 
 /* FileResponse */
 const pb_field_t com_nxp_iot_ota_FileResponse_fields[4] = {
-    PB_FIELD(1, INT64, REQUIRED, STATIC, FIRST, com_nxp_iot_ota_FileResponse, rangeStart,
+    PB_FIELD(1, INT64, OPTIONAL, STATIC, FIRST, com_nxp_iot_ota_FileResponse, rangeStart,
              rangeStart, 0),
-    PB_FIELD(2, INT64, REQUIRED, STATIC, OTHER, com_nxp_iot_ota_FileResponse, rangeEnd, rangeStart,
+    PB_FIELD(2, INT64, OPTIONAL, STATIC, OTHER, com_nxp_iot_ota_FileResponse, rangeEnd, rangeStart,
              0),
     PB_FIELD(3, BYTES, OPTIONAL, CALLBACK, OTHER, com_nxp_iot_ota_FileResponse, data, rangeEnd, 0),
     PB_LAST_FIELD
