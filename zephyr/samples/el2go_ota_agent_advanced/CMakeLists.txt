@@ -7,5 +7,11 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(el2go_ota_agent_advanced)
 
-include(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/el2go_ota_agent_advanced/sources.cmake)
+include(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/el2go_ota_agent_advanced/sources.cmake)
 target_sources(app PRIVATE ${EL2GO_OTA_AGENT_ADVANCED_SOURCES})
+
+target_include_directories(app PRIVATE
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/el2go_ota_agent_advanced/include
+)
+
+target_compile_definitions(app PRIVATE OTA_FW_VERSION="${APP_VERSION_STRING}")

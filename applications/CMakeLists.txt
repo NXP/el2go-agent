@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+if(NOT DEFINED PROJECT_ROOT)
+    set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
+endif()
+
+add_subdirectory(common)
 add_subdirectory(el2go_rtp_agent)
-add_subdirectory(el2go_ota_agent_core)
-add_subdirectory(el2go_ota_agent_advanced)
+add_subdirectory(ota_agents)

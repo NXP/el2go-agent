@@ -13,6 +13,40 @@ config EL2GO_OTA_LIBRARY_SOURCES
       Requires mbedTLS PSA crypto and network sockets -- configure these
       in your application's prj.conf (see samples/el2go_ota_agent_core/prj.conf).
 
+config EL2GO_OTA_SERVER_HOST
+    string "EL2GO OTA server hostname"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default ""
+    help
+      Hostname (or IP address) of the EL2GO OTA server the agent connects
+      to over mTLS.
+
+config EL2GO_OTA_SERVER_PORT
+    int "EL2GO OTA server port"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 50051
+    help
+      TCP port of the EL2GO OTA server.
+
+config EL2GO_OTA_CLIENT_KEY_OBJECT_ID
+    hex "Object id of the provisioned mTLS client private key"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 0x3010
+    help
+      Object id referencing the mTLS client private key that is expected to be
+      already provisioned in secure storage on the device. The sample only
+      references this id; it never imports or provisions the key.
+
+config EL2GO_OTA_CLIENT_CERT_OBJECT_ID
+    hex "Object id of the provisioned mTLS client certificate"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 0x3021
+    help
+      Object id referencing the DER-encoded mTLS client certificate that is
+      expected to be already provisioned in secure storage on the device. The
+      sample only references this id; it never stores the certificate.
+
+
 # ---------------------------------------------------------------------------
 # EL2GO OTA Platform backend
 # ---------------------------------------------------------------------------
@@ -45,6 +79,248 @@ config EL2GO_OTA_PLATFORM_ELS_PKC
 endchoice # EL2GO_OTA_PLATFORM_BACKEND
 
 endif # EL2GO_OTA_PLATFORM_SOURCES
+
+# ---------------------------------------------------------------------------
+# Network backend
+# ---------------------------------------------------------------------------
+config EL2GO_NETWORK_SOURCES
+    bool "Include network sources"
+    help
+      Includes a network backend that implements el2go_app_net_init().
+      Select the backend that matches your hardware below.
+
+if EL2GO_NETWORK_SOURCES
+
+choice EL2GO_NETWORK_BACKEND
+    prompt "Network backend"
+    default EL2GO_NETWORK_BACKEND_WIFI if WIFI
+    help
+      Select the network backend. Each backend implements the
+      el2go_app_net_init() interface for a specific transport type.
+
+config EL2GO_NETWORK_BACKEND_WIFI
+    bool "Zephyr WiFi (wpa_supplicant / net_mgmt)"
+    depends on WIFI && NET_SOCKETS
+    help
+      Connects to a WiFi network using Zephyr net_mgmt and waits for a
+      DHCP address. Configure the SSID and PSK via
+      EL2GO_NET_WIFI_SSID and EL2GO_NET_WIFI_PSK.
+
+endchoice # EL2GO_NETWORK_BACKEND
+
+config EL2GO_NET_WIFI_SSID
+    string "WiFi SSID"
+    depends on EL2GO_NETWORK_BACKEND_WIFI
+    default ""
+    help
+      SSID of the WiFi network.
+
+config EL2GO_NET_WIFI_PSK
+    string "WiFi PSK"
+    depends on EL2GO_NETWORK_BACKEND_WIFI
+    default ""
+    help
+      Pre-shared key (passphrase) for the WiFi network. Do not commit
+      production credentials.
+
+endif # EL2GO_NETWORK_SOURCES
+
+
+# ---------------------------------------------------------------------------
+# Time backend
+# ---------------------------------------------------------------------------
+config EL2GO_TIME_SOURCES
+    bool "Include time sources"
+    help
+      Includes a wall-clock time backend that implements time_sync() and
+      time_get_hour_of_day(). Select the backend that matches your hardware
+      below. Used by the advanced OTA agent for blackout window policy.
+
+if EL2GO_TIME_SOURCES
+
+choice EL2GO_TIME_BACKEND
+    prompt "Time backend"
+    default EL2GO_TIME_BACKEND_NONE
+    help
+      Select the wall-clock time backend for the OTA agent application.
+      Each backend implements the ota_time.h interface.
+
+config EL2GO_TIME_BACKEND_NONE
+    bool "None (weak default, time unknown)"
+    help
+      No time source. time_get_hour_of_day() returns -1, which causes
+      time-dependent policy checks (e.g. blackout windows) to be skipped.
+
+config EL2GO_TIME_BACKEND_SNTP
+    bool "Zephyr SNTP (one-shot network query)"
+    depends on SNTP && NET_SOCKETS
+    help
+      Performs a one-shot SNTP query after network_init() and derives the
+      current UTC hour from the stored epoch and elapsed uptime.
+
+endchoice # EL2GO_TIME_BACKEND
+
+config EL2GO_TIME_SNTP_SERVER
+    string "SNTP server hostname"
+    depends on EL2GO_TIME_BACKEND_SNTP
+    default "pool.ntp.org"
+    help
+      Hostname (or IP) of the SNTP server queried at sync time.
+
+config EL2GO_TIME_SNTP_TIMEOUT_MS
+    int "SNTP query timeout (milliseconds)"
+    depends on EL2GO_TIME_BACKEND_SNTP
+    default 5000
+    help
+      Upper bound on the single blocking SNTP request.
+
+endif # EL2GO_TIME_SOURCES
+
+
+# ---------------------------------------------------------------------------
+# Agent state persistence backend
+# ---------------------------------------------------------------------------
+config EL2GO_OTA_PERSIST_SOURCES
+    bool "Include agent state persistence sources"
+    help
+      Includes a persistence backend that implements the el2go_ota_persist.h
+      interface used by the advanced OTA agent to persist orchestration state
+      across reboots and power loss. Select the backend below.
+
+if EL2GO_OTA_PERSIST_SOURCES
+
+choice EL2GO_OTA_PERSIST_BACKEND
+    prompt "Agent state persistence backend"
+    default EL2GO_OTA_PERSIST_BACKEND_NONE
+    help
+      Select the persistence backend for the advanced OTA agent state machine.
+
+config EL2GO_OTA_PERSIST_BACKEND_NONE
+    bool "None (weak default, RAM-only)"
+    help
+      No persistent storage. State is kept in RAM only and does not survive a
+      reboot or power loss, so resume-on-boot is unavailable.
+
+config EL2GO_OTA_PERSIST_BACKEND_NVS
+    bool "Zephyr NVS (dedicated agent_state partition)"
+    depends on NVS && FLASH && FLASH_MAP
+    help
+      Persists the agent state record to a dedicated flash partition labelled
+      agent_state_partition in the board DTS / overlay. Enables power-loss-safe
+      resume of an interrupted update on the next boot.
+
+endchoice # EL2GO_OTA_PERSIST_BACKEND
+
+endif # EL2GO_OTA_PERSIST_SOURCES
+
+# ---------------------------------------------------------------------------
+# System event backend
+# ---------------------------------------------------------------------------
+config EL2GO_OTA_EVENT_SOURCES
+    bool "Include system event sources"
+    help
+      Includes a system-event backend that implements the el2go_ota_event.h
+      interface. Used by the advanced OTA agent to trigger an immediate update
+      check when network connectivity becomes available. Select the backend
+      below.
+
+if EL2GO_OTA_EVENT_SOURCES
+
+choice EL2GO_OTA_EVENT_BACKEND
+    prompt "System event backend"
+    default EL2GO_OTA_EVENT_BACKEND_NONE
+    help
+      Select the system-event backend for the advanced OTA agent.
+
+config EL2GO_OTA_EVENT_BACKEND_NONE
+    bool "None (weak default, no events)"
+    help
+      No system events. The agent relies on its periodic polling interval only.
+
+config EL2GO_OTA_EVENT_BACKEND_NETMGMT
+    bool "Zephyr net_mgmt (NET_EVENT_L4_CONNECTED)"
+    depends on NET_CONNECTION_MANAGER
+    help
+      Bridges the Zephyr connection-manager NET_EVENT_L4_CONNECTED event to the
+      agent so an update check is triggered as soon as the network is up.
+
+endchoice # EL2GO_OTA_EVENT_BACKEND
+
+endif # EL2GO_OTA_EVENT_SOURCES
+
+# ---------------------------------------------------------------------------
+# Logging / diagnostics backend
+# ---------------------------------------------------------------------------
+config EL2GO_OTA_DIAG_SOURCES
+    bool "Include logging / diagnostics sources"
+    help
+      Includes the hardware-agnostic logging front-end (el2go_ota_diag.h) plus a
+      platform backend. The OTA_DIAG_* macros used by the sample applications
+      route through this module. Select the backend below.
+
+if EL2GO_OTA_DIAG_SOURCES
+
+choice EL2GO_OTA_DIAG_BACKEND
+    prompt "Logging backend"
+    default EL2GO_OTA_DIAG_BACKEND_CONSOLE
+    help
+      Select the logging backend. Every backend mirrors log lines to the
+      Zephyr console so the HIL test runner markers are always visible.
+
+config EL2GO_OTA_DIAG_BACKEND_CONSOLE
+    bool "Zephyr console (printk only)"
+    help
+      Writes each formatted log line to the Zephyr console via printk. No
+      persistent storage.
+
+config EL2GO_OTA_DIAG_BACKEND_RINGBUF
+    bool "Zephyr console + persistent flash ring buffer"
+    depends on FLASH && FLASH_MAP
+    help
+      Mirrors each log line to the Zephyr console and also appends it to a
+      circular log on a dedicated flash partition (DT node label log_partition,
+      label diag_log). The persistent history survives reboot, power loss and
+      firmware rollback and can be replayed with el2go_ota_diag_dump().
+
+endchoice # EL2GO_OTA_DIAG_BACKEND
+
+config EL2GO_OTA_DIAG_MIN_LEVEL
+    int "Minimum severity persisted to the ring buffer"
+    depends on EL2GO_OTA_DIAG_BACKEND_RINGBUF
+    default 0
+    range 0 4
+    help
+      Only log lines with a severity greater than or equal to this value are
+      written to the persistent ring buffer (console output is unaffected).
+      Levels: 0=INFO, 1=DONE, 2=WARN, 3=FAIL, 4=ERROR. The default of 0
+      persists everything.
+
+config EL2GO_OTA_DIAG_DUMP_ON_BOOT
+    bool "Replay the persistent diagnostics log at boot"
+    depends on EL2GO_OTA_DIAG_BACKEND_RINGBUF
+    default n
+    help
+      When enabled, el2go_ota_diag_dump() replays the records persisted before
+      the last reboot / rollback to the console early during startup. Intended
+      for post-mortem debugging; leave disabled for normal operation so the
+      boot output is not cluttered. The persistent history is still recorded
+      regardless of this option and can be dumped on demand.
+
+endif # EL2GO_OTA_DIAG_SOURCES
+
+# ---------------------------------------------------------------------------
+# System services backend (reboot / sleep / uptime / wait / signal)
+# ---------------------------------------------------------------------------
+config EL2GO_SYSTEM_SOURCES
+    bool "Include system services sources"
+    help
+      Includes a system-services backend that implements the el2go_app_sys.h
+      interface (reboot, blocking sleep, uptime and interruptible wait/signal)
+      used by the sample agents. The agents are single-threaded and run on the
+      main thread; size the main stack via CONFIG_MAIN_STACK_SIZE (the mTLS
+      handshake buffers require a large stack, e.g. 96 KB). Select the backend
+      below.
+
 
 config EL2GO_OTA_TESTS
     bool "Include EL2GO OTA unit test sources"

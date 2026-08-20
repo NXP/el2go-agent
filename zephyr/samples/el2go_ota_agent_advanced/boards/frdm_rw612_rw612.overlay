@@ -47,5 +47,18 @@
             label = "ota_status";
             reg = <0x00862000 DT_SIZE_K(8)>;
         };
+
+        agent_state_partition: partition@864000 {
+            compatible = "zephyr,mapped-partition";
+            label = "agent_state";
+            reg = <0x00864000 DT_SIZE_K(8)>;
+        };
+
+        log_partition: partition@866000 {
+            compatible = "zephyr,mapped-partition";
+            label = "diag_log";
+            reg = <0x00866000 DT_SIZE_K(16)>;
+        };
+
     };
 };

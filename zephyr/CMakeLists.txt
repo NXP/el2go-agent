@@ -41,6 +41,43 @@ if(NOT DEFINED PROJECT_ROOT)
 endif()
 
 # ---------------------------------------------------------------------------
+# Backend selection (Zephyr: resolved from Kconfig symbols)
+# Each OS-specific CMake sets these variables in its own way.
+# On Linux no backend directories exist yet; weak symbols are used by default.
+# ---------------------------------------------------------------------------
+if(CONFIG_EL2GO_NETWORK_BACKEND_WIFI)
+    set(NET_BACKEND wifi)
+else()
+    set(NET_BACKEND default)
+endif()
+
+if(CONFIG_EL2GO_TIME_BACKEND_SNTP)
+    set(TIME_BACKEND sntp)
+else()
+    set(TIME_BACKEND default)
+endif()
+
+set(SYSTEM_BACKEND default)
+
+if(CONFIG_EL2GO_OTA_DIAG_BACKEND_RINGBUF)
+    set(DIAG_BACKEND ringbuf)
+else()
+    set(DIAG_BACKEND console)
+endif()
+
+if(CONFIG_EL2GO_OTA_PERSIST_BACKEND_NVS)
+    set(PERSIST_BACKEND nvs)
+else()
+    set(PERSIST_BACKEND default)
+endif()
+
+if(CONFIG_EL2GO_OTA_EVENT_BACKEND_NETMGMT)
+    set(EVENT_BACKEND netmgmt)
+else()
+    set(EVENT_BACKEND default)
+endif()
+
+# ---------------------------------------------------------------------------
 # Shared public include root -- resolves <ota/...> and <fwual/...> headers.
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES OR CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
@@ -109,5 +146,44 @@ if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES)
     add_subdirectory(
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib
         ${CMAKE_CURRENT_BINARY_DIR}/el2go_ota_lib
+    )
+endif()
+
+# ---------------------------------------------------------------------------
+# Cross-agent application common (network, system, time)
+# ---------------------------------------------------------------------------
+if(CONFIG_EL2GO_NETWORK_SOURCES)
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/network)
+endif()
+
+if(CONFIG_EL2GO_SYSTEM_SOURCES)
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/system)
+endif()
+
+if(CONFIG_EL2GO_TIME_SOURCES)
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/time)
+endif()
+
+if(CONFIG_EL2GO_NETWORK_SOURCES OR CONFIG_EL2GO_SYSTEM_SOURCES OR
+   CONFIG_EL2GO_TIME_SOURCES)
+    add_subdirectory(
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common
+        ${CMAKE_CURRENT_BINARY_DIR}/app_common
+    )
+endif()
+
+# ---------------------------------------------------------------------------
+# OTA-agent application common (diag, persist, event)
+# ---------------------------------------------------------------------------
+if(CONFIG_EL2GO_OTA_DIAG_SOURCES OR CONFIG_EL2GO_OTA_PERSIST_SOURCES OR
+   CONFIG_EL2GO_OTA_EVENT_SOURCES)
+    zephyr_include_directories(
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/diag
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/persist
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/event
+    )
+    add_subdirectory(
+        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common
+        ${CMAKE_CURRENT_BINARY_DIR}/ota_app_common
     )
 endif()

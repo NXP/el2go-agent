@@ -2,3 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 source "Kconfig.zephyr"
+
+menu "EL2GO OTA Agent Core"
+
+config EL2GO_OTA_POLL_INTERVAL_S
+    int "Update polling interval (seconds)"
+    default 30
+    help
+      How often the core agent polls the EL2GO OTA server for updates.
+
+endmenu
