@@ -20,6 +20,22 @@ int csr_compat_x509write_csr_pem(mbedtls_x509write_csr *csr,
     return mbedtls_x509write_csr_pem(csr, buf, size);
 }
 
+int csr_compat_x509write_csr_der(mbedtls_x509write_csr *csr,
+                                  unsigned char *buf, size_t size,
+                                  size_t *der_len)
+{
+    /* RNG arguments were removed in 4.0; the library uses the global PSA RNG. */
+    int ret = mbedtls_x509write_csr_der(csr, buf, size);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    /* DER is written at the END of buf; move it to the start. */
+    *der_len = (size_t)ret;
+    memmove(buf, buf + size - *der_len, *der_len);
+    return 0;
+}
+
 int csr_compat_cert_pubkey_to_psa(const mbedtls_x509_crt *cert,
                                   psa_algorithm_t sig_alg,
                                   psa_key_type_t key_type,

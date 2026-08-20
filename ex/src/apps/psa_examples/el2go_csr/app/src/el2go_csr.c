@@ -9,6 +9,7 @@
 
 extern uint8_t* const el2go_csr_conf_data;
 extern uint32_t* const el2go_spsdk_status;
+extern const uint32_t el2go_csr_conf_data_size;
 
 /*! @brief Verify received x.509 certificate from CLI.
  * 
@@ -109,7 +110,7 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
         goto exit;
     }
 
-    psa_status = generate_csr(key_id, csr_output_buf_imm, sizeof(csr_output_buf_imm), &csr_output_len);
+    psa_status = generate_csr(key_id, ctx->encoding, csr_output_buf_imm, sizeof(csr_output_buf_imm), &csr_output_len);
     if (psa_status != PSA_SUCCESS)
     {
         LOG(LOG_ERROR, "CSR generation failed!\r\n");
@@ -124,7 +125,11 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t* ctx)
         goto exit;
     }
 
-    LOG_CHAR_BUFFER(LOG_DEBUG, csr_output_buf_imm, csr_output_len, "Generated CSR:");
+    /* DER output is binary; skip the text print to avoid garbled UART output. */
+    if (ctx->encoding != CSR_GEN_ENCODING_DER)
+    {
+        LOG_CHAR_BUFFER(LOG_DEBUG, csr_output_buf_imm, csr_output_len, "Generated CSR:");
+    }
 
     exit:
         LOG(LOG_TRACE, "Returning to main function from generate_cert_sign_req subroutine.\r\n");
@@ -169,7 +174,11 @@ int main(void)
         goto exit; 
     }
 
-    csr_parser_status_t tlv_status = parse_buf_and_fill_context(&csr_gen_ctx, &cert_storage_ctx, el2go_csr_conf_data);
+    size_t integrity_covered_len = 0U;
+    csr_parser_status_t tlv_status = parse_buf_and_fill_context(&csr_gen_ctx, &cert_storage_ctx,
+                                                                 el2go_csr_conf_data,
+                                                                 (size_t)el2go_csr_conf_data_size,
+                                                                 &integrity_covered_len);
     if (tlv_status != kStatus_CSR_SUCCESS) 
     {
         LOG(LOG_ERROR, "Failed to parse configuration block data!\r\n");
@@ -177,7 +186,7 @@ int main(void)
         goto exit;
     }
 
-    data_verify_size = csr_gen_ctx.magic ? CSR_GEN_TOTAL_FIXED_FIELDS_LEN : CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN;
+    data_verify_size = integrity_covered_len;
     expected_crc =  csr_gen_ctx.magic ? csr_gen_ctx.integrity_value : cert_storage_ctx.integrity_value;
     integrity_alg = csr_gen_ctx.magic ? csr_gen_ctx.integrity_algorithm : cert_storage_ctx.integrity_algorithm;
 

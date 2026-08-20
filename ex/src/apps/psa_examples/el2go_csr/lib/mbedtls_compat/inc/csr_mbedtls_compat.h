@@ -14,6 +14,7 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 #include "psa/crypto.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/x509_csr.h"
@@ -46,6 +47,27 @@ int csr_compat_pk_bind_psa(mbedtls_pk_context *pk, psa_key_id_t key_id);
  */
 int csr_compat_x509write_csr_pem(mbedtls_x509write_csr *csr,
                                  unsigned char *buf, size_t size);
+
+/*! @brief Write a CSR in DER (binary) format.
+ *
+ * Wraps mbedtls_x509write_csr_der(). On Mbed TLS 3.x an RNG callback is
+ * required and is backed internally by psa_generate_random(). On Mbed TLS 4.x
+ * the RNG arguments were removed from the API.
+ * NOTE: mbedtls_x509write_csr_der writes the DER output at the END of buf and
+ * returns the number of bytes written (positive) or a negative error code.
+ * This wrapper moves the DER bytes to the start of buf and returns 0 on
+ * success, non-zero on error; the byte count is returned via der_len.
+ *
+ * @param[in]  csr      Pointer to the populated CSR write context.
+ * @param[out] buf      Buffer that receives the DER output (bytes moved to start).
+ * @param[in]  size     Size of buf in bytes.
+ * @param[out] der_len  Number of DER bytes written to buf on success.
+ *
+ * @retval 0 on success, non-zero Mbed TLS error code otherwise.
+ */
+int csr_compat_x509write_csr_der(mbedtls_x509write_csr *csr,
+                                  unsigned char *buf, size_t size,
+                                  size_t *der_len);
 
 /*! @brief Import the public key of a parsed X.509 certificate into the PSA key store.
  *

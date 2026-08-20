@@ -7,8 +7,11 @@
 
 #include "csr_util.h"
 #include "csr_mbedtls_compat.h"
+#include "el2go_csr_tlv_parser.h"
 
-psa_status_t generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t csr_output_buf_size, size_t *csr_output_len)
+psa_status_t generate_csr(psa_key_id_t key_id, uint8_t encoding,
+                           uint8_t *csr_output_buf, size_t csr_output_buf_size,
+                           size_t *csr_output_len)
 {
     psa_status_t status = PSA_ERROR_GENERIC_ERROR;
     mbedtls_md_type_t md_type = MBEDTLS_MD_NONE;
@@ -39,17 +42,31 @@ psa_status_t generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t c
         goto exit;
     }
 
-    if (csr_compat_x509write_csr_pem(&csr, csr_output_buf, csr_output_buf_size))
+    if (encoding == CSR_GEN_ENCODING_DER)
     {
-        status = PSA_ERROR_GENERIC_ERROR;
-        goto exit;
+        /* DER output: csr_compat_x509write_csr_der moves bytes to start of buf. */
+        if (csr_compat_x509write_csr_der(&csr, csr_output_buf, csr_output_buf_size,
+                                          csr_output_len))
+        {
+            status = PSA_ERROR_GENERIC_ERROR;
+            goto exit;
+        }
     }
-
-    // PEM is null-terminated
-    *csr_output_len = 0U;
-    while (csr_output_buf[*csr_output_len] != '\0')
+    else
     {
-        (*csr_output_len)++;
+        /* PEM output (default). */
+        if (csr_compat_x509write_csr_pem(&csr, csr_output_buf, csr_output_buf_size))
+        {
+            status = PSA_ERROR_GENERIC_ERROR;
+            goto exit;
+        }
+
+        /* PEM is NULL-terminated; compute length by scanning for the NULL terminator. */
+        *csr_output_len = 0U;
+        while (csr_output_buf[*csr_output_len] != '\0')
+        {
+            (*csr_output_len)++;
+        }
     }
     status = PSA_SUCCESS;
 exit:
