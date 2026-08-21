@@ -71,6 +71,10 @@ int main(int argc, char **argv)
     if (!suite || strcmp(suite, "net_crypto") == 0)
         register_net_crypto_tests();
 
+/*
+ * To enable OTA, pass -DBUILD_OTA=ON at CMake configure time.
+ */
+#if BUILD_OTA
     if (!suite || strcmp(suite, "fwual") == 0)
         register_fwual_tests();
 
@@ -85,6 +89,7 @@ int main(int argc, char **argv)
 
     if (!suite || strcmp(suite, "ota_agent_advanced") == 0)
         register_ota_agent_advanced_tests();
+#endif /* BUILD_OTA */
 
     /* Run all registered tests */
     return test_framework_run();

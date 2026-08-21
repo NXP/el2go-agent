@@ -27,8 +27,16 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 # Option to build applications
 option(BUILD_APPLICATIONS "Build applications" ON)
 
-# Option to build tests
-option(BUILD_TESTING "Build tests" ON)
+# Option to include the OTA library and OTA applications
+option(BUILD_OTA "Build OTA library and OTA applications" OFF)
+message(STATUS "BUILD_OTA: ${BUILD_OTA}")
+
+# Option to build unit tests
+option(BUILD_TESTING "Build unit tests" ON)
+
+if(NOT DEFINED PROJECT_ROOT)
+    set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
+endif()
 
 # Verbosity level for tracing
 if(VERBOSE)

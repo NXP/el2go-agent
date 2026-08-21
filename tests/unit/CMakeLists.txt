@@ -56,29 +56,17 @@ add_subdirectory(public_net_crypto)
 # Collect internal transport tests
 add_subdirectory(internal_net_crypto)
 
-# Collect public fwual tests
-add_subdirectory(public_fwual)
-
-# Collect internal fwual tests
-add_subdirectory(internal_fwual)
-
-# Collect public ota_lib tests
-add_subdirectory(public_ota_lib)
-
-# Collect internal ota_lib tests
-add_subdirectory(internal_ota_lib)
-
-# Collect public ota_agent_core tests
-add_subdirectory(public_ota_agent_core)
-
-# Collect internal ota_agent_core tests
-add_subdirectory(internal_ota_agent_core)
-
-# Collect public ota_agent_advanced tests
-add_subdirectory(public_ota_agent_advanced)
-
-# Collect internal ota_agent_advanced tests
-add_subdirectory(internal_ota_agent_advanced)
+# Collect OTA tests only when OTA support is enabled
+if(BUILD_OTA)
+    add_subdirectory(public_fwual)
+    add_subdirectory(internal_fwual)
+    add_subdirectory(public_ota_lib)
+    add_subdirectory(internal_ota_lib)
+    add_subdirectory(public_ota_agent_core)
+    add_subdirectory(internal_ota_agent_core)
+    add_subdirectory(public_ota_agent_advanced)
+    add_subdirectory(internal_ota_agent_advanced)
+endif()
 
 # ============================================================================
 # Test sources organized by type
@@ -113,6 +101,7 @@ add_executable(${PUBLIC_TEST_EXECUTABLE} ${PUBLIC_API_TEST_SOURCES})
 target_compile_definitions(${PUBLIC_TEST_EXECUTABLE}
     PRIVATE
         BUILD_PUBLIC_TESTS
+        BUILD_OTA=$<BOOL:${BUILD_OTA}>
 )
 
 target_include_directories(${PUBLIC_TEST_EXECUTABLE}
@@ -127,10 +116,16 @@ target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
         unit_test_framework
         el2go_rtp
         el2go_platform
-        fwual
-        el2go_ota_lib
         test_osal
 )
+
+if(BUILD_OTA)
+    target_link_libraries(${PUBLIC_TEST_EXECUTABLE}
+        PRIVATE
+            fwual
+            el2go_ota_lib
+    )
+endif()
 
 # ============================================================================
 # INTERNAL TEST EXECUTABLE
@@ -141,6 +136,7 @@ add_executable(${INTERNAL_TEST_EXECUTABLE} ${INTERNAL_API_TEST_SOURCES})
 target_compile_definitions(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
         BUILD_INTERNAL_TESTS
+        BUILD_OTA=$<BOOL:${BUILD_OTA}>
 )
 
 target_include_directories(${INTERNAL_TEST_EXECUTABLE}
@@ -149,10 +145,20 @@ target_include_directories(${INTERNAL_TEST_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/priv
-        ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src
         ${CMAKE_SOURCE_DIR}/libs/protobuf/nanopb
-        ${CMAKE_SOURCE_DIR}/libs/protobuf/ota
 )
+
+if(BUILD_OTA)
+    target_include_directories(${INTERNAL_TEST_EXECUTABLE}
+        PRIVATE
+            ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src
+            ${CMAKE_SOURCE_DIR}/libs/protobuf/ota
+    )
+    target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
+        PRIVATE
+            el2go_ota_lib
+    )
+endif()
 
 target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
@@ -162,12 +168,12 @@ target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
         el2go_datastore
         osal
         el2go_protobuf
-        el2go_ota_lib
         pb_utils
         net_crypto
         el2go_common
         test_osal
 )
+
 
 # ============================================================================
 # TEST REGISTRATION

@@ -10,6 +10,11 @@ set(CMAKE_MODULE_PATH
 )
 
 # ---------------------------------------------------------------------------
+# BUILD_OTA -- OTA is fully implemented on Zephyr; always enable it.
+# ---------------------------------------------------------------------------
+set(BUILD_OTA ON)
+
+# ---------------------------------------------------------------------------
 # Default PLATFORM for Zephyr -- ELS PKC for RW6xx family.
 # Can be overridden by the application CMake before including this file.
 # ---------------------------------------------------------------------------
