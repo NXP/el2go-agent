@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  *
-*/
+ */
 
 #include "el2go_csr_memory.h"
 #include "fsl_c40_flash.h"
@@ -36,7 +36,7 @@ const uint32_t el2go_csr_conf_data_size = (uint32_t)EL2GO_CSR_CONF_DATA_SIZE;
 
 /**
  * @brief Initialize flash driver
- * 
+ *
  * @retval kStatus_CSR_MEM_SUCCESS PFlash driver initialized successfully
  */
 static csr_mem_status_t flash_init(void)
@@ -58,7 +58,7 @@ static csr_mem_status_t flash_init(void)
 
 /**
  * @brief Read data directly from flash memory
- * 
+ *
  * @param addr Flash address to read from
  * @param buffer Pointer to destination buffer
  * @param size Number of bytes to read
@@ -72,7 +72,7 @@ static csr_mem_status_t flash_read(uint32_t addr, uint8_t *buffer, uint32_t size
 
 /**
  * @brief Erase a flash sector
- * 
+ *
  * @param sector_addr Sector-aligned address
  * @retval kStatus_CSR_MEM_SUCCESS Flash operation status
  */
@@ -95,7 +95,7 @@ static csr_mem_status_t flash_erase_sector(uint32_t sector_addr)
 
 /**
  * @brief Program data to flash
- * 
+ *
  * @param addr Flash address (must be phrase-aligned)
  * @param data Pointer to data buffer
  * @param size Number of bytes to program (must be phrase-aligned)
@@ -112,7 +112,7 @@ static csr_mem_status_t flash_program(uint32_t addr, const uint8_t *data, uint32
 
 /**
  * @brief Program a single sector with read-modify-write pattern
- * 
+ *
  * @param sector_addr Sector-aligned address
  * @param data_offset Offset within sector where data starts
  * @param data Pointer to data to write
@@ -158,7 +158,7 @@ static csr_mem_status_t program_sector_rmw(uint32_t sector_addr, uint32_t data_o
 
 /**
  * @brief Validate flash address is within valid range
- * 
+ *
  * @param addr Address to validate
  * @param size Size of access
  * @retval true Address is valid

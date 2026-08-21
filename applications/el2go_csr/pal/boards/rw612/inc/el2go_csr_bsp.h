@@ -5,11 +5,11 @@
  *
  */
 
-#ifndef EL2GO_CSR_BSP_H
-#define EL2GO_CSR_BSP_H
+#ifndef __EL2GO_CSR_BSP_H__
+#define __EL2GO_CSR_BSP_H__
 
 /* No SDK BSP headers required on Zephyr; hardware is initialised by the
  * Zephyr kernel before main() is called.
  */
 
-#endif /* EL2GO_CSR_BSP_H */
+#endif /* __EL2GO_CSR_BSP_H__ */

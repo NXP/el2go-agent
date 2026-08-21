@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _EL2GO_CSR_PLATFORM__H_
-#define _EL2GO_CSR_PLATFORM__H_
+#ifndef __EL2GO_CSR_PLATFORM_H__
+#define __EL2GO_CSR_PLATFORM_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,11 +18,11 @@ typedef enum _platform_status {
 } platform_status_t;
 
 /*! @brief Platform initialization function
- * 
- * This function is called at the start of the application to initialize 
- * the platform hardware and software components required for the application, 
+ *
+ * This function is called at the start of the application to initialize
+ * the platform hardware and software components required for the application,
  * depending on the target platform.
- * 
+ *
  * @param None
  * @retval kStatus_PLATFORM_INIT_SUCCESS Upon successful initialization.
  */
@@ -32,4 +32,4 @@ platform_status_t platform_init(void);
 }
 #endif
 
-#endif /* _EL2GO_CSR_PLATFORM__H_ */
+#endif /* __EL2GO_CSR_PLATFORM_H__ */

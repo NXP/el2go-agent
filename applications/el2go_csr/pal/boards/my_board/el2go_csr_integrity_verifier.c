@@ -7,7 +7,7 @@
 
 #include "el2go_csr_integrity_verifier.h"
 #include "el2go_csr_console.h"
-#include "byte_utils.h"
+#include "el2go_app_byte_utils.h"
 
 #define CRC32_POLYNOMIAL_REFLECTED 0xEDB88320U
 #define CRC32_INITIAL_VALUE 0xFFFFFFFFU

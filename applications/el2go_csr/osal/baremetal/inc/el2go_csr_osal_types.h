@@ -6,12 +6,12 @@
  *
  */
 
-#ifndef EL2GO_CSR_OSAL_TYPES_H
-#define EL2GO_CSR_OSAL_TYPES_H
+#ifndef __EL2GO_CSR_OSAL_TYPES_H__
+#define __EL2GO_CSR_OSAL_TYPES_H__
 
 #include "el2go_csr_bsp.h"
 
 #define scanc(fmt_s, ...) SCANF(fmt_s, ##__VA_ARGS__)
 #define printc(fmt_s, ...) PRINTF(fmt_s, ##__VA_ARGS__)
 
-#endif /* EL2GO_CSR_OSAL_TYPES_H */
+#endif /* __EL2GO_CSR_OSAL_TYPES_H__ */

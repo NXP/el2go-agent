@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _INTEGRITY_VERIFIER_H_
-#define _INTEGRITY_VERIFIER_H_
+#ifndef __EL2GO_CSR_INTEGRITY_VERIFIER_H__
+#define __EL2GO_CSR_INTEGRITY_VERIFIER_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,14 +23,15 @@ typedef enum _csr_integrity_verifier {
 typedef enum _integrity_algorithms {
     INIT = 0x0,
     CRC_32 = 0x1,
-    // Add here further algo's if needed.
-    // e.g. HMAC_SHA256 = 0x2, <-- count chronologically up!
+    /* Add here further algo's if needed.
+     * e.g. HMAC_SHA256 = 0x2, -- count chronologically up!
+     */
 
-    NR_OF_ALGOS  // DO NOT insert any new entry below this line!
+    NR_OF_ALGOS /* DO NOT insert any new entry below this line! */
 } integrity_algorithms_t;
 
 /*! @brief Calculate data integrity checksum using specified algorithm.
- *  
+ *
  * @param[in] data Pointer to the data buffer to be verified.
  * @param[in] size Size of the data buffer in bytes.
  * @param[in] checksum Pointer to the expected checksum value for verification.
@@ -44,4 +45,4 @@ csr_integrity_verifier_t verify_integrity(uint8_t *data, size_t size, const uint
 }
 #endif
 
-#endif /* _INTEGRITY_VERIFIER_H_ */
+#endif /* __EL2GO_CSR_INTEGRITY_VERIFIER_H__ */

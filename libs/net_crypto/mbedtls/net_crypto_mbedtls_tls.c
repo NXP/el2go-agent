@@ -32,14 +32,16 @@
 #include <mbedtls/error.h>
 #include <mbedtls/debug.h>
 
+#include "builtin_macros.h"
 #include "osal.h"
 #include "compiler.h"
 #include "debug.h"
 
 #include "net_crypto.h"
 
-#include "mbedtls_mapping.h"
-#include "mbedtls_compat.h"
+#include "mapping/mbedtls_mapping.h"
+#include "tls/mbedtls_compat_tls.h"
+#include "crypto/mbedtls_compat_crypto.h"
 
 /** Maximum length for port number string representation */
 #define NET_CRYPTO_PORT_STR_LEN 16
@@ -104,11 +106,14 @@ static el2go_status_t configure_max_fragment_len(mbedtls_ssl_config *conf)
 {
     int ret = 0;
     unsigned char max_fragment_len = MBEDTLS_SSL_MAX_FRAG_LEN_NONE;
+    unsigned int max_content_len = 0U;
 
-    if (MBEDTLS_SSL_MAX_CONTENT_LEN < MBEDTLS_COMPAT_FRAG_LEN_2048)
-        max_fragment_len = MBEDTLS_SSL_MAX_FRAG_LEN_2048;
-    else if (MBEDTLS_SSL_MAX_CONTENT_LEN < MBEDTLS_COMPAT_FRAG_LEN_4096)
-        max_fragment_len = MBEDTLS_SSL_MAX_FRAG_LEN_4096;
+    if (!TO_UNSIGNED(MBEDTLS_SSL_MAX_CONTENT_LEN, max_content_len)) {
+        if (max_content_len < MBEDTLS_COMPAT_FRAG_LEN_2048)
+            max_fragment_len = MBEDTLS_SSL_MAX_FRAG_LEN_2048;
+        else if (max_content_len < MBEDTLS_COMPAT_FRAG_LEN_4096)
+            max_fragment_len = MBEDTLS_SSL_MAX_FRAG_LEN_4096;
+    }
 
     if (max_fragment_len == MBEDTLS_SSL_MAX_FRAG_LEN_NONE)
         return EL2GO_STATUS_SUCCESS;

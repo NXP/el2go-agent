@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _EL2GO_CSR_H_
-#define _EL2GO_CSR_H_
+#ifndef __EL2GO_CSR_H__
+#define __EL2GO_CSR_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,8 +25,9 @@ extern "C" {
 #define MAX_CSR_SIZE (2048U)
 #define SPSDK_STATUS_CODE_SUCCESS (0x3BBBA12DU)
 #define SPSDK_STATUS_CODE_INIT (0xDEADBEEFU)
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _EL2GO_CSR_H_ */
+#endif /* __EL2GO_CSR_H__ */

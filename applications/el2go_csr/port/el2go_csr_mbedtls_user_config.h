@@ -13,8 +13,8 @@
 /* Copyright 2026 NXP
  */
 
-#ifndef __MBEDTLS_USER_CONFIG_H__
-#define __MBEDTLS_USER_CONFIG_H__
+#ifndef __EL2GO_CSR_MBEDTLS_USER_CONFIG_H__
+#define __EL2GO_CSR_MBEDTLS_USER_CONFIG_H__
 
 #ifndef MBEDTLS_PLATFORM_MEMORY
 #define MBEDTLS_PLATFORM_MEMORY
@@ -78,4 +78,4 @@
 
 #include "el2go_csr_mbedtls_user_config_board.h"
 
-#endif /* __MBEDTLS_USER_CONFIG_H__ */
+#endif /* __EL2GO_CSR_MBEDTLS_USER_CONFIG_H__ */

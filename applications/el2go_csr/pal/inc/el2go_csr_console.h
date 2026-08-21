@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _EL2GO_CSR_CONSOLE_H_
-#define _EL2GO_CSR_CONSOLE_H_
+#ifndef __EL2GO_CSR_CONSOLE_H__
+#define __EL2GO_CSR_CONSOLE_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,15 +19,15 @@ typedef enum _csr_log_level {
     LOG_WARNING = 1U,
     LOG_INFO = 2U,
     LOG_DEBUG = 3U,
-    LOG_TRACE = 4U  // <-- can be used for verboose mode
+    LOG_TRACE = 4U /* <-- can be used for verbose mode */
 } csr_log_level;
 
-// Default log level
+/* Default log level */
 #ifndef CSR_LOG_LEVEL
 #define CSR_LOG_LEVEL LOG_TRACE
 #endif
 
-// ANSI color codes
+/* ANSI color codes */
 #define ANSI_COLOR_RESET "\033[0m"
 #define ANSI_COLOR_RED "\033[31m"
 #define ANSI_COLOR_GREEN "\033[32m"
@@ -35,7 +35,7 @@ typedef enum _csr_log_level {
 #define ANSI_COLOR_MAGENTA "\033[35m"
 #define ANSI_COLOR_CYAN "\033[36m"
 
-// Log level prefixes with colors
+/* Log level prefixes with colors */
 #define LOG_PREFIX_INFO ANSI_COLOR_GREEN "[INFO] "
 #define LOG_PREFIX_ERROR ANSI_COLOR_RED "[ERROR] "
 #define LOG_PREFIX_WARNING ANSI_COLOR_YELLOW "[WARNING] "
@@ -80,4 +80,4 @@ typedef enum _csr_log_level {
 }
 #endif
 
-#endif /* _EL2GO_CSR_CONSOLE_H_ */
+#endif /* __EL2GO_CSR_CONSOLE_H__ */

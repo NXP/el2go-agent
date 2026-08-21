@@ -9,14 +9,17 @@
 #include <string.h>
 
 #include "el2go_csr.h"
-#include "el2go_csr_memory.h"
+
+extern uint8_t *const el2go_csr_conf_data;
+extern uint32_t *const el2go_spsdk_status;
+extern const uint32_t el2go_csr_conf_data_size;
 
 /*! @brief Verify received x.509 certificate from CLI.
- * 
- * This function is  used to verify an x.509 certificate received from SPSDK/CLI with the 
+ *
+ * This function is  used to verify an x.509 certificate received from SPSDK/CLI with the
  * PSA key id parsed from the configuration block. The x.509 is read from the ctx (=context)
  * provided memory address.
- * 
+ *
  * @param[in] ctx: Structure with filled x.509 cert storage configuration data.
  * @retval PSA_SUCCESS Upon success.
  */
@@ -27,12 +30,11 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t *ctx)
     uint8_t *cert_input_buf_imm = NULL;
     uint32_t cert_size = 0U;
 
-    if (ctx == NULL) {
+    if (!ctx) {
         LOG(LOG_ERROR, "Invalid context for x.509 certificate storage verification provided!\r\n");
         psa_status = PSA_ERROR_INVALID_ARGUMENT;
         goto exit;
     }
-
     cert_size = ctx->cert_source_addr_size;
 
     if (cert_size > MAX_X509_CERT_SIZE) {
@@ -42,7 +44,7 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t *ctx)
     }
 
     cert_input_buf_imm = (uint8_t *)malloc(cert_size);
-    if (cert_input_buf_imm == NULL) {
+    if (!cert_input_buf_imm) {
         LOG(LOG_ERROR, "Memory allocation for x.509 certificate verification failed!\r\n");
         psa_status = PSA_ERROR_INSUFFICIENT_MEMORY;
         goto exit;
@@ -65,7 +67,7 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t *ctx)
 
 exit:
     LOG(LOG_TRACE, "Returning to main function from verify_recv_x509_cert subroutine.\r\n");
-    if (cert_input_buf_imm != NULL) {
+    if (cert_input_buf_imm) {
         memset(cert_input_buf_imm, 0, cert_size);
         free(cert_input_buf_imm);
     }
@@ -73,11 +75,11 @@ exit:
 }
 
 /*! @brief Generate a certificate signing request (CSR).
- * 
+ *
  * This function is  used to generate a CSR using a PSA key id parsed from the configuration block,
  * and store the generated CSR to a specified memory location. The key id is extracted from the
  * configuration block and used to generate the CSR which is then written to the designated output address.
- * 
+ *
  * @param[in] ctx: Structure with filled CSR generation configuration data.
  * @retval PSA_SUCCESS Upon success.
  */
@@ -90,12 +92,11 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t *ctx)
     size_t csr_output_len = 0U;
     bool generate_new_key = false;
 
-    if (ctx == NULL) {
+    if (!ctx) {
         LOG(LOG_ERROR, "Invalid context for CSR generation provided!\r\n");
         psa_status = PSA_ERROR_INVALID_ARGUMENT;
         goto exit;
     }
-
     key_id = (psa_key_id_t)ctx->key_id;
     generate_new_key = (ctx->device_operation == CSR_GEN_DEVICEOP_NEWKEY) ? true : false;
 
@@ -105,8 +106,8 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t *ctx)
         goto exit;
     }
 
-    psa_status =
-        generate_csr(key_id, csr_output_buf_imm, sizeof(csr_output_buf_imm), &csr_output_len);
+    psa_status = generate_csr(key_id, ctx->encoding, csr_output_buf_imm, sizeof(csr_output_buf_imm),
+                              &csr_output_len);
     if (psa_status != PSA_SUCCESS) {
         LOG(LOG_ERROR, "CSR generation failed!\r\n");
         goto exit;
@@ -120,7 +121,10 @@ static psa_status_t generate_cert_sign_req(csr_gen_context_t *ctx)
         goto exit;
     }
 
-    LOG_CHAR_BUFFER(LOG_DEBUG, csr_output_buf_imm, csr_output_len, "Generated CSR:");
+    /* DER output is binary; skip the text print to avoid garbled UART output. */
+    if (ctx->encoding != CSR_GEN_ENCODING_DER) {
+        LOG_CHAR_BUFFER(LOG_DEBUG, csr_output_buf_imm, csr_output_len, "Generated CSR:");
+    }
 
 exit:
     LOG(LOG_TRACE, "Returning to main function from generate_cert_sign_req subroutine.\r\n");
@@ -163,16 +167,17 @@ int main(void)
         goto exit;
     }
 
+    size_t integrity_covered_len = 0U;
     csr_parser_status_t tlv_status =
-        parse_buf_and_fill_context(&csr_gen_ctx, &cert_storage_ctx, el2go_csr_conf_data);
+        parse_buf_and_fill_context(&csr_gen_ctx, &cert_storage_ctx, el2go_csr_conf_data,
+                                   (size_t)el2go_csr_conf_data_size, &integrity_covered_len);
     if (tlv_status != kStatus_CSR_SUCCESS) {
         LOG(LOG_ERROR, "Failed to parse configuration block data!\r\n");
         spsdk_status = (uint32_t)tlv_status;
         goto exit;
     }
 
-    data_verify_size = csr_gen_ctx.magic ? CSR_GEN_TOTAL_FIXED_FIELDS_LEN :
-                                           CERT_STORAGE_TOTAL_FIXED_FIELDS_LEN;
+    data_verify_size = integrity_covered_len;
     expected_crc = csr_gen_ctx.magic ? csr_gen_ctx.integrity_value :
                                        cert_storage_ctx.integrity_value;
     integrity_alg = csr_gen_ctx.magic ? csr_gen_ctx.integrity_algorithm :
@@ -204,10 +209,8 @@ int main(void)
     spsdk_status = SPSDK_STATUS_CODE_SUCCESS;
 exit:
 
-    /*
-     * Before writing the status code to memory, read  the existing value to check if it needs updating
-     * to not perform unnecessary flash writes.
-     */
+    /* Before writing the status code to memory, read  the existing value to check if it needs updating */
+    /* to not perform unnecessary flash writes. */
     LOG(LOG_DEBUG, "Returning status code of operation\r\n");
 
     uint32_t existing_status = 0U;

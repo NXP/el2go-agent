@@ -15,6 +15,21 @@
 #include "plat_crypto_params.h"
 
 /**
+ * @brief CSR output encoding identifier.
+ */
+#define NET_CRYPTO_CSR_ENCODING_PEM (0x01u) /* PEM format (default) */
+#define NET_CRYPTO_CSR_ENCODING_DER (0x02u) /* DER format */
+
+/**
+ * @brief Hash algorithm identifier (platform-agnostic).
+ */
+typedef enum {
+    NET_CRYPTO_MD_SHA256, /**< SHA-256 */
+    NET_CRYPTO_MD_SHA384, /**< SHA-384 */
+    NET_CRYPTO_MD_SHA512, /**< SHA-512 */
+} net_crypto_md_alg_t;
+
+/**
  * @defgroup net_crypto Network Crypto
  * @brief Network crypto interface for SSL/TLS connections.
  * @{
@@ -232,31 +247,24 @@ el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch_callba
                                         uint8_t *hash_out);
 
 /**
- * @brief Hash algorithm identifier (platform-agnostic).
- */
-typedef enum {
-    NET_CRYPTO_MD_SHA256, /**< SHA-256 */
-    NET_CRYPTO_MD_SHA384, /**< SHA-384 */
-    NET_CRYPTO_MD_SHA512, /**< SHA-512 */
-} net_crypto_md_alg_t;
-
-/**
- * @brief Generate a Certificate Signing Request (CSR) in PEM format.
+ * @brief Generate a Certificate Signing Request (CSR) in PEM or DER format.
  *
- * The output buffer receives a null-terminated PEM string.
+ * For PEM encoding the output buffer receives a null-terminated PEM string.
+ * For DER encoding the output buffer receives raw DER bytes.
  *
  * @param[in]     key_id       PSA/HSM key identifier to sign the CSR with.
  * @param[in]     subject_name X.509 subject name string (e.g. "CN=Device,O=NXP,C=NL").
  * @param[in]     md_alg       Hash algorithm to use for the CSR signature.
- * @param[out]    csr_out      Output buffer for PEM-encoded CSR.
+ * @param[in]     encoding     Output encoding: CSR_GEN_ENCODING_PEM or CSR_GEN_ENCODING_DER.
+ * @param[out]    csr_out      Output buffer for the CSR.
  * @param[in]     csr_out_size Size of the output buffer in bytes.
- * @param[out]    csr_out_len  Length of the generated PEM string (excluding null terminator).
+ * @param[out]    csr_out_len  Length of the generated CSR in bytes.
  *
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
 el2go_status_t net_crypto_generate_csr(uint32_t key_id, const char *subject_name,
-                                       net_crypto_md_alg_t md_alg, uint8_t *csr_out,
-                                       size_t csr_out_size, size_t *csr_out_len);
+                                       net_crypto_md_alg_t md_alg, uint8_t encoding,
+                                       uint8_t *csr_out, size_t csr_out_size, size_t *csr_out_len);
 
 /**
  * @brief Extract the raw public key from a DER-encoded X.509 certificate.

@@ -47,9 +47,10 @@
 #define EL2GO_CSR_STATUSCODE_XIP_ADDR \
     (QSPI_XIP_BASE + EL2GO_CSR_FLASH_SECTOR_OFFSET + EL2GO_CSR_FLASH_SECTOR_SIZE - sizeof(uint32_t))
 
-/* Exported XIP pointers used by el2go_csr.c */
+/* Exported XIP pointers and size used by el2go_csr.c */
 uint8_t *const el2go_csr_conf_data = (uint8_t *)(EL2GO_CSR_CONF_DATA_XIP_ADDR);
 uint32_t *const el2go_spsdk_status = (uint32_t *)(EL2GO_CSR_STATUSCODE_XIP_ADDR);
+const uint32_t el2go_csr_conf_data_size = (uint32_t)EL2GO_CSR_CONF_DATA_SIZE;
 
 /* ---------------------------------------------------------------------------
  * Internal helpers

@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _EL2GO_CSR_CHALLENGE_H_
-#define _EL2GO_CSR_CHALLENGE_H_
+#ifndef __EL2GO_CSR_CHALLENGE_H__
+#define __EL2GO_CSR_CHALLENGE_H__
 
 #include "psa/crypto.h"
 
@@ -36,4 +36,4 @@ const challenge_response_config_t *get_challenge_response_config(void);
 }
 #endif
 
-#endif /* _EL2GO_CSR_CHALLENGE_H_ */
+#endif /* __EL2GO_CSR_CHALLENGE_H__ */

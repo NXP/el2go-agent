@@ -10,8 +10,8 @@
 
 #include "csr_util.h"
 
-psa_status_t generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t csr_output_buf_size,
-                          size_t *csr_output_len)
+psa_status_t generate_csr(psa_key_id_t key_id, uint8_t encoding, uint8_t *csr_output_buf,
+                          size_t csr_output_buf_size, size_t *csr_output_len)
 {
     el2go_status_t status = EL2GO_STATUS_FAILURE;
 
@@ -20,7 +20,7 @@ psa_status_t generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t c
     }
 
     status = net_crypto_generate_csr((uint32_t)key_id, CSR_SUBJECT_NAME, get_msg_digest_algo(),
-                                     csr_output_buf, csr_output_buf_size, csr_output_len);
+                                     encoding, csr_output_buf, csr_output_buf_size, csr_output_len);
 
     if (status == EL2GO_STATUS_BUFFER_TOO_SMALL) {
         return PSA_ERROR_BUFFER_TOO_SMALL;

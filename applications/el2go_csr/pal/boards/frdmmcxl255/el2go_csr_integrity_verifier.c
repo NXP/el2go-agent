@@ -8,7 +8,7 @@
 #include "el2go_csr_integrity_verifier.h"
 #include "el2go_csr_console.h"
 #include "fsl_crc.h"
-#include "byte_utils.h"
+#include "el2go_app_byte_utils.h"
 
 #define CRC32_POLYNOMIAL (0x04C11DB7U)
 #define CRC32_SEED_VALUE (0xFFFFFFFFU)

@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef EL2GO_CSR_BSP_H
-#define EL2GO_CSR_BSP_H
+#ifndef __EL2GO_CSR_BSP_H__
+#define __EL2GO_CSR_BSP_H__
 
 /*
  * Include board-specific headers required for hardware initialization
@@ -18,4 +18,4 @@
 #define SCANF(fmt_s, ...) scanf(fmt_s, ##__VA_ARGS__)
 #define PRINTF(fmt_s, ...) printf(fmt_s, ##__VA_ARGS__)
 
-#endif  // EL2GO_CSR_BSP_H
+#endif /* __EL2GO_CSR_BSP_H__ */

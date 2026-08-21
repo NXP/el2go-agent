@@ -17,8 +17,8 @@
 /* Copyright 2026 NXP
  */
 
-#ifndef __MBEDTLS_USER_CONFIG_BOARD_H__
-#define __MBEDTLS_USER_CONFIG_BOARD_H__
+#ifndef __EL2GO_CSR_MBEDTLS_USER_CONFIG_BOARD_H__
+#define __EL2GO_CSR_MBEDTLS_USER_CONFIG_BOARD_H__
 
 /* RW61x requires ASN.1 write support for X.509 CSR generation. */
 #ifndef MBEDTLS_ASN1_WRITE_C
@@ -27,4 +27,4 @@
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-#endif /* __MBEDTLS_USER_CONFIG_BOARD_H__ */
+#endif /* __EL2GO_CSR_MBEDTLS_USER_CONFIG_BOARD_H__ */

@@ -6,11 +6,11 @@
  *
  */
 
-#ifndef EL2GO_CSR_BSP_H
-#define EL2GO_CSR_BSP_H
+#ifndef __EL2GO_CSR_BSP_H__
+#define __EL2GO_CSR_BSP_H__
 
 #include "app.h"
 #include "board.h"
 #include "fsl_debug_console.h"
 
-#endif  // EL2GO_CSR_BSP_H
+#endif /* __EL2GO_CSR_BSP_H__ */

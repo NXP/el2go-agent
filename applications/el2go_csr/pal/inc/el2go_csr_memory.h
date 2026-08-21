@@ -5,8 +5,8 @@
  *
  */
 /** @file */
-#ifndef _EL2GO_CSR_MEMORY_H_
-#define _EL2GO_CSR_MEMORY_H_
+#ifndef __EL2GO_CSR_MEMORY_H__
+#define __EL2GO_CSR_MEMORY_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,4 +61,4 @@ csr_mem_status_t mem_write(uint32_t addr, const uint8_t *buffer, uint32_t size);
 }
 #endif
 
-#endif /* _EL2GO_CSR_MEMORY_H_ */
+#endif /* __EL2GO_CSR_MEMORY_H__ */

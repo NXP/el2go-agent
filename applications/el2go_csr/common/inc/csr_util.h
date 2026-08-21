@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _CSR_UTIL_H_
-#define _CSR_UTIL_H_
+#ifndef __CSR_UTIL_H__
+#define __CSR_UTIL_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,18 +31,19 @@ extern "C" {
 /*! @brief Generate a Certificate Signing Request (CSR) using a PSA key.
  *
  * @param[in]   key_id PSA key identifier to be used for CSR generation.
+ * @param[in]   encoding Output encoding: CSR_GEN_ENCODING_PEM (1) or CSR_GEN_ENCODING_DER (2).
  * @param[out]  csr_output_buf Pointer to buffer where generated CSR will be stored.
  * @param[in]   csr_output_buf_size Size of the output buffer in bytes.
  * @param[out]  csr_output_len Pointer to variable where the length of generated CSR will be stored.
  * @retval PSA_SUCCESS: Certificate generation successful.
 */
-psa_status_t generate_csr(psa_key_id_t key_id, uint8_t *csr_output_buf, size_t csr_output_buf_size,
-                          size_t *csr_output_len);
+psa_status_t generate_csr(psa_key_id_t key_id, uint8_t encoding, uint8_t *csr_output_buf,
+                          size_t csr_output_buf_size, size_t *csr_output_len);
 
 /*! @brief Verify provided x.509 certificate with PSA key.
  *
  * @param[in]   key_id PSA key identifier to be used for verification.
- * @param[in]   cert_buf Pointer to buffer containing the x.509 certificate in PEM format.
+ * @param[in]   cert_buf Pointer to buffer containing the x.509 certificate in PEM or DER format (auto-detected).
  * @param[in]   cert_buf_size Size of the certificate buffer in bytes.
  * @retval PSA_SUCCESS: Certificate verification successful.
 */
@@ -61,4 +62,4 @@ psa_status_t generate_key(psa_key_attributes_t *attr, psa_key_id_t *key_id, bool
 }
 #endif
 
-#endif /* _CSR_UTIL_H_ */
+#endif /* __CSR_UTIL_H__ */

@@ -32,13 +32,11 @@
 
 #include "builtin_macros.h"
 #include "osal.h"
-#include "compiler.h"
 #include "debug.h"
 
 #include "net_crypto.h"
 
-#include "mbedtls_compat.h"
-#include "net_crypto_mbedtls_crypto_priv.h"
+#include "crypto/mbedtls_compat_crypto.h"
 
 /** Chunk size for SHA-256 streaming operations */
 #define NET_CRYPTO_SHA256_CHUNK_SIZE 64

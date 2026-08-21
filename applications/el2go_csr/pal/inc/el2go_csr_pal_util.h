@@ -5,8 +5,8 @@
  *
  */
 /** @file */
-#ifndef _EL2GO_CSR_CSR_PAL_UTIL_H_
-#define _EL2GO_CSR_CSR_PAL_UTIL_H_
+#ifndef __EL2GO_CSR_PAL_UTIL_H__
+#define __EL2GO_CSR_PAL_UTIL_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,4 +24,4 @@ net_crypto_md_alg_t get_msg_digest_algo(void);
 }
 #endif
 
-#endif /* _EL2GO_CSR_CSR_PAL_UTIL_H_ */
+#endif /* __EL2GO_CSR_PAL_UTIL_H__ */

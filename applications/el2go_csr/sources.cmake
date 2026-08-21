@@ -2,12 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Common (platform-agnostic) sources and include directories for the
-# el2go_csr application.
-#
-# OS- and board-specific files are NOT listed here. They are added by
-# each build entry point (Zephyr sample, standalone CMakeLists.txt, etc.)
-# using the appropriate platform selection mechanism.
 
 set(EL2GO_CSR_SOURCES_DIR ${CMAKE_CURRENT_LIST_DIR})
 
@@ -18,6 +12,7 @@ set(EL2GO_CSR_APP_SOURCES
     ${EL2GO_CSR_SOURCES_DIR}/app/src/el2go_csr_tlv_parser.c
     # Common utilities
     ${EL2GO_CSR_SOURCES_DIR}/common/src/csr_util.c
+    ${EL2GO_CSR_SOURCES_DIR}/common/src/crc_sw_util.c
 )
 
 # --- Common include directories (shared base, any OS/board) ---

@@ -144,12 +144,14 @@ __weak el2go_status_t net_crypto_disconnect(net_crypto_ctx_t *ctx)
 }
 
 __weak el2go_status_t net_crypto_generate_csr(uint32_t key_id, const char *subject_name,
-                                              net_crypto_md_alg_t md_alg, uint8_t *csr_out,
-                                              size_t csr_out_size, size_t *csr_out_len)
+                                              net_crypto_md_alg_t md_alg, uint8_t encoding,
+                                              uint8_t *csr_out, size_t csr_out_size,
+                                              size_t *csr_out_len)
 {
     (void)key_id;
     (void)subject_name;
     (void)md_alg;
+    (void)encoding;
     (void)csr_out;
     (void)csr_out_size;
     (void)csr_out_len;

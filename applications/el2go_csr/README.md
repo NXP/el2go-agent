@@ -14,7 +14,7 @@ Additional information about EdgeLock 2GO X.509 Certificate Service for MCUs can
 - [MbedTLS](https://github.com/Mbed-TLS/mbedtls) source (version 3.x)
 - CMake >= 3.15 and a compatible C toolchain (e.g., ARM GCC, IAR, KEIL MDK)
 - A Host Tool capable of reading/writing device memory (e.g., J-Link Commander or OpenOCD)
-- Any serial terminal 
+- Any serial terminal
 
 ## Overview
 
@@ -23,7 +23,7 @@ The application flow consists of the following steps:
 1. Platform and OS initialization (`platform_init()`, `os_init()`)
 2. PSA Crypto initialization (`psa_crypto_init()`)
 3. Parse the configuration block (TLV format) provided by the Host Tool at a defined memory location (`el2go_csr_conf_data`)
-4. Verify configuration block integrity with the defined algorithm 
+4. Verify configuration block integrity with the defined algorithm
 5. Execute the requested operation:
    - **CSR Generation**: Generate/retrieve PSA key, create CSR, write to memory
    - **Certificate Verification**: Read certificate from memory, verify against PSA key via challenge-response
@@ -500,12 +500,12 @@ This header provides board-specific MbedTLS feature enablement macros. It acts a
 
 ```c
 /* in port/el2go_csr_mbedtls_user_config.h */
-#include "el2go_csr_mbedtls_user_config_board.h" 
+#include "el2go_csr_mbedtls_user_config_board.h"
 ```
 
 The board include directory (`pal/boards/<your_board>/inc/`) is automatically added to the include path by the CMake build system, so the root config can resolve this header at build time.
 
-Use this file to enable any MbedTLS modules that your platform requires but that are not already enabled in the root config. 
+Use this file to enable any MbedTLS modules that your platform requires but that are not already enabled in the root config.
 
 ---
 
@@ -601,7 +601,7 @@ Refer to `pal/boards/my_board/CMakeLists.txt` for the full annotated template.
 
 ### Porting Checklist
 
-| # | File | Function / Symbol | 
+| # | File | Function / Symbol |
 |---|------|-------------------|
 | 1 | `el2go_csr_platform.c` | `platform_init()` |
 | 2 | `el2go_csr_flash_memory.c` | `mem_read()`, `mem_write()`, `el2go_csr_conf_data`, `el2go_spsdk_status` |
@@ -609,10 +609,10 @@ Refer to `pal/boards/my_board/CMakeLists.txt` for the full annotated template.
 | 4 | `el2go_csr_pal_util.c` | `get_msg_digest_algo()` |
 | 5 | `el2go_csr_challenge.c` | `get_challenge_response_config()` |
 | 6 | `el2go_csr_integrity_verifier.c` | `verify_integrity()` |
-| 7 | `inc/el2go_csr_bsp.h` | `PRINTF`, `SCANF` macros | 
-| 8 | `inc/el2go_csr_mbedtls_user_config_board.h` | MbedTLS required board-specific macros | 
+| 7 | `inc/el2go_csr_bsp.h` | `PRINTF`, `SCANF` macros |
+| 8 | `inc/el2go_csr_mbedtls_user_config_board.h` | MbedTLS required board-specific macros |
 | 9 | `mbedtls_entropy_hardware_alt.c` | `mbedtls_hardware_poll()` — hardware entropy source |
-| 10 | `CMakeLists.txt` | `el2go_csr_board_sdk` target, `EL2GO_CSR_BOARD_SOURCES`, `EL2GO_CSR_BOARD_INCLUDE_DIRS`, `EL2GO_LINKER_SCRIPT` | 
+| 10 | `CMakeLists.txt` | `el2go_csr_board_sdk` target, `EL2GO_CSR_BOARD_SOURCES`, `EL2GO_CSR_BOARD_INCLUDE_DIRS`, `EL2GO_LINKER_SCRIPT` |
 
 ---
 

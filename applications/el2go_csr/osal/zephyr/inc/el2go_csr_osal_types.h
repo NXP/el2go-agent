@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef EL2GO_CSR_OSAL_TYPES_H
-#define EL2GO_CSR_OSAL_TYPES_H
+#ifndef __EL2GO_CSR_OSAL_TYPES_H__
+#define __EL2GO_CSR_OSAL_TYPES_H__
 
 #include <stdint.h>
 #include <zephyr/sys/printk.h>
@@ -17,4 +17,4 @@
     } while (0)
 #define printc(fmt_s, ...) printk(fmt_s, ##__VA_ARGS__)
 
-#endif /* EL2GO_CSR_OSAL_TYPES_H */
+#endif /* __EL2GO_CSR_OSAL_TYPES_H__ */

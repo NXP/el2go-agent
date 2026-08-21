@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _EL2GO_CSR_OSAL__H_
-#define _EL2GO_CSR_OSAL__H_
+#ifndef __EL2GO_CSR_OSAL_H__
+#define __EL2GO_CSR_OSAL_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,11 +20,11 @@ typedef enum _os_status {
 } os_status_t;
 
 /*! @brief OS initialization function
- * 
- * This function is called at the start of the application to initialize 
- * the operation system servies required for the application, 
+ *
+ * This function is called at the start of the application to initialize
+ * the operation system servies required for the application,
  * or or no-op on bare metal systems.
- * 
+ *
  * @param None
  * @retval kStatus_OS_INIT_SUCCESS Upon successful initialization.
  */
@@ -34,4 +34,4 @@ os_status_t os_init(void);
 }
 #endif
 
-#endif /* _EL2GO_CSR_OSAL__H_ */
+#endif /* __EL2GO_CSR_OSAL_H__ */
