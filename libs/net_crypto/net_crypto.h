@@ -232,6 +232,50 @@ el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch_callba
                                         uint8_t *hash_out);
 
 /**
+ * @brief Hash algorithm identifier (platform-agnostic).
+ */
+typedef enum {
+    NET_CRYPTO_MD_SHA256, /**< SHA-256 */
+    NET_CRYPTO_MD_SHA384, /**< SHA-384 */
+    NET_CRYPTO_MD_SHA512, /**< SHA-512 */
+} net_crypto_md_alg_t;
+
+/**
+ * @brief Generate a Certificate Signing Request (CSR) in PEM format.
+ *
+ * The output buffer receives a null-terminated PEM string.
+ *
+ * @param[in]     key_id       PSA/HSM key identifier to sign the CSR with.
+ * @param[in]     subject_name X.509 subject name string (e.g. "CN=Device,O=NXP,C=NL").
+ * @param[in]     md_alg       Hash algorithm to use for the CSR signature.
+ * @param[out]    csr_out      Output buffer for PEM-encoded CSR.
+ * @param[in]     csr_out_size Size of the output buffer in bytes.
+ * @param[out]    csr_out_len  Length of the generated PEM string (excluding null terminator).
+ *
+ * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
+ */
+el2go_status_t net_crypto_generate_csr(uint32_t key_id, const char *subject_name,
+                                       net_crypto_md_alg_t md_alg, uint8_t *csr_out,
+                                       size_t csr_out_size, size_t *csr_out_len);
+
+/**
+ * @brief Extract the raw public key from a DER-encoded X.509 certificate.
+ *
+ * Returns the uncompressed EC public key bytes (0x04 || X || Y).
+ *
+ * @param[in]     cert_der       PEM or DER encoded certificate buffer.
+ * @param[in]     cert_der_len   Length of the certificate buffer in bytes.
+ * @param[out]    pubkey_out     Output buffer for raw public key bytes.
+ * @param[in]     pubkey_out_size Size of the output buffer in bytes.
+ * @param[out]    pubkey_len     Number of public key bytes written.
+ *
+ * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
+ */
+el2go_status_t net_crypto_cert_get_pubkey(const uint8_t *cert_der, size_t cert_der_len,
+                                          uint8_t *pubkey_out, size_t pubkey_out_size,
+                                          size_t *pubkey_len);
+
+/**
  * @brief Calculate SHA-256 hash of in-memory data.
  *
  * @param data      Input data buffer.

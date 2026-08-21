@@ -143,6 +143,33 @@ __weak el2go_status_t net_crypto_disconnect(net_crypto_ctx_t *ctx)
     return EL2GO_STATUS_NOT_IMPLEMENTED;
 }
 
+__weak el2go_status_t net_crypto_generate_csr(uint32_t key_id, const char *subject_name,
+                                              net_crypto_md_alg_t md_alg, uint8_t *csr_out,
+                                              size_t csr_out_size, size_t *csr_out_len)
+{
+    (void)key_id;
+    (void)subject_name;
+    (void)md_alg;
+    (void)csr_out;
+    (void)csr_out_size;
+    (void)csr_out_len;
+
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
+}
+
+__weak el2go_status_t net_crypto_cert_get_pubkey(const uint8_t *cert_der, size_t cert_der_len,
+                                                 uint8_t *pubkey_out, size_t pubkey_out_size,
+                                                 size_t *pubkey_len)
+{
+    (void)cert_der;
+    (void)cert_der_len;
+    (void)pubkey_out;
+    (void)pubkey_out_size;
+    (void)pubkey_len;
+
+    return EL2GO_STATUS_NOT_IMPLEMENTED;
+}
+
 __weak el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *hash_out)
 {
     (void)data;

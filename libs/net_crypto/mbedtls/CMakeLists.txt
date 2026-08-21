@@ -16,12 +16,30 @@ if(BUILD_ZEPHYR)
     set(MBEDTLS_EXTRA_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/port/net_zephyr.c)
     set(MBEDTLS_EXTRA_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}/port
+        ${PROJECT_ROOT}/include
+        ${PROJECT_ROOT}/priv
         ${PROJECT_ROOT}/libs/platforms
         ${PROJECT_ROOT}/libs/net_crypto
+        ${PROJECT_ROOT}/libs/osal/include
     )
     set(MBEDTLS_LIBS "")
     set(mbedtls_INCLUDE_DIRS "")
     set(mbedtls_LIBRARY_DIRS "")
+    # TLS sources only when networking stack is present
+    if(CONFIG_NETWORKING)
+        set(MBEDTLS_TLS_SOURCES
+            ${CMAKE_CURRENT_SOURCE_DIR}/net_crypto_mbedtls_tls.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/port/net_zephyr.c
+        )
+    else()
+        set(MBEDTLS_TLS_SOURCES "")
+    endif()
+    # CSR sources only when X.509 CSR write support is enabled
+    if(CONFIG_MBEDTLS_PEM_WRITE_C)
+        set(MBEDTLS_CSR_ENABLED TRUE)
+    else()
+        set(MBEDTLS_CSR_ENABLED FALSE)
+    endif()
 else()
     include(FindPkgConfig)
     find_package(PkgConfig QUIET REQUIRED)
@@ -62,6 +80,13 @@ else()
     message(STATUS "MbedTLS include dirs: ${mbedtls_INCLUDE_DIRS}")
     message(STATUS "MbedTLS library dirs: ${mbedtls_LIBRARY_DIRS}")
     message(STATUS "MbedTLS libraries:    ${MBEDTLS_LIBS}")
+
+    # On Linux the networking stack is always present
+    set(MBEDTLS_TLS_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/net_crypto_mbedtls_tls.c
+    )
+    # On Linux CSR support is always compiled (full mbedTLS available)
+    set(MBEDTLS_CSR_ENABLED TRUE)
 endif()
 
 set(MBEDTLS_COMPAT_SOURCES "")
@@ -81,14 +106,33 @@ if(EXISTS ${VERSION_SPECIFIC_FILE})
     list(APPEND MBEDTLS_COMPAT_SOURCES ${VERSION_SPECIFIC_FILE})
 endif()
 
+# Add CSR compatibility sources only when CSR write support is available.
+# This avoids pulling in mbedtls_x509write_csr_pem / mbedtls_x509write_csr_der
+# in builds that do not enable MBEDTLS_X509_CSR_WRITE_C (e.g. el2go_ota_agent_core).
+if(MBEDTLS_CSR_ENABLED)
+    if(MBEDTLS_VERSION_MAJOR LESS 4)
+        set(CSR_COMPAT_FILE
+            ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_compat_v2_v3_csr.c)
+    else()
+        set(CSR_COMPAT_FILE
+            ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_compat_v4_csr.c)
+    endif()
+    if(EXISTS ${CSR_COMPAT_FILE})
+        list(APPEND MBEDTLS_COMPAT_SOURCES ${CSR_COMPAT_FILE})
+    endif()
+    list(APPEND MBEDTLS_COMPAT_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/net_crypto_mbedtls_crypto_csr.c)
+endif()
+
 message(STATUS "Using mbedTLS ${MBEDTLS_VERSION_MAJOR}.x compatibility layer")
 message(STATUS "Compatibility sources: ${MBEDTLS_COMPAT_SOURCES}")
 
+# MBEDTLS_TLS_SOURCES is empty on Zephyr without CONFIG_NETWORKING.
 add_private_sources(net_crypto
-    ${CMAKE_CURRENT_SOURCE_DIR}/net_crypto_mbedtls.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/net_crypto_mbedtls_crypto.c
     ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_mapping.c
     ${MBEDTLS_COMPAT_SOURCES}
-    ${MBEDTLS_EXTRA_SOURCES}
+    ${MBEDTLS_TLS_SOURCES}
 )
 
 add_private_directories(net_crypto

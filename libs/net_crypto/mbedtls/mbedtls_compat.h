@@ -11,7 +11,9 @@
 #include <mbedtls/version.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/pk.h>
+#include <mbedtls/md.h>
 #include <mbedtls/x509_crt.h>
+#include <mbedtls/x509_csr.h>
 
 #include "plat_crypto_params.h"
 
@@ -135,6 +137,56 @@ int mbedtls_compat_pk_setup_key(mbedtls_pk_context *pk, uint32_t key_id);
  * @return 1 if key is present, 0 otherwise.
  */
 int mbedtls_compat_pk_has_key(const mbedtls_pk_context *pk);
+
+/**
+ * @brief Extract the raw uncompressed EC public key bytes from a PK context.
+ *
+ * Works across mbedTLS versions:
+ *  - v2.x/v3.x: Uses mbedtls_pk_ec() and mbedtls_ecp_point_write_binary.
+ *  - v4.x: Uses mbedtls_pk_write_pubkey_der and parses the BIT STRING.
+ *
+ * @param[in]  pk        PK context containing an EC public key.
+ * @param[out] buf       Output buffer for raw public key bytes (0x04 || X || Y).
+ * @param[in]  buf_size  Size of output buffer.
+ * @param[out] out_len   Number of bytes written.
+ *
+ * @return 0 on success, negative error code on failure.
+ */
+int mbedtls_compat_pk_get_ec_pubkey_raw(const mbedtls_pk_context *pk, uint8_t *buf, size_t buf_size,
+                                        size_t *out_len);
+
+/* ========================================================================== */
+/* X.509 CSR Functions                                                         */
+/* ========================================================================== */
+
+/**
+ * @brief Set the hash algorithm for a CSR signature (no-op in mbedTLS 4.x).
+ *
+ * In mbedTLS 4.x the hash algorithm is derived from the PSA key attributes,
+ * so this call is intentionally a no-op. In v2/v3 it forwards to
+ * mbedtls_x509write_csr_set_md_alg.
+ *
+ * @param[in] ctx     CSR write context.
+ * @param[in] md_alg  Hash algorithm (ignored in mbedTLS 4.x).
+ */
+void mbedtls_compat_x509write_csr_set_md_alg(mbedtls_x509write_csr *ctx, mbedtls_md_type_t md_alg);
+
+/**
+ * @brief Write a CSR in PEM format.
+ *
+ * Handles API differences between mbedTLS versions:
+ *  - v2.x/v3.x: Requires RNG callback parameters for ECDSA signing.
+ *  - v4.x: No RNG parameters needed (uses PSA internally).
+ *
+ * @param[in] ctx      CSR write context.
+ * @param[in] buf      Output buffer.
+ * @param[in] size     Buffer size.
+ * @param[in] rng_ctx  RNG context (may be NULL for v4.x).
+ *
+ * @return 0 on success, negative error code on failure.
+ */
+int mbedtls_compat_x509write_csr_pem(mbedtls_x509write_csr *ctx, unsigned char *buf, size_t size,
+                                     mbedtls_compat_rng_context *rng_ctx);
 
 /* ========================================================================== */
 /* X.509 Certificate Functions                                                 */
