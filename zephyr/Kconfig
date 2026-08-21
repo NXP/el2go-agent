@@ -6,8 +6,17 @@ config EL2GO_OTA_FWUAL_LIBRARY_SOURCES
     help
       Includes the FWUAL sources in the application build.
 
+config EL2GO_NET_CRYPTO_SOURCES
+    bool "Include net_crypto mbedTLS abstraction layer sources"
+    depends on MBEDTLS
+    help
+      Includes the net_crypto library (SHA-256, CSR generation, certificate
+      operations) in the build. Automatically selected by EL2GO_OTA_LIBRARY_SOURCES.
+      Also required by the el2go_csr Zephyr sample.
+
 config EL2GO_OTA_LIBRARY_SOURCES
     bool "Include EL2GO OTA Library sources"
+    select EL2GO_NET_CRYPTO_SOURCES
     help
       Includes the EL2GO OTA Library sources in the application build.
       Requires mbedTLS PSA crypto and network sockets -- configure these

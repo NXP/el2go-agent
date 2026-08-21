@@ -111,10 +111,13 @@ if(CONFIG_EL2GO_OTA_FWUAL_LIBRARY_SOURCES)
 endif()
 
 # ---------------------------------------------------------------------------
-# net_crypto -- mbedTLS backend for mTLS
-# Must come before el2go_ota_lib (it's a dependency).
+# net_crypto -- mbedTLS crypto abstraction layer.
+# Only built when explicitly requested via EL2GO_NET_CRYPTO_SOURCES.
+# This prevents it from being compiled into child images (e.g. MCUboot) that
+# have CONFIG_MBEDTLS but a minimal config lacking X.509 write and PK write
+# support. Must come before el2go_ota_lib (it is a dependency).
 # ---------------------------------------------------------------------------
-if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES AND CONFIG_MBEDTLS)
+if(CONFIG_EL2GO_NET_CRYPTO_SOURCES)
     add_subdirectory(
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/net_crypto
         ${CMAKE_CURRENT_BINARY_DIR}/net_crypto
@@ -122,7 +125,7 @@ if(CONFIG_EL2GO_OTA_LIBRARY_SOURCES AND CONFIG_MBEDTLS)
 endif()
 
 # ---------------------------------------------------------------------------
-# Platform backend -- PSA crypto init, hardware-specific glue
+# Platform backend — PSA crypto init, hardware-specific glue
 # Must come before el2go_ota_lib (it's a dependency).
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_PLATFORM_SOURCES)
