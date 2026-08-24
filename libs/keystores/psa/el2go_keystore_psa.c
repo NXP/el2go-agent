@@ -32,6 +32,18 @@
 
 #define EL2GO_MAX_KEY_DATA_SIZE (10 * 1024)
 
+/* Map the server-canonical claimcode UID to the locally valid ITS UID.
+ * The server always sends 0xF00000E0 (the TF-M ITS range). On non-TF-M
+ * platforms EDGELOCK2GO_CLAIMCODE_DATA_ID is already defined to the
+ * platform-valid UID, so the remap resolves at compile time. On TF-M
+ * builds both sides are identical and the function is a no-op. */
+static inline psa_storage_uid_t psa_its_uid_remap(psa_storage_uid_t uid)
+{
+    if (uid == 0xF00000E0U)
+        return (psa_storage_uid_t)EDGELOCK2GO_CLAIMCODE_DATA_ID;
+    return uid;
+}
+
 static el2go_status_t handle_get_version(el2go_keystore_t *keystore, nxp_iot_PsaRequest *request,
                                          nxp_iot_ResponsePayload *response)
 {
@@ -241,17 +253,9 @@ static el2go_status_t handle_read_object(el2go_keystore_t *keystore, nxp_iot_Psa
     *read_object_resp = (nxp_iot_ReadObjectResponse)nxp_iot_ReadObjectResponse_init_default;
     read_object_resp->has_status = true;
 
+    uid = psa_its_uid_remap(uid);
     psa_status = psa_its_get_info(uid, &info);
     if (psa_status != PSA_SUCCESS) {
-#if !defined(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM)
-        /* Without TF-M, Zephyr's PSA ITS rejects UIDs in the reserved range
-         * (e.g. 0xf00000e0 for claim code) with PSA_ERROR_INVALID_ARGUMENT.
-         * Normalize to PSA_ERROR_DOES_NOT_EXIST so the server treats it as
-         * "object not present" and proceeds with whitelisting. */
-        if (psa_status == PSA_ERROR_INVALID_ARGUMENT) {
-            psa_status = PSA_ERROR_DOES_NOT_EXIST;
-        }
-#endif
         read_object_resp->status = (nxp_iot_StatusCode)psa_status;
         EL2GO_DBG_PRINTF(ERROR, "Failed to get object info (uid: 0x%016" PRIx64 ", status: %d)\n",
                          uid, (int)psa_status);
@@ -334,7 +338,7 @@ static el2go_status_t handle_remove_object(el2go_keystore_t *keystore, nxp_iot_P
     *remove_object_resp = (nxp_iot_RemoveObjectResponse)nxp_iot_RemoveObjectResponse_init_default;
     remove_object_resp->has_status = true;
 
-    uid = remove_object_req->identifier;
+    uid = psa_its_uid_remap(remove_object_req->identifier);
     psa_status = psa_its_remove(uid);
 
     remove_object_resp->status = (nxp_iot_StatusCode)psa_status;

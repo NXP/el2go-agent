@@ -8,6 +8,11 @@ add_subdirectory(el2go_rtp_agent)
 
 if(BUILD_OTA)
     add_subdirectory(ota_agents)
+
+    
+if(NOT OS STREQUAL "linux")
+    add_subdirectory(el2go_claimcode_encryption)
+
 endif()
 
 # el2go_csr is a standalone application (has its own project() declaration)

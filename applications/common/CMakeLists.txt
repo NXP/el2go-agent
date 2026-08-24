@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(mqtt)
 add_subdirectory(network)
 add_subdirectory(system)
 add_subdirectory(time)

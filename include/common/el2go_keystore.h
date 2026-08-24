@@ -43,70 +43,70 @@ typedef struct el2go_keystore {
 } el2go_keystore_t;
 
 /**
- * el2go_keystore_init - Initialize a keystore
- * @id: Keystore identifier
- * @platform_ctx: Platform context for hardware access
- * @keystore: Pointer to keystore structure
+ * @brief Initialize a keystore.
  *
- * This function initializes a keystore with the specified platform
- * and type.
+ * Initializes a keystore with the specified identifier and platform context.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in]  id           Keystore identifier.
+ * @param[in]  platform_ctx Platform context for hardware access.
+ * @param[out] keystore     Pointer to the keystore structure to initialize.
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise.
  */
 el2go_status_t el2go_keystore_init(uint32_t id, el2go_platform_ctx_t *platform_ctx,
                                    el2go_keystore_t *keystore);
 
 /**
- * el2go_keystore_free - Free a keystore
- * @keystore: Pointer to keystore structure
+ * @brief Free a keystore.
  *
- * This function frees all resources associated with the keystore.
+ * Frees all resources associated with the keystore.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] keystore Pointer to the keystore structure to free.
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise.
  */
 el2go_status_t el2go_keystore_free(el2go_keystore_t *keystore);
 
 /**
- * el2go_keystore_open_session - Open a session with the keystore
- * @keystore: Keystore structure
+ * @brief Open a session with the keystore.
  *
- * This function opens a session with the underlying secure element or
- * keystore backend. A session must be opened before performing cryptographic
- * operations. For PSA keystores, this may initialize the crypto subsystem.
+ * Opens a session with the underlying secure element or keystore backend.
+ * A session must be opened before performing cryptographic operations.
+ * For PSA keystores, this may initialize the crypto subsystem.
  * For SSS keystores, this establishes communication with the secure element.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] keystore Pointer to the keystore structure.
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise.
  */
 el2go_status_t el2go_keystore_open_session(el2go_keystore_t *keystore);
 
 /**
- * el2go_keystore_close_session - Close a session with the keystore
- * @keystore: Keystore structure
+ * @brief Close a session with the keystore.
  *
- * This function closes an active session with the keystore. All pending
- * operations should be completed before closing the session. After closing,
- * a new session must be opened to perform additional operations.
+ * Closes an active session with the keystore. All pending operations should
+ * be completed before closing the session. After closing, a new session must
+ * be opened to perform additional operations.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] keystore Pointer to the keystore structure.
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise.
  */
 el2go_status_t el2go_keystore_close_session(el2go_keystore_t *keystore);
 
 /**
- * el2go_keystore_import_claimcode - Import claim code for device provisioning
- * @keystore: Initialized keystore
- * @claimcode: Claim code string (not necessarily null-terminated)
- * @claimcode_len: Length of the claim code in bytes
+ * @brief Import a claim code for device provisioning.
  *
- * Stores the claim code using the keystore backend. The PSA keystore
- * delegates to the platform layer first; if the platform has no specific
- * handling it falls back to PSA ITS. Other keystore types silently succeed.
+ * Stores the claim code for device provisioning. The PSA keystore
+ * implementation first delegates to the platform layer; if no platform
+ * override is present it uses a generic PSA ITS fallback. Non-PSA keystores
+ * may provide their own override or rely on the default no-op stub.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] keystore      Initialized keystore.
+ * @param[in] claimcode     Claim code string (not necessarily null-terminated).
+ * @param[in] claimcode_len Length of the claim code in bytes.
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise.
  */
 el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore, const char *claimcode,
                                                size_t claimcode_len);

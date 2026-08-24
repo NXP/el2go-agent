@@ -149,10 +149,17 @@ static const struct json_obj_descr azure_publish_message_description[] = {
 int mqtt_client_custom_transport_connect(struct mqtt_client *client)
 {
     net_crypto_ctx_t *ctx = (net_crypto_ctx_t *)client->transport.custom_transport_data;
-    el2go_status_t rc = net_crypto_connect(ctx);
-    LOG_ERR("net_crypto_connect returned: %d", rc);
+    el2go_status_t rc = EL2GO_STATUS_FAILURE;
 
-    return (rc == EL2GO_STATUS_SUCCESS) ? 0 : -EIO;
+    rc = net_crypto_connect(ctx);
+
+    if (rc != EL2GO_STATUS_SUCCESS) {
+        LOG_ERR("net_crypto_connect failed (status: %d)", rc);
+        return -EIO;
+    }
+
+    LOG_DBG("net_crypto_connect OK");
+    return 0;
 }
 
 int mqtt_client_custom_transport_write(struct mqtt_client *client, const uint8_t *data,
@@ -397,21 +404,28 @@ static int connectMQTTClient(struct mqtt_client *client, const char *service_nam
         LOG_INF("Connecting to '%s' (attempt %u/%u) ...", service_name, retry,
                 (uint16_t)MQTT_CONNECTION_RETRY_COUNT);
 
+        k_sem_reset(&sem_connected);
+        k_sem_reset(&sem_disconnected);
+
         int rc = mqtt_connect(client);
+        LOG_INF("mqtt_connect returned: %d", rc);
         if (rc != 0) {
             LOG_ERR("mqtt_connect failed: %d", rc);
             k_msleep(MQTT_CONNACK_WAIT_MSEC);
             continue;
         }
 
-        mqtt_input(client);
-
-        if (k_sem_take(&sem_connected, K_MSEC(MQTT_CONNACK_WAIT_MSEC)) == 0) {
-            return 0;
-        }
-
-        if (k_sem_take(&sem_disconnected, K_NO_WAIT) == 0) {
-            return -ECONNREFUSED;
+        /* Poll for CONNACK */
+        int64_t deadline = k_uptime_get() + MQTT_CONNACK_WAIT_MSEC;
+        while (k_uptime_get() < deadline) {
+            mqtt_input(client);
+            if (k_sem_take(&sem_connected, K_NO_WAIT) == 0) {
+                return 0;
+            }
+            if (k_sem_take(&sem_disconnected, K_NO_WAIT) == 0) {
+                return -ECONNREFUSED;
+            }
+            k_msleep(10);
         }
 
         LOG_ERR("No CONNACK received");
@@ -585,6 +599,8 @@ static int awsPubMqttMessage(void)
         if (rc != 0) {
             return rc;
         }
+        LOG_INF("AWS cert: len=%zu, first bytes: %02x %02x %02x %02x", cert_len, cert_buf[0],
+                cert_buf[1], cert_buf[2], cert_buf[3]);
         (void)extract_cn_from_cert(cert_buf, cert_len, client_id, sizeof(client_id));
         k_free(cert_buf);
     }
@@ -595,6 +611,10 @@ static int awsPubMqttMessage(void)
     }
 
     const char *hostname = CONFIG_EL2GO_RTP_MQTT_AWS_HOSTNAME;
+
+    LOG_INF("AWS client_id: '%s' (len=%zu)", client_id, strlen(client_id));
+    LOG_INF("AWS key_id: 0x%08x  cert_id: 0x%08x", (unsigned)MQTT_AWS_KEY_ID,
+            (unsigned)MQTT_AWS_CERT_ID);
 
     rc = setupMQTTClient(&client_ctx, genericMQTTCallback, client_id, NULL, hostname, 8883U,
                          MQTT_AWS_KEY_ID, MQTT_AWS_CERT_ID, aws_root_ca, sizeof(aws_root_ca));
@@ -709,7 +729,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
     }
 
     /* Subscribe to DPS response topic. */
-    static const struct mqtt_topic dps_topics[] = {
+    struct mqtt_topic dps_topics[] = {
         {
             .topic = {
                 .utf8 = (uint8_t *)AZURE_MQTT_SUBSCRIBE_MSG_TOPIC,
@@ -895,32 +915,34 @@ static int azurePubMqttMessage(void)
 int el2go_mqtt_verify(el2go_keystore_t *keystore)
 {
     int rc = 0;
-
     ARG_UNUSED(keystore);
 
 #if defined(CONFIG_EL2GO_RTP_MQTT_AWS)
     LOG_INF("Verifying AWS IoT Core credentials (MQTT CONNECT + PUBLISH) ...");
-    rc = awsPubMqttMessage();
+    uint16_t aws_retry = 0U;
+    do {
+        rc = awsPubMqttMessage();
+        aws_retry++;
+    } while (rc != 0 && aws_retry < MQTT_CONNECTION_RETRY_COUNT);
     if (rc != 0) {
         LOG_ERR("AWS MQTT verify failed (%d)", rc);
         return rc;
     }
     LOG_INF("AWS IoT Core MQTT credentials verified");
-#endif /* CONFIG_EL2GO_RTP_MQTT_AWS */
+#endif
 
 #if defined(CONFIG_EL2GO_RTP_MQTT_AZURE)
     LOG_INF("Verifying Azure IoT Hub credentials (DPS + MQTT CONNECT + PUBLISH) ...");
-    rc = azurePubMqttMessage();
+    uint16_t azure_retry = 0U;
+    do {
+        rc = azurePubMqttMessage();
+        azure_retry++;
+    } while (rc != 0 && azure_retry < MQTT_CONNECTION_RETRY_COUNT);
     if (rc != 0) {
         LOG_ERR("Azure MQTT verify failed (%d)", rc);
         return rc;
     }
     LOG_INF("Azure IoT Hub MQTT credentials verified");
-#endif /* CONFIG_EL2GO_RTP_MQTT_AZURE */
-
-#if !defined(CONFIG_EL2GO_RTP_MQTT_AWS) && !defined(CONFIG_EL2GO_RTP_MQTT_AZURE)
-    LOG_WRN("No MQTT backend selected - enable CONFIG_EL2GO_RTP_MQTT_AWS or "
-            "CONFIG_EL2GO_RTP_MQTT_AZURE");
 #endif
 
     return rc;

@@ -371,6 +371,7 @@ menu "EdgeLock2GO RTP Agent"
 
 config EL2GO_RTP_AGENT
     bool "EdgeLock2GO RTP Agent library sources"
+    select HWINFO
     help
       Enables the el2go_rtp_lib and its dependencies (keystores, datastores,
       platforms, net_crypto, protobuf, osal) for Zephyr builds.

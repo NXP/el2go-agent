@@ -1,0 +1,35 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+source "Kconfig.zephyr"
+
+config EL2GO_CLAIMCODE_STRING
+	string "Claimcode string to encrypt"
+	default "insert_claimcode_from_el2go"
+	help
+	  The plain claimcode string that gets encrypted and written to flash.
+	  Must match the string used on the EdgeLock 2GO cloud service.
+
+config EL2GO_CLAIMCODE_USE_SANDBOX
+	bool "Use sandbox EL2GO claimcode public key"
+	default n
+	help
+	  Use the sandbox ECDH public key for claimcode encryption instead of
+	  the production key. Enable this only for development and testing
+	  against the EL2GO sandbox environment.
+
+config EL2GO_CLAIMCODE_BACKEND_ELS_PKC
+	bool "Use ELS PKC hardware backend for claimcode encryption"
+	default y
+	help
+	  Enable the ELS PKC (EdgeLock Secure Enclave) hardware crypto backend
+	  for claimcode encryption. When disabled, a weak stub returning
+	  EL2GO_STATUS_NOT_IMPLEMENTED is used and an alternative backend must
+	  be provided by the application.
+
+config CLAIM_CODE_INFO_ADDRESS
+	hex "Claim code flash address"
+	default 0x088A0000
+	help
+	  Physical flash address where the encrypted claimcode blob will be written.
+	  Must match CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS in the el2go_rtp_agent sample.

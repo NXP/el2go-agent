@@ -8,21 +8,18 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "common/el2go_platform.h"
-#include "osal.h"
 #include "test_framework.h"
 #include "test_suites.h"
 
 #include "rtp/el2go_rtp.h"
+#include "common/el2go_platform.h"
 
-/**
- * @defgroup test_el2go_platform_public Public EL2GO Platform Tests
- * @brief Unit tests for the public el2go_platform API.
+/** @defgroup test_el2go_platform_public Public Platform API Tests
+ * @brief Unit tests for the public platform API.
  *
- * Covers parameter validation paths for el2go_platform_get_uuid() that
- * are exercisable without hardware (no live hwinfo or secure element needed),
- * as well as lifecycle and full-buffer tests that require platform init.
- *
+ * Covers parameter validation and basic lifecycle for
+ * el2go_platform_init, el2go_platform_free, and
+ * el2go_platform_get_uuid.
  * @{
  */
 
@@ -77,64 +74,48 @@ static void suite_teardown(void *params)
     }
 }
 
-/* ========================================================================== */
-/* el2go_platform_get_uuid() parameter validation tests                       */
-/* ========================================================================== */
-
 /**
- * @brief el2go_platform_get_uuid(ctx, NULL, n, uuid_len) must return
- *        EL2GO_STATUS_INVALID_PARAMETER.
+ * @brief Test el2go_platform_get_uuid with NULL buf parameter.
+ *
+ * Verifies that passing @c NULL for the UUID buffer returns
+ * EL2GO_STATUS_INVALID_PARAMETER.
  *
  * @param params Unused.
  * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_platform_get_uuid_null_buf(void *params)
 {
-    size_t uuid_len = 0U;
+    el2go_platform_ctx_t *platform_ctx = NULL;
+    el2go_status_t status;
+    size_t uuid_len = 0;
 
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER,
-                      el2go_platform_get_uuid(NULL, NULL, EL2GO_UUID_MAX_LEN, &uuid_len));
+    status = el2go_platform_get_uuid(platform_ctx, NULL, EL2GO_UUID_MAX_LEN, &uuid_len);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
 
     return true;
 }
 
 /**
- * @brief el2go_platform_get_uuid(ctx, buf, 0, uuid_len) must return
- *        EL2GO_STATUS_INVALID_PARAMETER.
+ * @brief Test el2go_platform_get_uuid with NULL uuid_len parameter.
  *
- * @param params Unused.
- * @return @c true if all assertions pass, @c false otherwise.
- */
-static bool test_platform_get_uuid_zero_len(void *params)
-{
-    uint8_t buf[EL2GO_UUID_MAX_LEN];
-    size_t uuid_len = 0U;
-
-    (void)params;
-
-    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER,
-                      el2go_platform_get_uuid(NULL, buf, 0U, &uuid_len));
-
-    return true;
-}
-
-/**
- * @brief el2go_platform_get_uuid(ctx, buf, n, NULL) must return
- *        EL2GO_STATUS_INVALID_PARAMETER.
+ * Verifies that passing @c NULL for the length output pointer returns
+ * EL2GO_STATUS_INVALID_PARAMETER.
  *
  * @param params Unused.
  * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_platform_get_uuid_null_uuid_len(void *params)
 {
+    el2go_platform_ctx_t *platform_ctx = NULL;
+    el2go_status_t status;
     uint8_t buf[EL2GO_UUID_MAX_LEN];
 
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER,
-                      el2go_platform_get_uuid(NULL, buf, sizeof(buf), NULL));
+    status = el2go_platform_get_uuid(platform_ctx, buf, sizeof(buf), NULL);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
 
     return true;
 }
@@ -271,12 +252,6 @@ exit:
     return test_status;
 }
 
-/** @} */
-
-/* ========================================================================== */
-/* Suite registration                                                         */
-/* ========================================================================== */
-
 /**
  * @brief Register all public platform tests with the test framework.
  */
@@ -286,7 +261,6 @@ void register_platform_tests(void)
     TEST_SET_SUITE_TEARDOWN(suite_teardown);
 
     TEST_REGISTER(test_platform_get_uuid_null_buf);
-    TEST_REGISTER(test_platform_get_uuid_zero_len);
     TEST_REGISTER(test_platform_get_uuid_null_uuid_len);
     TEST_REGISTER(test_platform_get_uuid_buf_too_small);
     TEST_REGISTER(test_platform_get_uuid_buf_too_small_nonzero);

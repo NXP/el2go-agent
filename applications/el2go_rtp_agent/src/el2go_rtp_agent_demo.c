@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2018-2026 NXP
  *
@@ -17,7 +16,7 @@
 #include "common/el2go_status.h"
 #include "rtp/el2go_rtp_config.h"
 #include "osal.h"
-#include "el2go_ota_net.h"
+#include "el2go_app_net.h"
 
 #include "keystores/keystore_priv.h"
 #include "mqtt/el2go_mqtt.h"
@@ -55,7 +54,7 @@ static int agent_start(int argc, const char *argv[])
     osal_printf_always("====================\n\n");
 
     /* Initialize network */
-    rc = el2go_ota_net_init();
+    rc = el2go_app_net_init();
     if (rc != 0) {
         osal_printf(DBG_LEVEL_ERROR, "Network initialization failed (%d)", rc);
         return rc;
@@ -138,19 +137,18 @@ static int agent_start(int argc, const char *argv[])
     }
 
     /* Configure EdgeLock 2GO server connection */
-    {
-        el2go_rtp_datastore_config_t el2go_config = { .hostname = EL2GO_RTP_EDGELOCK2GO_HOSTNAME,
-                                                      .port = EL2GO_RTP_EDGELOCK2GO_PORT,
-                                                      .certificate = NULL };
 
-        status = el2go_rtp_datastore_el2go(&datastore_ctx, &keystore_ctx, &el2go_config);
-        if (status != EL2GO_STATUS_SUCCESS) {
-            osal_printf(DBG_LEVEL_ERROR, "EL2GO datastore config failed (status: %d)", status);
-            goto cleanup_datastore;
-        }
-        osal_printf(DBG_LEVEL_INFO, "EL2GO server configured: %s:%u",
-                    EL2GO_RTP_EDGELOCK2GO_HOSTNAME, EL2GO_RTP_EDGELOCK2GO_PORT);
+    el2go_rtp_datastore_config_t el2go_config = { .hostname = EL2GO_RTP_EDGELOCK2GO_HOSTNAME,
+                                                  .port = EL2GO_RTP_EDGELOCK2GO_PORT,
+                                                  .certificate = NULL };
+
+    status = el2go_rtp_datastore_el2go(&datastore_ctx, &keystore_ctx, &el2go_config);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        osal_printf(DBG_LEVEL_ERROR, "EL2GO datastore config failed (status: %d)", status);
+        goto cleanup_datastore;
     }
+    osal_printf(DBG_LEVEL_INFO, "EL2GO server configured: %s:%u", EL2GO_RTP_EDGELOCK2GO_HOSTNAME,
+                EL2GO_RTP_EDGELOCK2GO_PORT);
 
     /* Provision device from EdgeLock 2GO */
     osal_printf(DBG_LEVEL_INFO, "Provisioning from EdgeLock 2GO...");
@@ -168,9 +166,9 @@ static int agent_start(int argc, const char *argv[])
     rc = el2go_mqtt_verify(&keystore_ctx);
     if (rc != 0) {
         osal_printf(DBG_LEVEL_ERROR, "MQTT verify failed (%d)", rc);
+    } else {
+        osal_printf(DBG_LEVEL_INFO, "EL2GO RTP Agent demo completed successfully");
     }
-
-    osal_printf(DBG_LEVEL_INFO, "EL2GO RTP Agent demo completed successfully");
 
 cleanup_datastore:
     el2go_rtp_remove_datastore(agent_ctx, &datastore_ctx);
@@ -190,7 +188,7 @@ cleanup_agent:
 cleanup_platform:
     el2go_platform_free(&platform_ctx);
 
-    return (status == EL2GO_STATUS_SUCCESS) ? 0 : -1;
+    return (status == EL2GO_STATUS_SUCCESS && rc == 0) ? 0 : -1;
 }
 
 /* ========================================================================== */

@@ -1,0 +1,10 @@
+/*
+ * Copyright 2026 NXP
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * No partition changes needed for frdm_rw612.
+ * The claimcode blob is written directly to 0x088A0000 via the IAP ROM API,
+ * which does not require a DTS partition node.
+ */

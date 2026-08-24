@@ -13,9 +13,17 @@
  *
  * References the client private key in the S50 secure enclave,
  * accessible via the ELS PKC PSA driver. The key never leaves
- * the secure enclave — signing is delegated to the S50 during
+ * the secure enclave -- signing is delegated to the S50 during
  * the TLS handshake.
  */
-#define EDGELOCK2GO_KEYID_ECC 0x3fff0201U
+#define EDGELOCK2GO_KEYID_ECC 0x3FFF0201U
+
+/**
+ * @brief Data object identifier for the EdgeLock 2GO claim code.
+ *
+ * Identifies the secure data object where the claim code is stored
+ * via smw_store_data().
+ */
+#define EDGELOCK2GO_CLAIMCODE_DATA_ID 0x3F0000E0U
 
 #endif /* __ELS_PKC_PLATFORM_DEFS_H__ */

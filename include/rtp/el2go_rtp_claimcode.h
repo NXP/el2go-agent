@@ -1,0 +1,53 @@
+/*
+ * Copyright 2023-2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef __EL2GO_RTP_CLAIMCODE_H__
+#define __EL2GO_RTP_CLAIMCODE_H__
+
+/**
+ * @defgroup el2go_rtp_claimcode Claimcode Key Agreement Public Keys
+ * @brief EL2GO ECDH public keys used for claimcode encryption.
+ *
+ * The active key is selected at build time. Set CONFIG_EL2GO_CLAIMCODE_USE_SANDBOX=y
+ * or define EL2GO_CLAIMCODE_USE_SANDBOX before including this header to use
+ * the sandbox key. The production key is used by default.
+ * @{
+ */
+
+/** Production environment ECDH public key (64 bytes, raw X||Y coordinates). */
+#define EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_PROD                                                       \
+    0xB9, 0x91, 0x7C, 0xD3, 0xBF, 0x41, 0xDC, 0xDF, 0x5D, 0x3B, 0x40, 0xBD, 0xC4, 0x47, 0x37,     \
+        0xFF, 0x33, 0xB2, 0x31, 0xB1, 0xDA, 0xCA, 0x2C, 0x18, 0x97, 0x90, 0xE4, 0x95, 0xE8, 0x2F, \
+        0x4E, 0xE6, 0xCE, 0xAA, 0x6D, 0xBB, 0xA8, 0x5E, 0xCA, 0x11, 0x6F, 0xC6, 0x09, 0x33, 0xE6, \
+        0x14, 0x63, 0x30, 0xA8, 0xB1, 0xCE, 0x47, 0x1A, 0xA1, 0xA8, 0x33, 0x2D, 0x9C, 0x4E, 0x04, \
+        0xEF, 0x8F, 0x1A, 0x2C
+#define EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_PROD_SIZE (64U)
+
+/** Sandbox environment ECDH public key (64 bytes, raw X||Y coordinates). */
+#define EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_SANDBOX                                                    \
+    0xB9, 0x91, 0x7C, 0xD3, 0xBF, 0x41, 0xDC, 0xDF, 0x5D, 0x3B, 0x40, 0xBD, 0xC4, 0x47, 0x37,     \
+        0xFF, 0x33, 0xB2, 0x31, 0xB1, 0xDA, 0xCA, 0x2C, 0x18, 0x97, 0x90, 0xE4, 0x95, 0xE8, 0x2F, \
+        0x4E, 0xE6, 0xCE, 0xAA, 0x6D, 0xBB, 0xA8, 0x5E, 0xCA, 0x11, 0x6F, 0xC6, 0x09, 0x33, 0xE6, \
+        0x14, 0x63, 0x30, 0xA8, 0xB1, 0xCE, 0x47, 0x1A, 0xA1, 0xA8, 0x33, 0x2D, 0x9C, 0x4E, 0x04, \
+        0xEF, 0x8F, 0x1A, 0x2C
+#define EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_SANDBOX_SIZE (64U)
+
+/**
+ * Active claimcode ECDH public key, selected by build configuration.
+ * Override by defining EL2GO_CLAIMCODE_USE_SANDBOX or setting
+ * CONFIG_EL2GO_CLAIMCODE_USE_SANDBOX=y.
+ */
+#if defined(CONFIG_EL2GO_CLAIMCODE_USE_SANDBOX) || defined(EL2GO_CLAIMCODE_USE_SANDBOX)
+#define EL2GO_RTP_CLAIMCODE_PUBLIC_KEY EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_SANDBOX
+#define EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_SIZE EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_SANDBOX_SIZE
+#else
+#define EL2GO_RTP_CLAIMCODE_PUBLIC_KEY EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_PROD
+#define EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_SIZE EL2GO_RTP_CLAIMCODE_PUBLIC_KEY_PROD_SIZE
+#endif
+
+/** @} */
+
+#endif /* __EL2GO_RTP_CLAIMCODE_H__ */

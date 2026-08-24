@@ -900,6 +900,9 @@ int net_crypto_read(net_crypto_ctx_t *ctx, uint8_t *buffer, size_t len)
 
     ret = mbedtls_ssl_read(&ctx->ssl, buffer, len);
     if (ret < 0) {
+        if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+            return 0; /* no data yet, not fatal */
+        }
         EL2GO_DBG_PRINTF(ERROR, "SSL read failed: -0x%04x\n", -ret);
         return ret;
     }
@@ -912,6 +915,10 @@ int net_crypto_write(net_crypto_ctx_t *ctx, const uint8_t *buffer, size_t len)
     int ret = 0;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
+
+    /* Empty payload - nothing to write, not an error */
+    if (len == 0)
+        return 0;
 
     if (!ctx || !buffer)
         return -1;

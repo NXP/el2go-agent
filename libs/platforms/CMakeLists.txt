@@ -9,6 +9,7 @@ declare_library(el2go_platform)
 
 add_private_sources(el2go_platform
     el2go_platform.c
+    el2go_board.c
     plat_crypto_params.c
 )
 

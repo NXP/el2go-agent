@@ -3,8 +3,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  *
- * PSA ITS claimcode injection from a fixed flash address.
- * This file is compiled only when CONFIG_EL2GO_RTP_CLAIMCODE_INJECT is enabled.
  */
 
 #include <stddef.h>
@@ -17,6 +15,7 @@
 
 #include "common/el2go_keystore.h"
 #include "keystore_priv.h"
+#include "plat_keys.h"
 
 /*
  * Claimcode blob layout at CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS:

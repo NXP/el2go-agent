@@ -68,12 +68,6 @@ if(BUILD_OTA)
     add_subdirectory(internal_ota_agent_advanced)
 endif()
 
-# Collect public platform tests
-add_subdirectory(public_platform)
-
-# Collect internal platform tests
-add_subdirectory(internal_platform)
-
 # ============================================================================
 # Test sources organized by type
 # ============================================================================

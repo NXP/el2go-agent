@@ -74,7 +74,6 @@
  *
  * This is specific to your customer account, the needed value can be obtained in the GUI of the
  * EdgeLock 2GO cloud service in the company settings of the account.
- * On Zephyr, set CONFIG_EL2GO_RTP_EDGELOCK2GO_HOSTNAME in prj.conf to override this default.
  */
 #if defined(CONFIG_EL2GO_RTP_EDGELOCK2GO_HOSTNAME)
 #define EL2GO_RTP_EDGELOCK2GO_HOSTNAME CONFIG_EL2GO_RTP_EDGELOCK2GO_HOSTNAME
@@ -86,8 +85,6 @@
 #ifndef EL2GO_RTP_EDGELOCK2GO_PORT
 /**
  * @brief The port to use for the communication to the EdgeLock 2GO cloud service
- *
- * On Zephyr, set CONFIG_EL2GO_RTP_EDGELOCK2GO_PORT in prj.conf to override this default.
  */
 #if defined(CONFIG_EL2GO_RTP_EDGELOCK2GO_PORT)
 #define EL2GO_RTP_EDGELOCK2GO_PORT ((uint16_t)CONFIG_EL2GO_RTP_EDGELOCK2GO_PORT)
