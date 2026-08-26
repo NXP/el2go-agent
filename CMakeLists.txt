@@ -9,6 +9,9 @@ project(EL2GOAgents VERSION 1.0 LANGUAGES C)
 # Include standard installation directories
 include(GNUInstallDirs)
 
+# Top-level install namespace used as the include subdirectory for all public headers
+set(EL2GO_AGENT_INSTALL_NAME "el2go-agent")
+
 # Make project-local CMake modules available (e.g. add_target_sources)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 

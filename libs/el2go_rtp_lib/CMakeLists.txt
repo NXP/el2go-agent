@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 
 if(NOT BUILD_ZEPHYR)
     # ========================================================================
-    # NON-ZEPHYR BUILD -- plain CMake STATIC library exported via install().
+    # NON-ZEPHYR BUILD -- plain CMake library exported via install().
     # ========================================================================
     project(el2go_rtp VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 
@@ -24,7 +24,7 @@ if(NOT BUILD_ZEPHYR)
 
     target_include_directories(${PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${PROJECT_ROOT}/include>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:include/${EL2GO_AGENT_INSTALL_NAME}>
     )
 
     # ========================================================================
@@ -42,26 +42,26 @@ if(NOT BUILD_ZEPHYR)
         ${CMAKE_SOURCE_DIR}/include/common/el2go_keystore.h
         ${CMAKE_SOURCE_DIR}/include/common/el2go_platform.h
         ${CMAKE_SOURCE_DIR}/include/common/el2go_status.h
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/common
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${EL2GO_AGENT_INSTALL_NAME}/common
     )
 
     install(FILES
         ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_config.h
         ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp.h
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rtp
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${EL2GO_AGENT_INSTALL_NAME}/rtp
     )
 
     install(EXPORT ${PROJECT_NAME}-targets
         FILE ${PROJECT_NAME}-targets.cmake
         NAMESPACE el2go::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${EL2GO_AGENT_INSTALL_NAME}/${PROJECT_NAME}
     )
 
     include(CMakePackageConfigHelpers)
     configure_package_config_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}-config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
-        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${EL2GO_AGENT_INSTALL_NAME}/${PROJECT_NAME}
     )
     write_basic_package_version_file(
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
@@ -71,7 +71,7 @@ if(NOT BUILD_ZEPHYR)
     install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${EL2GO_AGENT_INSTALL_NAME}/${PROJECT_NAME}
     )
 
 else()
@@ -85,12 +85,7 @@ else()
 endif()
 
 # ============================================================================
-# SHARED -- sources, private includes, and link libraries.
-# Expressed once via add_target_sources.cmake wrappers so they apply to
-# both the Linux STATIC library and the Zephyr named library.
-# Note: on Linux these private dirs are already transitive via link libraries
-# but listing them is harmless. On Zephyr add_link_libraries is a no-op so
-# all needed include dirs must be listed explicitly here.
+# SHARED -- sources and link libraries for both the Linux and Zephyr builds.
 # ============================================================================
 
 add_private_sources(el2go_rtp

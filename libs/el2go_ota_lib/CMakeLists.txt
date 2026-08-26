@@ -51,7 +51,7 @@ if(NOT BUILD_ZEPHYR)
     target_include_directories(${PROJECT_NAME}
         PUBLIC
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:include>
+            $<INSTALL_INTERFACE:include/${EL2GO_AGENT_INSTALL_NAME}>
     )
 
     install(TARGETS ${PROJECT_NAME}
@@ -63,13 +63,13 @@ if(NOT BUILD_ZEPHYR)
 
     install(FILES
         ${CMAKE_SOURCE_DIR}/include/ota/el2go_ota_lib.h
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ota
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${EL2GO_AGENT_INSTALL_NAME}/ota
     )
 
     install(EXPORT ${PROJECT_NAME}-targets
         FILE ${PROJECT_NAME}-targets.cmake
         NAMESPACE el2go::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${EL2GO_AGENT_INSTALL_NAME}/${PROJECT_NAME}
     )
 
     include(CMakePackageConfigHelpers)
@@ -77,7 +77,7 @@ if(NOT BUILD_ZEPHYR)
     configure_package_config_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}-config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
-        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${EL2GO_AGENT_INSTALL_NAME}/${PROJECT_NAME}
     )
 
     write_basic_package_version_file(
@@ -89,7 +89,7 @@ if(NOT BUILD_ZEPHYR)
     install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${EL2GO_AGENT_INSTALL_NAME}/${PROJECT_NAME}
     )
 else()
     add_private_sources(el2go_ota_lib
