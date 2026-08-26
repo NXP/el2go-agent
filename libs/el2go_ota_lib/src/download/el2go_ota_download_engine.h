@@ -43,6 +43,7 @@ __export el2go_ota_status_t el2go_ota_download_engine_check_for_updates(
  * @param[in] transport      Initialised transport instance. Must not be NULL.
  * @param[in] update_id      Update identifier. Guaranteed non-NULL by caller.
  * @param[in] package_id     Package identifier. Guaranteed non-NULL by caller.
+ * @param[in] file_id        File identifier within the package. Guaranteed non-NULL by caller.
  * @param[in] resume_offset  Byte offset to resume from (0 = start fresh).
  * @param[in] chunk_cb       Chunk delivery callback. Guaranteed non-NULL by caller.
  * @param[in] cb_ctx         Opaque context for chunk_cb. May be NULL.
@@ -53,7 +54,7 @@ __export el2go_ota_status_t el2go_ota_download_engine_check_for_updates(
  */
 __export el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     el2go_ota_transport_t *transport, const char *update_id, const char *package_id,
-    size_t resume_offset,
+    const char *file_id, size_t resume_offset,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *ctx),
     void *cb_ctx);
 

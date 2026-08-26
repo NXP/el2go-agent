@@ -67,12 +67,18 @@ typedef struct {
     const char *value; /**< Attribute value (null-terminated). Must not be NULL. */
 } el2go_ota_attr_t;
 
+/* Checksum algorithm identifiers stored in el2go_ota_file_metadata_t.checksum_algorithm. */
+#define EL2GO_OTA_CHECKSUM_ALG_UNSPECIFIED \
+    0x00000000 /* no algorithm specified, treat as SHA-256 for backward compatibility */
+#define EL2GO_OTA_CHECKSUM_ALG_SHA256 0x02000009 /* PSA_ALG_SHA_256 */
+
 /** @brief Parsed file metadata entry returned by el2go_ota_check_for_updates(). */
 typedef struct {
     char file_id[EL2GO_OTA_MAX_FILE_ID_LEN];   /**< Null-terminated file identifier. */
     char name[EL2GO_OTA_MAX_NAME_LEN];         /**< Null-terminated human-readable file name. */
     int64_t size;                              /**< File size in bytes. */
     char checksum[EL2GO_OTA_MAX_CHECKSUM_LEN]; /**< Null-terminated checksum string. */
+    int32_t checksum_algorithm; /**< Checksum algorithm id. See EL2GO_OTA_CHECKSUM_ALG_*. */
 } el2go_ota_file_metadata_t;
 
 /** @brief Parsed package entry returned by el2go_ota_check_for_updates(). */
@@ -264,6 +270,7 @@ el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go
  * @param[in] ctx            Connected context. Must not be NULL.
  * @param[in] update_id      Update identifier string. Must not be NULL.
  * @param[in] package_id     Package identifier string. Must not be NULL.
+ * @param[in] file_id        File identifier string. Must not be NULL.
  * @param[in] resume_offset  Byte offset to resume from (0 = start fresh).
  * @param[in] chunk_cb       Callback invoked for each received data chunk.
  *                           Must not be NULL. Returning a non-zero status
@@ -281,7 +288,8 @@ el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go
  * @return Any non-zero status returned by chunk_cb.
  */
 el2go_ota_status_t el2go_ota_download_package(
-    el2go_ota_ctx_t *ctx, const char *update_id, const char *package_id, size_t resume_offset,
+    el2go_ota_ctx_t *ctx, const char *update_id, const char *package_id, const char *file_id,
+    size_t resume_offset,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *cb_ctx),
     void *cb_ctx);
 

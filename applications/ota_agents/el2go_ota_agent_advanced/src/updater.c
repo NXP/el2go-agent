@@ -178,6 +178,12 @@ static el2go_ota_status_t run_download_and_handoff(updater_ctx_t *updater,
 
         file = &pkg->files[0];
 
+        if (file->checksum_algorithm != EL2GO_OTA_CHECKSUM_ALG_SHA256 &&
+            file->checksum_algorithm != EL2GO_OTA_CHECKSUM_ALG_UNSPECIFIED) {
+            OTA_DIAG_ERROR("unsupported checksum algorithm: %d", (int)file->checksum_algorithm);
+            status = EL2GO_OTA_ERROR_INTERNAL;
+            goto cleanup;
+        }
         checksum_len = strlen(file->checksum);
         if (checksum_len < EL2GO_OTA_SHA256_HEX_LEN) {
             OTA_DIAG_ERROR("checksum too short: %zu", checksum_len);
@@ -258,7 +264,8 @@ static el2go_ota_status_t run_download_and_handoff(updater_ctx_t *updater,
             };
 
             status = el2go_ota_download_package(updater->ota_ctx, update->update_id,
-                                                pkg->package_id, resume_offset, chunk_cb, &cb_ctx);
+                                                pkg->package_id, file->file_id, resume_offset,
+                                                chunk_cb, &cb_ctx);
 
             if (status == EL2GO_OTA_SUCCESS) {
                 break;

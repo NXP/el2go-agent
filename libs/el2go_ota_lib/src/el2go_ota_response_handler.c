@@ -11,7 +11,11 @@
 
 #include "debug.h"
 #include "el2go_ota_response_handler.h"
-#include "ota_delivery.pb.h"
+#include "types/available_updates_response.pb.h"
+#include "types/update.pb.h"
+#include "types/package.pb.h"
+#include "types/file_metadata.pb.h"
+#include "types/file_response.pb.h"
 
 /* proto3 map<string,string> entry field numbers (wire format, RFC 3.10). */
 #define MAP_ENTRY_KEY_FIELD_TAG 1U   /* field 1 = key   */
@@ -147,7 +151,8 @@ static bool decode_file_metadata_cb(pb_istream_t *stream, const pb_field_t *fiel
     decode_str_ctx_t fid_ctx = { 0 };
     decode_str_ctx_t name_ctx = { 0 };
     decode_str_ctx_t cks_ctx = { 0 };
-    com_nxp_iot_ota_FileMetadata fmsg = com_nxp_iot_ota_FileMetadata_init_zero;
+    com_nxp_iot_ota_update_proto_FileMetadata fmsg =
+        com_nxp_iot_ota_update_proto_FileMetadata_init_zero;
     bool status = false;
     (void)field;
 
@@ -180,19 +185,19 @@ static bool decode_file_metadata_cb(pb_istream_t *stream, const pb_field_t *fiel
     fmsg.description.funcs.decode = NULL; /* discard */
     fmsg.checksum.funcs.decode = decode_str_cb;
     fmsg.checksum.arg = &cks_ctx;
-    fmsg.signature.funcs.decode = NULL; /* discard */
     fmsg.attributes.funcs.decode = decode_attr_map_cb;
     fmsg.attributes.arg = NULL;
 
     /* nanopb already consumed the length prefix and passed us a substream
      * containing exactly the FileMetadata message bytes -- decode directly. */
-    if (!pb_decode(stream, com_nxp_iot_ota_FileMetadata_fields, &fmsg)) {
+    if (!pb_decode(stream, com_nxp_iot_ota_update_proto_FileMetadata_fields, &fmsg)) {
         EL2GO_DBG_PRINTF(ERROR, "decode_file_metadata_cb: pb_decode failed: %s\n",
                          PB_GET_ERROR(stream));
         goto exit;
     }
 
     fm->size = fmsg.size;
+    fm->checksum_algorithm = fmsg.checksumAlgorithm;
     ctx->pkg->file_count++;
     status = true;
 
@@ -219,7 +224,7 @@ static bool decode_package_cb(pb_istream_t *stream, const pb_field_t *field, voi
     decode_str_ctx_t name_ctx = { 0 };
     decode_str_ctx_t ver_ctx = { 0 };
     decode_file_metadata_ctx_t fm_ctx = { 0 };
-    com_nxp_iot_ota_Package pmsg = com_nxp_iot_ota_Package_init_zero;
+    com_nxp_iot_ota_update_proto_Package pmsg = com_nxp_iot_ota_update_proto_Package_init_zero;
     bool status = false;
     (void)field;
 
@@ -259,7 +264,7 @@ static bool decode_package_cb(pb_istream_t *stream, const pb_field_t *field, voi
     pmsg.fileMetadata.arg = &fm_ctx;
 
     /* nanopb already consumed the length prefix and passed us a substream. */
-    if (!pb_decode(stream, com_nxp_iot_ota_Package_fields, &pmsg)) {
+    if (!pb_decode(stream, com_nxp_iot_ota_update_proto_Package_fields, &pmsg)) {
         EL2GO_DBG_PRINTF(ERROR, "decode_package_cb: pb_decode failed: %s\n", PB_GET_ERROR(stream));
         goto exit;
     }
@@ -289,7 +294,7 @@ static bool decode_update_cb(pb_istream_t *stream, const pb_field_t *field, void
     decode_str_ctx_t uid_ctx = { 0 };
     decode_str_ctx_t name_ctx = { 0 };
     decode_package_ctx_t pkg_ctx = { 0 };
-    com_nxp_iot_ota_Update umsg = com_nxp_iot_ota_Update_init_zero;
+    com_nxp_iot_ota_update_proto_Update umsg = com_nxp_iot_ota_update_proto_Update_init_zero;
     bool status = false;
     (void)field;
 
@@ -325,7 +330,7 @@ static bool decode_update_cb(pb_istream_t *stream, const pb_field_t *field, void
     umsg.packages.arg = &pkg_ctx;
 
     /* nanopb already consumed the length prefix and passed us a substream. */
-    if (!pb_decode(stream, com_nxp_iot_ota_Update_fields, &umsg)) {
+    if (!pb_decode(stream, com_nxp_iot_ota_update_proto_Update_fields, &umsg)) {
         EL2GO_DBG_PRINTF(ERROR, "decode_update_cb: pb_decode failed: %s\n", PB_GET_ERROR(stream));
         goto exit;
     }
@@ -378,8 +383,8 @@ el2go_ota_status_t el2go_ota_parse_check_update_response(const uint8_t *buf, siz
                                                          el2go_ota_check_update_resp_t *out)
 {
     decode_update_ctx_t upd_ctx = { 0 };
-    com_nxp_iot_ota_AvailableUpdatesResponse msg =
-        com_nxp_iot_ota_AvailableUpdatesResponse_init_zero;
+    com_nxp_iot_ota_update_proto_AvailableUpdatesResponse msg =
+        com_nxp_iot_ota_update_proto_AvailableUpdatesResponse_init_zero;
     pb_istream_t stream = { 0 };
     el2go_ota_status_t status = EL2GO_OTA_ERROR_DECODE;
 
@@ -413,7 +418,7 @@ el2go_ota_status_t el2go_ota_parse_check_update_response(const uint8_t *buf, siz
 
     stream = pb_istream_from_buffer(buf, buf_len);
 
-    if (!pb_decode(&stream, com_nxp_iot_ota_AvailableUpdatesResponse_fields, &msg)) {
+    if (!pb_decode(&stream, com_nxp_iot_ota_update_proto_AvailableUpdatesResponse_fields, &msg)) {
         EL2GO_DBG_PRINTF(ERROR, "parse_check_update_response: pb_decode failed: %s\n",
                          PB_GET_ERROR(&stream));
         goto exit;
@@ -438,7 +443,8 @@ el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t *buf, si
                                                           el2go_ota_fetch_pkg_resp_t *out)
 {
     decode_data_ctx_t data_ctx = { 0 };
-    com_nxp_iot_ota_FileResponse msg = com_nxp_iot_ota_FileResponse_init_zero;
+    com_nxp_iot_ota_update_proto_FileResponse msg =
+        com_nxp_iot_ota_update_proto_FileResponse_init_zero;
     pb_istream_t stream = { 0 };
     el2go_ota_status_t status = EL2GO_OTA_ERROR_DECODE;
 
@@ -460,14 +466,15 @@ el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t *buf, si
 
     stream = pb_istream_from_buffer(buf, buf_len);
 
-    if (!pb_decode(&stream, com_nxp_iot_ota_FileResponse_fields, &msg)) {
+    if (!pb_decode(&stream, com_nxp_iot_ota_update_proto_FileResponse_fields, &msg)) {
         EL2GO_DBG_PRINTF(ERROR, "parse_fetch_package_response: pb_decode failed: %s\n",
                          PB_GET_ERROR(&stream));
         goto exit;
     }
 
-    out->range_start = msg.rangeStart;
-    out->range_end = msg.rangeEnd;
+    out->total_file_size = msg.totalFileSize;
+    out->range_start = msg.range.start;
+    out->range_end = msg.range.end;
     status = EL2GO_OTA_SUCCESS;
 
 exit:
@@ -476,35 +483,13 @@ exit:
 
 el2go_ota_status_t el2go_ota_parse_report_status_response(const uint8_t *buf, size_t buf_len)
 {
-    com_nxp_iot_ota_UpdateStatusNotificationResponse msg =
-        com_nxp_iot_ota_UpdateStatusNotificationResponse_init_zero;
-    pb_istream_t stream = { 0 };
-    el2go_ota_status_t status = EL2GO_OTA_ERROR_DECODE;
-
     EL2GO_DBG_TRACE_API_CALL;
 
-    /* google.protobuf.Empty produces a zero-byte wire encoding. */
-    if (buf_len == 0U) {
-        status = EL2GO_OTA_SUCCESS;
-        goto exit;
-    }
+    /* The response for ReportUpdateStatus is google.protobuf.Empty,
+     * which encodes to zero bytes on the wire. Accept and ignore any
+     * non-zero length payload (forward compatibility). */
+    (void)buf;
+    (void)buf_len;
 
-    if (buf == NULL) {
-        EL2GO_DBG_PRINTF(ERROR, "parse_report_status_response: buf is NULL\n");
-        status = EL2GO_OTA_ERROR_INVALID_PARAM;
-        goto exit;
-    }
-
-    stream = pb_istream_from_buffer(buf, buf_len);
-
-    if (!pb_decode(&stream, com_nxp_iot_ota_UpdateStatusNotificationResponse_fields, &msg)) {
-        EL2GO_DBG_PRINTF(ERROR, "parse_report_status_response: pb_decode failed: %s\n",
-                         PB_GET_ERROR(&stream));
-        goto exit;
-    }
-
-    status = EL2GO_OTA_SUCCESS;
-
-exit:
-    return status;
+    return EL2GO_OTA_SUCCESS;
 }

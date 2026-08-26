@@ -28,27 +28,24 @@ typedef struct {
 /**
  * @brief Input for encoding a FetchFile (FileRequest) request.
  *
- * update_id and package_id are mandatory. artifact_id may be NULL or empty
- * (the server will select the default artifact). range_start and range_end
- * are byte offsets for chunked download; set has_range_start / has_range_end
- * to false to omit them (full-file download).
+ * update_id, package_id, and file_id are all mandatory. range_start and
+ * range_end are byte offsets for chunked download; the range is always sent
+ * (the new schema has no optional range).
  */
 typedef struct {
     const char *update_id;   /**< Must not be NULL. */
     const char *package_id;  /**< Must not be NULL. */
-    const char *artifact_id; /**< Optional artifact selector. May be NULL. */
-    bool has_range_start;    /**< Set true to include rangeStart in the request. */
-    int64_t range_start;     /**< First byte offset of the requested chunk. */
-    bool has_range_end;      /**< Set true to include rangeEnd in the request. */
-    int64_t range_end;       /**< Last byte offset (inclusive) of the requested chunk. */
+    const char *file_id;     /**< Must not be NULL. Identifies the file within the package. */
+    int64_t range_start;     /**< First byte of the requested chunk (inclusive). */
+    int64_t range_end;       /**< Last byte of the requested chunk (inclusive). */
 } el2go_ota_fetch_pkg_req_t;
 
 /**
  * @brief Update status values for ReportUpdateStatus.
  *
- * Matches the server-side Status enum:
- *   STATUS_UNSPECIFIED = 0, STATUS_SUCCESS = 1,
- *   STATUS_ERROR = 2, STATUS_ROLLED_BACK = 3.
+ * Matches the server-side UpdateStatus enum:
+ *   UPDATE_STATUS_UNSPECIFIED = 0, UPDATE_STATUS_SUCCESS = 1,
+ *   UPDATE_STATUS_ERROR = 2, UPDATE_STATUS_ROLLED_BACK = 3.
  */
 typedef enum {
     EL2GO_OTA_UPDATE_STATUS_UNSPECIFIED = 0,
@@ -93,7 +90,7 @@ __export el2go_ota_status_t el2go_ota_encode_check_update(const el2go_ota_check_
  * @param[out] out_len  Number of bytes written. Must not be NULL.
  * @return EL2GO_OTA_SUCCESS on success.
  * @return EL2GO_OTA_ERROR_INVALID_PARAM if req, buf, out_len, update_id,
- *         or package_id is NULL.
+ *         package_id, or file_id is NULL.
  * @return EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
  */
 __export el2go_ota_status_t el2go_ota_encode_fetch_package(const el2go_ota_fetch_pkg_req_t *req,

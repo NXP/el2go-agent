@@ -22,9 +22,8 @@
 
 /* gRPC method paths for the OTA delivery service. */
 #define GRPC_METHOD_GET_AVAILABLE_UPDATES \
-    "/com.nxp.iot.ota.update.poc.proto.OtaUpdateDeliveryService/GetAvailableUpdates"
-#define GRPC_METHOD_FETCH_FILE \
-    "/com.nxp.iot.ota.update.poc.proto.OtaUpdateDeliveryService/FetchFile"
+    "/com.nxp.iot.ota.update.proto.OtaUpdateDeliveryService/GetAvailableUpdates"
+#define GRPC_METHOD_FETCH_FILE "/com.nxp.iot.ota.update.proto.OtaUpdateDeliveryService/FetchFile"
 
 el2go_ota_status_t
 el2go_ota_download_engine_check_for_updates(el2go_ota_transport_t *transport,
@@ -94,7 +93,7 @@ exit:
 
 el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     el2go_ota_transport_t *transport, const char *update_id, const char *package_id,
-    size_t resume_offset,
+    const char *file_id, size_t resume_offset,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *ctx),
     void *cb_ctx)
 {
@@ -111,8 +110,8 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
 
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (transport == NULL || update_id == NULL || package_id == NULL || chunk_cb == NULL ||
-        transport->send == NULL || transport->recv == NULL) {
+    if (transport == NULL || update_id == NULL || package_id == NULL || file_id == NULL ||
+        chunk_cb == NULL || transport->send == NULL || transport->recv == NULL) {
         EL2GO_DBG_PRINTF(ERROR, "fetch_package: invalid parameter (NULL pointer)\n");
         status = EL2GO_OTA_ERROR_INVALID_PARAM;
         goto exit;
@@ -120,20 +119,19 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
 
     byte_offset = resume_offset;
 
-    EL2GO_DBG_PRINTF(INFO, "Downloading package: update_id=%s package_id=%s offset=%zu\n",
-                     update_id, package_id, resume_offset);
+    EL2GO_DBG_PRINTF(INFO,
+                     "Downloading package: update_id=%s package_id=%s file_id=%s offset=%zu\n",
+                     update_id, package_id, file_id, resume_offset);
 
     while (!done) {
         req.update_id = update_id;
         req.package_id = package_id;
-        req.artifact_id = NULL;
-        req.has_range_start = true;
+        req.file_id = file_id;
         if (SET_OVERFLOW(byte_offset, req.range_start)) {
             EL2GO_DBG_PRINTF(ERROR, "fetch_package: byte_offset overflows range_start\n");
             status = EL2GO_OTA_ERROR_INVALID_PARAM;
             goto exit;
         }
-        req.has_range_end = true;
         if (ADD_OVERFLOW(req.range_start, (int64_t)(EL2GO_OTA_CHUNK_SIZE - 1U), &req.range_end)) {
             EL2GO_DBG_PRINTF(ERROR, "fetch_package: range_end overflow\n");
             status = EL2GO_OTA_ERROR_INVALID_PARAM;
@@ -224,7 +222,8 @@ handle_network_error:
         }
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Download complete: %zu bytes delivered\n", byte_offset - resume_offset);
+    EL2GO_DBG_PRINTF(INFO, "Download complete: %zu bytes delivered\n",
+                     (byte_offset >= resume_offset) ? (byte_offset - resume_offset) : 0U);
 
     status = EL2GO_OTA_SUCCESS;
 exit:

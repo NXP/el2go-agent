@@ -1360,7 +1360,7 @@ __export fwual_result_t fwual_activate(void)
             continue;
         }
 
-        rc = boot_request_upgrade_multi((int)slot->image_id, BOOT_UPGRADE_PERMANENT);
+        rc = boot_request_upgrade_multi((int)slot->image_id, BOOT_UPGRADE_TEST);
         if (rc != 0) {
             EL2GO_DBG_PRINTF(ERROR,
                              "fwual_activate: boot_request_upgrade_multi failed for "

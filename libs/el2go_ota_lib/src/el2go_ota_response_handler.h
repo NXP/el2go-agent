@@ -22,13 +22,15 @@ typedef el2go_ota_package_info_t el2go_ota_pkg_metadata_t;
 /**
  * @brief Result of parsing a FetchFile (FileResponse) response.
  *
- * The FileResponse carries: rangeStart, rangeEnd, and raw bytes data.
+ * The FileResponse carries: totalFileSize, a nested Range (range.start /
+ * range.end), and raw bytes data.
  * data_ptr points zero-copy into the caller-supplied wire buffer.
  * The caller must keep the wire buffer alive for as long as data_ptr is used.
  */
 typedef struct {
-    int64_t range_start;     /**< Echo of the requested rangeStart. */
-    int64_t range_end;       /**< Echo of the requested rangeEnd. */
+    int64_t total_file_size; /**< Total size of the whole file (from FileResponse.totalFileSize). */
+    int64_t range_start; /**< Echo of the requested range start (from FileResponse.range.start). */
+    int64_t range_end;   /**< Echo of the requested range end (from FileResponse.range.end). */
     const uint8_t *data_ptr; /**< Zero-copy pointer into wire buffer. */
     size_t data_len;         /**< Length of data in bytes. */
 } el2go_ota_fetch_pkg_resp_t;

@@ -301,7 +301,8 @@ __export el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx,
 }
 
 __export el2go_ota_status_t el2go_ota_download_package(
-    el2go_ota_ctx_t *ctx, const char *update_id, const char *package_id, size_t resume_offset,
+    el2go_ota_ctx_t *ctx, const char *update_id, const char *package_id, const char *file_id,
+    size_t resume_offset,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *cb_ctx),
     void *cb_ctx)
 {
@@ -317,12 +318,12 @@ __export el2go_ota_status_t el2go_ota_download_package(
         return EL2GO_OTA_ERROR_NETWORK;
     }
 
-    if (update_id == NULL || package_id == NULL || chunk_cb == NULL) {
-        EL2GO_DBG_PRINTF(ERROR, "update_id, package_id, and chunk_cb must not be NULL\n");
+    if (update_id == NULL || package_id == NULL || file_id == NULL || chunk_cb == NULL) {
+        EL2GO_DBG_PRINTF(ERROR, "update_id, package_id, file_id, and chunk_cb must not be NULL\n");
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
 
-    return el2go_ota_download_engine_fetch_package(&ctx->transport, update_id, package_id,
+    return el2go_ota_download_engine_fetch_package(&ctx->transport, update_id, package_id, file_id,
                                                    resume_offset, chunk_cb, cb_ctx);
 }
 

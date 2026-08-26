@@ -12,7 +12,12 @@
 
 #include "el2go_ota_request_builder.h"
 #include "el2go_ota_response_handler.h"
-#include "ota_delivery.pb.h"
+#include "types/available_updates_response.pb.h"
+#include "types/file_request.pb.h"
+#include "types/file_response.pb.h"
+#include "types/package.pb.h"
+#include "types/update.pb.h"
+#include "types/update_status_notification.pb.h"
 #include "test_framework.h"
 #include "test_suites.h"
 
@@ -37,21 +42,21 @@ static size_t encode_test_package(uint8_t *pkg_buf, size_t pkg_buf_size, const c
 {
     pb_ostream_t ps = pb_ostream_from_buffer(pkg_buf, pkg_buf_size);
     /* field 1: packageId */
-    if (!pb_encode_tag(&ps, PB_WT_STRING, com_nxp_iot_ota_Package_packageId_tag)) {
+    if (!pb_encode_tag(&ps, PB_WT_STRING, com_nxp_iot_ota_update_proto_Package_packageId_tag)) {
         return 0U;
     }
     if (!pb_encode_string(&ps, (const pb_byte_t *)package_id, strlen(package_id))) {
         return 0U;
     }
     /* field 2: name */
-    if (!pb_encode_tag(&ps, PB_WT_STRING, com_nxp_iot_ota_Package_name_tag)) {
+    if (!pb_encode_tag(&ps, PB_WT_STRING, com_nxp_iot_ota_update_proto_Package_name_tag)) {
         return 0U;
     }
     if (!pb_encode_string(&ps, (const pb_byte_t *)name, strlen(name))) {
         return 0U;
     }
     /* field 4: version */
-    if (!pb_encode_tag(&ps, PB_WT_STRING, com_nxp_iot_ota_Package_version_tag)) {
+    if (!pb_encode_tag(&ps, PB_WT_STRING, com_nxp_iot_ota_update_proto_Package_version_tag)) {
         return 0U;
     }
     if (!pb_encode_string(&ps, (const pb_byte_t *)version, strlen(version))) {
@@ -69,21 +74,21 @@ static size_t encode_test_update(uint8_t *upd_buf, size_t upd_buf_size, const ch
 {
     pb_ostream_t us = pb_ostream_from_buffer(upd_buf, upd_buf_size);
     /* field 1: updateId */
-    if (!pb_encode_tag(&us, PB_WT_STRING, com_nxp_iot_ota_Update_updateId_tag)) {
+    if (!pb_encode_tag(&us, PB_WT_STRING, com_nxp_iot_ota_update_proto_Update_updateId_tag)) {
         return 0U;
     }
     if (!pb_encode_string(&us, (const pb_byte_t *)update_id, strlen(update_id))) {
         return 0U;
     }
     /* field 2: name */
-    if (!pb_encode_tag(&us, PB_WT_STRING, com_nxp_iot_ota_Update_name_tag)) {
+    if (!pb_encode_tag(&us, PB_WT_STRING, com_nxp_iot_ota_update_proto_Update_name_tag)) {
         return 0U;
     }
     if (!pb_encode_string(&us, (const pb_byte_t *)name, strlen(name))) {
         return 0U;
     }
     /* field 5: packages (embedded Package sub-message) */
-    if (!pb_encode_tag(&us, PB_WT_STRING, com_nxp_iot_ota_Update_packages_tag)) {
+    if (!pb_encode_tag(&us, PB_WT_STRING, com_nxp_iot_ota_update_proto_Update_packages_tag)) {
         return 0U;
     }
     if (!pb_encode_string(&us, pkg_buf, pkg_len)) {
@@ -106,17 +111,21 @@ static el2go_ota_status_t s_noop_chunk_cb(const uint8_t *data, size_t len, size_
 
 /**
  * @brief Encode a FetchPackage request and decode it back with nanopb to verify
- *        that both string fields survive the encode/decode cycle unchanged.
+ *        that all string fields survive the encode/decode cycle unchanged.
  */
 static bool test_encode_fetch_package_roundtrip(void *params)
 {
     el2go_ota_fetch_pkg_req_t req = {
         .update_id = "update-abc-123",
         .package_id = "pkg-xyz-456",
+        .file_id = "file-def-789",
+        .range_start = 0,
+        .range_end = 0,
     };
     uint8_t buf[128];
     size_t out_len = 0U;
-    com_nxp_iot_ota_FileRequest msg = com_nxp_iot_ota_FileRequest_init_zero;
+    com_nxp_iot_ota_update_proto_FileRequest msg =
+        com_nxp_iot_ota_update_proto_FileRequest_init_zero;
     pb_istream_t stream;
 
     (void)params;
@@ -126,35 +135,34 @@ static bool test_encode_fetch_package_roundtrip(void *params)
     TEST_ASSERT(out_len > 0U);
 
     stream = pb_istream_from_buffer(buf, out_len);
-    TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_FileRequest_fields, &msg));
+    TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_update_proto_FileRequest_fields, &msg));
     TEST_ASSERT_EQUAL(0, strcmp(msg.updateId, "update-abc-123"));
     TEST_ASSERT_EQUAL(0, strcmp(msg.packageId, "pkg-xyz-456"));
-    /* artifactId was not set -- must decode as empty string. */
-    TEST_ASSERT_EQUAL('\0', msg.artifactId[0]);
-    TEST_ASSERT_EQUAL(false, msg.has_rangeStart);
-    TEST_ASSERT_EQUAL(false, msg.has_rangeEnd);
+    TEST_ASSERT_EQUAL(0, strcmp(msg.fileId, "file-def-789"));
+    /* No range set -- start and end must both decode as 0. */
+    TEST_ASSERT_EQUAL(0, msg.range.start);
+    TEST_ASSERT_EQUAL(0, msg.range.end);
 
     return true;
 }
 
 /**
- * @brief Encode a FetchPackage request with all five fields set (including
- *        artifactId, rangeStart, rangeEnd) and verify the decoded wire message.
+ * @brief Encode a FetchPackage request with all fields set (including
+ *        fileId, rangeStart, rangeEnd) and verify the decoded wire message.
  */
 static bool test_encode_fetch_package_with_artifact_and_range(void *params)
 {
     el2go_ota_fetch_pkg_req_t req = {
         .update_id = "upd-range-1",
         .package_id = "pkg-range-2",
-        .artifact_id = "artifact-fw.bin",
-        .has_range_start = true,
+        .file_id = "artifact-fw.bin",
         .range_start = 0,
-        .has_range_end = true,
         .range_end = 4095,
     };
     uint8_t buf[256];
     size_t out_len = 0U;
-    com_nxp_iot_ota_FileRequest msg = com_nxp_iot_ota_FileRequest_init_zero;
+    com_nxp_iot_ota_update_proto_FileRequest msg =
+        com_nxp_iot_ota_update_proto_FileRequest_init_zero;
     pb_istream_t stream;
 
     (void)params;
@@ -164,20 +172,18 @@ static bool test_encode_fetch_package_with_artifact_and_range(void *params)
     TEST_ASSERT(out_len > 0U);
 
     stream = pb_istream_from_buffer(buf, out_len);
-    TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_FileRequest_fields, &msg));
+    TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_update_proto_FileRequest_fields, &msg));
     TEST_ASSERT_EQUAL(0, strcmp(msg.updateId, "upd-range-1"));
     TEST_ASSERT_EQUAL(0, strcmp(msg.packageId, "pkg-range-2"));
-    TEST_ASSERT_EQUAL(0, strcmp(msg.artifactId, "artifact-fw.bin"));
-    TEST_ASSERT_EQUAL(true, msg.has_rangeStart);
-    TEST_ASSERT_EQUAL(0, msg.rangeStart);
-    TEST_ASSERT_EQUAL(true, msg.has_rangeEnd);
-    TEST_ASSERT_EQUAL(4095, msg.rangeEnd);
+    TEST_ASSERT_EQUAL(0, strcmp(msg.fileId, "artifact-fw.bin"));
+    TEST_ASSERT_EQUAL(0, msg.range.start);
+    TEST_ASSERT_EQUAL(4095, msg.range.end);
 
     return true;
 }
 
 /**
- * @brief Encode successive chunked requests and verify that rangeStart advances
+ * @brief Encode successive chunked requests and verify that range_start advances
  *        correctly (chunk 0: 0..4095, chunk 1: 4096..8191).
  */
 static bool test_encode_fetch_package_chunked_range(void *params)
@@ -187,7 +193,7 @@ static bool test_encode_fetch_package_chunked_range(void *params)
     size_t out_len = 0U;
     int64_t chunk = 0;
     el2go_ota_fetch_pkg_req_t req;
-    com_nxp_iot_ota_FileRequest msg;
+    com_nxp_iot_ota_update_proto_FileRequest msg;
     pb_istream_t stream;
 
     (void)params;
@@ -195,10 +201,8 @@ static bool test_encode_fetch_package_chunked_range(void *params)
     for (chunk = 0; chunk < 2; chunk++) {
         req.update_id = "upd-chunk";
         req.package_id = "pkg-chunk";
-        req.artifact_id = NULL;
-        req.has_range_start = true;
+        req.file_id = "file-chunk";
         req.range_start = chunk * chunk_size;
-        req.has_range_end = true;
         req.range_end = (chunk + 1) * chunk_size - 1;
 
         TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
@@ -207,11 +211,9 @@ static bool test_encode_fetch_package_chunked_range(void *params)
 
         memset(&msg, 0, sizeof(msg)); /* reset for each iteration */
         stream = pb_istream_from_buffer(buf, out_len);
-        TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_FileRequest_fields, &msg));
-        TEST_ASSERT_EQUAL(true, msg.has_rangeStart);
-        TEST_ASSERT_EQUAL(chunk * chunk_size, msg.rangeStart);
-        TEST_ASSERT_EQUAL(true, msg.has_rangeEnd);
-        TEST_ASSERT_EQUAL((chunk + 1) * chunk_size - 1, msg.rangeEnd);
+        TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_update_proto_FileRequest_fields, &msg));
+        TEST_ASSERT_EQUAL(chunk * chunk_size, msg.range.start);
+        TEST_ASSERT_EQUAL((chunk + 1) * chunk_size - 1, msg.range.end);
     }
 
     return true;
@@ -230,8 +232,8 @@ static bool test_encode_report_status_roundtrip(void *params)
     };
     uint8_t buf[128];
     size_t out_len = 0U;
-    com_nxp_iot_ota_UpdateStatusNotification msg =
-        com_nxp_iot_ota_UpdateStatusNotification_init_zero;
+    com_nxp_iot_ota_update_proto_UpdateStatusNotification msg =
+        com_nxp_iot_ota_update_proto_UpdateStatusNotification_init_zero;
     pb_istream_t stream;
 
     (void)params;
@@ -241,10 +243,12 @@ static bool test_encode_report_status_roundtrip(void *params)
     TEST_ASSERT(out_len > 0U);
 
     stream = pb_istream_from_buffer(buf, out_len);
-    TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_UpdateStatusNotification_fields, &msg));
+    TEST_ASSERT(
+        pb_decode(&stream, com_nxp_iot_ota_update_proto_UpdateStatusNotification_fields, &msg));
     TEST_ASSERT_EQUAL(0, strcmp(msg.updateId, "upd-1"));
-    TEST_ASSERT_EQUAL(com_nxp_iot_ota_Status_STATUS_SUCCESS, msg.updateStatus);
-    TEST_ASSERT_EQUAL(true, msg.has_statusMessage);
+    TEST_ASSERT_EQUAL(com_nxp_iot_ota_update_proto_UpdateStatus_UPDATE_STATUS_SUCCESS,
+                      msg.updateStatus);
+    TEST_ASSERT(msg.statusMessage[0] != '\0');
     TEST_ASSERT_EQUAL(0, strcmp(msg.statusMessage, "applied ok"));
 
     return true;
@@ -308,8 +312,8 @@ static bool test_parse_check_update_one_package(void *params)
     TEST_ASSERT(upd_len > 0U);
 
     outer = pb_ostream_from_buffer(wire, sizeof(wire));
-    TEST_ASSERT(
-        pb_encode_tag(&outer, PB_WT_STRING, com_nxp_iot_ota_AvailableUpdatesResponse_updates_tag));
+    TEST_ASSERT(pb_encode_tag(&outer, PB_WT_STRING,
+                              com_nxp_iot_ota_update_proto_AvailableUpdatesResponse_updates_tag));
     TEST_ASSERT(pb_encode_string(&outer, upd_buf, upd_len));
     wire_len = outer.bytes_written;
 
@@ -367,8 +371,8 @@ static bool test_encode_report_status_error_no_msg(void *params)
     };
     uint8_t buf[128];
     size_t out_len = 0U;
-    com_nxp_iot_ota_UpdateStatusNotification msg =
-        com_nxp_iot_ota_UpdateStatusNotification_init_zero;
+    com_nxp_iot_ota_update_proto_UpdateStatusNotification msg =
+        com_nxp_iot_ota_update_proto_UpdateStatusNotification_init_zero;
     pb_istream_t stream;
 
     (void)params;
@@ -378,9 +382,11 @@ static bool test_encode_report_status_error_no_msg(void *params)
     TEST_ASSERT(out_len > 0U);
 
     stream = pb_istream_from_buffer(buf, out_len);
-    TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_UpdateStatusNotification_fields, &msg));
-    TEST_ASSERT_EQUAL(com_nxp_iot_ota_Status_STATUS_ERROR, msg.updateStatus);
-    TEST_ASSERT_EQUAL(false, msg.has_statusMessage);
+    TEST_ASSERT(
+        pb_decode(&stream, com_nxp_iot_ota_update_proto_UpdateStatusNotification_fields, &msg));
+    TEST_ASSERT_EQUAL(com_nxp_iot_ota_update_proto_UpdateStatus_UPDATE_STATUS_ERROR,
+                      msg.updateStatus);
+    TEST_ASSERT_EQUAL('\0', msg.statusMessage[0]);
 
     return true;
 }
@@ -416,6 +422,7 @@ static bool test_encode_fetch_package_null_package_id(void *params)
     el2go_ota_fetch_pkg_req_t req = {
         .update_id = "upd-1",
         .package_id = NULL,
+        .file_id = "file-1",
     };
     uint8_t buf[64];
     size_t out_len = 0U;
@@ -437,6 +444,7 @@ static bool test_encode_fetch_package_buf_too_small(void *params)
     el2go_ota_fetch_pkg_req_t req = {
         .update_id = "update-abc-123",
         .package_id = "pkg-xyz-456",
+        .file_id = "file-1",
     };
     uint8_t buf[1];
     size_t out_len = 0U;
@@ -579,8 +587,9 @@ static bool test_parse_check_update_four_updates(void *params)
             encode_test_update(upd_buf, sizeof(upd_buf), "upd-1", "update-one", pkg_buf, pkg_len);
         TEST_ASSERT(upd_len > 0U);
 
-        TEST_ASSERT(pb_encode_tag(&outer, PB_WT_STRING,
-                                  com_nxp_iot_ota_AvailableUpdatesResponse_updates_tag));
+        TEST_ASSERT(
+            pb_encode_tag(&outer, PB_WT_STRING,
+                          com_nxp_iot_ota_update_proto_AvailableUpdatesResponse_updates_tag));
         TEST_ASSERT(pb_encode_string(&outer, upd_buf, upd_len));
     }
 
@@ -688,7 +697,9 @@ static bool test_encode_fetch_package_null_req(void *params)
  */
 static bool test_encode_fetch_package_null_ids(void *params)
 {
-    el2go_ota_fetch_pkg_req_t req = { .update_id = NULL, .package_id = "pkg-1" };
+    el2go_ota_fetch_pkg_req_t req = { .update_id = NULL,
+                                      .package_id = "pkg-1",
+                                      .file_id = "file-1" };
     uint8_t buf[64];
     size_t out_len = 0U;
 
@@ -761,8 +772,8 @@ static bool test_encode_report_status_rolled_back(void *params)
     };
     uint8_t buf[128];
     size_t out_len = 0U;
-    com_nxp_iot_ota_UpdateStatusNotification msg =
-        com_nxp_iot_ota_UpdateStatusNotification_init_zero;
+    com_nxp_iot_ota_update_proto_UpdateStatusNotification msg =
+        com_nxp_iot_ota_update_proto_UpdateStatusNotification_init_zero;
     pb_istream_t stream;
 
     (void)params;
@@ -772,8 +783,10 @@ static bool test_encode_report_status_rolled_back(void *params)
     TEST_ASSERT(out_len > 0U);
 
     stream = pb_istream_from_buffer(buf, out_len);
-    TEST_ASSERT(pb_decode(&stream, com_nxp_iot_ota_UpdateStatusNotification_fields, &msg));
-    TEST_ASSERT_EQUAL(com_nxp_iot_ota_Status_STATUS_ROLLED_BACK, msg.updateStatus);
+    TEST_ASSERT(
+        pb_decode(&stream, com_nxp_iot_ota_update_proto_UpdateStatusNotification_fields, &msg));
+    TEST_ASSERT_EQUAL(com_nxp_iot_ota_update_proto_UpdateStatus_UPDATE_STATUS_ROLLED_BACK,
+                      msg.updateStatus);
     TEST_ASSERT_EQUAL(0, strcmp(msg.updateId, "upd-rb"));
 
     return true;
@@ -781,27 +794,51 @@ static bool test_encode_report_status_rolled_back(void *params)
 
 /**
  * @brief Parse a FileResponse wire buffer built from known values and verify
- *        that range_start, range_end, and data_ptr/data_len are extracted.
+ *        that total_file_size, range_start, range_end, and data_ptr/data_len
+ *        are extracted correctly.
+ *
+ * New FileResponse wire layout (schema v2):
+ *   field 1 (varint):          totalFileSize
+ *   field 2 (length-delimited): range (embedded Range sub-message)
+ *   field 3 (length-delimited): data bytes
  */
 static bool test_parse_fetch_package_roundtrip(void *params)
 {
     static const uint8_t payload[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+    uint8_t range_buf[16];
     uint8_t wire[64];
+    pb_ostream_t range_out;
     pb_ostream_t out;
+    size_t range_len = 0U;
     size_t wire_len = 0U;
     el2go_ota_fetch_pkg_resp_t resp;
 
     (void)params;
 
+    /* Encode the nested Range sub-message: start=0, end=3. */
+    range_out = pb_ostream_from_buffer(range_buf, sizeof(range_buf));
+    TEST_ASSERT(
+        pb_encode_tag(&range_out, PB_WT_VARINT, com_nxp_iot_ota_update_proto_Range_start_tag));
+    TEST_ASSERT(pb_encode_varint(&range_out, 0U));
+    TEST_ASSERT(
+        pb_encode_tag(&range_out, PB_WT_VARINT, com_nxp_iot_ota_update_proto_Range_end_tag));
+    TEST_ASSERT(pb_encode_varint(&range_out, 3U));
+    range_len = range_out.bytes_written;
+    TEST_ASSERT(range_len > 0U);
+
+    /* Encode the outer FileResponse. */
     out = pb_ostream_from_buffer(wire, sizeof(wire));
-    /* field 1: rangeStart = 0 */
-    TEST_ASSERT(pb_encode_tag(&out, PB_WT_VARINT, com_nxp_iot_ota_FileResponse_rangeStart_tag));
-    TEST_ASSERT(pb_encode_varint(&out, 0U));
-    /* field 2: rangeEnd = 3 */
-    TEST_ASSERT(pb_encode_tag(&out, PB_WT_VARINT, com_nxp_iot_ota_FileResponse_rangeEnd_tag));
-    TEST_ASSERT(pb_encode_varint(&out, 3U));
+    /* field 1: totalFileSize = 4 */
+    TEST_ASSERT(pb_encode_tag(&out, PB_WT_VARINT,
+                              com_nxp_iot_ota_update_proto_FileResponse_totalFileSize_tag));
+    TEST_ASSERT(pb_encode_varint(&out, (uint64_t)sizeof(payload)));
+    /* field 2: range (embedded sub-message) */
+    TEST_ASSERT(
+        pb_encode_tag(&out, PB_WT_STRING, com_nxp_iot_ota_update_proto_FileResponse_range_tag));
+    TEST_ASSERT(pb_encode_string(&out, range_buf, range_len));
     /* field 3: data = payload bytes */
-    TEST_ASSERT(pb_encode_tag(&out, PB_WT_STRING, com_nxp_iot_ota_FileResponse_data_tag));
+    TEST_ASSERT(
+        pb_encode_tag(&out, PB_WT_STRING, com_nxp_iot_ota_update_proto_FileResponse_data_tag));
     TEST_ASSERT(pb_encode_string(&out, payload, sizeof(payload)));
 
     wire_len = out.bytes_written;
@@ -809,6 +846,7 @@ static bool test_parse_fetch_package_roundtrip(void *params)
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
                       el2go_ota_parse_fetch_package_response(wire, wire_len, &resp));
+    TEST_ASSERT_EQUAL((int64_t)sizeof(payload), resp.total_file_size);
     TEST_ASSERT_EQUAL(0, resp.range_start);
     TEST_ASSERT_EQUAL(3, resp.range_end);
     TEST_ASSERT_NOT_NULL(resp.data_ptr);
@@ -859,8 +897,8 @@ static bool test_download_package_null_ctx(void *params)
     (void)params;
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
-                      el2go_ota_download_package(NULL, "upd-1", "pkg-1", 0U, s_noop_chunk_cb,
-                                                 NULL));
+                      el2go_ota_download_package(NULL, "upd-1", "pkg-1", "file-1", 0U,
+                                                 s_noop_chunk_cb, NULL));
 
     return true;
 }
@@ -874,7 +912,8 @@ static bool test_download_package_null_update_id(void *params)
     (void)params;
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
-                      el2go_ota_download_package(NULL, NULL, "pkg-1", 0U, s_noop_chunk_cb, NULL));
+                      el2go_ota_download_package(NULL, NULL, "pkg-1", "file-1", 0U, s_noop_chunk_cb,
+                                                 NULL));
 
     return true;
 }
@@ -888,7 +927,8 @@ static bool test_download_package_null_package_id(void *params)
     (void)params;
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
-                      el2go_ota_download_package(NULL, "upd-1", NULL, 0U, s_noop_chunk_cb, NULL));
+                      el2go_ota_download_package(NULL, "upd-1", NULL, "file-1", 0U, s_noop_chunk_cb,
+                                                 NULL));
 
     return true;
 }
@@ -902,7 +942,7 @@ static bool test_download_package_null_callback(void *params)
     (void)params;
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
-                      el2go_ota_download_package(NULL, "upd-1", "pkg-1", 0U, NULL, NULL));
+                      el2go_ota_download_package(NULL, "upd-1", "pkg-1", "file-1", 0U, NULL, NULL));
 
     return true;
 }

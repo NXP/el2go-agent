@@ -15,7 +15,7 @@
 
 /* gRPC method path for ReportUpdateStatus */
 #define STATUS_REPORTING_GRPC_METHOD \
-    "/com.nxp.iot.ota.update.poc.proto.OtaUpdateDeliveryService/ReportUpdateStatus"
+    "/com.nxp.iot.ota.update.proto.OtaUpdateDeliveryService/ReportUpdateStatus"
 
 /* Wire buffer size -- enough for UpdateStatusNotification + gRPC framing */
 #define STATUS_WIRE_BUF_SIZE 320U
