@@ -128,24 +128,6 @@ nxp_iot_EndpointType el2go_keystore_get_endpoint_type(const el2go_keystore_t *ke
  */
 el2go_status_t el2go_keystore_get_endpoint_info(void *ctx, nxp_iot_EndpointInformation *info);
 
-/**
- * @brief Import claimcode blob from a fixed flash address into PSA ITS.
- *
- * Reads the claimcode blob from CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS,
- * validates the magic indicator {'E','2','G','C'}, and writes it into PSA ITS
- * under EDGELOCK2GO_CLAIMCODE_DATA_ID. No-op if already stored.
- *
- * A weak no-op default is provided in el2go_keystore.c; the real PSA
- * implementation in libs/keystores/psa/ overrides it when linked.
- *
- * @param[in] keystore  Initialized keystore (used for context only).
- *
- * @return EL2GO_STATUS_SUCCESS on success or if already stored.
- * @return EL2GO_STATUS_INVALID_PARAMETER if the magic bytes do not match.
- * @return EL2GO_STATUS_PSA_ERROR on PSA ITS write failure.
- */
-el2go_status_t el2go_keystore_import_claimcode_from_flash(el2go_keystore_t *keystore);
-
 /** @} */ /* end of el2go_keystore_int */
 
 #endif /* __KEYSTORE_PRIV_H__ */

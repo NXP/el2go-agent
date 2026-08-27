@@ -17,9 +17,7 @@
 #include "rtp/el2go_rtp_config.h"
 #include "osal.h"
 #include "el2go_app_net.h"
-
-#include "keystores/keystore_priv.h"
-#include "mqtt/el2go_mqtt.h"
+#include "el2go_mqtt.h"
 
 /* ========================================================================== */
 /* UUID printing                                                               */
