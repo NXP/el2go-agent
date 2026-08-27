@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 NXP
+ * Copyright 2024-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -18,6 +18,7 @@ iot_agent_time_t iot_agent_time = { 0 };
 
 void iot_agent_time_init_measurement(iot_agent_time_context_t* time_context)
 {
+	time_context->ctx = NULL;
 	axTimeMeasurement_t* time_meas_ctx = malloc(sizeof(axTimeMeasurement_t));
 	if (time_meas_ctx == NULL) {
 		IOT_AGENT_ERROR("time_meas_ctx is NULL");
@@ -56,6 +57,7 @@ void iot_agent_time_free_measurement_ctx(iot_agent_time_context_t* time_context)
 	}
 	else {
 		free((axTimeMeasurement_t*)time_context->ctx);
+		time_context->ctx = NULL;
 	}
 }
 
@@ -96,7 +98,10 @@ iot_agent_status_t iot_agent_log_performance_timing(void)
 	ASSERT_OR_EXIT_MSG(fprintf(fd, "COMMAND_TXRX_TIME : [%ldms] included in PROCESS_PROVISION_TIME\n\n", iot_agent_time.apdu_time) >= 0, "Error in fprintf execution");
 exit:
 	if (fd != NULL) {
-		ASSERT_OR_EXIT_MSG(fclose(fd) == 0, "Error in closing the file");
+		if (fclose(fd) != 0) {
+			IOT_AGENT_ERROR("Error in closing the file");
+			agent_status = IOT_AGENT_FAILURE;
+		}
 	}
 #endif
 	return agent_status;

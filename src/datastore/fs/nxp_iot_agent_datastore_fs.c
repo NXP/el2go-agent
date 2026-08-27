@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2025 NXP
+ * Copyright 2018-2026 NXP
  * 
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -333,7 +333,10 @@ bool iot_agent_datastore_fs_handle_write_data(pb_istream_t *stream, const pb_fie
 			IOT_AGENT_ERROR("decoding of byte stream failed");
 			return false;
 		}
-		iot_agent_datastore_fs_write(datastore_context, offset, buffer, chunk_size);
+		if (iot_agent_datastore_fs_write(datastore_context, offset, buffer, chunk_size) != IOT_AGENT_SUCCESS) {
+			IOT_AGENT_ERROR("write to datastore failed");
+			return false;
+		}
 		offset += chunk_size;
 		remaining -= chunk_size;
 	}

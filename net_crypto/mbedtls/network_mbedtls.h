@@ -58,9 +58,10 @@ typedef struct mbedtls_network_context_t
 #endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 
 } mbedtls_network_context_t;
-
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 int network_pk_wrap_psa_key(mbedtls_pk_context *pk,
                                            mbedtls_svc_key_id_t key_id);
+#endif
 
 #ifdef __cplusplus
 }

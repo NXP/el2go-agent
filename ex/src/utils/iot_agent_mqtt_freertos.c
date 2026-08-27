@@ -1011,6 +1011,10 @@ static void azureRegistrationCallback( MQTTContext_t * pxMqttContext,
 
 		size_t payloadLength = pxDeserializedInfo->pPublishInfo->payloadLength + 1U;
 		char* payload = pvPortMalloc(payloadLength);
+		if (payload == NULL) {
+			IOT_AGENT_ERROR("pvPortMalloc failed for MQTT payload (size %u)", (unsigned)payloadLength);
+			return;
+		}
 
 		memcpy(payload, pxDeserializedInfo->pPublishInfo->pPayload, payloadLength - 1U);
 		payload[payloadLength - 1U] = '\0';

@@ -1,4 +1,4 @@
-/* Copyright 2022-2025 NXP
+/* Copyright 2022-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -93,6 +93,7 @@ static iot_agent_status_t iot_agent_claimcode_ckdf(const uint8_t* input_key, siz
     uint32_t counter = 1U;
     mbedtls_cipher_context_t ctx;
     memset(&ctx, 0, sizeof(ctx));
+    bool ctx_initialized = false;
 
     uint8_t dd[32] = { 0U };
 
@@ -121,6 +122,7 @@ static iot_agent_status_t iot_agent_claimcode_ckdf(const uint8_t* input_key, siz
 
     do {
     	mbedtls_cipher_init(&ctx);
+        ctx_initialized = true;
 
     	ret = mbedtls_cipher_setup(&ctx, cipher_info);
         ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_cipher_setup failed: 0x%08x", ret);
@@ -135,14 +137,15 @@ static iot_agent_status_t iot_agent_claimcode_ckdf(const uint8_t* input_key, siz
         ASSERT_OR_EXIT_MSG(ret == 0, "mbedtls_cipher_cmac_finish failed: 0x%08x", ret);
 
         mbedtls_cipher_free( &ctx );
+        ctx_initialized = false;
 
         write_uint32_to_dd(&dd[28], ++counter);
         output += 16;
     } while (counter * AES_CBC_BLOCK_SIZE <= *output_length);
 
 exit:
-    if (ctx.cipher_ctx != NULL) {
-    	mbedtls_cipher_free( &ctx );
+    if (ctx_initialized) {
+        mbedtls_cipher_free( &ctx );
     }
 
     return agent_status;
@@ -245,6 +248,8 @@ static iot_agent_status_t iot_agent_encrypt_string(const char* str, psa_key_id_t
     psa_status_t psa_status = PSA_SUCCESS;
 	const psa_algorithm_t alg = PSA_ALG_CBC_NO_PADDING;
 	psa_cipher_operation_t operation = PSA_CIPHER_OPERATION_INIT;
+
+    *output_len = 0U;
 
     // This does not include the terminating 0x00 character. The terminating 0x00 is NOT part of the
     // plaintext!

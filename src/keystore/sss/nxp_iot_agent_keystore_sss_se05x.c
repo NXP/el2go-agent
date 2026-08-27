@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2025 NXP
+ * Copyright 2018-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -79,8 +79,8 @@ iot_agent_status_t iot_agent_keystore_sss_se05x_destroy(void *context)
 iot_agent_status_t iot_agent_keystore_sss_se05x_open_session(void *context)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
-	iot_agent_keystore_sss_se05x_context_t* keystore_context = (iot_agent_keystore_sss_se05x_context_t*)context;
 	ASSERT_OR_EXIT_MSG(context != NULL, "context is NULL");
+	iot_agent_keystore_sss_se05x_context_t* keystore_context = (iot_agent_keystore_sss_se05x_context_t*)context;
 	if (!keystore_context->session_open) {
 		agent_status = iot_agent_session_connect(keystore_context->boot_context);
 		AGENT_SUCCESS_OR_EXIT_MSG("iot_agent_session_connect failed with 0x%08x", agent_status);

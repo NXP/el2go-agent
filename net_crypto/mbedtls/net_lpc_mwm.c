@@ -66,7 +66,8 @@ int mbedtls_net_connect( mbedtls_net_context *ctx, const char *host, const char 
     int ret = 0;
     mwm_sockaddr_t http_srv_addr = {0};
 
-    strcpy(http_srv_addr.host, host);
+    strncpy(http_srv_addr.host, host, sizeof(http_srv_addr.host) - 1U);
+    http_srv_addr.host[sizeof(http_srv_addr.host) - 1U] = '\0';
     http_srv_addr.port = atoi(port);
 
     ret = mwm_wlan_status();
