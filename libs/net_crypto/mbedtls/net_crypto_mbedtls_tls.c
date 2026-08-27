@@ -170,6 +170,103 @@ static void warn_crt_crl_period(uint32_t verify_result)
     }
 }
 
+/**
+ * @brief Filter cipher suites in-place to match the configured key bit length.
+ *
+ * When a private key is associated this helper ensures that only suites
+ * whose hash algorithm matches the key size are offered to the server:
+ *   - 256-bit keys: keep only suites whose name contains "SHA256"
+ *   - 384-bit keys: keep only suites whose name contains "SHA384"
+ *   - other sizes:  no filtering applied
+ *
+ * If no explicit cipher list has been set (ctx->ciphers == NULL) the
+ * platform list is fetched via el2go_platform_get_cipher_suites(), allocated,
+ * and stored in ctx->ciphers before filtering.  Ownership stays with the
+ * context and the buffer is freed in net_crypto_free().
+ *
+ * The filtered list is re-applied to the SSL configuration so that the server
+ * cannot negotiate a cipher suite requiring a hash the key does not support.
+ *
+ * @param[in,out] ctx  Network crypto context.
+ */
+static void filter_ciphers_by_key_bitlen(net_crypto_ctx_t *ctx)
+{
+    size_t key_bitlen = 0;
+    const char *sha_tag = NULL;
+    int *read_ptr = NULL;
+    int *write_ptr = NULL;
+    const char *name = NULL;
+    el2go_cipher_list_t plat_list;
+    size_t max_ciphers = 0;
+    int num_ciphers = 0;
+
+    if (!mbedtls_compat_pk_has_key(&ctx->pkey))
+        return;
+
+    /* Derive bit-length from the client certificate public key when available,
+     * because mbedtls_pk_get_bitlen() returns 0 for hardware-backed opaque keys.
+     * The certificate's public key is always correctly populated after parsing. */
+    if (ctx->cli_cert_set)
+        key_bitlen = mbedtls_pk_get_bitlen(&ctx->cli_cert.pk);
+    else
+        key_bitlen = mbedtls_pk_get_bitlen(&ctx->pkey);
+
+    if (key_bitlen == 256U)
+        sha_tag = "SHA256";
+    else if (key_bitlen == 384U)
+        sha_tag = "SHA384";
+    else
+        return;
+
+    /* If no explicit cipher list was configured, build one from the platform
+     * defaults so that the filter has something to work with. */
+    if (ctx->ciphers == NULL) {
+        plat_list = el2go_platform_get_cipher_suites();
+        if (plat_list.count == 0) {
+            EL2GO_DBG_PRINTF(DEBUG, "Platform cipher list empty, skipping filter\n");
+            return;
+        }
+
+        if (ADD_OVERFLOW(plat_list.count, 1, &max_ciphers)) {
+            EL2GO_DBG_PRINTF(ERROR, "Cipher suite count overflow, skipping filter\n");
+            return;
+        }
+
+        ctx->ciphers = osal_calloc(max_ciphers, sizeof(int));
+        if (!ctx->ciphers) {
+            EL2GO_DBG_PRINTF(ERROR, "Failed to allocate cipher suite array for filter\n");
+            return;
+        }
+
+        num_ciphers = cipher_list_to_mbedtls(&plat_list, ctx->ciphers, max_ciphers);
+        if (num_ciphers <= 0) {
+            EL2GO_DBG_PRINTF(ERROR, "cipher_list_to_mbedtls failed (%d), skipping filter\n",
+                             num_ciphers);
+            osal_free(ctx->ciphers);
+            ctx->ciphers = NULL;
+            return;
+        }
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Filtering cipher suites for %zu-bit key (keeping %s only)\n",
+                     key_bitlen, sha_tag);
+
+    read_ptr = ctx->ciphers;
+    write_ptr = ctx->ciphers;
+
+    while (*read_ptr != 0) {
+        name = mbedtls_ssl_get_ciphersuite_name(*read_ptr);
+        if (name != NULL && strstr(name, sha_tag) != NULL) {
+            *write_ptr = *read_ptr;
+            write_ptr++;
+        }
+        read_ptr++;
+    }
+    *write_ptr = 0;
+
+    mbedtls_ssl_conf_ciphersuites(&ctx->conf, ctx->ciphers);
+}
+
 el2go_status_t net_crypto_new(net_crypto_ctx_t **ctx)
 {
     net_crypto_ctx_t *new_ctx = NULL;
@@ -496,103 +593,6 @@ exit:
     return status;
 }
 
-/**
- * @brief Filter cipher suites in-place to match the configured key bit length.
- *
- * When a private key is associated this helper ensures that only suites
- * whose hash algorithm matches the key size are offered to the server:
- *   - 256-bit keys: keep only suites whose name contains "SHA256"
- *   - 384-bit keys: keep only suites whose name contains "SHA384"
- *   - other sizes:  no filtering applied
- *
- * If no explicit cipher list has been set (ctx->ciphers == NULL) the
- * platform list is fetched via el2go_platform_get_cipher_suites(), allocated,
- * and stored in ctx->ciphers before filtering.  Ownership stays with the
- * context and the buffer is freed in net_crypto_free().
- *
- * The filtered list is re-applied to the SSL configuration so that the server
- * cannot negotiate a cipher suite requiring a hash the key does not support.
- *
- * @param[in,out] ctx  Network crypto context.
- */
-static void filter_ciphers_by_key_bitlen(net_crypto_ctx_t *ctx)
-{
-    size_t key_bitlen = 0;
-    const char *sha_tag = NULL;
-    int *read_ptr = NULL;
-    int *write_ptr = NULL;
-    const char *name = NULL;
-    el2go_cipher_list_t plat_list;
-    size_t max_ciphers = 0;
-    int num_ciphers = 0;
-
-    if (!mbedtls_compat_pk_has_key(&ctx->pkey))
-        return;
-
-    /* Derive bit-length from the client certificate public key when available,
-     * because mbedtls_pk_get_bitlen() returns 0 for hardware-backed opaque keys.
-     * The certificate's public key is always correctly populated after parsing. */
-    if (ctx->cli_cert_set)
-        key_bitlen = mbedtls_pk_get_bitlen(&ctx->cli_cert.pk);
-    else
-        key_bitlen = mbedtls_pk_get_bitlen(&ctx->pkey);
-
-    if (key_bitlen == 256U)
-        sha_tag = "SHA256";
-    else if (key_bitlen == 384U)
-        sha_tag = "SHA384";
-    else
-        return;
-
-    /* If no explicit cipher list was configured, build one from the platform
-     * defaults so that the filter has something to work with. */
-    if (ctx->ciphers == NULL) {
-        plat_list = el2go_platform_get_cipher_suites();
-        if (plat_list.count == 0) {
-            EL2GO_DBG_PRINTF(DEBUG, "Platform cipher list empty, skipping filter\n");
-            return;
-        }
-
-        if (ADD_OVERFLOW(plat_list.count, 1, &max_ciphers)) {
-            EL2GO_DBG_PRINTF(ERROR, "Cipher suite count overflow, skipping filter\n");
-            return;
-        }
-
-        ctx->ciphers = osal_calloc(max_ciphers, sizeof(int));
-        if (!ctx->ciphers) {
-            EL2GO_DBG_PRINTF(ERROR, "Failed to allocate cipher suite array for filter\n");
-            return;
-        }
-
-        num_ciphers = cipher_list_to_mbedtls(&plat_list, ctx->ciphers, max_ciphers);
-        if (num_ciphers <= 0) {
-            EL2GO_DBG_PRINTF(ERROR, "cipher_list_to_mbedtls failed (%d), skipping filter\n",
-                             num_ciphers);
-            osal_free(ctx->ciphers);
-            ctx->ciphers = NULL;
-            return;
-        }
-    }
-
-    EL2GO_DBG_PRINTF(INFO, "Filtering cipher suites for %zu-bit key (keeping %s only)\n",
-                     key_bitlen, sha_tag);
-
-    read_ptr = ctx->ciphers;
-    write_ptr = ctx->ciphers;
-
-    while (*read_ptr != 0) {
-        name = mbedtls_ssl_get_ciphersuite_name(*read_ptr);
-        if (name != NULL && strstr(name, sha_tag) != NULL) {
-            *write_ptr = *read_ptr;
-            write_ptr++;
-        }
-        read_ptr++;
-    }
-    *write_ptr = 0;
-
-    mbedtls_ssl_conf_ciphersuites(&ctx->conf, ctx->ciphers);
-}
-
 el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
 {
     int ret = 0;
@@ -680,7 +680,7 @@ el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
         goto cleanup_net;
     }
 
-    /* Set a read timeout so callers do not block forever waiting for data 
+    /* Set a read timeout so callers do not block forever waiting for data
      * after processing a packet (e.g. CONNACK).
      * mbedtls_net_recv_timeout uses select() internally with this timeout. */
     mbedtls_ssl_conf_read_timeout(&ctx->conf, 5000U);
@@ -714,7 +714,7 @@ el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
     EL2GO_DBG_PRINTF(VERBOSE, "SSL/TLS connection established to %s:%u\n", ctx->hostname,
                      ctx->port);
 
-    /* Log negotiated ALPN protocol -- only if ALPN was configured.
+    /* Log negotiated ALPN protocol — only if ALPN was configured.
      * If the server ignored the extension, "none" is a useful diagnostic. */
     if (ctx->alpn_set) {
         const char *alpn = mbedtls_ssl_get_alpn_protocol(&ctx->ssl);
@@ -937,177 +937,6 @@ int net_crypto_write(net_crypto_ctx_t *ctx, const uint8_t *buffer, size_t len)
     return ret;
 }
 
-el2go_status_t net_crypto_self_signed_cert(const char *subject, uint32_t key_id,
-                                           const uint8_t *device_uuid, size_t device_uuid_len,
-                                           uint8_t *cert_out, size_t *cert_out_len)
-{
-    int ret = 0;
-    mbedtls_pk_context pk_key = { 0 };
-    mbedtls_x509write_cert crt = { 0 };
-    mbedtls_compat_rng_context *rng_ctx = NULL;
-    char subject_name[256] = { 0 };
-    const uint8_t serial_bytes[1] = { 1U };
-    const char *pers = "el2go_self_signed_cert";
-    mbedtls_md_type_t md_alg = MBEDTLS_MD_SHA256;
-    el2go_status_t status = EL2GO_STATUS_SUCCESS;
-    char *pos = NULL;
-    size_t i = 0;
-    size_t buffer_size = 0;
-    size_t current_len = 0;
-    size_t remaining = 0;
-
-    EL2GO_DBG_TRACE_FUNCTION_CALL;
-
-    if (!subject || !cert_out || !cert_out_len)
-        return EL2GO_STATUS_INVALID_PARAMETER;
-
-    if (!device_uuid || device_uuid_len == 0)
-        return EL2GO_STATUS_INVALID_PARAMETER;
-
-    /* Save the input buffer size */
-    buffer_size = *cert_out_len;
-
-    if (buffer_size == 0)
-        return EL2GO_STATUS_INVALID_PARAMETER;
-
-    /* Initialize structures */
-    mbedtls_x509write_crt_init(&crt);
-    mbedtls_pk_init(&pk_key);
-
-    /* Initialize RNG using compatibility layer */
-    ret = mbedtls_compat_rng_init(&rng_ctx, (const unsigned char *)pers, strlen(pers));
-    if (ret != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "Failed to init RNG: -0x%04x\n", -ret);
-        status = EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED;
-        goto exit;
-    }
-
-    /* Build subject name with device UUID as serial number */
-    ret = osal_snprintf(subject_name, sizeof(subject_name), "%s,serialNumber=", subject);
-    if (ret < 0 || ret >= (int)sizeof(subject_name)) {
-        status = EL2GO_STATUS_INVALID_PARAMETER;
-        goto exit;
-    }
-
-    /* Append device UUID as hex string */
-    pos = subject_name + strlen(subject_name);
-    for (i = 0; i < device_uuid_len; i++) {
-        /* Calculate current position and remaining space safely */
-        if (SET_OVERFLOW(pos - subject_name, current_len)) {
-            EL2GO_DBG_PRINTF(ERROR, "Pointer difference overflow\n");
-            status = EL2GO_STATUS_INVALID_PARAMETER;
-            goto exit;
-        }
-
-        if (current_len >= sizeof(subject_name)) {
-            status = EL2GO_STATUS_INVALID_PARAMETER;
-            goto exit;
-        }
-        remaining = sizeof(subject_name) - current_len;
-
-        /* Need 3 bytes: 2 hex digits + null terminator */
-        if (remaining < 3) {
-            status = EL2GO_STATUS_INVALID_PARAMETER;
-            goto exit;
-        }
-
-        ret = osal_sprintf(pos, "%02X", device_uuid[i]);
-        if (ret < 0) {
-            status = EL2GO_STATUS_INCOMPLETE_DATA;
-            goto exit;
-        }
-        pos += 2;
-    }
-
-    /* Setup opaque key reference using compatibility layer */
-    EL2GO_DBG_PRINTF(DEBUG, "Setting opaque for key ID %x\n", key_id);
-    ret = mbedtls_compat_pk_setup_key(&pk_key, key_id);
-    if (ret != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "pk_setup_key failed: -0x%04x\n", -ret);
-        status = EL2GO_STATUS_NET_CRYPTO_INVALID_KEY;
-        goto exit;
-    }
-
-    /* Set subject and issuer keys (self-signed) */
-    mbedtls_x509write_crt_set_subject_key(&crt, &pk_key);
-    mbedtls_x509write_crt_set_issuer_key(&crt, &pk_key);
-
-    /* Set subject and issuer names (same for self-signed) */
-    ret = mbedtls_x509write_crt_set_subject_name(&crt, subject_name);
-    if (ret != 0) {
-        status = EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED;
-        goto exit;
-    }
-
-    ret = mbedtls_x509write_crt_set_issuer_name(&crt, subject_name);
-    if (ret != 0) {
-        status = EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED;
-        goto exit;
-    }
-
-    mbedtls_x509write_crt_set_version(&crt, MBEDTLS_X509_CRT_VERSION_3);
-
-    /* Select hash algorithm based on key size */
-    size_t key_bitlen = mbedtls_pk_get_bitlen(&pk_key);
-
-    EL2GO_DBG_PRINTF(DEBUG, "Opaque key bit length: %zu\n", key_bitlen);
-
-    if (key_bitlen == 384U)
-        md_alg = MBEDTLS_MD_SHA384;
-
-    EL2GO_DBG_PRINTF(DEBUG, "Using md_alg: 0x%x\n", (unsigned int)md_alg);
-    mbedtls_x509write_crt_set_md_alg(&crt, md_alg);
-
-    /* Set serial number using compatibility layer */
-    ret = mbedtls_compat_x509write_crt_set_serial(&crt, serial_bytes, sizeof(serial_bytes));
-    if (ret != 0) {
-        status = EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED;
-        goto exit;
-    }
-
-    /* Set validity period - fixed to avoid time sync issues */
-    ret = mbedtls_x509write_crt_set_validity(&crt, "20220101000000", "99991231235959");
-    if (ret != 0) {
-        status = EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED;
-        goto exit;
-    }
-
-    /* Set key usage extension (required to avoid zero-length extension) */
-    ret = mbedtls_x509write_crt_set_key_usage(&crt, MBEDTLS_X509_KU_DIGITAL_SIGNATURE);
-    if (ret != 0) {
-        status = EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED;
-        goto exit;
-    }
-
-    /* Write certificate in DER format using compatibility layer */
-    /* Note: mbedtls_x509write_crt_der writes to the end of the buffer */
-    ret = mbedtls_compat_x509write_crt_der(&crt, cert_out, buffer_size, rng_ctx);
-    if (ret < 0) {
-        EL2GO_DBG_PRINTF(ERROR, "Certificate generation failed: -0x%04x\n", -ret);
-        if (ret == MBEDTLS_ERR_ASN1_BUF_TOO_SMALL) {
-            EL2GO_DBG_PRINTF(ERROR, "Buffer too small (%zu bytes)\n", buffer_size);
-            status = EL2GO_STATUS_BUFFER_TOO_SMALL;
-        } else {
-            status = EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED;
-        }
-        goto exit;
-    }
-
-    /* Move certificate to the beginning of the buffer */
-    memmove(cert_out, cert_out + buffer_size - ret, ret);
-    *cert_out_len = ret;
-
-    EL2GO_DBG_PRINTF(INFO, "Self-signed certificate created (%zu bytes)\n", *cert_out_len);
-
-exit:
-    mbedtls_x509write_crt_free(&crt);
-    mbedtls_pk_free(&pk_key);
-    mbedtls_compat_rng_free(rng_ctx);
-
-    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
-    return status;
-}
-
 el2go_status_t net_crypto_set_alpn(net_crypto_ctx_t *ctx, const char **alpn_protos)
 {
     int ret = 0;
@@ -1207,98 +1036,4 @@ exit:
         osal_free(curves);
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
-}
-
-el2go_status_t net_crypto_sha256_stream(net_crypto_fetch_callback_t fetch_callback, void *context,
-                                        uint8_t *hash_out)
-{
-    mbedtls_compat_sha256_context sha_ctx = { 0 };
-    uint8_t buffer[NET_CRYPTO_SHA256_CHUNK_SIZE] = { 0 };
-    size_t bytes_read = 0;
-    el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
-    int ret = 0;
-
-    EL2GO_DBG_TRACE_FUNCTION_CALL;
-
-    if (!fetch_callback || !hash_out)
-        goto exit;
-
-    mbedtls_compat_sha256_init(&sha_ctx);
-
-    ret = mbedtls_compat_sha256_starts(&sha_ctx);
-    if (ret != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "SHA-256 init failed: -0x%04x\n", -ret);
-        status = EL2GO_STATUS_NET_CRYPTO_SHA_ERROR;
-        goto exit;
-    }
-
-    /* Process data in chunks */
-    do {
-        status = fetch_callback(context, buffer, NET_CRYPTO_SHA256_CHUNK_SIZE, &bytes_read);
-        if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_DBG_PRINTF(ERROR, "Fetch callback failed: 0x%04x\n", status);
-            goto exit;
-        }
-
-        if (bytes_read > 0) {
-            ret = mbedtls_compat_sha256_update(&sha_ctx, buffer, bytes_read);
-            if (ret != 0) {
-                EL2GO_DBG_PRINTF(ERROR, "SHA-256 update err: -0x%04x\n", -ret);
-                status = EL2GO_STATUS_NET_CRYPTO_SHA_ERROR;
-                goto exit;
-            }
-        }
-    } while (bytes_read > 0);
-
-    /* Finalize hash */
-    ret = mbedtls_compat_sha256_finish(&sha_ctx, hash_out);
-    if (ret != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "SHA-256 finish failed: -0x%04x\n", -ret);
-        status = EL2GO_STATUS_NET_CRYPTO_SHA_ERROR;
-        goto exit;
-    }
-
-    EL2GO_DBG_PRINTF(VERBOSE, "SHA-256 hash calculated successfully\n");
-    status = EL2GO_STATUS_SUCCESS;
-
-exit:
-    mbedtls_compat_sha256_free(&sha_ctx);
-    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
-    return status;
-}
-
-el2go_status_t net_crypto_sha256(const uint8_t *data, size_t data_len, uint8_t *hash_out)
-{
-    int ret = 0;
-    el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
-
-    EL2GO_DBG_TRACE_FUNCTION_CALL;
-
-    if (!data || !hash_out)
-        goto exit;
-
-    ret = mbedtls_compat_sha256(data, data_len, hash_out);
-    if (ret != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "SHA-256 calculation failed: -0x%04x\n", -ret);
-        status = EL2GO_STATUS_NET_CRYPTO_SHA_ERROR;
-        goto exit;
-    }
-
-    status = EL2GO_STATUS_SUCCESS;
-
-exit:
-    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
-    return status;
-}
-
-int net_crypto_ct_memcmp(const void *a, const void *b, size_t len)
-{
-    return mbedtls_ct_memcmp(a, b, len);
-}
-
-el2go_status_t net_crypto_get_cert_cn(const uint8_t *cert_der, size_t cert_der_len, char *cn_out,
-                                      size_t cn_out_len)
-{
-    int rc = mbedtls_compat_get_cert_cn(cert_der, cert_der_len, cn_out, cn_out_len);
-    return (rc == 0) ? EL2GO_STATUS_SUCCESS : EL2GO_STATUS_FAILURE;
 }

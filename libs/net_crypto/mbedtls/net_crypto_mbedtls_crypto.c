@@ -9,7 +9,8 @@
  * Pure-crypto subset of the mbedTLS net_crypto backend.
  *
  * Contains: SHA-256 (one-shot and streaming), certificate public-key
- *           extraction, DN extraction, and self-signed certificate generation.
+ *           extraction, self-signed certificate generation, constant-time
+ *           memory comparison, and CN extraction from DER certificates.
  *
  * CSR generation lives in net_crypto_mbedtls_crypto_csr.c, which is
  * compiled only when PEM write support is available (MBEDTLS_CSR_ENABLED).
@@ -29,6 +30,7 @@
 #include <mbedtls/x509_crt.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/error.h>
+#include <mbedtls/constant_time.h>
 
 #include "builtin_macros.h"
 #include "osal.h"
@@ -377,4 +379,16 @@ exit:
 
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
+}
+
+int net_crypto_ct_memcmp(const void *a, const void *b, size_t len)
+{
+    return mbedtls_ct_memcmp(a, b, len);
+}
+
+el2go_status_t net_crypto_get_cert_cn(const uint8_t *cert_der, size_t cert_der_len, char *cn_out,
+                                      size_t cn_out_len)
+{
+    int rc = mbedtls_compat_get_cert_cn(cert_der, cert_der_len, cn_out, cn_out_len);
+    return (rc == 0) ? EL2GO_STATUS_SUCCESS : EL2GO_STATUS_FAILURE;
 }

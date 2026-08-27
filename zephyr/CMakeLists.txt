@@ -221,9 +221,9 @@ if(CONFIG_EL2GO_RTP_AGENT)
     # Network abstraction header (el2go_app_net.h).
     zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/network)
 
-    # MQTT transport headers for the RTP agent (included as "mqtt/el2go_mqtt.h").
+    # MQTT transport headers for the RTP agent (included as "el2go_mqtt.h").
     zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/el2go_rtp_agent)
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common)
+    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/mqtt)
     zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv)
 
     # Protobuf (nanopb runtime + RTP generated files) -- shared with OTA if already added.
