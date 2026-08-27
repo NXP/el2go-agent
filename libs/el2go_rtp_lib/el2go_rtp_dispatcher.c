@@ -222,7 +222,7 @@ static bool handle_request_payload(pb_istream_t *stream, const pb_field_t *field
             goto exit;
         }
 
-        EL2GO_DBG_PRINTF(INFO, "HelloRequest handled, sending HelloResponse\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "HelloRequest handled, sending HelloResponse\n");
 
     } else {
         /*
@@ -472,7 +472,7 @@ el2go_status_t el2go_rtp_dispatch(el2go_rtp_ctx_t *ctx, pb_istream_t *istream,
     hargs.response_buf.start = mem;
     hargs.response_buf.remaining = EL2GO_RTP_RESPONSE_BUFFER_SIZE;
 
-    EL2GO_DBG_PRINTF(INFO, "Starting RTP dispatch loop\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "Starting RTP dispatch loop\n");
 
     while (!disp.closed) {
         /* Reset per-iteration state: response buffer position and pending error. */
@@ -508,7 +508,7 @@ el2go_status_t el2go_rtp_dispatch(el2go_rtp_ctx_t *ctx, pb_istream_t *istream,
     }
 
     status = disp.update_success ? EL2GO_STATUS_SUCCESS : EL2GO_STATUS_RTP_PROVISIONING_FAILED;
-    EL2GO_DBG_PRINTF(INFO, "RTP dispatch loop finished, status=0x%04x\n", status);
+    EL2GO_DBG_PRINTF(VERBOSE, "RTP dispatch loop finished, status=0x%04x\n", status);
 
 cleanup:
     osal_free(mem);

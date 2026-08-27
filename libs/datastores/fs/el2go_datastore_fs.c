@@ -63,7 +63,7 @@ static el2go_status_t open_file(osal_file_t **fp, const char *filename, const ch
 
     *fp = osal_fopen(filename, mode);
     if (!*fp) {
-        EL2GO_DBG_PRINTF(ERROR, "Failed to open file: %s (mode: %s)\n", filename, mode);
+        EL2GO_DBG_PRINTF(DEBUG, "Failed to open file: %s (mode: %s)\n", filename, mode);
         status = EL2GO_STATUS_FILE_OPEN_ERROR;
         goto exit;
     }

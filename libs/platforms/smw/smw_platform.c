@@ -62,7 +62,7 @@ __export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
         status = EL2GO_STATUS_PLATFORM_INIT_FAILED;
         goto exit;
     }
-    EL2GO_DBG_PRINTF(INFO, "PSA crypto initialized successfully\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "PSA crypto initialized successfully\n");
 
     ctx->smw_initialized = true;
     *platform_ctx = ctx;
@@ -156,7 +156,7 @@ __export el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_c
 
     *uuid_len = device_args.uuid_length;
 
-    EL2GO_DBG_PRINTF(INFO, "Device UUID retrieved successfully (%u bytes)\n",
+    EL2GO_DBG_PRINTF(VERBOSE, "Device UUID retrieved successfully (%u bytes)\n",
                      device_args.uuid_length);
     EL2GO_DBG_HEX_DUMP(EXTRA, buf, *uuid_len);
 

@@ -248,7 +248,7 @@ static void filter_ciphers_by_key_bitlen(net_crypto_ctx_t *ctx)
         }
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Filtering cipher suites for %zu-bit key (keeping %s only)\n",
+    EL2GO_DBG_PRINTF(VERBOSE, "Filtering cipher suites for %zu-bit key (keeping %s only)\n",
                      key_bitlen, sha_tag);
 
     read_ptr = ctx->ciphers;
@@ -463,7 +463,7 @@ el2go_status_t net_crypto_set_cipher_suites(net_crypto_ctx_t *ctx,
     /* Transfer ownership to context - freed in net_crypto_free() */
     ctx->ciphers = mbedtls_ciphers;
 
-    EL2GO_DBG_PRINTF(INFO, "Configured %d cipher suites\n", num_ciphers);
+    EL2GO_DBG_PRINTF(VERBOSE, "Configured %d cipher suites\n", num_ciphers);
 
     /* Debug: print configured cipher suites */
     for (int i = 0; i < num_ciphers; i++) {
@@ -795,7 +795,7 @@ el2go_status_t net_crypto_verify_cert(net_crypto_ctx_t *ctx, const uint8_t *crl_
         goto exit;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Server certificate verified successfully\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "Server certificate verified successfully\n");
 
 exit:
     mbedtls_x509_crl_free(&crl);
@@ -1028,7 +1028,7 @@ el2go_status_t net_crypto_set_curves(net_crypto_ctx_t *ctx, const el2go_curve_li
     /* Transfer ownership to context - freed in net_crypto_free() */
     ctx->curves = curves;
 
-    EL2GO_DBG_PRINTF(INFO, "Configured %d curves\n", num_curves);
+    EL2GO_DBG_PRINTF(VERBOSE, "Configured %d curves\n", num_curves);
 
 exit:
     /* Free temporary buffer if ownership was not transferred to context */

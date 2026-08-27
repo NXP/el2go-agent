@@ -192,7 +192,7 @@ el2go_status_t el2go_conn_write_datastore(el2go_datastore_t *datastore,
         goto exit;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "EdgeLock 2GO datastore written successfully\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "EdgeLock 2GO datastore written successfully\n");
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);

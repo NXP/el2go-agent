@@ -281,13 +281,13 @@ el2go_status_t srv_validate_configuration_data(el2go_datastore_t *datastore)
     /* Read the header from the datastore at offset 0 */
     status = el2go_datastore_read(datastore, &header, 0, sizeof(header), &bytes_read);
     if (status != EL2GO_STATUS_SUCCESS) {
-        EL2GO_DBG_PRINTF(ERROR, "Failed to read header: 0x%04x\n", status);
+        EL2GO_DBG_PRINTF(VERBOSE, "Failed to read header: 0x%04x\n", status);
         goto exit;
     }
 
     /* Validate header length */
     if (header.length < sizeof(header)) {
-        EL2GO_DBG_PRINTF(ERROR, "Header length too small: %u\n", header.length);
+        EL2GO_DBG_PRINTF(VERBOSE, "Header length too small: %u\n", header.length);
         status = EL2GO_STATUS_INVALID_DATA;
         goto exit;
     }
@@ -301,7 +301,7 @@ el2go_status_t srv_validate_configuration_data(el2go_datastore_t *datastore)
 
     /* Compare checksums */
     if (memcmp(header.checksum, calculated_checksum, EL2GO_SHA256_CHECKSUM_SIZE) != 0) {
-        EL2GO_DBG_PRINTF(ERROR, "Checksum mismatch\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Checksum mismatch\n");
         status = EL2GO_STATUS_CHECKSUM_MISMATCH;
         goto exit;
     }

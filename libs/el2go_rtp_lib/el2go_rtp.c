@@ -241,7 +241,7 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
         goto exit;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Updating EdgeLock 2GO datastore with %s:%u\n", hostname, port);
+    EL2GO_DBG_PRINTF(VERBOSE, "Updating EdgeLock 2GO datastore with %s:%u\n", hostname, port);
 
     status = el2go_conn_write_datastore(datastore, keystore_ctx, hostname, port, cert, key_id,
                                         client_cert_array);
@@ -423,7 +423,7 @@ __export el2go_status_t el2go_rtp_add_datastore(el2go_rtp_ctx_t *ctx, el2go_data
         }
 
         ctx->el2go_datastore = datastore;
-        EL2GO_DBG_PRINTF(INFO, "EL2GO datastore added\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "EL2GO datastore added\n");
         status = EL2GO_STATUS_SUCCESS;
         goto exit;
     }
@@ -487,7 +487,7 @@ __export el2go_status_t el2go_rtp_remove_datastore(el2go_rtp_ctx_t *ctx,
         }
 
         ctx->el2go_datastore = NULL;
-        EL2GO_DBG_PRINTF(INFO, "EL2GO datastore removed\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "EL2GO datastore removed\n");
         status = EL2GO_STATUS_SUCCESS;
         goto exit;
     }
@@ -623,7 +623,7 @@ static el2go_status_t get_el2go_service_descriptor(el2go_datastore_t *datastore,
         goto exit;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Found EL2GOSERVICE descriptor\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "Found EL2GOSERVICE descriptor\n");
 
     status = EL2GO_STATUS_SUCCESS;
 
@@ -724,7 +724,7 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
 
         EL2GO_DBG_PRINTF(INFO, "Using compile-time config: %s:%u\n", hostname, port);
     } else {
-        EL2GO_DBG_PRINTF(INFO, "EL2GO datastore is valid, reading config\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "EL2GO datastore is valid, reading config\n");
 
         status = get_el2go_service_descriptor(ctx->el2go_datastore, &service_descriptor);
         if (status != EL2GO_STATUS_SUCCESS) {
@@ -753,7 +753,7 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
             goto exit;
         }
 
-        EL2GO_DBG_PRINTF(INFO,
+        EL2GO_DBG_PRINTF(VERBOSE,
                          "Using datastore config: %s:%u key_id: 0x%08" PRIx32
                          " client_cert: %zu bytes "
                          "server_cert: %zu bytes\n",
@@ -836,7 +836,13 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
     pb_istream_t istream = istream_from_net(net_ctx);
     pb_ostream_t ostream = ostream_from_net(net_ctx);
     status = el2go_rtp_dispatch(ctx, &istream, &ostream, report);
-    if (status != EL2GO_STATUS_SUCCESS) {
+    if (status == EL2GO_STATUS_RTP_PROVISIONING_FAILED) {
+        /* Provisioning completed but one or more objects failed - outcome
+         * is captured in the status report, so this is not an unexpected
+         * error and does not warrant an ERROR log. */
+        EL2GO_DBG_PRINTF(INFO, "Provisioning completed with failures, see status report\n");
+        goto exit;
+    } else if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "Provisioning dispatch failed: 0x%04x\n", status);
         goto exit;
     }

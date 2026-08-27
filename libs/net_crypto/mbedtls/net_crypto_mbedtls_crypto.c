@@ -371,7 +371,7 @@ el2go_status_t net_crypto_self_signed_cert(const char *subject, uint32_t key_id,
     memmove(cert_out, cert_out + buffer_size - ret, ret);
     *cert_out_len = ret;
 
-    EL2GO_DBG_PRINTF(INFO, "Self-signed certificate created (%zu bytes)\n", *cert_out_len);
+    EL2GO_DBG_PRINTF(DEBUG, "Self-signed certificate created (%zu bytes)\n", *cert_out_len);
 
 exit:
     mbedtls_x509write_crt_free(&crt);

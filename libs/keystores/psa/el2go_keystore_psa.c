@@ -261,7 +261,7 @@ static el2go_status_t handle_read_object(el2go_keystore_t *keystore, nxp_iot_Psa
     psa_status = psa_its_get_info(uid, &info);
     if (psa_status != PSA_SUCCESS) {
         read_object_resp->status = (nxp_iot_StatusCode)psa_status;
-        EL2GO_DBG_PRINTF(ERROR, "Failed to get object info (uid: 0x%016" PRIx64 ", status: %d)\n",
+        EL2GO_DBG_PRINTF(VERBOSE, "Failed to get object info (uid: 0x%016" PRIx64 ", status: %d)\n",
                          uid, (int)psa_status);
         read_object_resp->data = osal_calloc(1, PB_BYTES_ARRAY_T_ALLOCSIZE(0));
         goto exit;
