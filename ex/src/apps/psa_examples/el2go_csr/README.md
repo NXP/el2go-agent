@@ -43,9 +43,13 @@ ex/src/apps/psa_examples/el2go_csr/
 ├── common/
 │   ├── inc/
 │   │   |── csr_util.h               # CSR/certificate utility API
-|   |   └── bytes_utils.h            # Helper functions for byte manipulation operations
+|   |   |── byte_utils.h             # Helper functions for byte manipulation operations
+|   |   └── crc_sw_util.h            # Software CRC-32 utility API
 │   └── src/
-│       └── csr_util.c               # CSR generation and certificate verification logic
+│       ├── csr_util.c               # CSR generation and certificate verification logic
+│       └── crc_sw_util.c            # Software CRC-32 implementation
+├── lib/
+│   └── mbedtls_compat/              # MbedTLS compatibility shims for PSA API
 ├── osal/
 │   ├── inc/
 │   │   └── el2go_csr_osal.h         # OS abstraction layer API
@@ -58,10 +62,17 @@ ex/src/apps/psa_examples/el2go_csr/
 │   │   ├── el2go_csr_psa_key.h
 │   │   ├── el2go_csr_pal_util.h
 │   │   ├── el2go_csr_challenge.h
+│   │   ├── el2go_csr_integrity_verifier.h
 │   │   └── el2go_csr_console.h
 │   └── boards/
 │       ├── my_board/                # Template board port (starting point for new boards)
-│       └── frdmmcxe31b/             # Reference NXP board port (working implementation)
+│       ├── frdmmcxe31b/             # FRDM-MCXE31B reference port
+│       ├── frdmkw43/                # FRDM-KW43
+│       ├── frdmmcxa266/             # FRDM-MCXA266
+│       ├── frdmmcxa366/             # FRDM-MCXA366
+│       ├── frdmmcxl255/             # FRDM-MCXL255 (TF-M NS)
+│       ├── frdmmcxa577/             # FRDM-MCXA577 (TF-M NS)
+│       └── frdmmcxa287/             # FRDM-MCXA287 (TF-M NS)
 ├── port/
 │   └── el2go_csr_mbedtls_user_config.h  # MbedTLS configuration
 └── CMakeLists.txt                   # Standalone CMake build system
@@ -258,6 +269,7 @@ Used when requesting a CSR to be generated on the device.
 | Device Operation | `0x42` | Operation type (generate new key or use existing) |
 | Key ID | `0x43` | PSA key identifier |
 | CSR Destination Address | `0x44` | Memory address where the generated CSR will be written |
+| Encoding | `0x49` | *(Optional)* Output encoding of the generated CSR: `0x01` = PEM (default), `0x02` = DER |
 | Integrity Algorithm | `0x47` | Algorithm used for integrity verification |
 | Integrity Value | `0x48` | Checksum over all preceding fields |
 
