@@ -38,9 +38,10 @@ extern "C" {
 #define CSR_GEN_MAGIC_VALUE "el2gocsrgen"
 #define CERT_STORAGE_MAGIC_VALUE "el2gocertstr"
 
-/* Device operation values for CSR generation */
-#define CSR_GEN_DEVICEOP_EXISTINGKEY           (0x01u)
-#define CSR_GEN_DEVICEOP_NEWKEY                (0x02u)
+/* Device operation values */
+#define CSR_GEN_DEVICEOP_EXISTINGKEY            (0x01u)
+#define CSR_GEN_DEVICEOP_NEWKEY                 (0x02u)
+#define CERT_STORAGE_DEVICE_OP_VERIFICATION     (0x01u)
 
 /* Encoding values for CSR_GEN_TAG_ENCODING (optional, CSR-gen only) */
 #define CSR_GEN_ENCODING_LEN                    (sizeof(uint8_t))

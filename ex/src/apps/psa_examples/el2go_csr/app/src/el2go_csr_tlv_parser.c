@@ -283,6 +283,14 @@ static csr_parser_status_t parse_buffer_csr(csr_gen_context_t *csr_gen_ctx,
         return kStatus_CSR_INVALID_FORMAT;
     }
 
+    /* For version 1, device_operation must be one of the two defined values. */
+    if (csr_gen_ctx->version == 0x1u &&
+        (csr_gen_ctx->device_operation != CSR_GEN_DEVICEOP_NEWKEY &&
+            csr_gen_ctx->device_operation != CSR_GEN_DEVICEOP_EXISTINGKEY))
+    {
+        return kStatus_CSR_NOT_SUPPORTED;
+    }
+
     return kStatus_CSR_SUCCESS;
 }
 
@@ -489,6 +497,12 @@ static csr_parser_status_t parse_buffer_cert(cert_storage_context_t *cert_storag
         return kStatus_CSR_INVALID_FORMAT;
     }
 
+    /* device operation for v1 is restricted to only x.509 cert verification.  
+        Validation of device operation is done followingly: */
+    if (cert_storage_ctx->version == 0x1u && cert_storage_ctx->device_operation != CERT_STORAGE_DEVICE_OP_VERIFICATION)
+    {
+        return kStatus_CSR_NOT_SUPPORTED;       
+    }
     return kStatus_CSR_SUCCESS;
 }
 
