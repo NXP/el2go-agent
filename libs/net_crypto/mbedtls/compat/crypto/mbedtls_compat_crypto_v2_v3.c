@@ -25,7 +25,6 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/x509_crt.h>
-#include <mbedtls/oid.h>
 
 #include "mbedtls_compat_crypto.h"
 
@@ -78,40 +77,4 @@ int mbedtls_compat_x509write_crt_der(mbedtls_x509write_cert *ctx, unsigned char 
 int mbedtls_compat_pk_has_key(const mbedtls_pk_context *pk)
 {
     return mbedtls_pk_get_type(pk) != MBEDTLS_PK_NONE;
-}
-
-/* ========================================================================== */
-/* X.509 certificate parse (shared v2/v3 - identical x509 subject API)       */
-/* ========================================================================== */
-
-int mbedtls_compat_get_cert_cn(const uint8_t *cert_der, size_t cert_der_len, char *cn_out,
-                               size_t cn_out_len)
-{
-    mbedtls_x509_crt cert;
-    mbedtls_x509_name *name = NULL;
-    int rc = -1;
-
-    if (cert_der == NULL || cn_out == NULL || cn_out_len == 0U)
-        return -1;
-
-    mbedtls_x509_crt_init(&cert);
-
-    if (mbedtls_x509_crt_parse_der(&cert, cert_der, cert_der_len) != 0) {
-        mbedtls_x509_crt_free(&cert);
-        return -1;
-    }
-
-    for (name = &cert.subject; name != NULL; name = name->next) {
-        if (MBEDTLS_OID_CMP(MBEDTLS_OID_AT_CN, &name->oid) == 0) {
-            if (name->val.len >= cn_out_len)
-                break;
-            memcpy(cn_out, name->val.p, name->val.len);
-            cn_out[name->val.len] = '\0';
-            rc = 0;
-            break;
-        }
-    }
-
-    mbedtls_x509_crt_free(&cert);
-    return rc;
 }

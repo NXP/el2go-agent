@@ -3,4 +3,4 @@
 
 # Zephyr mbedTLS backend - overrides the weak el2go_mqtt_verify() default.
 include(add_target_sources)
-add_private_sources(el2go_mqtt el2go_mqtt_zephyr.c)
+zephyr_library_sources_ifdef(CONFIG_EL2GO_RTP_MQTT_VERIFY el2go_mqtt_zephyr.c)

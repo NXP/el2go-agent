@@ -529,6 +529,40 @@ config EL2GO_RTP_PSA_BACKEND_TFM
       Requires tfm_ns_interface_init() at startup.
       Currently not enabled -- reserved for future TF-M re-enablement.
 
+config EL2GO_TIME_MEASUREMENT
+    bool "Enable EL2GO timing measurements"
+    default y
+    depends on EL2GO_RTP_AGENT
+    help
+      Enable performance timing measurements in the EL2GO RTP agent demo.
+      Records and prints durations for claimcode injection, provisioning,
+      MQTT verification, and the full session. Disable to reduce code size.
+
+config EL2GO_RTP_ENABLE_INFO
+    bool "Enable EL2GO RTP agent INFO logging"
+    default y
+    depends on EL2GO_RTP_AGENT
+
+config EL2GO_RTP_ENABLE_WARN
+    bool "Enable EL2GO RTP agent WARN logging"
+    default y
+    depends on EL2GO_RTP_AGENT
+
+config EL2GO_RTP_ENABLE_ERROR
+    bool "Enable EL2GO RTP agent ERROR logging"
+    default y
+    depends on EL2GO_RTP_AGENT
+
+config EL2GO_RTP_ENABLE_DEBUG
+    bool "Enable EL2GO RTP agent DEBUG logging"
+    default n
+    depends on EL2GO_RTP_AGENT
+
+config EL2GO_RTP_ENABLE_TRACE
+    bool "Enable EL2GO RTP agent TRACE logging"
+    default n
+    depends on EL2GO_RTP_AGENT
+
 endmenu # EdgeLock2GO RTP Agent
 
 # ---------------------------------------------------------------------------

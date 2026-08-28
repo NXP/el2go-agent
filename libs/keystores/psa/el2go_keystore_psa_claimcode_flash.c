@@ -18,7 +18,7 @@
 #include "plat_keys.h"
 
 /*
- * Claimcode blob layout at CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS:
+ * Claimcode blob layout at EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS:
  *   uint8_t  indicator[4] = {'E','2','G','C'}
  *   uint32_t size          (little-endian)
  *   uint8_t  data[size]
@@ -33,7 +33,7 @@ el2go_status_t el2go_keystore_import_claimcode_from_flash(el2go_keystore_t *keys
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     psa_status_t psa_status = PSA_SUCCESS;
     struct psa_storage_info_t info = { 0 };
-    const uint8_t *flash_ptr = (const uint8_t *)(uintptr_t)CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS;
+    const uint8_t *flash_ptr = (const uint8_t *)(uintptr_t)EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS;
     uint32_t claimcode_size = 0U;
     const uint8_t *claimcode_data = NULL;
 
@@ -45,7 +45,7 @@ el2go_status_t el2go_keystore_import_claimcode_from_flash(el2go_keystore_t *keys
     if (flash_ptr[0] != EL2GO_CLAIMCODE_MAGIC_0 || flash_ptr[1] != EL2GO_CLAIMCODE_MAGIC_1 ||
         flash_ptr[2] != EL2GO_CLAIMCODE_MAGIC_2 || flash_ptr[3] != EL2GO_CLAIMCODE_MAGIC_3) {
         EL2GO_DBG_PRINTF(ERROR, "Claimcode magic bytes invalid at 0x%08x\n",
-                         CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS);
+                         EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS);
         status = EL2GO_STATUS_INVALID_PARAMETER;
         goto exit;
     }

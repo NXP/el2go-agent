@@ -463,16 +463,12 @@ el2go_status_t el2go_claimcode_encrypt(const char *claimcode, const uint8_t *el2
     encrypted_claimcode_len =
         ceil_to_aes_blocksize(plain_claimcode_len + 1U /* padding adds at least one byte */);
 
-    // clang-format off
-    size_t claimcode_blob_len = 0U
-        + 2U + UID_SIZE 
-        + 2U + 65U               // public key
-        + 2U + sizeof(uint32_t) // key properties
-        + 2U + sizeof(uint32_t) // key properties
-        + 2U + IV_SIZE          // IV
-        + 2U                    // the encrypted length will be added after wrap check
-        + 2U + AES_BLOCK_SIZE;              // CMAC
-    // clang-format on
+    size_t claimcode_blob_len = 0U + 2U + UID_SIZE + 2U + 65U /* public key */
+                                + 2U + sizeof(uint32_t)       /* key properties */
+                                + 2U + sizeof(uint32_t)       /* key properties */
+                                + 2U + IV_SIZE                /* IV */
+                                + 2U /* the encrypted length will be added after wrap check */
+                                + 2U + AES_BLOCK_SIZE; /* CMAC */
 
     if (encrypted_claimcode_len > (SIZE_MAX - claimcode_blob_len)) {
         PLOG_ERROR("Error in the claim code size\n");

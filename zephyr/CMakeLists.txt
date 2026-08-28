@@ -200,32 +200,6 @@ endif()
 # RTP agent (includes, libraries, compile definitions)
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_RTP_AGENT)
-    # Public include root for <rtp/...> and <common/...> headers.
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include)
-
-    # OSAL public headers needed by app-level sources.
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/osal/include)
-
-    # Keystores private headers (included as "keystores/keystore_priv.h").
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs)
-
-    # Nanopb headers needed by keystore_priv.h and other app-level sources.
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/nanopb)
-
-    # EL2GO generated protobuf headers (Dispatcher.pb.h, ServiceDescriptor.pb.h, etc.).
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/el2go)
-
-    # Protobuf utility helpers (pb_utils.h).
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/utils)
-
-    # Network abstraction header (el2go_app_net.h).
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/network)
-
-    # MQTT transport headers for the RTP agent (included as "el2go_mqtt.h").
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/el2go_rtp_agent)
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/mqtt)
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv)
-
     # Protobuf (nanopb runtime + RTP generated files) -- shared with OTA if already added.
     if(NOT TARGET el2go_protobuf)
         add_subdirectory(
@@ -311,8 +285,30 @@ if(CONFIG_EL2GO_RTP_AGENT)
     endif()
 
     if(CONFIG_EL2GO_RTP_CLAIMCODE_INJECT)
-        zephyr_compile_definitions(
-            EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS=CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
-        )
+    set(EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS ${CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS})
+    zephyr_compile_definitions(
+        EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS=${EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS}
+    )
     endif()
+
+    if(CONFIG_EL2GO_TIME_MEASUREMENT)
+        zephyr_compile_definitions(EL2GO_TIME_MEASUREMENT_ENABLE=1)
+    endif()
+
+    if(CONFIG_EL2GO_RTP_ENABLE_INFO)
+        zephyr_compile_definitions(ENABLE_EL2GO_RTP_INFO=1)
+    endif()
+    if(CONFIG_EL2GO_RTP_ENABLE_WARN)
+        zephyr_compile_definitions(ENABLE_EL2GO_RTP_WARN=1)
+    endif()
+    if(CONFIG_EL2GO_RTP_ENABLE_ERROR)
+        zephyr_compile_definitions(ENABLE_EL2GO_RTP_ERROR=1)
+    endif()
+    if(CONFIG_EL2GO_RTP_ENABLE_DEBUG)
+        zephyr_compile_definitions(ENABLE_EL2GO_RTP_DEBUG=1)
+    endif()
+    if(CONFIG_EL2GO_RTP_ENABLE_TRACE)
+        zephyr_compile_definitions(ENABLE_EL2GO_RTP_TRACE=1)
+    endif()
+
 endif() # CONFIG_EL2GO_RTP_AGENT

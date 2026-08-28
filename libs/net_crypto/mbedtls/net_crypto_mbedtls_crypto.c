@@ -29,6 +29,7 @@
 #include <mbedtls/x509.h>
 #include <mbedtls/x509_crt.h>
 #include <mbedtls/pk.h>
+#include <mbedtls/oid.h>
 #include <mbedtls/error.h>
 #include <mbedtls/constant_time.h>
 
@@ -389,6 +390,31 @@ int net_crypto_ct_memcmp(const void *a, const void *b, size_t len)
 el2go_status_t net_crypto_get_cert_cn(const uint8_t *cert_der, size_t cert_der_len, char *cn_out,
                                       size_t cn_out_len)
 {
-    int rc = mbedtls_compat_get_cert_cn(cert_der, cert_der_len, cn_out, cn_out_len);
-    return (rc == 0) ? EL2GO_STATUS_SUCCESS : EL2GO_STATUS_FAILURE;
+    mbedtls_x509_crt cert;
+    mbedtls_x509_name *name = NULL;
+    el2go_status_t status = EL2GO_STATUS_FAILURE;
+
+    if (cert_der == NULL || cn_out == NULL || cn_out_len == 0U)
+        return EL2GO_STATUS_INVALID_PARAMETER;
+
+    mbedtls_x509_crt_init(&cert);
+
+    if (mbedtls_x509_crt_parse_der(&cert, cert_der, cert_der_len) != 0) {
+        mbedtls_x509_crt_free(&cert);
+        return EL2GO_STATUS_FAILURE;
+    }
+
+    for (name = &cert.subject; name != NULL; name = name->next) {
+        if (MBEDTLS_OID_CMP(MBEDTLS_OID_AT_CN, &name->oid) == 0) {
+            if (name->val.len >= cn_out_len)
+                break;
+            memcpy(cn_out, name->val.p, name->val.len);
+            cn_out[name->val.len] = '\0';
+            status = EL2GO_STATUS_SUCCESS;
+            break;
+        }
+    }
+
+    mbedtls_x509_crt_free(&cert);
+    return status;
 }

@@ -33,7 +33,7 @@ endfunction()
 # Adds public include directories to a target
 function(add_public_directories target)
     if(BUILD_ZEPHYR)
-        zephyr_library_include_directories(${ARGN})
+        zephyr_include_directories(${ARGN})
     else()
         target_include_directories(${target} PUBLIC ${ARGN})
     endif()

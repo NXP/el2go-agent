@@ -13,7 +13,7 @@ add_private_sources(el2go_keystore
 # Flash-based claimcode injection is only compiled when explicitly enabled.
 # When disabled the weak stub in el2go_keystore.c is used instead.
 if(CONFIG_EL2GO_RTP_CLAIMCODE_INJECT)
-    add_private_sources(el2go_keystore el2go_keystore_psa_claimcode.c)
+    add_private_sources(el2go_keystore el2go_keystore_psa_claimcode_flash.c)
 endif()
 
 # Link PSA dependencies (non-Zephyr only; Zephyr resolves these via the module graph)

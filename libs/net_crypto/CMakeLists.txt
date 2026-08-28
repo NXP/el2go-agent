@@ -5,9 +5,6 @@
 
 include(add_target_sources)
 
-if(BUILD_ZEPHYR)
-    zephyr_library()
-endif()
 declare_library(net_crypto)
 
 add_private_sources(net_crypto
@@ -16,7 +13,6 @@ add_private_sources(net_crypto
 
 add_public_directories(net_crypto
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${PROJECT_ROOT}/libs/platforms
 )
 
 add_private_directories(net_crypto

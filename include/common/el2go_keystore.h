@@ -114,7 +114,7 @@ el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore, const
 /**
  * @brief Import claimcode blob from a fixed flash address into PSA ITS.
  *
- * Reads the claimcode blob from CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS,
+ * Reads the claimcode blob from EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS,
  * validates the magic indicator {'E','2','G','C'}, and writes it into PSA ITS
  * under EDGELOCK2GO_CLAIMCODE_DATA_ID. No-op if already stored.
  *

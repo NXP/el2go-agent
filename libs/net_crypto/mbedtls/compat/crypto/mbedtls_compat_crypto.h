@@ -191,26 +191,6 @@ int mbedtls_compat_x509write_crt_set_serial(mbedtls_x509write_cert *ctx,
 int mbedtls_compat_x509write_crt_der(mbedtls_x509write_cert *ctx, unsigned char *buf, size_t size,
                                      mbedtls_compat_rng_context *rng_ctx);
 
-/* ========================================================================== */
-/* X.509 certificate parse                                                     */
-/* ========================================================================== */
-
-/**
- * @brief Extract the Common Name (CN) from a DER-encoded certificate.
- *
- * Parses the subject DN of the certificate and copies the CN value into
- * cn_out as a null-terminated string.
- *
- * @param[in]  cert_der      DER-encoded certificate buffer.
- * @param[in]  cert_der_len  Length of the DER buffer.
- * @param[out] cn_out        Output buffer for the CN string (null-terminated).
- * @param[in]  cn_out_len    Size of the output buffer.
- *
- * @return 0 on success, negative error code on failure.
- */
-int mbedtls_compat_get_cert_cn(const uint8_t *cert_der, size_t cert_der_len, char *cn_out,
-                               size_t cn_out_len);
-
 /** @} */
 
 #endif /* __MBEDTLS_COMPAT_CRYPTO_H__ */

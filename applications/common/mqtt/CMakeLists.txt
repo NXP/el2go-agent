@@ -14,6 +14,6 @@ add_public_directories(el2go_mqtt
     ${PROJECT_ROOT}/include
 )
 
-if(CONFIG_EL2GO_RTP_MQTT_VERIFY)
-    add_subdirectory(zephyr)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${OS})
+    add_subdirectory(${OS})
 endif()

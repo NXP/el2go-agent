@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef APPLICATIONS_COMMON_MQTT_EL2GO_MQTT_H_
-#define APPLICATIONS_COMMON_MQTT_EL2GO_MQTT_H_
+#ifndef __EL2GO_MQTT_H__
+#define __EL2GO_MQTT_H__
 
 #include "common/el2go_keystore.h"
 
@@ -33,4 +33,4 @@
  */
 int el2go_mqtt_verify(el2go_keystore_t *keystore);
 
-#endif /* APPLICATIONS_COMMON_MQTT_EL2GO_MQTT_H_ */
+#endif /* __EL2GO_MQTT_H__ */

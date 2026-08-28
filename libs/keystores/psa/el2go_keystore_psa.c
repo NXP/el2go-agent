@@ -32,6 +32,10 @@
 
 #define EL2GO_MAX_KEY_DATA_SIZE (10 * 1024)
 
+/* Server-canonical claimcode UID: the TF-M ITS range UID that the server
+ * always sends regardless of the target platform. */
+#define EL2GO_SERVER_CLAIMCODE_UID 0xF00000E0U
+
 /* Map the server-canonical claimcode UID to the locally valid ITS UID.
  * The server always sends 0xF00000E0 (the TF-M ITS range). On non-TF-M
  * platforms EDGELOCK2GO_CLAIMCODE_DATA_ID is already defined to the
@@ -39,7 +43,7 @@
  * builds both sides are identical and the function is a no-op. */
 static inline psa_storage_uid_t psa_its_uid_remap(psa_storage_uid_t uid)
 {
-    if (uid == 0xF00000E0U)
+    if (uid == EL2GO_SERVER_CLAIMCODE_UID)
         return (psa_storage_uid_t)EDGELOCK2GO_CLAIMCODE_DATA_ID;
     return uid;
 }

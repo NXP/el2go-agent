@@ -16,7 +16,6 @@
 #include <el2go_rtp_claimcode.h>
 #include "osal.h"
 
-#include "el2go_board.h"
 #include "el2go_flash_config.h"
 
 /*******************************************************************************
@@ -185,9 +184,6 @@ static el2go_status_t write_claimcode_blob_to_flash(uint32_t address, uint8_t *c
  */
 int main(void)
 {
-    /* Init board hardware. */
-    el2go_board_init();
-
     uint8_t claimcode_blob[512];
     size_t claimcode_blob_length = sizeof(claimcode_blob);
 

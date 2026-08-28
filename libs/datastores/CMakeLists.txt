@@ -7,9 +7,6 @@ include(add_target_sources)
 add_subdirectory(fs)
 add_subdirectory(plain)
 
-if(BUILD_ZEPHYR)
-    zephyr_library()
-endif()
 declare_library(el2go_datastore)
 
 add_private_sources(el2go_datastore
@@ -28,10 +25,6 @@ add_private_directories(el2go_datastore
     ${PROJECT_ROOT}/include
     ${PROJECT_ROOT}/priv
     ${PROJECT_ROOT}/libs/osal/include
-    ${PROJECT_ROOT}/libs/protobuf/nanopb
-    ${PROJECT_ROOT}/libs/protobuf/el2go
-    ${PROJECT_ROOT}/libs/protobuf/utils
-    ${PROJECT_ROOT}/libs/platforms
 )
 
 add_link_libraries(el2go_datastore

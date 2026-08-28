@@ -29,7 +29,7 @@
 
 #include "psa/crypto.h"
 
-#include "net_crypto/net_crypto.h"
+#include "net_crypto.h"
 #include "el2go_mqtt.h"
 #include "el2go_mqtt_config.h"
 
@@ -599,8 +599,7 @@ static int awsPubMqttMessage(void)
         if (rc != 0) {
             return rc;
         }
-        LOG_INF("AWS cert: len=%zu, first bytes: %02x %02x %02x %02x", cert_len, cert_buf[0],
-                cert_buf[1], cert_buf[2], cert_buf[3]);
+
         (void)extract_cn_from_cert(cert_buf, cert_len, client_id, sizeof(client_id));
         k_free(cert_buf);
     }
@@ -611,10 +610,6 @@ static int awsPubMqttMessage(void)
     }
 
     const char *hostname = CONFIG_EL2GO_RTP_MQTT_AWS_HOSTNAME;
-
-    LOG_INF("AWS client_id: '%s' (len=%zu)", client_id, strlen(client_id));
-    LOG_INF("AWS key_id: 0x%08x  cert_id: 0x%08x", (unsigned)MQTT_AWS_KEY_ID,
-            (unsigned)MQTT_AWS_CERT_ID);
 
     rc = setupMQTTClient(&client_ctx, genericMQTTCallback, client_id, NULL, hostname, 8883U,
                          MQTT_AWS_KEY_ID, MQTT_AWS_CERT_ID, aws_root_ca, sizeof(aws_root_ca));
@@ -691,8 +686,6 @@ static int azureRegister(azure_registration_info_t *reg_info)
         size_t cert_len = 0;
 
         rc = export_cert_der_from_psa_keystore(MQTT_AZURE_CERT_ID, &cert_buf, &cert_len);
-        LOG_INF("Azure cert: len=%zu, first bytes: %02x %02x %02x %02x", cert_len, cert_buf[0],
-                cert_buf[1], cert_buf[2], cert_buf[3]);
         if (rc != 0) {
             return rc;
         }
@@ -710,8 +703,6 @@ static int azureRegister(azure_registration_info_t *reg_info)
         return rc;
     }
 
-    LOG_INF("Azure reg_id: '%s'", reg_id);
-    LOG_INF("Azure username: '%s'", reg_info->username);
     rc = setupMQTTClient(&client_ctx, azureRegistrationCallback, reg_id, reg_info->username,
                          AZURE_MQTT_REGISTER_HOSTNAME, AZURE_MQTT_REGISTER_PORT, MQTT_AZURE_KEY_ID,
                          MQTT_AZURE_CERT_ID, azure_root_ca, sizeof(azure_root_ca));

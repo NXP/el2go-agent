@@ -7,10 +7,10 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <zephyr/logging/log.h>
 #include "osal.h"
 
-#include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(el2go_osal, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(el2go, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define HEX_DUMP_LINE_LENGTH 16
 

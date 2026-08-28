@@ -31,12 +31,8 @@ zephyr_include_directories(
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/el2go_claimcode_encryption/flash_config
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/config
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include/rtp
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms
 )
 
-target_sources(app PRIVATE
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms/el2go_board.c
-)
 
 # FIXME: Add ROMAPI as a proper Zephyr component when available.
 # Until then, pull the ROM API drivers directly from hal_nxp.

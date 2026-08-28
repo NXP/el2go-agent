@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef EL2GO_APP_CONFIG_H
-#define EL2GO_APP_CONFIG_H
+#ifndef __EL2GO_APP_CONFIG_H__
+#define __EL2GO_APP_CONFIG_H__
 
 /**
  * The plain claimcode string to encrypt and write to flash.
@@ -20,4 +20,4 @@
 #endif
 #endif
 
-#endif /* EL2GO_APP_CONFIG_H */
+#endif /* __EL2GO_APP_CONFIG_H__ */

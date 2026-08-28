@@ -17,7 +17,6 @@
 #include "common/el2go_platform.h"
 #include "platform_priv.h"
 #include "platform_defs.h"
-#include "el2go_board.h"
 #include "els_pkc_platform_priv.h"
 
 struct el2go_platform_ctx {
@@ -41,8 +40,6 @@ __export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
         EL2GO_DBG_PRINTF(INFO, "[EL2GO ELS_PKC] Platform already initialized\n");
         return EL2GO_STATUS_SUCCESS;
     }
-
-    el2go_board_init();
 
     ctx = osal_calloc(1U, sizeof(*ctx));
     if (!ctx) {
