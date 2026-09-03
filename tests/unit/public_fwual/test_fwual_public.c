@@ -226,7 +226,7 @@ static bool test_fwual_prepare_image_no_session(void *params)
     fwual_close_session(session);
 
     r = fwual_prepare_image(session, &desc);
-    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, r, exit);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_STATE, r, exit);
 
 exit:
     return test_status;
@@ -302,7 +302,7 @@ static bool test_fwual_cancel_image_not_prepared(void *params)
     TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
 
     r = fwual_cancel_image(session, 99U);
-    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, r, exit);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_STATE, r, exit);
 
 exit:
     fwual_close_session(session);

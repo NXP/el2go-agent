@@ -1027,6 +1027,7 @@ static bool test_pending_status_struct_layout(void *params)
  */
 void register_ota_lib_internal_tests(void)
 {
+    TEST_REGISTER_ID("-", test_encode_check_update_no_attrs);
     TEST_REGISTER_ID("OTA_UT_OL_2.1", test_encode_fetch_package_roundtrip);
     TEST_REGISTER_ID("OTA_UT_OL_2.2", test_encode_fetch_package_with_artifact_and_range);
     TEST_REGISTER_ID("OTA_UT_OL_2.3", test_encode_fetch_package_chunked_range);

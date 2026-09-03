@@ -44,10 +44,14 @@ static fwual_mock_image_t *find_active_image(fwual_image_id_t image_id)
 {
     size_t i = 0U;
 
+    if (s_mock.session.images == NULL) {
+        return NULL;
+    }
+
     for (i = 0U; i < s_mock.session.image_count; i++) {
         fwual_mock_image_t *slot = &s_mock.session.images[i];
 
-        if (slot->image_id == image_id && slot->prepared && !slot->cancelled) {
+        if (slot != NULL && slot->image_id == image_id && slot->prepared && !slot->cancelled) {
             return slot;
         }
     }
@@ -127,11 +131,11 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
     size_t i = 0U;
     fwual_mock_image_t *slot = NULL;
 
-    if (session == NULL || desc == NULL) {
+    if (session == NULL || desc == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
-    if (!s_mock.session.active || session != &s_mock.session) {
-        return FWUAL_ERR_INVALID_PARAM;
+    if (!s_mock.session.active) {
+        return FWUAL_ERR_INVALID_STATE;
     }
     if (desc->size > FWUAL_MOCK_IMAGE_BUF_SIZE) {
         return FWUAL_ERR_NO_SPACE;
@@ -168,10 +172,10 @@ fwual_result_t fwual_check_storage(fwual_session_t *session, fwual_image_id_t im
 {
     fwual_mock_image_t *slot = NULL;
 
-    if (session == NULL) {
+    if (session == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
-    if (!s_mock.session.active || session != &s_mock.session) {
+    if (!s_mock.session.active) {
         return FWUAL_ERR_INVALID_STATE;
     }
 
@@ -196,7 +200,7 @@ fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t ima
 
     slot = find_active_image(image_id);
     if (slot == NULL) {
-        return FWUAL_ERR_INVALID_PARAM;
+        return FWUAL_ERR_INVALID_STATE;
     }
 
     slot->cancelled = true;
@@ -210,10 +214,10 @@ fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id, 
 {
     fwual_mock_image_t *slot = NULL;
 
-    if (session == NULL || data == NULL || len == 0U) {
+    if (session == NULL || data == NULL || len == 0U || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
-    if (session != &s_mock.session || !s_mock.session.active) {
+    if (!s_mock.session.active) {
         return FWUAL_ERR_INVALID_STATE;
     }
 
@@ -224,6 +228,10 @@ fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id, 
 
     if (s_mock.caps.requires_sequential_writes && offset != slot->next_expected_offset) {
         return FWUAL_ERR_INVALID_STATE;
+    }
+
+    if (offset > slot->desc.size) {
+        return FWUAL_ERR_INVALID_PARAM;
     }
 
     if (offset + (uint64_t)len > slot->desc.size) {
@@ -241,10 +249,10 @@ fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_image_id_t i
 {
     fwual_mock_image_t *slot = NULL;
 
-    if (session == NULL) {
+    if (session == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
-    if (session != &s_mock.session || !s_mock.session.active) {
+    if (!s_mock.session.active) {
         return FWUAL_ERR_INVALID_STATE;
     }
 
@@ -268,10 +276,10 @@ fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image_id_t ima
     size_t hash_len = 0U;
     psa_status_t ps = PSA_ERROR_GENERIC_ERROR;
 
-    if (session == NULL) {
+    if (session == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
-    if (session != &s_mock.session || !s_mock.session.active) {
+    if (!s_mock.session.active) {
         return FWUAL_ERR_INVALID_STATE;
     }
 
@@ -296,7 +304,10 @@ fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image_id_t ima
         return FWUAL_ERR_INVALID_PARAM;
     }
 
-    (void)psa_crypto_init();
+    if (psa_crypto_init() != PSA_SUCCESS) {
+        return FWUAL_ERR_INTERNAL;
+    }
+
     ps = psa_hash_compute(PSA_ALG_SHA_256, slot->data, (size_t)slot->desc.size, computed,
                           sizeof(computed), &hash_len);
     if (ps != PSA_SUCCESS || hash_len != 32U) {
@@ -315,10 +326,10 @@ fwual_result_t fwual_commit_session(fwual_session_t *session)
 {
     size_t i = 0U;
 
-    if (session == NULL) {
+    if (session == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
-    if (session != &s_mock.session || !s_mock.session.active) {
+    if (!s_mock.session.active) {
         return FWUAL_ERR_INVALID_STATE;
     }
 

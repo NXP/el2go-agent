@@ -1,0 +1,17 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config EL2GO_OTA_FWUAL_LIBRARY_SOURCES
+    bool "Include FWUAL sources"
+
+config EL2GO_OTA_LIBRARY_SOURCES
+    bool "Include EL2GO OTA Library sources"
+
+config EL2GO_OTA_TESTS
+    bool "Include EL2GO OTA unit test sources"
+
+config EL2GO_OTA_PLATFORM_SOURCES
+    bool "Include EL2GO OTA platform sources"
+    depends on !EL2GO_OTA_TESTS
+
+source "Kconfig.zephyr"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2026 NXP
+ * Copyright 2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *

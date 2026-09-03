@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2026 NXP
+ * Copyright 2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -21,7 +21,7 @@ static const uint8_t k_chunk_payload[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0
 
 /* Chunk-callback capture state (data + total length + call count + last offset). */
 struct chunk_capture {
-    uint8_t data[512];
+    uint8_t data[512U];
     size_t total_len;
     size_t call_count;
     size_t last_offset;
@@ -35,6 +35,11 @@ static el2go_ota_status_t capture_chunk_cb(const uint8_t *data, size_t len, size
     if ((cap->total_len + len) > sizeof(cap->data)) {
         return EL2GO_OTA_ERROR_INTERNAL;
     }
+
+    if (data == NULL && len != 0U) {
+        return EL2GO_OTA_ERROR_INTERNAL;
+    }
+
     (void)memcpy(&cap->data[cap->total_len], data, len);
     cap->total_len += len;
     cap->call_count++;
@@ -54,7 +59,7 @@ static el2go_ota_status_t abort_chunk_cb(const uint8_t *data, size_t len, size_t
 
 /* Per-call offset capture (used for range-advance assertions). */
 struct range_capture {
-    size_t offsets[8];
+    size_t offsets[8U];
     size_t call_count;
 };
 
@@ -65,7 +70,7 @@ static el2go_ota_status_t range_capture_cb(const uint8_t *data, size_t len, size
 
     (void)data;
     (void)len;
-    if (cap->call_count >= 8U) {
+    if (cap->call_count >= sizeof(cap->offsets) / sizeof(cap->offsets[0])) {
         return EL2GO_OTA_ERROR_INTERNAL;
     }
     cap->offsets[cap->call_count] = offset;
@@ -95,9 +100,9 @@ static test_result_t test_ol_check_update_available(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_check_update_resp_t resp = { 0 };
-    uint8_t wire[512];
+    uint8_t wire[512U] = { 0 };
     size_t wire_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -128,9 +133,9 @@ static test_result_t test_ol_check_update_empty(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_check_update_resp_t resp = { 0 };
-    uint8_t wire[16];
+    uint8_t wire[16U] = { 0 };
     size_t wire_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -159,7 +164,7 @@ static test_result_t test_ol_check_update_malformed(void)
     static const uint8_t truncated_varint[] = {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     };
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -181,7 +186,7 @@ static test_result_t test_ol_check_update_network_error(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_check_update_resp_t resp = { 0 };
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -203,11 +208,11 @@ static test_result_t test_ol_download_single_chunk(void)
 {
     el2go_ota_transport_t t = { 0 };
     struct chunk_capture cap = { 0 };
-    uint8_t chunk_wire[128];
-    uint8_t eof_wire[32];
+    uint8_t chunk_wire[128U] = { 0 };
+    uint8_t eof_wire[32U] = { 0 };
     size_t chunk_len = 0U;
     size_t eof_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -226,7 +231,8 @@ static test_result_t test_ol_download_single_chunk(void)
     TEST_ASSERT_EQ(0, mock_transport_queue_response(chunk_wire, chunk_len));
     TEST_ASSERT_EQ(0, mock_transport_queue_response(eof_wire, eof_len));
 
-    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", 0U, capture_chunk_cb, &cap);
+    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", "file-1", 0U,
+                                                capture_chunk_cb, &cap);
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, s);
 
     TEST_ASSERT_EQ(sizeof(k_chunk_payload), cap.total_len);
@@ -240,10 +246,10 @@ static test_result_t test_ol_download_multi_chunk(void)
 {
     el2go_ota_transport_t t = { 0 };
     struct chunk_capture cap = { 0 };
-    uint8_t c0[128];
-    uint8_t c1[128];
-    uint8_t c2[128];
-    uint8_t eof[32];
+    uint8_t c0[128U] = { 0 };
+    uint8_t c1[128U] = { 0 };
+    uint8_t c2[128U] = { 0 };
+    uint8_t eof[32U] = { 0 };
     size_t l0 = 0U;
     size_t l1 = 0U;
     size_t l2 = 0U;
@@ -252,8 +258,8 @@ static test_result_t test_ol_download_multi_chunk(void)
     static const uint8_t p0[] = { 0xA0, 0xA1, 0xA2, 0xA3 };
     static const uint8_t p1[] = { 0xB0, 0xB1, 0xB2, 0xB3 };
     static const uint8_t p2[] = { 0xC0, 0xC1, 0xC2, 0xC3 };
-    uint8_t expected[12];
-    el2go_ota_status_t s;
+    uint8_t expected[12U] = { 0 };
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -273,12 +279,13 @@ static test_result_t test_ol_download_multi_chunk(void)
     TEST_ASSERT_EQ(0, mock_transport_queue_response(c2, l2));
     TEST_ASSERT_EQ(0, mock_transport_queue_response(eof, le));
 
-    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", 0U, capture_chunk_cb, &cap);
+    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", "file-1", 0U,
+                                                capture_chunk_cb, &cap);
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, s);
 
-    (void)memcpy(&expected[0], p0, 4);
-    (void)memcpy(&expected[4], p1, 4);
-    (void)memcpy(&expected[8], p2, 4);
+    (void)memcpy(&expected[0], p0, 4U);
+    (void)memcpy(&expected[4], p1, 4U);
+    (void)memcpy(&expected[8], p2, 4U);
 
     TEST_ASSERT_EQ(12U, cap.total_len);
     TEST_ASSERT_MEM_EQ(expected, cap.data, sizeof(expected));
@@ -291,16 +298,16 @@ static test_result_t test_ol_download_chunk_range_advances(void)
 {
     el2go_ota_transport_t t = { 0 };
     struct range_capture rcap = { 0 };
-    uint8_t c0[128];
-    uint8_t c1[128];
-    uint8_t c2[128];
-    uint8_t eof[32];
+    uint8_t c0[128U] = { 0 };
+    uint8_t c1[128U] = { 0 };
+    uint8_t c2[128U] = { 0 };
+    uint8_t eof[32U] = { 0 };
     size_t l0 = 0U;
     size_t l1 = 0U;
     size_t l2 = 0U;
     size_t le = 0U;
     static const uint8_t p[] = { 0x10, 0x11, 0x12, 0x13 };
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
     size_t i;
 
     CT_ENTER();
@@ -321,7 +328,8 @@ static test_result_t test_ol_download_chunk_range_advances(void)
     TEST_ASSERT_EQ(0, mock_transport_queue_response(c2, l2));
     TEST_ASSERT_EQ(0, mock_transport_queue_response(eof, le));
 
-    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", 0U, range_capture_cb, &rcap);
+    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", "file-1", 0U,
+                                                range_capture_cb, &rcap);
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, s);
     TEST_ASSERT_EQ(3U, rcap.call_count);
 
@@ -336,9 +344,9 @@ static test_result_t test_ol_download_chunk_range_advances(void)
 static test_result_t test_ol_download_callback_abort(void)
 {
     el2go_ota_transport_t t = { 0 };
-    uint8_t chunk_wire[128];
+    uint8_t chunk_wire[128U] = { 0 };
     size_t chunk_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -353,7 +361,8 @@ static test_result_t test_ol_download_callback_abort(void)
                           k_chunk_payload, sizeof(k_chunk_payload), &chunk_len));
     TEST_ASSERT_EQ(0, mock_transport_queue_response(chunk_wire, chunk_len));
 
-    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", 0U, abort_chunk_cb, NULL);
+    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", "file-1", 0U, abort_chunk_cb,
+                                                NULL);
     TEST_ASSERT_EQ(EL2GO_OTA_ERROR_INTERNAL, s);
     return TEST_PASS;
 }
@@ -363,10 +372,10 @@ static test_result_t test_ol_download_network_interruption(void)
 {
     el2go_ota_transport_t t = { 0 };
     struct chunk_capture cap = { 0 };
-    uint8_t c0[128];
+    uint8_t c0[128U] = { 0 };
     size_t l0 = 0U;
     static const uint8_t p0[] = { 0x10, 0x11, 0x12, 0x13 };
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -380,7 +389,8 @@ static test_result_t test_ol_download_network_interruption(void)
     TEST_ASSERT_EQ(0, mock_transport_queue_response(c0, l0));
     TEST_ASSERT_EQ(0, mock_transport_queue_network_error());
 
-    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", 0U, capture_chunk_cb, &cap);
+    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", "file-1", 0U,
+                                                capture_chunk_cb, &cap);
     TEST_ASSERT_EQ(EL2GO_OTA_ERROR_NETWORK, s);
     TEST_ASSERT_EQ(4U, cap.total_len);
     return TEST_PASS;
@@ -391,14 +401,14 @@ static test_result_t test_ol_download_resume_from_offset(void)
 {
     el2go_ota_transport_t t = { 0 };
     struct chunk_capture cap = { 0 };
-    uint8_t c1[128];
-    uint8_t eof[32];
+    uint8_t c1[128U] = { 0 };
+    uint8_t eof[32U] = { 0 };
     size_t l1 = 0U;
     size_t le = 0U;
     static const uint8_t p1[] = { 0xB0, 0xB1, 0xB2, 0xB3 };
-    uint8_t last_req[512];
+    uint8_t last_req[512U] = { 0 };
     size_t last_req_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -413,7 +423,8 @@ static test_result_t test_ol_download_resume_from_offset(void)
     TEST_ASSERT_EQ(0, mock_transport_queue_response(c1, l1));
     TEST_ASSERT_EQ(0, mock_transport_queue_response(eof, le));
 
-    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", 4U, capture_chunk_cb, &cap);
+    s = el2go_ota_download_engine_fetch_package(&t, "upd-1", "pkg-1", "file-1", 4U,
+                                                capture_chunk_cb, &cap);
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, s);
     TEST_ASSERT_EQ(4U, cap.total_len);
     TEST_ASSERT_EQ(0, mock_transport_get_last_request(last_req, sizeof(last_req), &last_req_len));
@@ -425,7 +436,7 @@ static test_result_t test_ol_download_resume_from_offset(void)
 static test_result_t test_ol_schedule_and_read_pending(void)
 {
     el2go_ota_pending_status_t pending = { 0 };
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH);
 
@@ -447,9 +458,9 @@ static test_result_t test_ol_report_status_success_ack(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_pending_status_t pending = { 0 };
-    uint8_t ack[16];
+    uint8_t ack[16U] = { 0 };
     size_t ack_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -476,9 +487,9 @@ static test_result_t test_ol_report_status_failure_ack(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_pending_status_t pending = { 0 };
-    uint8_t ack[16];
+    uint8_t ack[16U] = { 0 };
     size_t ack_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -505,9 +516,9 @@ static test_result_t test_ol_report_status_rollback_ack(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_pending_status_t pending = { 0 };
-    uint8_t ack[16];
+    uint8_t ack[16U] = { 0 };
     size_t ack_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -534,7 +545,7 @@ static test_result_t test_ol_report_status_retains_on_error(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_pending_status_t pending = { 0 };
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -561,9 +572,9 @@ static test_result_t test_ol_report_retry_after_failures(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_pending_status_t pending = { 0 };
-    uint8_t ack[16];
+    uint8_t ack[16U] = { 0 };
     size_t ack_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -597,11 +608,11 @@ static test_result_t test_ol_wire_check_update_request(void)
 {
     el2go_ota_transport_t t = { 0 };
     el2go_ota_check_update_resp_t resp = { 0 };
-    uint8_t wire[512];
+    uint8_t wire[512U] = { 0 };
     size_t wire_len = 0U;
-    uint8_t req[512];
+    uint8_t req[512U] = { 0 };
     size_t req_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -629,18 +640,18 @@ static test_result_t test_ol_wire_fetch_package_range(void)
 {
     el2go_ota_transport_t t = { 0 };
     struct chunk_capture cap = { 0 };
-    uint8_t c_wire[128];
-    uint8_t eof_wire[32];
+    uint8_t c_wire[128U] = { 0 };
+    uint8_t eof_wire[32U] = { 0 };
     size_t c_len = 0U;
     size_t eof_len = 0U;
 
     static const uint8_t p[] = { 0x10, 0x11, 0x12 };
-    uint8_t actual_req[512];
+    uint8_t actual_req[512U] = { 0 };
     size_t actual_req_len = 0U;
-    uint8_t expected_req[512];
+    uint8_t expected_req[512U] = { 0 };
     size_t expected_req_len = 0U;
     el2go_ota_fetch_pkg_req_t expected = { 0 };
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
@@ -654,7 +665,8 @@ static test_result_t test_ol_wire_fetch_package_range(void)
                    canned_fetch_package_chunk(c_wire, sizeof(c_wire), 4, 6, p, sizeof(p), &c_len));
     TEST_ASSERT_EQ(0, mock_transport_queue_response(c_wire, c_len));
 
-    s = el2go_ota_download_engine_fetch_package(&t, "upd-22", "pkg-22", 4U, capture_chunk_cb, &cap);
+    s = el2go_ota_download_engine_fetch_package(&t, "upd-22", "pkg-22", "file-22", 4U,
+                                                capture_chunk_cb, &cap);
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, s);
     TEST_ASSERT_EQ(3U, cap.total_len);
 
@@ -662,12 +674,16 @@ static test_result_t test_ol_wire_fetch_package_range(void)
                                                       &actual_req_len));
     TEST_ASSERT_NE(0U, actual_req_len);
 
+    /*
+     * el2go_ota_fetch_pkg_req_t no longer carries the has_range_start /
+     * has_range_end gates or the legacy artifact_id: the current builder
+     * always emits a Range submessage, and the "third-level" id is now
+     * file_id (see libs/el2go_ota_lib/src/el2go_ota_request_builder.h).
+     */
     expected.update_id = "upd-22";
     expected.package_id = "pkg-22";
-    expected.artifact_id = NULL;
-    expected.has_range_start = true;
+    expected.file_id = "file-22";
     expected.range_start = 4;
-    expected.has_range_end = true;
     expected.range_end = 4 + (int64_t)(EL2GO_OTA_CHUNK_SIZE - 1U);
 
     s = el2go_ota_encode_fetch_package(&expected, expected_req, sizeof(expected_req),
@@ -682,11 +698,11 @@ static test_result_t test_ol_wire_fetch_package_range(void)
 static test_result_t test_ol_wire_report_status_request(void)
 {
     el2go_ota_transport_t t = { 0 };
-    uint8_t ack[16];
+    uint8_t ack[16U] = { 0 };
     size_t ack_len = 0U;
-    uint8_t req[512];
+    uint8_t req[512U] = { 0 };
     size_t req_len = 0U;
-    el2go_ota_status_t s;
+    el2go_ota_status_t s = EL2GO_OTA_ERROR_INTERNAL;
 
     CT_ENTER();
     {
