@@ -15,6 +15,7 @@ typedef struct {
     const char *name;
     test_func_t func;
     void *params;
+    const char *plan_id; /* NULL for legacy (no-ID) registrations */
 } test_entry_t;
 
 static test_entry_t tests[MAX_TESTS];
@@ -47,7 +48,7 @@ void test_framework_set_suite_teardown(test_teardown_func_t teardown, void *para
     suite_teardown_params = params;
 }
 
-void test_framework_register(const char *name, test_func_t func, void *params)
+void test_framework_register(const char *name, test_func_t func, void *params, const char *plan_id)
 {
     if (!name || !func) {
         TEST_PRINT_ERROR("Invalid test (NULL name or function)");
@@ -62,6 +63,7 @@ void test_framework_register(const char *name, test_func_t func, void *params)
     tests[test_count].name = name;
     tests[test_count].func = func;
     tests[test_count].params = params;
+    tests[test_count].plan_id = plan_id;
     test_count++;
 }
 
@@ -94,13 +96,21 @@ int test_framework_run(void)
         bool result = tests[i].func(tests[i].params);
 
         if (result) {
-            TEST_PRINT_RESULT("PASS", tests[i].name);
+            if (tests[i].plan_id != NULL) {
+                TEST_PRINT(stdout, "[RESULT] [ PASS ] [%s] %s\n", tests[i].plan_id, tests[i].name);
+            } else {
+                TEST_PRINT_RESULT("PASS", tests[i].name);
+            }
             if (INC_OVERFLOW(passed, 1)) {
                 TEST_PRINT_ERROR("Passed counter overflow");
                 return 1;
             }
         } else {
-            TEST_PRINT_RESULT("FAIL", tests[i].name);
+            if (tests[i].plan_id != NULL) {
+                TEST_PRINT(stdout, "[RESULT] [ FAIL ] [%s] %s\n", tests[i].plan_id, tests[i].name);
+            } else {
+                TEST_PRINT_RESULT("FAIL", tests[i].name);
+            }
             if (INC_OVERFLOW(failed, 1)) {
                 TEST_PRINT_ERROR("Failed counter overflow");
                 return 1;

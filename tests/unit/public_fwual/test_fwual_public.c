@@ -416,63 +416,6 @@ exit:
     return test_status;
 }
 
-static bool test_fwual_write_null_data_standalone(void *params)
-{
-    bool test_status = true;
-    fwual_session_t *session = NULL;
-    fwual_result_t open_rc = FWUAL_RESULT_UNINITIALIZED;
-    fwual_result_t result = FWUAL_RESULT_UNINITIALIZED;
-
-    (void)params;
-
-    open_rc = fwual_open_session(&session);
-    if (open_rc != FWUAL_OK) {
-        TEST_PRINT_INFO("fwual_open_session failed (%d) - skipping null data test body "
-                        "(infrastructure not ready)",
-                        open_rc);
-        goto exit;
-    }
-    result = fwual_write(session, 0U, 0U, NULL, 10U);
-    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, result, cleanup);
-    TEST_PRINT_INFO("fwual_write(NULL data) correctly rejected");
-    (void)fwual_close_session(session);
-    goto exit;
-
-cleanup:
-    (void)fwual_close_session(session);
-exit:
-    return test_status;
-}
-
-static bool test_fwual_write_zero_len_standalone(void *params)
-{
-    bool test_status = true;
-    fwual_session_t *session = NULL;
-    fwual_result_t open_rc = FWUAL_RESULT_UNINITIALIZED;
-    fwual_result_t result = FWUAL_RESULT_UNINITIALIZED;
-    uint8_t buf[16] = { 0 };
-
-    (void)params;
-
-    open_rc = fwual_open_session(&session);
-    if (open_rc != FWUAL_OK) {
-        TEST_PRINT_INFO("fwual_open_session failed (%d) - skipping zero len test body", open_rc);
-        goto exit;
-    }
-
-    result = fwual_write(session, 0U, 0U, buf, 0U);
-    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, result, cleanup);
-    TEST_PRINT_INFO("fwual_write(len=0) correctly rejected");
-
-    (void)fwual_close_session(session);
-    goto exit;
-
-cleanup:
-    (void)fwual_close_session(session);
-exit:
-    return test_status;
-}
-
 static bool test_fwual_finalize_null_session(void *params)
 {
     bool test_status = true;
@@ -1166,25 +1109,6 @@ exit:
     return test_status;
 }
 
-/* Lifecycle unit tests (defined before registration) */
-
-/**
- * @brief Verify that fwual_commit_session(NULL) returns FWUAL_ERR_INVALID_PARAM.
- */
-static bool test_fwual_commit_null_session(void *params)
-{
-    bool test_status = true;
-
-    (void)params;
-
-    fwual_result_t result = fwual_commit_session(NULL);
-    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, result, exit);
-    TEST_PRINT_INFO("fwual_commit_session(NULL) correctly returned FWUAL_ERR_INVALID_PARAM");
-
-exit:
-    return test_status;
-}
-
 /**
  * @brief Verify that fwual_activate() in a non-COMMITTED state returns FWUAL_ERR_INVALID_STATE.
  *
@@ -1325,59 +1249,50 @@ exit:
 
 void register_fwual_tests(void)
 {
-    /* Null-param / invalid-param tests */
-    TEST_REGISTER(test_fwual_get_caps_null);
-    TEST_REGISTER(test_fwual_open_session_null);
-    TEST_REGISTER(test_fwual_close_session_null);
-    TEST_REGISTER(test_fwual_prepare_image_null_session);
-    TEST_REGISTER(test_fwual_write_null_data);
-    TEST_REGISTER(test_fwual_write_zero_len);
-    TEST_REGISTER(test_fwual_is_image_staged_null_session);
+    /* Null-param / invalid-param tests (OTA_UT_FW_1.x) */
+    TEST_REGISTER_ID("OTA_UT_FW_1.1", test_fwual_get_caps_null);
+    TEST_REGISTER_ID("OTA_UT_FW_1.2", test_fwual_open_session_null);
+    TEST_REGISTER_ID("OTA_UT_FW_1.3", test_fwual_close_session_null);
+    TEST_REGISTER_ID("OTA_UT_FW_1.4", test_fwual_prepare_image_null_session);
+    TEST_REGISTER_ID("OTA_UT_FW_1.5", test_fwual_write_null_data);
+    TEST_REGISTER_ID("OTA_UT_FW_1.6", test_fwual_write_zero_len);
+    TEST_REGISTER_ID("OTA_UT_FW_1.7", test_fwual_is_image_staged_null_session);
+    TEST_REGISTER_ID("OTA_UT_FW_1.8", test_fwual_write_null_session);
+    TEST_REGISTER_ID("OTA_UT_FW_1.9", test_fwual_finalize_null_session);
+    TEST_REGISTER_ID("OTA_UT_FW_1.10", test_fwual_verify_null_session);
+    TEST_REGISTER_ID("OTA_UT_FW_1.11", test_fwual_commit_session_null);
+    TEST_REGISTER_ID("OTA_UT_FW_1.12", test_fwual_list_installed_null);
 
-    /* Lifecycle / state-machine tests */
-    TEST_REGISTER(test_fwual_init_idempotent);
-    TEST_REGISTER(test_fwual_get_caps_valid);
-    TEST_REGISTER(test_fwual_open_session_valid);
-    TEST_REGISTER(test_fwual_open_session_busy);
-    TEST_REGISTER(test_fwual_prepare_image_no_session);
-    TEST_REGISTER(test_fwual_prepare_image_duplicate_id);
-    TEST_REGISTER(test_fwual_cancel_image_valid);
-    TEST_REGISTER(test_fwual_cancel_image_not_prepared);
-    TEST_REGISTER(test_fwual_is_image_staged_false_before_finalize);
+    /* Lifecycle / state-machine tests (OTA_UT_FW_2.x) */
+    TEST_REGISTER_ID("OTA_UT_FW_2.1", test_fwual_init_idempotent);
+    TEST_REGISTER_ID("OTA_UT_FW_2.2", test_fwual_get_caps_valid);
+    TEST_REGISTER_ID("OTA_UT_FW_2.3", test_fwual_open_session_valid);
+    TEST_REGISTER_ID("OTA_UT_FW_2.4", test_fwual_open_session_busy);
+    TEST_REGISTER_ID("OTA_UT_FW_2.5", test_fwual_prepare_image_no_session);
+    TEST_REGISTER_ID("OTA_UT_FW_2.6", test_fwual_prepare_image_duplicate_id);
+    TEST_REGISTER_ID("OTA_UT_FW_2.7", test_fwual_cancel_image_valid);
+    TEST_REGISTER_ID("OTA_UT_FW_2.8", test_fwual_cancel_image_not_prepared);
+    TEST_REGISTER_ID("OTA_UT_FW_2.9", test_fwual_is_image_staged_false_before_finalize);
+    TEST_REGISTER_ID("OTA_UT_FW_2.10", test_fwual_finalize_not_prepared);
+    TEST_REGISTER_ID("OTA_UT_FW_2.11", test_fwual_activate_wrong_state);
+    TEST_REGISTER_ID("OTA_UT_FW_2.12", test_fwual_confirm_wrong_state);
 
-    /* write / finalize tests */
-    TEST_REGISTER(test_fwual_write_null_session);
-    TEST_REGISTER(test_fwual_write_null_data_standalone);
-    TEST_REGISTER(test_fwual_write_zero_len_standalone);
-    TEST_REGISTER(test_fwual_finalize_null_session);
-    TEST_REGISTER(test_fwual_finalize_not_prepared);
+    /* Data path tests (OTA_UT_FW_3.x) */
+    TEST_REGISTER_ID("OTA_UT_FW_3.1", test_fwual_write_single_chunk);
+    TEST_REGISTER_ID("OTA_UT_FW_3.2", test_fwual_write_multi_chunk);
+    TEST_REGISTER_ID("OTA_UT_FW_3.3", test_fwual_write_out_of_order);
+    TEST_REGISTER_ID("OTA_UT_FW_3.4", test_fwual_finalize_incomplete);
+    TEST_REGISTER_ID("OTA_UT_FW_3.5", test_fwual_write_overflow);
 
-    /* data path tests */
-    TEST_REGISTER(test_fwual_write_single_chunk);
-    TEST_REGISTER(test_fwual_write_multi_chunk);
-    TEST_REGISTER(test_fwual_write_out_of_order);
-    TEST_REGISTER(test_fwual_finalize_incomplete);
-    TEST_REGISTER(test_fwual_write_overflow);
+    /* Verify tests (OTA_UT_FW_4.x) */
+    TEST_REGISTER_ID("OTA_UT_FW_4.1", test_fwual_verify_not_finalized);
+    TEST_REGISTER_ID("OTA_UT_FW_4.2", test_fwual_verify_unsupported_algo);
+    TEST_REGISTER_ID("OTA_UT_FW_4.3", test_fwual_verify_correct_hash);
+    TEST_REGISTER_ID("OTA_UT_FW_4.4", test_fwual_verify_wrong_hash);
+    TEST_REGISTER_ID("OTA_UT_FW_4.5", test_fwual_verify_idempotent);
+    TEST_REGISTER_ID("OTA_UT_FW_4.6", test_fwual_is_image_staged_true_after_verify);
 
-    /* fwual_verify_image tests */
-    TEST_REGISTER(test_fwual_verify_null_session);
-    TEST_REGISTER(test_fwual_verify_not_finalized);
-    TEST_REGISTER(test_fwual_verify_unsupported_algo);
-
-    /* verify / commit positive tests */
-    TEST_REGISTER(test_fwual_verify_correct_hash);
-    TEST_REGISTER(test_fwual_verify_wrong_hash);
-    TEST_REGISTER(test_fwual_verify_idempotent);
-    TEST_REGISTER(test_fwual_is_image_staged_true_after_verify);
-    TEST_REGISTER(test_fwual_commit_session_null);
-
-    /* lifecycle API tests */
-    TEST_REGISTER(test_fwual_commit_null_session);
-    TEST_REGISTER(test_fwual_activate_wrong_state);
-    TEST_REGISTER(test_fwual_confirm_wrong_state);
-    TEST_REGISTER(test_fwual_list_installed_null);
-
-    /* commit and post-commit state tests */
-    TEST_REGISTER(test_fwual_commit_session_valid);
-    TEST_REGISTER(test_fwual_get_state_committed_after_commit);
+    /* Commit and post-commit state tests (OTA_UT_FW_5.x) */
+    TEST_REGISTER_ID("OTA_UT_FW_5.1", test_fwual_commit_session_valid);
+    TEST_REGISTER_ID("OTA_UT_FW_5.2", test_fwual_get_state_committed_after_commit);
 }

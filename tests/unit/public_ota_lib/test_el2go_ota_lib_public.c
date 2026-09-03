@@ -338,19 +338,19 @@ static bool test_client_auth_default_is_required(void *params)
  */
 void register_ota_lib_tests(void)
 {
-    TEST_REGISTER(test_el2go_ota_init_null_ctx);
-    TEST_REGISTER(test_el2go_ota_init_null_config);
-    TEST_REGISTER(test_el2go_ota_init_null_hostname);
-    TEST_REGISTER(test_el2go_ota_init_null_ca_chain);
-    TEST_REGISTER(test_el2go_ota_init_zero_ca_chain_size);
-    TEST_REGISTER(test_el2go_ota_connect_null_ctx);
-    TEST_REGISTER(test_el2go_ota_disconnect_null_ctx);
-    TEST_REGISTER(test_el2go_ota_is_connected_null_ctx);
-    TEST_REGISTER(test_el2go_ota_get_error_string);
-    TEST_REGISTER(test_el2go_ota_cleanup_null_safe);
-    TEST_REGISTER(test_el2go_ota_init_cleanup);
-    TEST_REGISTER(test_el2go_ota_is_connected_after_init);
-    TEST_REGISTER(test_el2go_ota_get_error_string_after_failed_init);
-    TEST_REGISTER(test_client_auth_required_is_zero);
-    TEST_REGISTER(test_client_auth_default_is_required);
+    TEST_REGISTER_ID("OTA_UT_OL_1.1", test_el2go_ota_init_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_1.2", test_el2go_ota_init_null_config);
+    TEST_REGISTER_ID("OTA_UT_OL_1.3", test_el2go_ota_init_null_hostname);
+    TEST_REGISTER_ID("OTA_UT_OL_1.4", test_el2go_ota_init_null_ca_chain);
+    TEST_REGISTER_ID("OTA_UT_OL_1.5", test_el2go_ota_init_zero_ca_chain_size);
+    TEST_REGISTER_ID("OTA_UT_OL_1.6", test_el2go_ota_connect_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_1.7", test_el2go_ota_disconnect_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_1.8", test_el2go_ota_is_connected_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_1.9", test_el2go_ota_get_error_string);
+    TEST_REGISTER_ID("OTA_UT_OL_1.10", test_el2go_ota_cleanup_null_safe);
+    TEST_REGISTER_ID("OTA_UT_OL_1.11", test_el2go_ota_init_cleanup);
+    TEST_REGISTER_ID("OTA_UT_OL_1.12", test_el2go_ota_is_connected_after_init);
+    TEST_REGISTER_ID("OTA_UT_OL_1.13", test_el2go_ota_get_error_string_after_failed_init);
+    TEST_REGISTER_ID("", test_client_auth_required_is_zero);
+    TEST_REGISTER_ID("", test_client_auth_default_is_required);
 }

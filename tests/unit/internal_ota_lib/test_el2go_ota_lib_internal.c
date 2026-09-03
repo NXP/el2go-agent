@@ -258,7 +258,7 @@ static bool test_encode_report_status_roundtrip(void *params)
  * @brief Encode a CheckUpdate request with two device attributes and verify the
  *        encoded byte count is larger than the zero-attributes case.
  */
-static bool test_encode_check_update_with_attrs(void *params)
+static bool test_encode_check_update_with_vs_without_attrs(void *params)
 {
     static const el2go_ota_attr_t attrs[] = {
         { "board", "rw612" },
@@ -524,21 +524,6 @@ static bool test_parse_fetch_package_null_out(void *params)
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
                       el2go_ota_parse_fetch_package_response(buf, sizeof(buf), NULL));
-
-    return true;
-}
-
-/**
- * @brief parse_report_status_response with a valid non-empty wire buffer must
- *        succeed.
- */
-static bool test_parse_report_status_valid_buf(void *params)
-{
-    static const uint8_t buf[] = { 0x00 };
-
-    (void)params;
-
-    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_parse_report_status_response(buf, 0U));
 
     return true;
 }
@@ -1042,45 +1027,43 @@ static bool test_pending_status_struct_layout(void *params)
  */
 void register_ota_lib_internal_tests(void)
 {
-    TEST_REGISTER(test_encode_fetch_package_roundtrip);
-    TEST_REGISTER(test_encode_fetch_package_with_artifact_and_range);
-    TEST_REGISTER(test_encode_fetch_package_chunked_range);
-    TEST_REGISTER(test_encode_report_status_roundtrip);
-    TEST_REGISTER(test_encode_report_status_error_no_msg);
-    TEST_REGISTER(test_encode_report_status_rolled_back);
-    TEST_REGISTER(test_encode_report_status_null_update_id);
-    TEST_REGISTER(test_encode_fetch_package_null_package_id);
-    TEST_REGISTER(test_encode_fetch_package_buf_too_small);
-    TEST_REGISTER(test_encode_check_update_buf_too_small);
-    TEST_REGISTER(test_encode_check_update_with_attrs);
-    TEST_REGISTER(test_parse_check_update_one_package);
-    TEST_REGISTER(test_parse_check_update_empty_buf);
-    TEST_REGISTER(test_parse_check_update_null_buf);
-    TEST_REGISTER(test_parse_check_update_null_out);
-    TEST_REGISTER(test_parse_check_update_corrupt_buf);
-    TEST_REGISTER(test_parse_check_update_four_updates);
-    TEST_REGISTER(test_parse_fetch_package_null_buf);
-    TEST_REGISTER(test_parse_fetch_package_null_out);
-    TEST_REGISTER(test_parse_fetch_package_roundtrip);
-    TEST_REGISTER(test_parse_report_status_valid_buf);
-    TEST_REGISTER(test_parse_report_status_empty);
-    TEST_REGISTER(test_encode_check_update_null_req);
-    TEST_REGISTER(test_encode_check_update_null_buf);
-    TEST_REGISTER(test_encode_check_update_null_out_len);
-    TEST_REGISTER(test_encode_check_update_no_attrs);
-    TEST_REGISTER(test_encode_fetch_package_null_req);
-    TEST_REGISTER(test_encode_fetch_package_null_ids);
-    TEST_REGISTER(test_encode_report_status_null_req);
-    TEST_REGISTER(test_check_for_updates_null_ctx);
-    TEST_REGISTER(test_check_for_updates_null_out);
-    TEST_REGISTER(test_download_package_null_ctx);
-    TEST_REGISTER(test_download_package_null_update_id);
-    TEST_REGISTER(test_download_package_null_package_id);
-    TEST_REGISTER(test_download_package_null_callback);
-    TEST_REGISTER(test_report_status_null_ctx);
-    TEST_REGISTER(test_report_status_null_update_id);
-    TEST_REGISTER(test_report_status_null_package_id);
-    TEST_REGISTER(test_report_status_invalid_outcome);
-    TEST_REGISTER(test_report_pending_status_null_ctx);
-    TEST_REGISTER(test_pending_status_struct_layout);
+    TEST_REGISTER_ID("OTA_UT_OL_2.1", test_encode_fetch_package_roundtrip);
+    TEST_REGISTER_ID("OTA_UT_OL_2.2", test_encode_fetch_package_with_artifact_and_range);
+    TEST_REGISTER_ID("OTA_UT_OL_2.3", test_encode_fetch_package_chunked_range);
+    TEST_REGISTER_ID("OTA_UT_OL_2.4", test_encode_report_status_roundtrip);
+    TEST_REGISTER_ID("OTA_UT_OL_2.5", test_encode_check_update_with_vs_without_attrs);
+    TEST_REGISTER_ID("OTA_UT_OL_2.6", test_encode_report_status_error_no_msg);
+    TEST_REGISTER_ID("OTA_UT_OL_2.7", test_encode_report_status_null_update_id);
+    TEST_REGISTER_ID("OTA_UT_OL_2.8", test_encode_fetch_package_null_package_id);
+    TEST_REGISTER_ID("OTA_UT_OL_2.9", test_encode_fetch_package_buf_too_small);
+    TEST_REGISTER_ID("OTA_UT_OL_2.10", test_encode_check_update_buf_too_small);
+    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_encode_check_update_null_req);
+    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_encode_check_update_null_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_encode_check_update_null_out_len);
+    TEST_REGISTER_ID("OTA_UT_OL_2.12", test_encode_fetch_package_null_req);
+    TEST_REGISTER_ID("OTA_UT_OL_2.12", test_encode_fetch_package_null_ids);
+    TEST_REGISTER_ID("OTA_UT_OL_2.13", test_encode_report_status_null_req);
+    TEST_REGISTER_ID("OTA_UT_OL_2.14", test_encode_report_status_rolled_back);
+    TEST_REGISTER_ID("OTA_UT_OL_3.1", test_parse_check_update_one_package);
+    TEST_REGISTER_ID("OTA_UT_OL_3.2", test_parse_check_update_empty_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_3.3", test_parse_check_update_null_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_3.4", test_parse_check_update_null_out);
+    TEST_REGISTER_ID("OTA_UT_OL_3.5", test_parse_check_update_corrupt_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_3.6", test_parse_check_update_four_updates);
+    TEST_REGISTER_ID("OTA_UT_OL_3.7", test_parse_fetch_package_null_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_3.7", test_parse_fetch_package_null_out);
+    TEST_REGISTER_ID("OTA_UT_OL_3.8", test_parse_fetch_package_roundtrip);
+    TEST_REGISTER_ID("OTA_UT_OL_3.9", test_parse_report_status_empty);
+    TEST_REGISTER_ID("OTA_UT_OL_4.1", test_check_for_updates_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_4.2", test_check_for_updates_null_out);
+    TEST_REGISTER_ID("OTA_UT_OL_4.3", test_download_package_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_4.4", test_download_package_null_update_id);
+    TEST_REGISTER_ID("OTA_UT_OL_4.5", test_download_package_null_package_id);
+    TEST_REGISTER_ID("OTA_UT_OL_4.6", test_download_package_null_callback);
+    TEST_REGISTER_ID("OTA_UT_OL_5.1", test_report_status_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_5.2", test_report_status_null_update_id);
+    TEST_REGISTER_ID("OTA_UT_OL_5.3", test_report_status_null_package_id);
+    TEST_REGISTER_ID("OTA_UT_OL_5.4", test_report_status_invalid_outcome);
+    TEST_REGISTER_ID("OTA_UT_OL_5.5", test_report_pending_status_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_5.6", test_pending_status_struct_layout);
 }

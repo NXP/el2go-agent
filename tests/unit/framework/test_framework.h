@@ -568,11 +568,13 @@ void test_framework_set_suite_teardown(test_teardown_func_t teardown, void *para
  *
  * Registers a test function to be executed by test_framework_run().
  *
- * @param name   Human-readable name of the test (used in output).
- * @param func   Test function to execute.
- * @param params Optional parameters to pass to @p func (may be @c NULL).
+ * @param name    Human-readable name of the test (used in output).
+ * @param func    Test function to execute.
+ * @param params  Optional parameters to pass to @p func (may be @c NULL).
+ * @param plan_id Test-plan ID string (e.g. "OTA_UT_OL_2.5"), or @c NULL for
+ *                legacy callers that do not carry a plan ID.
  */
-void test_framework_register(const char *name, test_func_t func, void *params);
+void test_framework_register(const char *name, test_func_t func, void *params, const char *plan_id);
 
 /**
  * @brief Run all registered tests.
@@ -587,24 +589,49 @@ int test_framework_run(void);
 
 /**
  * @def TEST_REGISTER(func)
- * @brief Register a test function without parameters.
+ * @brief Register a test function without parameters (no plan ID).
  *
  * Uses the stringified function name as the test name.
+ * Legacy callers pass NULL for plan_id.
  *
  * @param func Test function name.
  */
-#define TEST_REGISTER(func) test_framework_register(#func, func, NULL)
+#define TEST_REGISTER(func) test_framework_register(#func, (func), NULL, NULL)
 
 /**
  * @def TEST_REGISTER_WITH_PARAMS(func, params)
- * @brief Register a test function with parameters.
+ * @brief Register a test function with parameters (no plan ID).
  *
  * Uses the stringified function name as the test name.
+ * Legacy callers pass NULL for plan_id.
  *
  * @param func   Test function name.
  * @param params Parameters to pass to the test function.
  */
-#define TEST_REGISTER_WITH_PARAMS(func, params) test_framework_register(#func, func, params)
+#define TEST_REGISTER_WITH_PARAMS(func, params) \
+    test_framework_register(#func, (func), (params), NULL)
+
+/**
+ * @def TEST_REGISTER_ID(plan_id, func)
+ * @brief Register a test function with a plan ID and no parameters.
+ *
+ * The plan ID is stored as metadata and emitted in the result line.
+ *
+ * @param plan_id Test-plan ID string literal (e.g. "OTA_UT_OL_2.5").
+ * @param func    Test function name.
+ */
+#define TEST_REGISTER_ID(plan_id, func) test_framework_register(#func, (func), NULL, (plan_id))
+
+/**
+ * @def TEST_REGISTER_ID_WITH_PARAMS(plan_id, func, params)
+ * @brief Register a test function with a plan ID and parameters.
+ *
+ * @param plan_id Test-plan ID string literal.
+ * @param func    Test function name.
+ * @param params  Parameters to pass to the test function.
+ */
+#define TEST_REGISTER_ID_WITH_PARAMS(plan_id, func, params) \
+    test_framework_register(#func, (func), (params), (plan_id))
 
 /**
  * @def TEST_SET_SUITE_SETUP(func)
