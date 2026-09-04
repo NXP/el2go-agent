@@ -518,7 +518,9 @@ parse_buf_and_fill_context(csr_gen_context_t *csr_gen_ctx,
         return kStatus_CSR_INVALID_FORMAT;
     }
 
-    if (conf_buf_len < 2U)
+    const size_t min_len = 2U + ((CSR_GEN_MAGIC_VALUE_LEN > CERT_STORAGE_MAGIC_VALUE_LEN)
+                                  ? CSR_GEN_MAGIC_VALUE_LEN : CERT_STORAGE_MAGIC_VALUE_LEN);
+    if (conf_buf_len < min_len)
     {
         return kStatus_CSR_CONF_BUF_SIZE_ERR;
     }

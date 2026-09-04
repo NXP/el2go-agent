@@ -23,7 +23,7 @@ extern const uint32_t el2go_csr_conf_data_size;
 static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
 {
     psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
-    psa_key_id_t key_id =  (psa_key_id_t)ctx->key_id;
+    psa_key_id_t key_id = PSA_KEY_ID_NULL;
     uint8_t* cert_input_buf_imm = NULL;
     uint32_t cert_size = 0U; 
 
@@ -33,11 +33,12 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
         psa_status = PSA_ERROR_INVALID_ARGUMENT;
         goto exit;
     }
+    key_id = (psa_key_id_t)ctx->key_id;
     cert_size = ctx->cert_source_addr_size;
 
-    if (cert_size > MAX_X509_CERT_SIZE)
+    if (cert_size == 0U || cert_size > MAX_X509_CERT_SIZE)
     {
-        LOG(LOG_ERROR, "x.509 certificate size exceeds maximum allowed size!\r\n");
+        LOG(LOG_ERROR, "x.509 certificate size is invalid (zero or exceeds maximum allowed size)!\r\n");
         psa_status = PSA_ERROR_INVALID_ARGUMENT;
         goto exit;
     }

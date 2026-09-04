@@ -61,11 +61,18 @@ psa_status_t generate_csr(psa_key_id_t key_id, uint8_t encoding,
             goto exit;
         }
 
-        /* PEM is NULL-terminated; compute length by scanning for the NULL terminator. */
+        /* PEM is NULL-terminated; compute length by scanning for the NULL terminator.
+         * Bounded by csr_output_buf_size to prevent a read past the buffer end if
+         * the NUL terminator is missing. */
         *csr_output_len = 0U;
-        while (csr_output_buf[*csr_output_len] != '\0')
+        while ((*csr_output_len < csr_output_buf_size) && (csr_output_buf[*csr_output_len] != '\0'))
         {
             (*csr_output_len)++;
+        }
+        if (*csr_output_len >= csr_output_buf_size)
+        {
+            status = PSA_ERROR_BUFFER_TOO_SMALL;
+            goto exit;
         }
     }
     status = PSA_SUCCESS;
