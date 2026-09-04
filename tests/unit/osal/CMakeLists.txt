@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(test_osal OBJECT
+add_library(test_osal EXCLUDE_FROM_ALL OBJECT
     test_env.c
 )
 

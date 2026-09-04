@@ -5,10 +5,26 @@
 
 # Test registration for unit tests
 
+# Resolve the path used in add_test() for a test executable target.
+# When CMAKE_INSTALL_PREFIX is explicitly set (e.g. by Yocto or build.sh with
+# -DCMAKE_INSTALL_PREFIX=/usr) use the installed path so that ctest works after
+# installation. Otherwise fall back to the build-directory path so that the
+# tests can be run directly from the build tree without installing first.
+function(_unit_test_installed_path OUT_VAR TARGET_NAME)
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        set(${OUT_VAR} "$<TARGET_FILE:${TARGET_NAME}>" PARENT_SCOPE)
+    else()
+        set(${OUT_VAR}
+            "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/$<TARGET_FILE_BASE_NAME:${TARGET_NAME}>"
+            PARENT_SCOPE)
+    endif()
+endfunction()
+
 # Helper function to register a test with properties
 function(add_unit_test TEST_NAME EXECUTABLE SUITE TYPE)
-    # Register the test
-    add_test(${TEST_NAME} ${EXECUTABLE} --suite=${SUITE})
+
+    _unit_test_installed_path(_exec_path ${EXECUTABLE})
+    add_test(NAME ${TEST_NAME} COMMAND ${_exec_path} --suite=${SUITE})
 
     # Set test properties
     set_tests_properties(${TEST_NAME}

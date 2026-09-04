@@ -20,7 +20,7 @@ else()
 endif()
 
 # Create the test framework library
-add_library(unit_test_framework ${FRAMEWORK_LIB_TYPE}
+add_library(unit_test_framework EXCLUDE_FROM_ALL ${FRAMEWORK_LIB_TYPE}
     test_framework.c
     test_utils.c
 )

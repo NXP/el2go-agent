@@ -35,7 +35,7 @@ option(BUILD_OTA "Build OTA library and OTA applications" OFF)
 message(STATUS "BUILD_OTA: ${BUILD_OTA}")
 
 # Option to build unit tests
-option(BUILD_TESTING "Build unit tests" ON)
+option(BUILD_TESTING "Build unit tests" OFF)
 
 if(NOT DEFINED PROJECT_ROOT)
     set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
@@ -124,5 +124,11 @@ endif()
 
 # Add tests if enabled
 if(BUILD_TESTING)
+    # Top-level aggregation targets for building and installing all tests.
+    # The tests/unit subdirectory adds its own install_<project> target and
+    # hooks it into these via add_dependencies().
+    add_custom_target(build_tests)
+    add_custom_target(install_tests)
+
     add_subdirectory(tests/unit)
 endif()

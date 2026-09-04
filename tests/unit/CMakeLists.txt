@@ -96,7 +96,7 @@ set(INTERNAL_TEST_EXECUTABLE ${PROJECT_NAME}_internal)
 # PUBLIC API TEST EXECUTABLE
 # ============================================================================
 
-add_executable(${PUBLIC_TEST_EXECUTABLE} ${PUBLIC_API_TEST_SOURCES})
+add_executable(${PUBLIC_TEST_EXECUTABLE} EXCLUDE_FROM_ALL ${PUBLIC_API_TEST_SOURCES})
 
 target_compile_definitions(${PUBLIC_TEST_EXECUTABLE}
     PRIVATE
@@ -131,7 +131,7 @@ endif()
 # INTERNAL TEST EXECUTABLE
 # ============================================================================
 
-add_executable(${INTERNAL_TEST_EXECUTABLE} ${INTERNAL_API_TEST_SOURCES})
+add_executable(${INTERNAL_TEST_EXECUTABLE} EXCLUDE_FROM_ALL ${INTERNAL_API_TEST_SOURCES})
 
 target_compile_definitions(${INTERNAL_TEST_EXECUTABLE}
     PRIVATE
@@ -189,9 +189,35 @@ include(cmake/test_definitions.cmake)
 # Install test executables to /usr/bin
 install(TARGETS ${PUBLIC_TEST_EXECUTABLE} ${INTERNAL_TEST_EXECUTABLE}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    EXCLUDE_FROM_ALL
+    COMPONENT el2go_unit_tests
 )
 
 # Install CMake's auto-generated CTestTestfile.cmake
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CTestTestfile.cmake
     DESTINATION share/el2go/tests
+    EXCLUDE_FROM_ALL
+    COMPONENT el2go_unit_tests
 )
+
+# install_${PROJECT_NAME} -- strip build-host paths from all CTestTestfile.cmake
+# files under the build tree (via cmake/strip_build_paths.sh), then install the
+# el2go_unit_tests component. Stripping prevents Yocto buildpaths QA violations.
+add_custom_target(install_${PROJECT_NAME}
+    COMMAND sh "${CMAKE_SOURCE_DIR}/scripts/linux/strip_build_paths.sh" "${CMAKE_BINARY_DIR}"
+    COMMAND "${CMAKE_COMMAND}" -DCOMPONENT=el2go_unit_tests
+            -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_install.cmake"
+    DEPENDS ${PUBLIC_TEST_EXECUTABLE} ${INTERNAL_TEST_EXECUTABLE}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    VERBATIM
+)
+
+# Hook into the top-level build_tests / install_tests targets defined in the
+# root CMakeLists.txt when BUILD_TESTING is ON.
+if(TARGET build_tests)
+    add_dependencies(build_tests ${PUBLIC_TEST_EXECUTABLE} ${INTERNAL_TEST_EXECUTABLE})
+endif()
+
+if(TARGET install_tests)
+    add_dependencies(install_tests install_${PROJECT_NAME})
+endif()

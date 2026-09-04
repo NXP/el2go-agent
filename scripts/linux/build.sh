@@ -148,6 +148,8 @@ function usage_configure()
     printf "mbedtls=[dir]\n"
     printf "    out          = Build directory\n"
     printf "    mbedtls      = MbedTLS cmake config files\n"
+    printf "    testing      = [optional] Enable unit test build (BUILD_TESTING=ON)\n"
+    printf "    ota          = [optional] Enable OTA build (BUILD_OTA=ON)\n"
     printf "\n"
 }
 
@@ -295,6 +297,8 @@ function configure()
         ${opt_buildtype}
         ${opt_verbose}
         ${opt_test}
+        ${opt_testing}
+        ${opt_ota}
         -DCMAKE_INSTALL_PREFIX="${el2go_agent_ROOT}/usr"
         -DCMAKE_INSTALL_LIBDIR=lib
     )
@@ -433,9 +437,15 @@ do
         hash=*)
             opt_hash="${arg#*=}"
             ;;
-# configure option
+# configure options
         test)
             opt_test="-DCLOSE_COMMIT_DRY_RUN=ON"
+            ;;
+        testing)
+            opt_testing="-DBUILD_TESTING=ON"
+            ;;
+        ota)
+            opt_ota="-DBUILD_OTA=ON"
             ;;
         *)
             pr_err "Unknown argument \"${arg}\""
