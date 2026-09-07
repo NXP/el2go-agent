@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2025 NXP
+ * Copyright 2021-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -276,15 +276,27 @@ bool iot_agent_keystore_psa_handle_request(pb_istream_t *istream,
                 break;
             }
 
-            chunk_size = storage_info.size; 
+            chunk_size = storage_info.size;
             if (request.command.read_object.has_length) {
+                if (request.command.read_object.offset > storage_info.size) {
+                    response.message.psa.response.read_object.has_status = true;
+                    response.message.psa.response.read_object.status = (nxp_iot_StatusCode)PSA_ERROR_INVALID_ARGUMENT;
+                    response.message.psa.response.read_object.data = (pb_bytes_array_t*)&empty_data;
+                    break;
+                }
                 uint32_t remaining = storage_info.size - request.command.read_object.offset;
-                chunk_size = remaining < request.command.read_object.length 
-                    ? remaining 
+                chunk_size = remaining < request.command.read_object.length
+                    ? remaining
                     : request.command.read_object.length;
             }
 
             response.message.psa.response.read_object.data = malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(chunk_size));
+            if (response.message.psa.response.read_object.data == NULL) {
+                response.message.psa.response.read_object.has_status = true;
+                response.message.psa.response.read_object.status = (nxp_iot_StatusCode)PSA_ERROR_INSUFFICIENT_MEMORY;
+                response.message.psa.response.read_object.data = (pb_bytes_array_t*)&empty_data;
+                break;
+            }
             response.message.psa.response.read_object.data->size = chunk_size;
 
             psa_status = psa_its_get(uid, request.command.read_object.offset, 

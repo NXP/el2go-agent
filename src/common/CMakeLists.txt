@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-PROJECT(nxp_iot_agent_common LANGUAGES C VERSION 6.5.1)
+PROJECT(nxp_iot_agent_common LANGUAGES C VERSION 6.5.2)
 
 #define some variables which will be used in different places
 set(exported_targets el2go_agent-targets)

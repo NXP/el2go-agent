@@ -29,6 +29,7 @@
  * - Mbed TLS 4.x: mbedtls_pk_wrap_psa()
  * - Older: mbedtls_pk_setup_opaque() (if available)
  */
+#if defined(NXP_IOT_AGENT_HAVE_PSA) && (NXP_IOT_AGENT_HAVE_PSA == 1)
 int network_pk_wrap_psa_key(mbedtls_pk_context *pk,
                                            mbedtls_svc_key_id_t key_id)
 {
@@ -39,6 +40,7 @@ int network_pk_wrap_psa_key(mbedtls_pk_context *pk,
     return mbedtls_pk_setup_opaque(pk, key_id);
 #endif
 }
+#endif
 
 static void warn_crt_crl_period(uint32_t verify_result)
 {
@@ -363,9 +365,19 @@ int network_verify_server_certificate(void* context, uint8_t* trusted_bytes, siz
 	}
 
 #if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x03010000)
-	network_status = mbedtls_x509_crt_verify(ssl->session->peer_cert, network_context->conf.ca_chain, &crl, NULL, error, NULL, NULL);
+    const mbedtls_x509_crt* peer_cert = ssl->session->peer_cert;
 #else
-	network_status = mbedtls_x509_crt_verify((mbedtls_x509_crt*)mbedtls_ssl_get_peer_cert(ssl), &network_context->network_config.ca_chain, &crl, NULL, error, NULL, NULL);
+    const mbedtls_x509_crt* peer_cert = mbedtls_ssl_get_peer_cert(ssl);
+#endif //defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x03010000)
+    if (peer_cert == NULL) {
+        IOT_AGENT_ERROR("No peer certificate available for CRL verification");
+        network_status = MBEDTLS_ERR_SSL_NO_CLIENT_CERTIFICATE;
+        goto exit;
+    }
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x03010000)
+    network_status = mbedtls_x509_crt_verify((mbedtls_x509_crt*)peer_cert, network_context->conf.ca_chain, &crl, NULL, error, NULL, NULL);
+#else
+    network_status = mbedtls_x509_crt_verify((mbedtls_x509_crt*)peer_cert, &network_context->network_config.ca_chain, &crl, NULL, error, NULL, NULL);
 #endif //defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x03010000)
 
     if (*error != 0U) {

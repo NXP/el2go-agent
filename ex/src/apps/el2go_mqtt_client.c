@@ -131,6 +131,10 @@ static iot_agent_status_t iot_agent_get_oid_value_in_subject(
 #else
         const char* oid_name = x509_attr_short_name_from_oid(&oid_ptr->oid);
 #endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
+        if (oid_name == NULL) {
+            oid_ptr = oid_ptr->next;
+            continue;
+        }
         if (strcmp(oid_name, oid) == 0)
         {
             len = oid_ptr->val.len;

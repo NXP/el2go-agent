@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2025 NXP
+ * Copyright 2018-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -172,6 +172,9 @@ const pb_field_t* decode_unionmessage_type(pb_istream_t *stream, const pb_field_
 static bool pb_ostream_response_buffer_direct_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
 {
     iot_agent_response_buffer_t* response_buffer = (iot_agent_response_buffer_t*)stream->state;
+    if (count > response_buffer->remaining) {
+        return false;
+    }
     memcpy(response_buffer->pos, buf, count);
     pb_response_buffer_consume_bytes(response_buffer, count);
     return true;

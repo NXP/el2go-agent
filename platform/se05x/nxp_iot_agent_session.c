@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2022,2024-2025 NXP
+ * Copyright 2018-2022,2024-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@ iot_agent_status_t iot_agent_session_connect(ex_sss_boot_ctx_t *pCtx)
 {
 	iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 	sss_status_t sss_status;
-	char *portName;
+    char *portName = NULL;
 
     sss_status = ex_sss_boot_connectstring(0, NULL, &portName);
 	SSS_SUCCESS_OR_EXIT_MSG("ex_sss_boot_connectstring returned with 0x%04x", sss_status);
@@ -38,6 +38,8 @@ exit:
             free(portName);
         }
     }
+#else
+    free(portName);
 #endif // _MSC_VER
 
 	return agent_status;
@@ -50,7 +52,7 @@ void iot_agent_session_disconnect(ex_sss_boot_ctx_t *pCtx) {
 iot_agent_status_t iot_agent_session_init(int argc, const char *argv[], ex_sss_boot_ctx_t *pCtx)
 {
     sss_status_t sss_status;
-    char *portName;
+    char *portName = NULL;
     iot_agent_status_t agent_status = IOT_AGENT_SUCCESS;
 
     memset(pCtx, 0, sizeof(ex_sss_boot_ctx_t));
@@ -90,7 +92,8 @@ exit:
             free(portName);
         }
     }
+#else
+    free(portName);
 #endif // _MSC_VER
     return agent_status;
 }
-

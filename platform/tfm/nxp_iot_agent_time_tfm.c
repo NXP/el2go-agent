@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 NXP
+ * Copyright 2024-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -28,6 +28,7 @@ typedef struct {
 
 void iot_agent_time_init_measurement(iot_agent_time_context_t* time_context)
 {
+	time_context->ctx = NULL;
 	time_meas_t* time_meas_ctx = malloc(sizeof(time_meas_t));
 	if (time_meas_ctx == NULL)
 	{
@@ -54,6 +55,10 @@ void iot_agent_time_init_measurement(iot_agent_time_context_t* time_context)
 
 void iot_agent_time_conclude_measurement(iot_agent_time_context_t* time_context)
 {
+	if (time_context == NULL || time_context->ctx == NULL) {
+		IOT_AGENT_WARN("time_context or ctx is NULL, skipping measurement");
+		return;
+	}
 #ifdef __ZEPHYR__
 	((time_meas_t*)time_context->ctx)->tEnd = k_uptime_get();
 #else
@@ -72,6 +77,9 @@ void iot_agent_time_conclude_measurement(iot_agent_time_context_t* time_context)
 
 long iot_agent_time_get_measurement(iot_agent_time_context_t* time_context)
 {
+	if (time_context == NULL || time_context->ctx == NULL) {
+		return 0;
+	}
 	if (((time_meas_t*)time_context->ctx)->tEnd >= ((time_meas_t*)time_context->ctx)->tStart)
   {
 		return ((time_meas_t*)time_context->ctx)->tEnd - ((time_meas_t*)time_context->ctx)->tStart;
@@ -84,6 +92,9 @@ long iot_agent_time_get_measurement(iot_agent_time_context_t* time_context)
 
 void iot_agent_time_free_measurement_ctx(iot_agent_time_context_t* time_context)
 {
+	if (time_context == NULL) {
+		return;
+	}
 	free((time_meas_t*)time_context->ctx);
 }
 

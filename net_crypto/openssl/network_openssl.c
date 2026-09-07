@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021,2024-2025 NXP
+ * Copyright 2018-2021,2024-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -332,7 +332,8 @@ int network_configure(void* context, void* opaque_network_config)
 	if (SSL_library_init() < (int)0)
 	{
 		print_openssl_errors("SSL_library_init");
-		return IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
+		network_status = IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
+		goto exit;
 	}
 
 	// Set SSLv2 client hello, also announce SSLv3 and TLSv1
@@ -341,7 +342,8 @@ int network_configure(void* context, void* opaque_network_config)
 	if ((ctx = SSL_CTX_new(method)) == NULL)
 	{
 		print_openssl_errors("SSL_CTX_new");
-		return IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
+		network_status = IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
+		goto exit;
 	}
 
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
@@ -358,15 +360,15 @@ int network_configure(void* context, void* opaque_network_config)
 	if (SSL_CTX_use_certificate(ctx, network_config->certificate) != 1)
 	{
 		print_openssl_errors("SSL_CTX_use_certificate");
-		SSL_CTX_free(ctx);
-		return IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
+		network_status = IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
+		goto exit;
 	}
 
 	if (SSL_CTX_use_PrivateKey(ctx, pkey) != 1)
 	{
 		print_openssl_errors("SSL_CTX_use_PrivateKey");
-		SSL_CTX_free(ctx);
-		return IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
+		network_status = IOT_AGENT_ERROR_CRYPTO_ENGINE_FAILED;
+		goto exit;
 	}
 
 #if defined(NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE) && (NXP_IOT_AGENT_VERIFY_EDGELOCK_2GO_SERVER_CERTIFICATE == 1)
@@ -396,7 +398,11 @@ int network_connect(void* opaque_ctx)
 	openssl_network_context_t* network_context = (openssl_network_context_t*) opaque_ctx;
 	openssl_network_config_t* network_config = &network_context->network_config;
 	SSL *ssl = network_context->ssl;
-	int socket;
+#ifdef _WIN32
+	SOCKET socket = INVALID_SOCKET;
+#else
+	int socket = -1;
+#endif
 
 	// Make the underlying TCP socket connection
 	if ((network_tcp_connect(network_config->hostname, network_config->port, &socket) != 0) || socket == 0)
@@ -581,7 +587,6 @@ exit:
 	BIO_free(trusted_cert_bio);
 	X509_STORE_free(truststore);
 	X509_CRL_free(crl);
-	X509_free(to_be_verified);
 
 	return network_status;
 #endif
@@ -641,8 +646,9 @@ int network_read(void* context, uint8_t* buffer, size_t len)
 	if (len > INT32_MAX)
 	{
 		IOT_AGENT_ERROR("Error in checking the size of length variable");
+		return -1;
 	}
-    return SSL_read(ssl, buffer, len);
+	return SSL_read(ssl, buffer, (int)len);
 }
 
 int network_write(void* context, const uint8_t* buffer, size_t len)
@@ -652,7 +658,8 @@ int network_write(void* context, const uint8_t* buffer, size_t len)
 	if (len > INT32_MAX)
 	{
 		IOT_AGENT_ERROR("Error in checking the size of length variable");
+		return -1;
 	}
-    return SSL_write(ssl, buffer, len);
+	return SSL_write(ssl, buffer, (int)len);
 }
 

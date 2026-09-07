@@ -1,5 +1,5 @@
 /* 
- * Copyright 2018-2025 NXP
+ * Copyright 2018-2026 NXP
  * 
  * SPDX-License-Identifier: Apache-2.0
  * 
@@ -120,11 +120,11 @@ iot_agent_status_t iot_agent_datastore_plain_write(
 	iot_agent_datastore_plain_context_t* datastore_context = (iot_agent_datastore_plain_context_t*) context;
 	uint8_t* write_buffer = NULL;
 	size_t write_buffer_size = 0U;
+	ASSERT_OR_EXIT_MSG(datastore_context != NULL, "datastore_context is NULL.");
 	ASSERT_OR_EXIT_MSG(datastore_context->idx_write < BUFFER_NUMBER, "Overflow in write index.");
 	write_buffer = datastore_context->buffers[datastore_context->idx_write];
 	write_buffer_size = datastore_context->size[datastore_context->idx_write];
 
-	ASSERT_OR_EXIT_MSG(datastore_context != NULL, "datastore_context is NULL.");
 	ASSERT_OR_EXIT_MSG(write_buffer != NULL, "write_buffer is NULL.");
 	ASSERT_OR_EXIT_MSG(offset <= (SIZE_MAX - len), "Wraparound in addition calculation.");
 	ASSERT_OR_EXIT_MSG((offset + len) >= offset, "Overflow in addition calculation.");

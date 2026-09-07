@@ -459,6 +459,7 @@ iot_agent_status_t iot_agent_utils_get_certificate_common_name(iot_agent_context
 	AGENT_SUCCESS_OR_EXIT();
 
 	ASSERT_OR_EXIT_MSG(cert_len <= INT32_MAX, "Certificate lenght exceed max int value");
+	ASSERT_OR_EXIT_MSG(max_size <= INT32_MAX, "Certificate lenght exceed max int value");
 
 	bio_in_cert = BIO_new_mem_buf(cert_buffer, (int)cert_len);
 	client_cert = d2i_X509_bio(bio_in_cert, NULL);
@@ -468,7 +469,6 @@ iot_agent_status_t iot_agent_utils_get_certificate_common_name(iot_agent_context
 		EXIT_STATUS_MSG(IOT_AGENT_FAILURE, "Error in loading the client certificate");
 	}
 	subject_name = X509_get_subject_name(client_cert);
-	ASSERT_OR_EXIT_MSG(max_size <= INT32_MAX, "Certificate lenght exceed max int value");
 	X509_NAME_get_text_by_NID(subject_name, NID_commonName, common_name, max_size);
 	BIO_free(bio_in_cert);
 	X509_free(client_cert);
@@ -528,6 +528,9 @@ iot_agent_status_t iot_agent_utils_write_key_ref_pem(iot_agent_keystore_key_ref_
 	int openssl_status;
 	BIO* out = NULL;
 	EVP_PKEY* pkey_to_write = NULL;
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
+	EVP_PKEY_CTX* key_ctx = NULL;
+#endif
 
 	ASSERT_OR_EXIT_MSG(filename != NULL, "filename is NULL.");
 
@@ -536,14 +539,12 @@ iot_agent_status_t iot_agent_utils_write_key_ref_pem(iot_agent_keystore_key_ref_
 	out = BIO_new_file(filename, "w");
 	ASSERT_OR_EXIT_STATUS(out != NULL, IOT_AGENT_ERROR_FILE_SYSTEM);
 
-	pkey_to_write = EVP_PKEY_new();
-	OPENSSL_ASSERT_OR_EXIT_STATUS(pkey_to_write != NULL, "EVP_PKEY_new", IOT_AGENT_FAILURE);
-
 #if (OPENSSL_VERSION_NUMBER < 0x30000000)
 	pkey_to_write = gen_key_ref->key_ref;
 #else
+	pkey_to_write = EVP_PKEY_new();
+	OPENSSL_ASSERT_OR_EXIT_STATUS(pkey_to_write != NULL, "EVP_PKEY_new", IOT_AGENT_FAILURE);
 
-	EVP_PKEY_CTX* key_ctx = NULL;
 	key_ctx = EVP_PKEY_CTX_new_from_name(NULL, "EC", "provider=nxp_prov");
 	ASSERT_OR_EXIT_MSG(key_ctx != NULL, "Error getting context");
 
@@ -556,7 +557,10 @@ iot_agent_status_t iot_agent_utils_write_key_ref_pem(iot_agent_keystore_key_ref_
 	OPENSSL_SUCCESS_OR_EXIT_STATUS("PEM_write_PrivateKey", IOT_AGENT_ERROR_FILE_SYSTEM);
 
 exit:
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000)
 	EVP_PKEY_free(pkey_to_write);
+	EVP_PKEY_CTX_free(key_ctx);
+#endif
 	BIO_free(out);
 #endif //#if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_OPENSSL == 1)
 	return agent_status;
@@ -1050,10 +1054,11 @@ iot_agent_status_t iot_agent_utils_create_self_signed_edgelock2go_certificate(
 	agent_status = iot_agent_utils_get_device_id(uuid, &uuid_len);
 	ASSERT_OR_EXIT_MSG(agent_status == IOT_AGENT_SUCCESS, "iot_agent_utils_get_device_id failed with 0x%08x", agent_status);
 
-	COMPILE_TIME_ASSERT(sizeof(issuer_name) > sizeof(*issuer_prefix) + sizeof(uuid) * 2);
+	ASSERT_OR_EXIT_MSG(strlen(issuer_prefix) + uuid_len * 2U < sizeof(issuer_name),
+		"issuer_name buffer too small for prefix and uuid");
 	strcpy(issuer_name, issuer_prefix);
 	for (size_t i = 0U; i < uuid_len; i++) {
-		sprintf(pos, "%02X", uuid[i]);
+		snprintf(pos, sizeof(issuer_name) - (size_t)(pos - issuer_name), "%02X", uuid[i]);
 		pos += 2;
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2025 NXP
+ * Copyright 2018-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -242,6 +242,11 @@ exit:
 void iot_agent_fill_service_char_array(char** dest, char *src, size_t len)
 {
 	char* ptr = malloc(len);
+	if (ptr == NULL) {
+		IOT_AGENT_ERROR("malloc failed for service char array (size %u)", (unsigned)len);
+		*dest = NULL;
+		return;
+	}
 	memcpy(ptr, src, len);
 	*dest = ptr;
 }

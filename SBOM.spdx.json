@@ -2,20 +2,20 @@
   "SPDXID": "SPDXRef-DOCUMENT",
   "spdxVersion": "SPDX-2.3",
   "creationInfo": {
-    "created": "2026-05-22T14:12:51Z",
+    "created": "2026-08-18T12:57:17Z",
     "creators": [
       "Organization: NXP"
     ],
-    "licenseListVersion": "3.26"
+    "licenseListVersion": "3.28"
   },
-  "name": "el2go-agent-v6.5.1",
+  "name": "el2go-agent-v6.5.2",
   "dataLicense": "CC0-1.0",
-  "documentNamespace": "https://nxp.com/spdx/4c9275f3-2ca2-48a6-8e66-f04fb5335fef",
+  "documentNamespace": "https://nxp.com/spdx/494a395a-55f0-46b8-bcdc-404a4525d528",
   "packages": [
     {
-      "SPDXID": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef",
+      "SPDXID": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528",
       "name": "el2go-agent",
-      "versionInfo": "v6.5.1",
+      "versionInfo": "v6.5.2",
       "licenseConcluded": "(Apache-2.0)",
       "licenseDeclared": "(Apache-2.0)",
       "downloadLocation": "https://github.com/NXP/el2go-agent",
@@ -25,7 +25,49 @@
       "filesAnalyzed": false
     },
     {
-      "SPDXID": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef---748643e9-5267-4018-961d-7e913ca90bbd",
+      "SPDXID": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528---f0db285c-7c92-4637-ae36-0f1aeb1e005e",
+      "name": "Dirent API for Microsoft Visual Studio",
+      "versionInfo": "1.25",
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "homepage": "https://github.com/tronkko/dirent",
+      "downloadLocation": "NOASSERTION",
+      "originator": "Organization: Dirent API for Microsoft Visual Studio",
+      "supplier": "NOASSERTION",
+      "externalRefs": [],
+      "filesAnalyzed": false
+    },
+    {
+      "SPDXID": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528---e4d71e16-d4e4-4af3-bc90-4a32f0aafc90",
+      "name": "mbed TLS",
+      "versionInfo": "4.1.0",
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "(Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND Zlib)",
+      "homepage": "https://www.trustedfirmware.org/",
+      "downloadLocation": "NOASSERTION",
+      "originator": "Organization: mbed TLS",
+      "supplier": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:arm:mbed_tls:4.1.0:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:mbed:mbedtls:4.1.0:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:o:arm:mbed_tls:4.1.0:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        }
+      ],
+      "filesAnalyzed": false
+    },
+    {
+      "SPDXID": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528---748643e9-5267-4018-961d-7e913ca90bbd",
       "name": "nanopb",
       "versionInfo": "0.3.9.8",
       "licenseConcluded": "Zlib",
@@ -47,80 +89,28 @@
         }
       ],
       "filesAnalyzed": false
-    },
-    {
-      "SPDXID": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef---93ff9297-b6b8-4bd5-ba66-054528427fa3",
-      "name": "mbed TLS",
-      "versionInfo": "3.6.2",
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "homepage": "https://www.trustedfirmware.org/",
-      "downloadLocation": "NOASSERTION",
-      "originator": "Organization: mbed TLS",
-      "supplier": "NOASSERTION",
-      "externalRefs": [
-        {
-          "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedcrypto16:3.6.2:3:*:*:*:*:*:*",
-          "referenceType": "cpe23Type"
-        },
-        {
-          "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls21:3.6.2:3:*:*:*:*:*:*",
-          "referenceType": "cpe23Type"
-        },
-        {
-          "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls-doc:3.6.2:3:*:*:*:*:*:*",
-          "referenceType": "cpe23Type"
-        },
-        {
-          "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:debian_package:libmbedtls-dev:3.6.2:3:*:*:*:*:*:*",
-          "referenceType": "cpe23Type"
-        },
-        {
-          "referenceCategory": "SECURITY",
-          "referenceLocator": "cpe:2.3:a:arm:mbed_tls:3.6.2:*:*:*:*:*:*:*",
-          "referenceType": "cpe23Type"
-        }
-      ],
-      "filesAnalyzed": false
-    },
-    {
-      "SPDXID": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef---f0db285c-7c92-4637-ae36-0f1aeb1e005e",
-      "name": "Dirent API for Microsoft Visual Studio",
-      "versionInfo": "1.25",
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "homepage": "https://github.com/tronkko/dirent",
-      "downloadLocation": "NOASSERTION",
-      "originator": "Organization: Dirent API for Microsoft Visual Studio",
-      "supplier": "NOASSERTION",
-      "externalRefs": [],
-      "filesAnalyzed": false
     }
   ],
   "relationships": [
     {
       "spdxElementId": "SPDXRef-DOCUMENT",
       "relationshipType": "DESCRIBES",
-      "relatedSpdxElement": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef"
+      "relatedSpdxElement": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528"
     },
     {
-      "spdxElementId": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef",
+      "spdxElementId": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528",
       "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef---748643e9-5267-4018-961d-7e913ca90bbd"
+      "relatedSpdxElement": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528---748643e9-5267-4018-961d-7e913ca90bbd"
     },
     {
-      "spdxElementId": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef",
+      "spdxElementId": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528",
       "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef---93ff9297-b6b8-4bd5-ba66-054528427fa3"
+      "relatedSpdxElement": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528---e4d71e16-d4e4-4af3-bc90-4a32f0aafc90"
     },
     {
-      "spdxElementId": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef",
+      "spdxElementId": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528",
       "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-package-4c9275f3-2ca2-48a6-8e66-f04fb5335fef---f0db285c-7c92-4637-ae36-0f1aeb1e005e"
+      "relatedSpdxElement": "SPDXRef-package-494a395a-55f0-46b8-bcdc-404a4525d528---f0db285c-7c92-4637-ae36-0f1aeb1e005e"
     }
   ]
 }

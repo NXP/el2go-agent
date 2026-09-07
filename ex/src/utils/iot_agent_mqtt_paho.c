@@ -1,4 +1,4 @@
-/* Copyright 2020-2025 NXP
+/* Copyright 2020-2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -345,7 +345,7 @@ iot_agent_status_t iot_agent_mqtt_connect_aws(const nxp_iot_ServiceDescriptor* s
         sizeof(connection_params->address),
         "ssl://%s:8883",
         service_descriptor->hostname);
-    if (n > (int)sizeof(connection_params->address)) {
+    if (n >= (int)sizeof(connection_params->address)) {
         LOG_E("Error, buffer for storing URL was too small.\n");
         return IOT_AGENT_FAILURE;
     }
@@ -464,7 +464,7 @@ iot_agent_status_t iot_agent_mqtt_connect_azure(mqtt_connection_params_t* connec
         "devices/%s/messages/events/",
         azure_params->deviceId);
 	ASSERT_OR_EXIT_MSG(o >= 0, "Error in the snprint execution");
-    if (m > (int)sizeof(connection_params->address) || n > (int)sizeof(connection_params->username) || o > (int)sizeof(connection_params->topic)) {
+    if (m >= (int)sizeof(connection_params->address) || n >= (int)sizeof(connection_params->username) || o >= (int)sizeof(connection_params->topic)) {
         LOG_E("Error, buffer for storing address/username was too small.\n");
         return IOT_AGENT_FAILURE;
     }
@@ -494,7 +494,7 @@ iot_agent_status_t iot_agent_mqtt_register_and_connect_azure(const nxp_iot_Servi
         service_descriptor->azure_registration_id);
 	ASSERT_OR_EXIT_MSG(n >= 0, "Error in the snprint execution");
 
-    if (m > (int)sizeof(connection_params->address) || n > (int)sizeof(connection_params->username)) {
+    if (m >= (int)sizeof(connection_params->address) || n >= (int)sizeof(connection_params->username)) {
         LOG_E("Error, buffer for storing hubname/username was too small.\n");
         return IOT_AGENT_FAILURE;
     }
@@ -516,7 +516,7 @@ iot_agent_status_t iot_agent_mqtt_connect_custom(const nxp_iot_ServiceDescriptor
         sizeof(connection_params->address),
         "ssl://%s:8883",
         service_descriptor->hostname);
-    if (n > (int)sizeof(connection_params->address)) {
+    if (n >= (int)sizeof(connection_params->address)) {
         LOG_E("Error, buffer for storing URL was too small.\n");
         return IOT_AGENT_FAILURE;
     }
