@@ -406,9 +406,12 @@ int main(int argc, char *argv[])
         .server_ca_chain = NULL,
         .server_ca_chain_size = 0U,
         /* Client key and certificate are expected to be already provisioned in
-         * secure storage; the sample only references them by object id. */
+         * secure storage; the sample only references them by object id.
+         * Both fields are ignored when client_auth == EL2GO_OTA_CLIENT_AUTH_NONE. */
         .client_key_object_id = CONFIG_EL2GO_OTA_CLIENT_KEY_OBJECT_ID,
         .client_cert_object_id = CONFIG_EL2GO_OTA_CLIENT_CERT_OBJECT_ID,
+        .client_auth = CONFIG_EL2GO_OTA_DISABLE_MTLS ? EL2GO_OTA_CLIENT_AUTH_NONE :
+                                                       EL2GO_OTA_CLIENT_AUTH_REQUIRED,
     };
 
     OTA_DIAG_INFO("==== OTA AGENT CORE SAMPLE ====");

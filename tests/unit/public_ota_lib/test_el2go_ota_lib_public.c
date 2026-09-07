@@ -299,6 +299,38 @@ static bool test_el2go_ota_get_error_string_after_failed_init(void *params)
     return true;
 }
 
+/* Client Auth Mode -- backward-compatibility invariants */
+
+/**
+ * @brief EL2GO_OTA_CLIENT_AUTH_REQUIRED must be enum value 0.
+ *
+ * Legacy callers that leave client_auth out of their designated initializer
+ * rely on this to keep mTLS behaviour.
+ */
+static bool test_client_auth_required_is_zero(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(0, (int)EL2GO_OTA_CLIENT_AUTH_REQUIRED);
+
+    return true;
+}
+
+/**
+ * @brief A zero-initialised el2go_ota_mtls_config_t must have
+ *        client_auth == EL2GO_OTA_CLIENT_AUTH_REQUIRED.
+ */
+static bool test_client_auth_default_is_required(void *params)
+{
+    el2go_ota_mtls_config_t cfg = { 0 };
+
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_CLIENT_AUTH_REQUIRED, cfg.client_auth);
+
+    return true;
+}
+
 /* Test Registration */
 
 /**
@@ -319,4 +351,6 @@ void register_ota_lib_tests(void)
     TEST_REGISTER(test_el2go_ota_init_cleanup);
     TEST_REGISTER(test_el2go_ota_is_connected_after_init);
     TEST_REGISTER(test_el2go_ota_get_error_string_after_failed_init);
+    TEST_REGISTER(test_client_auth_required_is_zero);
+    TEST_REGISTER(test_client_auth_default_is_required);
 }
