@@ -174,6 +174,38 @@ static bool validate_flash_address(uint32_t addr, uint32_t size)
 }
 
 
+csr_mem_status_t mem_erase_sector(uint32_t sector_addr, uint32_t num_sectors)
+{
+    if (num_sectors == 0U)
+    {
+        return kStatus_CSR_MEM_INVALID_ARG;
+    }
+
+    if (s_memInitialized == 0U)
+    {
+        if (flash_init() != kStatus_CSR_MEM_SUCCESS)
+        {
+            return kStatus_CSR_MEM_FAILED;
+        }
+    }
+
+    uint32_t addr = sector_addr;
+    for (uint32_t i = 0U; i < num_sectors; i++)
+    {   
+        if (!validate_flash_address(addr, s_flashConfig.PFlashSectorSize))
+        {
+            return kStatus_CSR_MEM_ERASE_FAILED;
+        }
+        if (flash_erase_sector(addr) != kStatus_CSR_MEM_SUCCESS)
+        {
+            return kStatus_CSR_MEM_ERASE_FAILED;
+        }
+        addr += s_flashConfig.PFlashSectorSize;
+    }
+
+    return kStatus_CSR_MEM_SUCCESS;
+}
+
 csr_mem_status_t mem_read(uint32_t addr, uint8_t *buffer, uint32_t size)
 {
     

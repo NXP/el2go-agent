@@ -44,6 +44,16 @@ csr_mem_status_t mem_read(uint32_t addr, uint8_t *buffer, uint32_t size);
 */
 csr_mem_status_t mem_write(uint32_t addr, const uint8_t *buffer, uint32_t size);
 
+/*! @brief Erase one or more consecutive flash sectors starting at the specified address.
+ * 
+ * @param[in] sector_addr: Sector-aligned start address of the first sector to erase.
+ * @param[in] num_sectors: Number of sectors to erase. Must be greater than 0.
+ * @retval kStatus_CSR_MEM_SUCCESS: All sectors erased successfully.
+ * @retval kStatus_CSR_MEM_INVALID_ARG: num_sectors is 0.
+ * @retval kStatus_CSR_MEM_ERASE_FAILED: One or more sectors could not be erased.
+*/
+csr_mem_status_t mem_erase_sector(uint32_t sector_addr, uint32_t num_sectors);
+
 #ifdef __cplusplus
 }
 #endif
