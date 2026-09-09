@@ -15,6 +15,12 @@
 #include "Dispatcher.pb.h"
 
 /**
+ * @defgroup el2go_agent_endpoint Agent Endpoint Internal API
+ * @brief Internal interface for the AGENT endpoint handler.
+ * @{
+ */
+
+/**
  * @brief Populate endpoint information for the AGENT endpoint.
  *
  * Sets the dispatcher protocol version and encodes nxp_iot_AgentAdditionalData
@@ -47,5 +53,7 @@ el2go_status_t el2go_agent_get_info(void *ctx, nxp_iot_EndpointInformation *info
  */
 el2go_status_t el2go_agent_handle_request(void *ctx, const pb_field_t *message_type,
                                           pb_istream_t *istream, pb_ostream_t *ostream);
+
+/** @} */ /* end of el2go_agent_endpoint */
 
 #endif /* __EL2GO_AGENT_ENDPOINT_H__ */

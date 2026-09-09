@@ -8,6 +8,11 @@
 #ifndef __MBEDTLS_COMPAT_MACROS_V4_H__
 #define __MBEDTLS_COMPAT_MACROS_V4_H__
 
+/** @defgroup mbedtls_compat_v4 mbedTLS 4.x Compatibility Macros
+ * @brief Portability shims for mbedTLS 4.x API differences.
+ * @{
+ */
+
 #include <psa/crypto.h>
 
 /** Group/curve ID type for mbedTLS 4.x (IANA TLS group ID, uint16_t). */
@@ -27,5 +32,7 @@ typedef uint16_t mbedtls_compat_group_id_t;
     (MBEDTLS_SSL_IN_CONTENT_LEN < MBEDTLS_SSL_OUT_CONTENT_LEN ? MBEDTLS_SSL_IN_CONTENT_LEN : \
                                                                 MBEDTLS_SSL_OUT_CONTENT_LEN)
 #endif
+
+/** @} */ /* end of mbedtls_compat_v4 */
 
 #endif /* __MBEDTLS_COMPAT_MACROS_V4_H__ */

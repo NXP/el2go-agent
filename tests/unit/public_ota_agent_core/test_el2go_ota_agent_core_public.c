@@ -17,10 +17,9 @@
  * returns without error. Validates that the FWUAL dependency is correctly
  * linked into the ota_agent_core build target.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_ota_agent_core_calls_fwual_init(void *params)
 {
@@ -43,10 +42,9 @@ static bool test_ota_agent_core_calls_fwual_init(void *params)
  * it returns without error. Validates that the OTA library dependency is
  * correctly linked into the ota_agent_core build target.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_ota_agent_core_calls_ota_lib_init(void *params)
 {
@@ -73,6 +71,9 @@ static bool test_ota_agent_core_calls_ota_lib_init(void *params)
     return test_status;
 }
 
+/**
+ * @brief Register all public OTA agent core tests with the test framework.
+ */
 void register_ota_agent_core_tests(void)
 {
     TEST_REGISTER(test_ota_agent_core_calls_fwual_init);

@@ -8,6 +8,11 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
+/** @defgroup priv_debug Private Debug Helpers
+ * @brief Internal debug assertion and trace helpers used across the library.
+ * @{
+ */
+
 #include "osal.h"
 
 /* Debug levels */
@@ -80,5 +85,7 @@
     do {                                 \
         osal_printf_always(__VA_ARGS__); \
     } while (0)
+
+/** @} */ /* end of priv_debug */
 
 #endif /* __DEBUG_H__ */

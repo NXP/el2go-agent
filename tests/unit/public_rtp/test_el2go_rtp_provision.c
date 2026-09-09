@@ -29,6 +29,10 @@
  *
  * Verifies that el2go_rtp_provision() returns
  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the context.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_provision_null_context(void *params)
 {
@@ -53,6 +57,10 @@ static bool test_el2go_rtp_provision_null_context(void *params)
  * Verifies that el2go_rtp_provision() returns an error when called
  * with a valid context but no keystore registered, since the EL2GO
  * keystore is required for provisioning.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_provision_no_keystore(void *params)
 {
@@ -86,6 +94,10 @@ exit:
  * Verifies that el2go_rtp_provision() falls back to compile-time constants
  * for hostname and port when a valid keystore is registered but no EL2GO
  * datastore has been added to the context.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_provision_no_datastore(void *params)
 {
@@ -137,6 +149,10 @@ exit:
  * Verifies that el2go_rtp_provision() falls back to compile-time constants
  * when the EL2GO datastore is registered but contains invalid data that
  * fails checksum validation.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_provision_invalid_datastore(void *params)
 {
@@ -212,6 +228,10 @@ exit:
  * Verifies that el2go_rtp_provision() correctly reads the connection parameters
  * from the EL2GO datastore when it contains a valid EL2GOSERVICE service
  * descriptor written with the default hostname and port.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_provision_valid_datastore_default_config(void *params)
 {
@@ -280,6 +300,10 @@ exit:
  * hostname and port from the EL2GO datastore when provisioning. The hostname
  * and port are resolved from the environment variables EL2GO_HOSTNAME and
  * EL2GO_PORT. If not set, the compile-time defaults are used.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_provision_valid_datastore_custom_config(void *params)
 {

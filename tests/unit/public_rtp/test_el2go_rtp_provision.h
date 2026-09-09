@@ -8,6 +8,10 @@
 #ifndef TEST_EL2GO_RTP_PROVISION_H
 #define TEST_EL2GO_RTP_PROVISION_H
 
+/** @defgroup test_el2go_rtp_provision RTP Provisioning Unit Test
+ * @brief Test suite for el2go_rtp_provision() public API.
+ * @{
+ */
 #include <stdbool.h>
 
 /**
@@ -17,5 +21,7 @@
  *                          filesystem datastore support.
  */
 void register_el2go_rtp_provision_tests(bool include_fs_tests);
+
+/** @} */ /* end of test_el2go_rtp_provision */
 
 #endif /* TEST_EL2GO_RTP_PROVISION_H */

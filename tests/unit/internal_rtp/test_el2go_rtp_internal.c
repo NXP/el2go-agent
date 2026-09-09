@@ -329,6 +329,10 @@ exit:
  * Verifies that el2go_keystore_get_el2go_key_id() returns
  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the keystore,
  * key_id, or both.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_keystore_get_el2go_key_id_null_parameters(void *params)
 {
@@ -361,6 +365,10 @@ exit:
  * Verifies that el2go_keystore_get_el2go_key_id() returns
  * EL2GO_STATUS_SUCCESS and the expected EDGELOCK2GO_KEYID_ECC key ID
  * when called with a properly initialized keystore and platform context.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_keystore_get_el2go_key_id_success(void *params)
 {
@@ -397,6 +405,10 @@ exit:
  * Verifies that el2go_keystore_get_el2go_cert() returns
  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the keystore,
  * cert buffer, or cert_len.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_keystore_get_el2go_cert_null_parameters(void *params)
 {
@@ -431,6 +443,10 @@ exit:
  * EL2GO_STATUS_CERT_NOT_AVAILABLE on the SMW platform, indicating that
  * the client certificate is not provisioned and a self-signed certificate
  * will be used as fallback.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_keystore_get_el2go_cert_not_available(void *params)
 {
@@ -467,6 +483,10 @@ exit:
  * Verifies that el2go_platform_get_el2go_key_id() returns
  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the platform
  * context, key_id, or both.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_platform_get_el2go_key_id_null_parameters(void *params)
 {
@@ -493,6 +513,10 @@ exit:
  * Verifies that el2go_platform_get_el2go_key_id() returns
  * EL2GO_STATUS_SUCCESS and the expected EDGELOCK2GO_KEYID_ECC key ID
  * when called with a properly initialized platform context.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_platform_get_el2go_key_id_success(void *params)
 {
@@ -527,6 +551,10 @@ exit:
  * Verifies that el2go_platform_get_el2go_cert() returns
  * EL2GO_STATUS_CERT_NOT_AVAILABLE on the SMW platform, indicating that
  * no platform certificate is provisioned.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_platform_get_el2go_cert_not_available(void *params)
 {
@@ -560,6 +588,10 @@ exit:
  * Verifies that el2go_rtp_datastore_el2go() returns
  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the datastore,
  * keystore, config, or all three.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_datastore_el2go_null_parameters(void *params)
 {
@@ -604,7 +636,7 @@ exit:
  * @param hostname  The hostname to configure, or NULL to use the compile-time default.
  * @param port      The port to configure, or 0 to use the compile-time default.
  *
- * @return true if all assertions pass, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool common_test_el2go_rtp_datastore_el2go(const char *hostname, uint16_t port)
 {
@@ -697,6 +729,10 @@ exit:
  * Verifies that el2go_rtp_datastore_el2go() correctly writes the EdgeLock 2GO
  * service descriptor to the datastore using the default hostname and port
  * defined at compile time when NULL hostname and zero port are provided.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_datastore_el2go_default_config(void *params)
 {
@@ -711,6 +747,10 @@ static bool test_el2go_rtp_datastore_el2go_default_config(void *params)
  * Verifies that el2go_rtp_datastore_el2go() correctly writes the EdgeLock 2GO
  * service descriptor to the datastore using a user-supplied hostname and port,
  * and that the stored values can be read back correctly.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_datastore_el2go_custom_config(void *params)
 {
@@ -724,6 +764,10 @@ static bool test_el2go_rtp_datastore_el2go_custom_config(void *params)
  * Verifies that el2go_conn_datastore_needs_update() returns false when the
  * stored hostname and port match the provided values, and returns true when
  * either the hostname, port, or both differ from the stored values.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_datastore_needs_update(void *params)
 {
@@ -803,6 +847,10 @@ exit:
  * datastore contains a service descriptor with a service type other than
  * EL2GOSERVICE, and returns false after el2go_rtp_datastore_el2go() rewrites
  * the datastore with the correct service type and connection attributes.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_datastore_needs_update_service_type(void *params)
 {
@@ -900,6 +948,10 @@ exit:
  * containing arbitrary random data that fails both checksum validation and
  * service descriptor parsing. After recovery, the datastore is expected
  * to be valid and readable.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_datastore_random_data(void *params)
 {
@@ -987,6 +1039,10 @@ exit:
  * service payload and a zeroed checksum, causing both checksum validation
  * and service parsing to fail. After recovery, the datastore is expected
  * to be valid and readable.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_datastore_malformed_services(void *params)
 {
@@ -1081,6 +1137,10 @@ exit:
  * that passes checksum validation but contains a garbage service payload
  * that cannot be decoded as a valid protobuf service descriptor.
  * After recovery, the datastore is expected to be valid and readable.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_datastore_correct_checksum_malformed_services(void *params)
 {
@@ -1177,6 +1237,10 @@ exit:
  *
  * Verifies that the function accepts NULL (printing "(none)") and still
  * returns EL2GO_STATUS_INVALID_PARAMETER, as documented.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_print_status_report_null(void *params)
 {
@@ -1198,6 +1262,10 @@ static bool test_el2go_rtp_print_status_report_null(void *params)
  *
  * Builds an nxp_iot_UpdateStatusReport with no optional sub-fields set and
  * verifies that the function succeeds and does not access any sub-fields.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_print_status_report_empty(void *params)
 {
@@ -1221,6 +1289,10 @@ static bool test_el2go_rtp_print_status_report_empty(void *params)
  * print function: overall status, correlationId, claimStatus with one
  * detailed entry, rtpStatus with one detailed entry, and cspStatus with
  * one detailed entry.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_print_status_report_full(void *params)
 {
@@ -1281,6 +1353,10 @@ static bool test_el2go_rtp_print_status_report_full(void *params)
  *
  * Verifies that passing NULL as the pointer-to-pointer, or a pointer-to-NULL,
  * returns EL2GO_STATUS_INVALID_PARAMETER without crashing.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_free_status_report_null(void *params)
 {
@@ -1308,6 +1384,10 @@ exit:
  * Allocates an nxp_iot_UpdateStatusReport on the heap, wraps it in a void*,
  * calls el2go_rtp_free_status_report(), and verifies that the pointer is set
  * to NULL and the function returns EL2GO_STATUS_SUCCESS.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_rtp_free_status_report_valid(void *params)
 {

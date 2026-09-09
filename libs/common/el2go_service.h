@@ -16,6 +16,12 @@
 #include "common/el2go_status.h"
 #include "ServiceDescriptor.pb.h"
 
+/**
+ * @defgroup el2go_service Service Descriptor Internal API
+ * @brief Internal interface for parsing and validating EL2GO service descriptors.
+ * @{
+ */
+
 /** @brief Safe equivalent of PB_SIZE_MAX for protobuf size calculations. */
 #define EL2GO_PB_SIZE_MAX (~(pb_size_t)0U)
 
@@ -58,7 +64,8 @@ typedef struct {
 /**
  * @brief Get the number of services in the datastore.
  *
- * @param datastore Pointer to the datastore.
+ * @param[in] datastore Pointer to the datastore.
+ *
  * @return Number of services, or 0 on error.
  */
 size_t srv_get_number_of_services(el2go_datastore_t *datastore);
@@ -66,10 +73,11 @@ size_t srv_get_number_of_services(el2go_datastore_t *datastore);
 /**
  * @brief Get service descriptor by index.
  *
- * @param datastore           Pointer to the datastore.
- * @param index               Index of the service to retrieve.
- * @param offset              Pointer to store the offset of the service descriptor.
- * @param service_descriptor  Pointer to store the decoded service descriptor.
+ * @param[in] datastore           Pointer to the datastore.
+ * @param[in] index               Index of the service to retrieve.
+ * @param[out] offset              Pointer to store the offset of the service descriptor.
+ * @param[out] service_descriptor  Pointer to store the decoded service descriptor.
+ *
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
 el2go_status_t srv_get_service_by_index(el2go_datastore_t *datastore, size_t index, size_t *offset,
@@ -78,10 +86,11 @@ el2go_status_t srv_get_service_by_index(el2go_datastore_t *datastore, size_t ind
 /**
  * @brief Get service descriptor by service ID.
  *
- * @param datastore           Pointer to the datastore.
- * @param service_id          Service ID to search for.
- * @param offset              Pointer to store the offset of the service descriptor.
- * @param service_descriptor  Pointer to store the decoded service descriptor.
+ * @param[in] datastore           Pointer to the datastore.
+ * @param[in] service_id          Service ID to search for.
+ * @param[out] offset              Pointer to store the offset of the service descriptor.
+ * @param[out] service_descriptor  Pointer to store the decoded service descriptor.
+ *
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
 el2go_status_t srv_get_service_by_id(el2go_datastore_t *datastore, uint64_t service_id,
@@ -90,9 +99,12 @@ el2go_status_t srv_get_service_by_id(el2go_datastore_t *datastore, uint64_t serv
 /**
  * @brief Validate configuration data checksum.
  *
- * @param datastore Pointer to the datastore.
+ * @param[in] datastore Pointer to the datastore.
+ *
  * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success.
  */
 el2go_status_t srv_validate_configuration_data(el2go_datastore_t *datastore);
+
+/** @} */ /* end of el2go_service */
 
 #endif /* __EL2GO_SERVICE_H__ */

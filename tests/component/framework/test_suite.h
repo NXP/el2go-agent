@@ -8,6 +8,10 @@
 #ifndef EL2GO_TEST_SUITE_H
 #define EL2GO_TEST_SUITE_H
 
+/** @defgroup test_suite Component Test Suite Framework
+ * @brief Test suite registration and runner macros for component tests.
+ * @{
+ */
 #include "test_framework.h"
 
 /** A single portable component test case. */
@@ -52,5 +56,7 @@ typedef struct {
         *out_count = sizeof(k_cases_##suite) / sizeof(k_cases_##suite[0]); \
         return k_cases_##suite;                                            \
     }
+
+/** @} */ /* end of test_suite */
 
 #endif /* EL2GO_TEST_SUITE_H */

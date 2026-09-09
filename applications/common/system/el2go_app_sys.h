@@ -34,8 +34,8 @@
  * does not return. On other platforms the backend performs the appropriate
  * activation action and returns 0 on success, non-zero on failure.
  *
- * @return 0 on success (or does not return on platforms that reboot).
- * @return Non-zero if activation failed.
+ * @retval 0 on success (or does not return on platforms that reboot).
+ * @retval Non-zero if activation failed.
  */
 int el2go_app_sys_activate_update(void);
 

@@ -12,18 +12,24 @@
 #include <stddef.h>
 #include "common/el2go_status.h"
 
+/**
+ * @defgroup el2go_keystore Keystore Public API
+ * @brief Keystore abstraction interface for EdgeLock 2GO.
+ * @{
+ */
+
 typedef struct el2go_platform_ctx el2go_platform_ctx_t;
 
-/*
-* Keystore types
-*/
+/**
+ * @brief Keystore backend type.
+ */
 typedef enum {
-    EL2GO_KEYSTORE_SSS, /* SSS (Secure Subsystem) keystore */
-    EL2GO_KEYSTORE_PSA  /* PSA (Platform Security Architecture) keystore */
+    EL2GO_KEYSTORE_SSS, /**< SSS (Secure Subsystem) keystore */
+    EL2GO_KEYSTORE_PSA  /**< PSA (Platform Security Architecture) keystore */
 } el2go_keystore_type_t;
 
 /**
- * IoT Agent keystore
+ * @brief IoT Agent keystore instance.
  *
  * This structure contains fields used to manage keystores. Some fields are
  * used by the keystore implementations (context) and others are used for
@@ -35,11 +41,11 @@ typedef enum {
  * must not be accessed or modified by users.
  */
 typedef struct el2go_keystore {
-    uint32_t id;                        /* Keystore identifier */
-    el2go_keystore_type_t type;         /* Keystore type (SSS or PSA) */
-    void *context;                      /* Keystore context */
-    void *priv;                         /* Private data */
-    el2go_platform_ctx_t *platform_ctx; /* Platform context */
+    uint32_t id;                        /**< Keystore identifier */
+    el2go_keystore_type_t type;         /**< Keystore type (SSS or PSA) */
+    void *context;                      /**< Keystore context */
+    void *priv;                         /**< Private data */
+    el2go_platform_ctx_t *platform_ctx; /**< Platform context */
 } el2go_keystore_t;
 
 /**
@@ -123,10 +129,12 @@ el2go_status_t el2go_keystore_import_claimcode(el2go_keystore_t *keystore, const
  *
  * @param[in] keystore  Initialized keystore (used for context only).
  *
- * @return EL2GO_STATUS_SUCCESS on success or if already stored.
- * @return EL2GO_STATUS_INVALID_PARAMETER if the magic bytes do not match.
- * @return EL2GO_STATUS_PSA_ERROR on PSA ITS write failure.
+ * @retval EL2GO_STATUS_SUCCESS on success or if already stored.
+ * @retval EL2GO_STATUS_INVALID_PARAMETER if the magic bytes do not match.
+ * @retval EL2GO_STATUS_PSA_ERROR on PSA ITS write failure.
  */
 el2go_status_t el2go_keystore_import_claimcode_from_flash(el2go_keystore_t *keystore);
+
+/** @} */ /* end of el2go_keystore */
 
 #endif /* __EL2GO_KEYSTORE_H__ */

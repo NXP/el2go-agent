@@ -46,8 +46,8 @@ el2go_status_t el2go_platform_destroy_key(el2go_platform_ctx_t *platform_ctx, co
  * @param[in] claimcode      Claim code string (not necessarily null-terminated).
  * @param[in] claimcode_len  Length of the claim code in bytes.
  *
- * @return @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success,
- * @return @ref EL2GO_STATUS_NOT_IMPLEMENTED if no platform override is present.
+ * @retval @ref el2go_status_t value, @ref EL2GO_STATUS_SUCCESS on success,
+ * @retval @ref EL2GO_STATUS_NOT_IMPLEMENTED if no platform override is present.
  */
 el2go_status_t el2go_platform_import_claimcode(el2go_platform_ctx_t *platform_ctx,
                                                const char *claimcode, size_t claimcode_len);

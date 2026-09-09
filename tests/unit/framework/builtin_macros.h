@@ -8,6 +8,10 @@
 #ifndef __BUILTIN_MACROS_H__
 #define __BUILTIN_MACROS_H__
 
+/** @defgroup test_builtin_macros Test Framework Built-in Macros
+ * @brief Compiler built-in macro overrides for the unit test framework.
+ * @{
+ */
 #include <stdint.h>
 
 #ifndef BIT
@@ -117,5 +121,7 @@
     })
 
 #define SET_CLEAR_MASK(val, set, clear) (((val) & ~(clear)) | (set))
+
+/** @} */ /* end of test_builtin_macros */
 
 #endif /* __BUILTIN_MACROS_H__ */

@@ -68,9 +68,9 @@
 /* Hand-crafted protobuf byte arrays                                           */
 /* ========================================================================== */
 
-/*
- * HELLO_BYTES - one length-delimited EndpointRequests message carrying an
- *               AgentHelloRequest directed at the AGENT endpoint (type=1, id=0).
+/**
+ * @brief One length-delimited EndpointRequests message carrying an
+ *        AgentHelloRequest directed at the AGENT endpoint (type=1, id=0).
  *
  * Encoding breakdown:
  *   pb_decode_delimited length prefix: varint 11 = 0x0B
@@ -94,9 +94,9 @@ static const uint8_t HELLO_BYTES[] = {
     0x0A, 0x00        /* hello: field 1, len=0     */
 };
 
-/*
- * GOODBYE_SUCCESS_BYTES - one length-delimited EndpointRequests message
- *   carrying AgentGoodbyeRequest { status { status = SUCCESS(1) } }
+/**
+ * @brief One length-delimited EndpointRequests message carrying
+ *        AgentGoodbyeRequest { status { status = SUCCESS(1) } }.
  *
  * Encoding breakdown:
  *   pb_decode_delimited length prefix: varint 15 = 0x0F
@@ -120,8 +120,8 @@ static const uint8_t GOODBYE_SUCCESS_BYTES[] = {
     0x08, 0x01        /* UpdateStatusReport.status=1  */
 };
 
-/*
- * GOODBYE_FAILURE_BYTES - GoodbyeRequest with status=ERR_UPDATE_FAILED(64=0x40).
+/**
+ * @brief GoodbyeRequest with status=ERR_UPDATE_FAILED(64=0x40).
  *
  * Same layout as GOODBYE_SUCCESS_BYTES but the last byte is 0x40.
  */
@@ -130,8 +130,8 @@ static const uint8_t GOODBYE_FAILURE_BYTES[] = {
     0x06, 0x06, 0x12, 0x04, 0x0A, 0x02, 0x08, 0x40 /* ERR_UPDATE_FAILED = 64       */
 };
 
-/*
- * GOODBYE_NO_STATUS_BYTES - GoodbyeRequest with no status field at all.
+/**
+ * @brief GoodbyeRequest with no status field at all.
  *
  * Encoding breakdown:
  *   pb_decode_delimited length prefix: varint 11 = 0x0B
@@ -145,9 +145,8 @@ static const uint8_t GOODBYE_FAILURE_BYTES[] = {
 static const uint8_t GOODBYE_NO_STATUS_BYTES[] = { 0x0B, 0x0A, 0x09, 0x08, 0x01, 0x10,
                                                    0x00, 0xA2, 0x06, 0x02, 0x12, 0x00 };
 
-/*
- * UNKNOWN_ENDPOINT_BYTES - EndpointRequest targeting type=KS_PSA(21), id=0x1234
- *   with a CrlRequest payload.
+/**
+ * @brief EndpointRequest targeting type=KS_PSA(21), id=0x1234 with a CrlRequest payload.
  *
  * A CrlRequest payload is used here so the message passes the CRL gate (only
  * Goodbye and CRL messages are allowed before crl_verified becomes true).
@@ -172,10 +171,10 @@ static const uint8_t UNKNOWN_ENDPOINT_BYTES[] = {
     0x1A, 0x00                    /* crl: field 3, len=0          */
 };
 
-/*
- * HELLO_MALFORMED_BODY_BYTES - EndpointRequests carrying an AgentHelloRequest
- *   whose inner body is corrupted: the hello LEN field declares 4 bytes but
- *   only 1 byte follows before the stream ends.
+/**
+ * @brief EndpointRequests carrying an AgentHelloRequest whose inner body is
+ *        corrupted: the hello LEN field declares 4 bytes but only 1 byte
+ *        follows before the stream ends.
  *
  * pb_decode_unionmessage_type() succeeds (it recognises field 1 = hello).
  * The subsequent pb_decode_delimited() call fails with "end-of-stream" ->
@@ -200,9 +199,9 @@ static const uint8_t HELLO_MALFORMED_BODY_BYTES[] = {
     0x0A, 0x04, 0xFF  /* hello tag, declared len=4, 1 byte    */
 };
 
-/*
- * APDU_BEFORE_CRL_BYTES - EndpointRequest targeting the AGENT endpoint (type=1,
- *   id=0) but carrying an APDU payload (tag 20) instead of a CRL or Goodbye.
+/**
+ * @brief EndpointRequest targeting the AGENT endpoint (type=1, id=0) carrying
+ *        an APDU payload (tag 20) instead of a CRL or Goodbye.
  *
  * When EL2GO_RTP_REQUEST_CRL==1 (the default), the dispatcher sets
  * crl_required=true at session start.  Only GoodbyeRequest and CrlRequest are
@@ -237,7 +236,7 @@ static const uint8_t APDU_BEFORE_CRL_BYTES[] = {
  * @brief Passing NULL as the RTP context must return INVALID_PARAMETER.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_null_ctx(void *params)
 {
@@ -259,7 +258,7 @@ static bool test_dispatch_null_ctx(void *params)
  * @brief Passing NULL as the istream must return INVALID_PARAMETER.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_null_istream(void *params)
 {
@@ -288,7 +287,7 @@ exit:
  * @brief Passing NULL as the ostream must return INVALID_PARAMETER.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_null_ostream(void *params)
 {
@@ -326,7 +325,7 @@ exit:
  * translates this into EL2GO_STATUS_RTP_DECODE_ERROR.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_empty_input_stream(void *params)
 {
@@ -361,7 +360,7 @@ exit:
  * full message length and returns false -> RTP_DECODE_ERROR.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_corrupted_input(void *params)
 {
@@ -398,7 +397,7 @@ exit:
  * RTP_ENDPOINT_NOT_FOUND, and the dispatcher propagates that specific code.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_unknown_endpoint(void *params)
 {
@@ -435,7 +434,7 @@ exit:
  * fails, and pending_error is set to RTP_DECODE_ERROR.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_hello_malformed_body(void *params)
 {
@@ -475,7 +474,7 @@ exit:
  * loop propagates that specific code.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_crl_not_verified(void *params)
 {
@@ -522,7 +521,7 @@ exit:
  * ostream causes pb_encode_string() to fail -> RTP_ENCODE_ERROR.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_ostream_full(void *params)
 {
@@ -562,7 +561,7 @@ exit:
  * stays false -> EL2GO_STATUS_RTP_PROVISIONING_FAILED.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_goodbye_no_status_field(void *params)
 {
@@ -597,7 +596,7 @@ exit:
  * EL2GO_STATUS_RTP_PROVISIONING_FAILED.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_goodbye_failure_status(void *params)
 {
@@ -638,7 +637,7 @@ exit:
  * but all internal encoding succeeds (sizing stream never returns "full").
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_hello_goodbye_success(void *params)
 {
@@ -679,7 +678,7 @@ exit:
  * returns false on the second iteration -> RTP_DECODE_ERROR.
  *
  * @param params Unused.
- * @return true if the assertion passes, false otherwise.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_dispatch_hello_no_goodbye(void *params)
 {

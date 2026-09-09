@@ -18,6 +18,12 @@
 #include "rtp/el2go_rtp.h"
 
 /**
+ * @defgroup el2go_server_conn Server Connection Internal API
+ * @brief Internal interface for managing EdgeLock 2GO server connections.
+ * @{
+ */
+
+/**
  * @brief Check if the EdgeLock 2GO datastore needs update
  *
  * If no user provided values, always update from constants.
@@ -57,5 +63,7 @@ el2go_status_t el2go_conn_write_datastore(el2go_datastore_t *datastore,
                                           el2go_keystore_t *keystore_ctx, const char *hostname,
                                           uint16_t port, const pb_bytes_array_t *server_cert,
                                           uint32_t object_id, const pb_bytes_array_t *client_cert);
+
+/** @} */ /* end of el2go_server_conn */
 
 #endif /* __EL2GO_SERVER_CONNECTION_H__ */

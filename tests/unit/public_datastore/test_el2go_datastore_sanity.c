@@ -17,6 +17,17 @@
 /* Parameter Validation Tests                                                 */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that el2go_datastore_init() rejects a NULL datastore pointer or a NULL basename.
+ *
+ * Checks that passing NULL as the datastore output argument returns
+ * EL2GO_STATUS_INVALID_PARAMETER, and that passing NULL as the basename
+ * also returns EL2GO_STATUS_INVALID_PARAMETER.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_init_null_parameters(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -38,6 +49,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_init() rejects an unknown datastore
+ *        type value and returns EL2GO_STATUS_INVALID_PARAMETER.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_init_invalid_type(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -56,6 +75,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_allocate() rejects a zero-length request.
+ *
+ * Expects EL2GO_STATUS_INVALID_PARAMETER when len == 0.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_allocate_zero_size(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -77,6 +105,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_allocate() rejects a NULL datastore pointer.
+ *
+ * Expects EL2GO_STATUS_INVALID_PARAMETER when the datastore argument is NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_allocate_null_pointer(void *params)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
@@ -89,6 +126,15 @@ static bool test_datastore_allocate_null_pointer(void *params)
     return true;
 }
 
+/**
+ * @brief Verify that el2go_datastore_write() returns
+ *        EL2GO_STATUS_INVALID_PARAMETER when any required pointer argument
+ *        is NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_write_null_parameters(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -121,6 +167,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_write() rejects a zero-length write request.
+ *
+ * Expects EL2GO_STATUS_INVALID_PARAMETER when len == 0.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_write_zero_length(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -147,6 +202,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_read() returns
+ *        EL2GO_STATUS_INVALID_PARAMETER when any required pointer argument
+ *        is NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_read_null_parameters(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -182,6 +246,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_read() rejects a zero-length read request.
+ *
+ * Expects EL2GO_STATUS_INVALID_PARAMETER when len == 0.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_read_zero_length(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -211,6 +284,16 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_commit() fails when no transaction is active.
+ *
+ * Calls commit on a freshly initialized datastore (no preceding allocate) and
+ * expects EL2GO_STATUS_INVALID_STATE.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_commit_without_transaction(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -232,6 +315,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_commit() rejects a NULL datastore pointer.
+ *
+ * Expects EL2GO_STATUS_INVALID_PARAMETER when the datastore argument is NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_commit_null_pointer(void *params)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
@@ -248,6 +340,9 @@ static bool test_datastore_commit_null_pointer(void *params)
 /* Test Registration                                                          */
 /* ========================================================================== */
 
+/**
+ * @brief Register all datastore sanity tests with the test framework.
+ */
 void register_datastore_sanity_tests(void)
 {
     /* Parameter validation tests */

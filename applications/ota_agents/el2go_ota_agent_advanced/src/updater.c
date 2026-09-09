@@ -97,8 +97,8 @@ typedef struct {
  * @param[in] offset  Server-reported offset (unused; see above).
  * @param[in] cb_ctx  Pointer to the chunk_cb_ctx_t for this download.
  *
- * @return EL2GO_OTA_SUCCESS if the chunk was written
- * @return EL2GO_OTA_ERROR_INTERNAL if the chunk is too large or the write failed
+ * @retval EL2GO_OTA_SUCCESS if the chunk was written
+ * @retval EL2GO_OTA_ERROR_INTERNAL if the chunk is too large or the write failed
  */
 static el2go_ota_status_t chunk_cb(const uint8_t *data, size_t len, size_t offset, void *cb_ctx)
 {
@@ -140,8 +140,8 @@ static el2go_ota_status_t chunk_cb(const uint8_t *data, size_t len, size_t offse
  * @param[in]     update   Update descriptor listing the packages to apply
  * @param[in,out] persist  Persisted agent state, or NULL to skip persistence
  *
- * @return EL2GO_OTA_SUCCESS if all packages were applied and activated
- * @return EL2GO_OTA_ERROR_INTERNAL on any download, FWUAL, or session error
+ * @retval EL2GO_OTA_SUCCESS if all packages were applied and activated
+ * @retval EL2GO_OTA_ERROR_INTERNAL on any download, FWUAL, or session error
  */
 static el2go_ota_status_t run_download_and_handoff(updater_ctx_t *updater,
                                                    const el2go_ota_update_info_t *update,

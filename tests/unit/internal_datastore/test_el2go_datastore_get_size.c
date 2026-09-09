@@ -52,6 +52,10 @@ static void cleanup_ds(el2go_datastore_t *ds)
 
 /**
  * @brief NULL datastore must return INVALID_PARAMETER.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_get_size_null_datastore(void *params)
 {
@@ -67,6 +71,10 @@ static bool test_get_size_null_datastore(void *params)
 
 /**
  * @brief NULL size pointer must return INVALID_PARAMETER.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_get_size_null_size_ptr(void *params)
 {
@@ -90,6 +98,10 @@ exit:
 
 /**
  * @brief Freshly initialised datastore - no committed data, size is 0.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_get_size_fresh_datastore(void *params)
 {
@@ -112,6 +124,10 @@ exit:
 
 /**
  * @brief After allocate + commit with no write, size is 0 (nothing written).
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_get_size_after_allocate_commit_no_write(void *params)
 {
@@ -138,7 +154,12 @@ exit:
 }
 
 /**
- * @brief After a partial write + commit, size equals bytes_written (not alloc_len).
+ * @brief Verify that after a partial write and commit, get_size() returns
+ *        the number of bytes actually written, not the allocation length.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_get_size_partial_write(void *params)
 {
@@ -173,6 +194,10 @@ exit:
 
 /**
  * @brief After a full write + commit, size equals the full written length.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_get_size_full_write(void *params)
 {
@@ -210,6 +235,10 @@ exit:
 
 /**
  * @brief Re-allocating + re-writing updates size to the new written length.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_get_size_after_realloc(void *params)
 {
@@ -254,6 +283,10 @@ exit:
 /**
  * @brief get_size before commit returns the last committed size, not the
  *        size of a pending (not yet committed) write.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_get_size_before_commit(void *params)
 {

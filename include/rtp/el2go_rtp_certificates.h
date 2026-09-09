@@ -9,8 +9,14 @@
 #define __EL2GO_RTP_CERTIFICATES_H__
 
 /**
+ * @defgroup el2go_rtp_certs RTP Trusted Certificates
+ * @brief Compile-time DER-encoded trusted root CA certificates for EdgeLock 2GO.
+ * @{
+ */
+
+/**
  * @file el2go_rtp_certificates.h
- * @brief EdgeLock 2GO trusted root CA certificates
+ * @brief EdgeLock 2GO trusted root CA certificates.
  *
  * This file contains the DER-encoded trusted root CA certificates
  * for EdgeLock 2GO production and sandbox environments.
@@ -323,5 +329,7 @@
  * @brief Size of RSA sandbox root CA certificate in bytes
  */
 #define EL2GO_RTP_TRUSTED_ROOT_CA_CERT_RSA_SANDBOX_SIZE 1324
+
+/** @} */ /* end of el2go_rtp_certs */
 
 #endif /* EL2GO_RTP_CERTIFICATES_H */

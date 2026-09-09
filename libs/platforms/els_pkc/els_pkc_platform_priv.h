@@ -11,7 +11,13 @@
 #include "common/el2go_status.h"
 
 /**
- * el2go_platform_register_el2go_key - Register the EL2GO connection auth key.
+ * @defgroup els_pkc_platform_int ELS PKC Platform Internal API
+ * @brief Internal platform interface for the ELS PKC (S50) secure enclave.
+ * @{
+ */
+
+/**
+ * @brief Register the EL2GO connection auth key.
  *
  * Imports the device-specific EL2GO authentication key recipe into PSA so
  * that the S50 secure enclave can sign TLS handshake data. The key never
@@ -26,5 +32,7 @@
  * @return EL2GO_STATUS_SUCCESS on success, error code otherwise.
  */
 el2go_status_t el2go_platform_register_el2go_key(void);
+
+/** @} */ /* end of els_pkc_platform_int */
 
 #endif /* ELS_PKC_PLATFORM_PRIV_H */

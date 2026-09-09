@@ -8,6 +8,11 @@
 #ifndef __EL2GO_OTA_RESPONSE_HANDLER_H__
 #define __EL2GO_OTA_RESPONSE_HANDLER_H__
 
+/** @defgroup el2go_ota_response_handler OTA Response Handler Internal API
+ * @brief Internal API for parsing protobuf OTA response messages.
+ * @{
+ */
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -49,9 +54,9 @@ typedef struct {
  * @param[in]  buf      Wire buffer. May be non-NULL even when buf_len == 0.
  * @param[in]  buf_len  Length of buf. 0 means empty response (no updates).
  * @param[out] out      Parsed result. Must not be NULL.
- * @return EL2GO_OTA_SUCCESS on success (including empty updates list).
- * @return EL2GO_OTA_ERROR_INVALID_PARAM if buf or out is NULL (and buf_len > 0).
- * @return EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
+ * @retval EL2GO_OTA_SUCCESS on success (including empty updates list).
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM if buf or out is NULL (and buf_len > 0).
+ * @retval EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
  */
 __export el2go_ota_status_t el2go_ota_parse_check_update_response(
     const uint8_t *buf, size_t buf_len, el2go_ota_check_update_resp_t *out);
@@ -64,9 +69,9 @@ __export el2go_ota_status_t el2go_ota_parse_check_update_response(
  * @param[in]  buf      Wire buffer. Must not be NULL.
  * @param[in]  buf_len  Length of buf. Must be > 0.
  * @param[out] out      Parsed result. Must not be NULL.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INVALID_PARAM if buf or out is NULL, or buf_len == 0.
- * @return EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM if buf or out is NULL, or buf_len == 0.
+ * @retval EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
  */
 __export el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t *buf,
                                                                    size_t buf_len,
@@ -80,10 +85,12 @@ __export el2go_ota_status_t el2go_ota_parse_fetch_package_response(const uint8_t
  *
  * @param[in] buf      Wire buffer. May be NULL if buf_len is 0.
  * @param[in] buf_len  Length of buf. May be 0 for empty response.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_DECODE if nanopb decoding fails.
  */
 __export el2go_ota_status_t el2go_ota_parse_report_status_response(const uint8_t *buf,
                                                                    size_t buf_len);
+
+/** @} */ /* end of el2go_ota_response_handler */
 
 #endif /* __EL2GO_OTA_RESPONSE_HANDLER_H__ */

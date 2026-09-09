@@ -665,6 +665,9 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Register all PSA keystore-specific tests with the test framework.
+ */
 void register_keystore_specific_tests(void)
 {
     /* Register PSA keystore initialization test */

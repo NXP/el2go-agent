@@ -8,6 +8,11 @@
 #ifndef __MBEDTLS_MAPPING_H__
 #define __MBEDTLS_MAPPING_H__
 
+/** @defgroup mbedtls_mapping mbedTLS Cipher and Curve Mapping
+ * @brief Internal helpers for converting platform crypto parameter lists to mbedTLS types.
+ * @{
+ */
+
 #include <stddef.h>
 
 #include "plat_crypto_params.h"
@@ -41,5 +46,7 @@ int cipher_list_to_mbedtls(const el2go_cipher_list_t *platform_list, int *mbedtl
  */
 int curves_to_mbedtls(const el2go_curve_list_t *curve_list, void *mbedtls_curves,
                       size_t max_curves);
+
+/** @} */ /* end of mbedtls_mapping */
 
 #endif /* __MBEDTLS_MAPPING_H__ */

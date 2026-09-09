@@ -8,6 +8,11 @@
 #ifndef __MBEDTLS_MAPPING_MD_H__
 #define __MBEDTLS_MAPPING_MD_H__
 
+/** @defgroup mbedtls_mapping_md mbedTLS Message Digest Mapping
+ * @brief Internal helper for mapping platform hash algorithm IDs to mbedTLS md_type_t.
+ * @{
+ */
+
 #include <mbedtls/md.h>
 #include "net_crypto.h"
 
@@ -30,5 +35,7 @@ static inline mbedtls_md_type_t map_md_alg(net_crypto_md_alg_t alg)
         return MBEDTLS_MD_SHA256;
     }
 }
+
+/** @} */ /* end of mbedtls_mapping_md */
 
 #endif /* __MBEDTLS_MAPPING_MD_H__ */

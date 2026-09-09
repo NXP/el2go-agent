@@ -8,6 +8,11 @@
 #ifndef __LOCAL_H__
 #define __LOCAL_H__
 
+/** @defgroup osal_zephyr_local Zephyr OSAL Internal Helpers
+ * @brief Internal debug-print macros for the Zephyr OSAL implementation.
+ * @{
+ */
+
 #include "osal.h"
 
 /* Debug level aliases (mirror the linux OSAL local.h) */
@@ -44,5 +49,7 @@
 #define OSAL_TRACE_EXTRA_FUNCTION_CALL
 
 #endif /* ENABLE_TRACE */
+
+/** @} */ /* end of osal_zephyr_local */
 
 #endif /* __LOCAL_H__ */

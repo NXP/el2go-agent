@@ -8,6 +8,10 @@
 #ifndef EL2GO_TEST_MOCK_TRANSPORT_H
 #define EL2GO_TEST_MOCK_TRANSPORT_H
 
+/** @defgroup test_mock_transport Mock Transport for Component Tests
+ * @brief Mock transport implementation for OTA component tests.
+ * @{
+ */
 #include <stddef.h>
 #include <stdint.h>
 
@@ -55,5 +59,7 @@ int mock_transport_get_last_request(uint8_t *buf, size_t buf_size, size_t *out_l
 
 /** @return Number of send() calls observed since the last reset. */
 size_t mock_transport_send_count(void);
+
+/** @} */ /* end of test_mock_transport */
 
 #endif /* EL2GO_TEST_MOCK_TRANSPORT_H */

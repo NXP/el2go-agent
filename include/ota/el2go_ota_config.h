@@ -8,6 +8,11 @@
 #ifndef __EL2GO_OTA_CONFIG_H__
 #define __EL2GO_OTA_CONFIG_H__
 
+/** @defgroup el2go_ota_config OTA Configuration
+ * @brief Compile-time tunables and TLS configuration types for the EL2GO OTA library.
+ * @{
+ */
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -76,5 +81,7 @@ typedef struct {
     el2go_ota_client_auth_t client_auth; /**< Client authentication mode.
                                           *   Default 0 = EL2GO_OTA_CLIENT_AUTH_REQUIRED. */
 } el2go_ota_mtls_config_t;
+
+/** @} */ /* end of el2go_ota_config */
 
 #endif /* __EL2GO_OTA_CONFIG_H__ */

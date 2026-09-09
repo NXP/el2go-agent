@@ -8,6 +8,11 @@
 #ifndef __LOCAL_H__
 #define __LOCAL_H__
 
+/** @defgroup osal_linux_local Linux OSAL Internal Helpers
+ * @brief Internal debug-print macros for the Linux OSAL implementation.
+ * @{
+ */
+
 #include "osal.h"
 
 /* Debug levels */
@@ -59,5 +64,7 @@ void set_log_file(void);
  * the logging verbosity level accordingly for filtering log messages.
  */
 void set_log_level(void);
+
+/** @} */ /* end of osal_linux_local */
 
 #endif /* __LOCAL_H__ */

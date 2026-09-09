@@ -8,6 +8,11 @@
 #ifndef EL2GO_OTA_TRANSPORT_H
 #define EL2GO_OTA_TRANSPORT_H
 
+/** @defgroup el2go_ota_transport OTA Transport Abstraction Internal API
+ * @brief Internal vtable-based transport abstraction for the OTA library.
+ * @{
+ */
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -24,9 +29,9 @@ typedef struct el2go_ota_transport el2go_ota_transport_t;
  *                         NULL. Ignored by backends that do not use HTTP/2 routing.
  * @param[in] msg          Serialized protobuf payload. Must not be NULL.
  * @param[in] msg_len      Length of msg in bytes. Must be > 0.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INVALID_PARAM on bad arguments.
- * @return EL2GO_OTA_ERROR_NETWORK on I/O failure.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM on bad arguments.
+ * @retval EL2GO_OTA_ERROR_NETWORK on I/O failure.
  */
 typedef el2go_ota_status_t (*el2go_ota_transport_send_fn)(el2go_ota_transport_t *t,
                                                           const char *method_path,
@@ -39,10 +44,10 @@ typedef el2go_ota_status_t (*el2go_ota_transport_send_fn)(el2go_ota_transport_t 
  * @param[out] buf      Output buffer. Must not be NULL.
  * @param[in]  buf_len  Size of buf in bytes.
  * @param[out] out_len  Number of payload bytes written. Must not be NULL.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INVALID_PARAM on bad arguments.
- * @return EL2GO_OTA_ERROR_NETWORK on I/O failure or connection closed.
- * @return EL2GO_OTA_ERROR_INTERNAL if payload exceeds buf_len.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM on bad arguments.
+ * @retval EL2GO_OTA_ERROR_NETWORK on I/O failure or connection closed.
+ * @retval EL2GO_OTA_ERROR_INTERNAL if payload exceeds buf_len.
  */
 typedef el2go_ota_status_t (*el2go_ota_transport_recv_fn)(el2go_ota_transport_t *t, uint8_t *buf,
                                                           size_t buf_len, size_t *out_len);
@@ -90,5 +95,7 @@ typedef struct el2go_ota_tls_ctx el2go_ota_tls_ctx_t;
  */
 el2go_ota_status_t el2go_ota_transport_init(el2go_ota_transport_t *t, el2go_ota_tls_ctx_t *tls_ctx,
                                             const char *hostname);
+
+/** @} */ /* end of el2go_ota_transport */
 
 #endif /* EL2GO_OTA_TRANSPORT_H */

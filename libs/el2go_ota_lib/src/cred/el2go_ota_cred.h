@@ -8,6 +8,11 @@
 #ifndef __EL2GO_OTA_CRED_H__
 #define __EL2GO_OTA_CRED_H__
 
+/** @defgroup el2go_ota_cred OTA Credential Provider Internal API
+ * @brief Internal API for acquiring client TLS credentials for the OTA library.
+ * @{
+ */
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -36,16 +41,18 @@
  * @param[out] key_id         Receives the key ID to pass to
  *                            net_crypto_associate_key().
  *
- * @return  EL2GO_STATUS_SUCCESS on success.
- * @return  EL2GO_STATUS_ALLOCATION_ERROR if a heap allocation fails.
- * @return  EL2GO_STATUS_NET_CRYPTO_INVALID_CERT if certificate
+ * @retval EL2GO_STATUS_SUCCESS on success.
+ * @retval EL2GO_STATUS_ALLOCATION_ERROR if a heap allocation fails.
+ * @retval EL2GO_STATUS_NET_CRYPTO_INVALID_CERT if certificate
  *          retrieval from PSA ITS fails.
- * @return  EL2GO_STATUS_NET_CRYPTO_INVALID_KEY if the key cannot
+ * @retval EL2GO_STATUS_NET_CRYPTO_INVALID_KEY if the key cannot
  *          be accessed from the PSA keystore.
  */
 el2go_status_t el2go_ota_prepare_client_credentials(el2go_platform_ctx_t *platform_ctx,
                                                     const el2go_ota_mtls_config_t *config,
                                                     uint8_t **cert_der, size_t *cert_der_len,
                                                     uint32_t *key_id);
+
+/** @} */ /* end of el2go_ota_cred */
 
 #endif /* __EL2GO_OTA_CRED_H__ */

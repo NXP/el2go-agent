@@ -210,6 +210,10 @@ static bool decode_ds_status(const uint8_t *buf, size_t len, nxp_iot_DatastoreSt
 
 /**
  * @brief NULL ctx must return EL2GO_STATUS_RTP_DECODE_ERROR immediately.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_null_ctx(void *params)
 {
@@ -227,6 +231,10 @@ static bool test_handle_request_null_ctx(void *params)
 
 /**
  * @brief NULL istream must return EL2GO_STATUS_RTP_DECODE_ERROR.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_null_istream(void *params)
 {
@@ -249,6 +257,10 @@ exit:
 
 /**
  * @brief NULL ostream must return EL2GO_STATUS_RTP_DECODE_ERROR.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_null_ostream(void *params)
 {
@@ -271,6 +283,10 @@ exit:
 
 /**
  * @brief Malformed (garbage) protobuf input must return EL2GO_STATUS_RTP_DECODE_ERROR.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_malformed_protobuf(void *params)
 {
@@ -302,6 +318,10 @@ exit:
 /**
  * @brief Request with has_operation == false -> response status ERROR,
  *        but function still returns EL2GO_STATUS_SUCCESS (encode succeeds).
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_missing_operation(void *params)
 {
@@ -345,6 +365,10 @@ exit:
 
 /**
  * @brief Unknown operation value -> response status ERROR, function returns EL2GO_STATUS_SUCCESS.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_unknown_operation(void *params)
 {
@@ -389,6 +413,10 @@ exit:
 
 /**
  * @brief ALLOCATE with a valid length -> OK status.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_allocate_success(void *params)
 {
@@ -431,6 +459,10 @@ exit:
 
 /**
  * @brief ALLOCATE with zero length -> ERROR status (invalid parameter).
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_allocate_zero_length(void *params)
 {
@@ -495,6 +527,10 @@ static bool write_data_cb(pb_ostream_t *stream, const pb_field_t *field, void *c
 
 /**
  * @brief WRITE happy path: allocate then write; expect OK status.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_write_success(void *params)
 {
@@ -550,6 +586,10 @@ exit:
 /**
  * @brief WRITE without prior ALLOCATE -> underlying write fails ->
  *        function returns EL2GO_STATUS_SUCCESS but response status is ERROR.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_write_no_alloc(void *params)
 {
@@ -605,9 +645,12 @@ exit:
 /* ========================================================================== */
 
 /**
- * @brief READ happy path: write known data, read it back via handle_request,
- *        verify the response status is OK and the returned bytes match the
- *        original pattern byte-for-byte.
+ * @brief Verify the READ happy path: write data, read it back via
+ *        handle_request, and verify the response status and returned data.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_read_success(void *params)
 {
@@ -676,8 +719,12 @@ exit:
 }
 
 /**
- * @brief READ with requested length greater than stored size -> clamped to
- *        available bytes, response status OK.
+ * @brief Verify that a READ request whose length exceeds the stored data
+ *        is clamped to the available size and returns a successful status.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_read_clamp_to_size(void *params)
 {
@@ -738,6 +785,10 @@ exit:
 
 /**
  * @brief COMMIT after ALLOCATE + WRITE -> OK status.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_commit_success(void *params)
 {
@@ -794,6 +845,10 @@ exit:
  * nxp_iot_ServiceDescriptor with a service type, hostname, and port.
  * The test exercises the full round-trip entirely through
  * el2go_datastore_handle_request.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_handle_request_read_service_descriptor(void *params)
 {

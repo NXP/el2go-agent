@@ -80,11 +80,11 @@ typedef enum {
  *
  * @param[out] out  Receives the loaded record. Must not be NULL.
  *
- * @return EL2GO_OTA_PERSIST_OK on success (including when no record is stored).
- * @return EL2GO_OTA_PERSIST_ERR_ARG if out is NULL.
- * @return EL2GO_OTA_PERSIST_ERR_NOT_READY if the storage device is not ready.
- * @return EL2GO_OTA_PERSIST_ERR_MOUNT if the storage cannot be mounted.
- * @return EL2GO_OTA_PERSIST_ERR_IO if the read fails.
+ * @retval EL2GO_OTA_PERSIST_OK on success (including when no record is stored).
+ * @retval EL2GO_OTA_PERSIST_ERR_ARG if out is NULL.
+ * @retval EL2GO_OTA_PERSIST_ERR_NOT_READY if the storage device is not ready.
+ * @retval EL2GO_OTA_PERSIST_ERR_MOUNT if the storage cannot be mounted.
+ * @retval EL2GO_OTA_PERSIST_ERR_IO if the read fails.
  */
 el2go_ota_persist_status_t el2go_ota_persist_read(agent_persist_t *out);
 
@@ -93,22 +93,22 @@ el2go_ota_persist_status_t el2go_ota_persist_read(agent_persist_t *out);
  *
  * @param[in] in  Record to store. Must not be NULL.
  *
- * @return EL2GO_OTA_PERSIST_OK on success.
- * @return EL2GO_OTA_PERSIST_ERR_ARG if in is NULL.
- * @return EL2GO_OTA_PERSIST_ERR_NOT_READY if the storage device is not ready.
- * @return EL2GO_OTA_PERSIST_ERR_MOUNT if the storage cannot be mounted.
- * @return EL2GO_OTA_PERSIST_ERR_IO if the write fails.
- * @return EL2GO_OTA_PERSIST_ERR_PARTIAL if fewer bytes than requested were stored.
+ * @retval EL2GO_OTA_PERSIST_OK on success.
+ * @retval EL2GO_OTA_PERSIST_ERR_ARG if in is NULL.
+ * @retval EL2GO_OTA_PERSIST_ERR_NOT_READY if the storage device is not ready.
+ * @retval EL2GO_OTA_PERSIST_ERR_MOUNT if the storage cannot be mounted.
+ * @retval EL2GO_OTA_PERSIST_ERR_IO if the write fails.
+ * @retval EL2GO_OTA_PERSIST_ERR_PARTIAL if fewer bytes than requested were stored.
  */
 el2go_ota_persist_status_t el2go_ota_persist_write(const agent_persist_t *in);
 
 /**
  * @brief Clear the stored record.
  *
- * @return EL2GO_OTA_PERSIST_OK on success (including when no record was present).
- * @return EL2GO_OTA_PERSIST_ERR_NOT_READY if the storage device is not ready.
- * @return EL2GO_OTA_PERSIST_ERR_MOUNT if the storage cannot be mounted.
- * @return EL2GO_OTA_PERSIST_ERR_IO if the delete fails.
+ * @retval EL2GO_OTA_PERSIST_OK on success (including when no record was present).
+ * @retval EL2GO_OTA_PERSIST_ERR_NOT_READY if the storage device is not ready.
+ * @retval EL2GO_OTA_PERSIST_ERR_MOUNT if the storage cannot be mounted.
+ * @retval EL2GO_OTA_PERSIST_ERR_IO if the delete fails.
  */
 el2go_ota_persist_status_t el2go_ota_persist_clear(void);
 

@@ -13,6 +13,9 @@
  * Will be replaced with real internal tests as the OTA agent core implementation matures.
  */
 
+/**
+ * @brief Register all internal OTA agent core tests with the test framework.
+ */
 void register_ota_agent_core_tests(void)
 {
 }

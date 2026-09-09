@@ -9,8 +9,14 @@
 #define __EL2GO_SERVER_CERTIFICATES_H__
 
 /**
- * @file el2go_rtp_certificates.h
- * @brief EdgeLock 2GO trusted root CA certificates
+ * @defgroup el2go_server_certs Server Certificates
+ * @brief EdgeLock 2GO trusted root CA certificates.
+ * @{
+ */
+
+/**
+ * @file el2go_server_certificates.h
+ * @brief EdgeLock 2GO trusted root CA certificates.
  *
  * This file contains the DER-encoded trusted root CA certificates
  * for EdgeLock 2GO production and sandbox environments.
@@ -378,7 +384,7 @@
 /* ========================================================================== */
 
 /**
- * el2go_get_default_certs - Get the default trusted root CA certificates
+ * @brief Get the default trusted root CA certificates.
  *
  * Returns a pointer to the default trusted root CA certificates stored
  * in .rodata at compile time. The certificates are selected at compile
@@ -388,9 +394,10 @@
  *  - Sandbox:    EL2GO_RTP_TRUSTED_ROOT_CA_CERT_RSA_SANDBOX +
  *                EL2GO_RTP_TRUSTED_ROOT_CA_CERT_ECC_SANDBOX
  *
- * Return:
- * Pointer to the default trusted root CA certificates, never NULL
+ * @return Pointer to the default trusted root CA certificates, never NULL
  */
 const pb_bytes_array_t *el2go_get_default_certs(void);
+
+/** @} */ /* end of el2go_server_certs */
 
 #endif /* __EL2GO_SERVER_CERTIFICATES_H__ */

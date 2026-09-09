@@ -11,6 +11,12 @@
 #include "fwual/fwual_types.h"
 
 /**
+ * @defgroup fwual FWUAL Public API
+ * @brief Firmware Update Abstraction Layer public interface.
+ * @{
+ */
+
+/**
  * @brief Initializes the FWUAL backend
  *
  * Idempotent - safe to call multiple times without side effects. Prepares
@@ -18,8 +24,8 @@
  * NVM so that fwual_get_state() reflects the correct state immediately after
  * this call returns.
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_PLATFORM if the backend cannot be initialized
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_PLATFORM if the backend cannot be initialized
  */
 fwual_result_t fwual_init(void);
 
@@ -32,8 +38,8 @@ fwual_result_t fwual_init(void);
  *
  * @param[out] out_caps Pointer to a fwual_caps_t structure to populate
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_PARAM if out_caps is NULL
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_PARAM if out_caps is NULL
  */
 fwual_result_t fwual_get_caps(fwual_caps_t *out_caps);
 
@@ -47,9 +53,9 @@ fwual_result_t fwual_get_caps(fwual_caps_t *out_caps);
  *
  * @param[out] out_session Receives the opaque session handle upon success
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_PARAM if out_session is NULL
- * @return FWUAL_ERR_BUSY if a session is already active
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_PARAM if out_session is NULL
+ * @retval FWUAL_ERR_BUSY if a session is already active
  */
 fwual_result_t fwual_open_session(fwual_session_t **out_session);
 
@@ -82,11 +88,11 @@ fwual_result_t fwual_close_session(fwual_session_t *session);
  * @param[in] session Active session handle
  * @param[in] desc Image metadata. Must not be NULL
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_PARAM if session or desc is NULL
- * @return FWUAL_ERR_INVALID_STATE if no session is open
- * @return FWUAL_ERR_NO_SPACE if storage is insufficient
- * @return FWUAL_ERR_UNSUPPORTED if image_id is unknown to the backend or
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_PARAM if session or desc is NULL
+ * @retval FWUAL_ERR_INVALID_STATE if no session is open
+ * @retval FWUAL_ERR_NO_SPACE if storage is insufficient
+ * @retval FWUAL_ERR_UNSUPPORTED if image_id is unknown to the backend or
  *   update_type is FWUAL_UPDATE_DELTA on a backend without delta support
  */
 fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_desc_t *desc);
@@ -101,8 +107,8 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
  * @param[in] session Active session handle
  * @param[in] image_id Target image identifier (must have been prepared)
  *
- * @return FWUAL_OK if sufficient storage is available
- * @return FWUAL_ERR_NO_SPACE if capacity is insufficient
+ * @retval FWUAL_OK if sufficient storage is available
+ * @retval FWUAL_ERR_NO_SPACE if capacity is insufficient
  */
 fwual_result_t fwual_check_storage(fwual_session_t *session, fwual_image_id_t image_id);
 
@@ -117,8 +123,8 @@ fwual_result_t fwual_check_storage(fwual_session_t *session, fwual_image_id_t im
  * @param[in] session Active session handle
  * @param[in] image_id Target image identifier
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_STATE if the image was not prepared in this session
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_STATE if the image was not prepared in this session
  */
 fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t image_id);
 
@@ -139,12 +145,12 @@ fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t ima
  * @param[in] data Pointer to the data buffer to write
  * @param[in] len Number of bytes to write
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_PARAM if data is NULL, len is 0, or offset + len
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_PARAM if data is NULL, len is 0, or offset + len
  *   exceeds the declared image size
- * @return FWUAL_ERR_INVALID_STATE if the image was not prepared or the write
+ * @retval FWUAL_ERR_INVALID_STATE if the image was not prepared or the write
  *   is out-of-order when sequential writes are required
- * @return FWUAL_ERR_IO upon storage write failure
+ * @retval FWUAL_ERR_IO upon storage write failure
  */
 fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id, uint64_t offset,
                            const uint8_t *data, size_t len);
@@ -160,8 +166,8 @@ fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id, 
  * @param[in] session Active session handle
  * @param[in] image_id Target image identifier
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_STATE if the image was not prepared or the total
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_STATE if the image was not prepared or the total
  *   bytes written do not match the declared image size
  */
 fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_image_id_t image_id);
@@ -181,9 +187,9 @@ fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_image_id_t i
  * @param[in] session Active session handle
  * @param[in] image_id Target image identifier
  *
- * @return FWUAL_OK if hash matches
- * @return FWUAL_ERR_CORRUPT if the computed hash does not match expected_hash
- * @return FWUAL_ERR_INVALID_STATE if the image was not finalized
+ * @retval FWUAL_OK if hash matches
+ * @retval FWUAL_ERR_CORRUPT if the computed hash does not match expected_hash
+ * @retval FWUAL_ERR_INVALID_STATE if the image was not finalized
  */
 fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image_id_t image_id);
 
@@ -200,8 +206,8 @@ fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image_id_t ima
  *
  * @param[in] session Active session handle
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_STATE if one or more images are not
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_STATE if one or more images are not
  *   finalized and verified
  */
 fwual_result_t fwual_commit_session(fwual_session_t *session);
@@ -217,8 +223,8 @@ fwual_result_t fwual_commit_session(fwual_session_t *session);
  * After reboot, fwual_get_state() will return FWUAL_STATE_WAITING_CONFIRM.
  * FWUAL SHALL NOT force the reboot itself.
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_STATE if the session was not committed
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_STATE if the session was not committed
  */
 fwual_result_t fwual_activate(void);
 
@@ -230,8 +236,8 @@ fwual_result_t fwual_activate(void);
  * preventing automatic rollback on the next reboot. This operation is
  * device-scoped (not session-scoped) and persists across power cycles.
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_INVALID_STATE if not in FWUAL_STATE_WAITING_CONFIRM
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_INVALID_STATE if not in FWUAL_STATE_WAITING_CONFIRM
  */
 fwual_result_t fwual_confirm(void);
 
@@ -243,8 +249,8 @@ fwual_result_t fwual_confirm(void);
  * After a successful rollback, the device is left in a bootable known-good
  * state and fwual_get_state() returns FWUAL_STATE_ROLLED_BACK.
  *
- * @return FWUAL_OK upon success
- * @return FWUAL_ERR_PLATFORM if no previous image is available or the
+ * @retval FWUAL_OK upon success
+ * @retval FWUAL_ERR_PLATFORM if no previous image is available or the
  *   platform rollback mechanism failed
  */
 fwual_result_t fwual_rollback(void);
@@ -257,8 +263,8 @@ fwual_result_t fwual_rollback(void);
  * sessions (FWUAL_STATE_WRITING, FWUAL_STATE_COMMITTED) or pending
  * confirmations (FWUAL_STATE_WAITING_CONFIRM).
  *
- * @return Current fwual_state_t value. If the backend cannot be read,
- *   FWUAL_STATE_FAILED is returned
+ * @return Current fwual_state_t value; if the backend cannot be read,
+ *         FWUAL_STATE_FAILED is returned
  */
 fwual_state_t fwual_get_state(void);
 
@@ -275,8 +281,8 @@ fwual_state_t fwual_get_state(void);
  * @param[in,out] in_out_count On input: capacity of list (number of elements).
  *   On output: number of elements written, or required size if truncated
  *
- * @return FWUAL_OK upon success (including truncated case)
- * @return FWUAL_ERR_INVALID_PARAM if list or in_out_count is NULL
+ * @retval FWUAL_OK upon success (including truncated case)
+ * @retval FWUAL_ERR_INVALID_PARAM if list or in_out_count is NULL
  */
 fwual_result_t fwual_list_installed(fwual_installed_image_t *list, size_t *in_out_count);
 
@@ -291,9 +297,11 @@ fwual_result_t fwual_list_installed(fwual_installed_image_t *list, size_t *in_ou
  * @param[in] session Active session handle
  * @param[in] image_id Target image identifier
  *
- * @return true if the image is staged (finalized and verified)
- * @return false otherwise
+ * @retval true if the image is staged (finalized and verified)
+ * @retval false otherwise
  */
 bool fwual_is_image_staged(fwual_session_t *session, fwual_image_id_t image_id);
+
+/** @} */ /* end of fwual */
 
 #endif /* __FWUAL_H__ */

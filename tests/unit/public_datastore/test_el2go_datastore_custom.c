@@ -262,6 +262,16 @@ static const el2go_datastore_ops_t custom_datastore_ops = {
 /* Custom Datastore Tests                                                     */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that a custom datastore can be initialized and freed without errors.
+ *
+ * Delegates to the common initialization and free test using
+ * EL2GO_DATASTORE_TYPE_CUSTOM with the in-process custom ops and context.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_init_and_free(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -272,6 +282,13 @@ static bool test_datastore_custom_init_and_free(void *params)
                                         &custom_datastore_ops, &ctx);
 }
 
+/**
+ * @brief Verify that a custom datastore can perform a complete allocate/write/commit/read cycle.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_full_transaction(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -282,6 +299,16 @@ static bool test_datastore_custom_full_transaction(void *params)
                                            &custom_datastore_ops, &ctx);
 }
 
+/**
+ * @brief Verify that a custom datastore handles multiple sequential transactions correctly.
+ *
+ * Each transaction must replace the previously committed buffer; the last
+ * committed content must be readable after the final commit.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_multiple_transactions(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -292,6 +319,14 @@ static bool test_datastore_custom_multiple_transactions(void *params)
                                                 &custom_datastore_ops, &ctx);
 }
 
+/**
+ * @brief Verify that the custom datastore returns EL2GO_STATUS_INCOMPLETE_WRITE
+ *        when a write request exceeds the allocated buffer size.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_write_out_of_bounds(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -302,6 +337,14 @@ static bool test_datastore_custom_write_out_of_bounds(void *params)
                                               &custom_datastore_ops, &ctx);
 }
 
+/**
+ * @brief Verify that the custom datastore returns EL2GO_STATUS_INCOMPLETE_READ
+ *        when a read request exceeds the committed data size.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_read_out_of_bounds(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -312,6 +355,16 @@ static bool test_datastore_custom_read_out_of_bounds(void *params)
                                              &custom_datastore_ops, &ctx);
 }
 
+/**
+ * @brief Verify that a custom datastore recovers correctly after an aborted transaction.
+ *
+ * A second allocate without a preceding commit must discard the first pending
+ * buffer and allow the new transaction to proceed normally.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_transaction_recovery(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -322,6 +375,13 @@ static bool test_datastore_custom_transaction_recovery(void *params)
                                                &custom_datastore_ops, &ctx);
 }
 
+/**
+ * @brief Verify that a custom datastore can handle a large allocation without errors.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_large_allocation(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -332,6 +392,14 @@ static bool test_datastore_custom_large_allocation(void *params)
                                            &custom_datastore_ops, &ctx);
 }
 
+/**
+ * @brief Verify that a partial read on the custom datastore returns
+ *        EL2GO_STATUS_INCOMPLETE_READ and the correct byte count.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_partial_read(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -342,6 +410,14 @@ static bool test_datastore_custom_partial_read(void *params)
                                        &custom_datastore_ops, &ctx);
 }
 
+/**
+ * @brief Verify that a partial write on the custom datastore returns
+ *        EL2GO_STATUS_INCOMPLETE_WRITE and the correct byte count.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_partial_write(void *params)
 {
     custom_datastore_ctx_t ctx = { 0 };
@@ -356,6 +432,14 @@ static bool test_datastore_custom_partial_write(void *params)
 /* Missing Operations Tests                                                   */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that initializing a custom datastore with a NULL ops pointer returns
+ *        EL2GO_STATUS_INVALID_POINTER.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_null_ops(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -378,6 +462,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that initializing a custom datastore with all ops callbacks set to NULL
+ *        returns EL2GO_STATUS_INVALID_POINTER.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_all_ops_null(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -407,6 +499,14 @@ static bool test_datastore_custom_all_ops_null(void *params)
     return test_status;
 }
 
+/**
+ * @brief Verify that a custom datastore with only the init callback set can be
+ *        initialized and freed successfully, with all other ops treated as absent.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_only_init_set(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -436,6 +536,17 @@ static bool test_datastore_custom_only_init_set(void *params)
     return test_status;
 }
 
+/**
+ * @brief Verify behavior of a custom datastore with only init/allocate/write/commit set.
+ *
+ * Performs a full allocate/write/commit sequence successfully, then attempts a
+ * read which must fail with EL2GO_STATUS_INVALID_PARAMETER because the read
+ * callback is NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_custom_partial_ops_full_cycle(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -487,6 +598,9 @@ exit:
 /* Test Registration                                                          */
 /* ========================================================================== */
 
+/**
+ * @brief Register all custom datastore tests with the test framework.
+ */
 void register_datastore_custom_tests(void)
 {
     /* Initialization tests */

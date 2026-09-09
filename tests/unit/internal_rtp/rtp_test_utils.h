@@ -6,6 +6,10 @@
 #ifndef __RTP_TEST_UTILS_H__
 #define __RTP_TEST_UTILS_H__
 
+/** @defgroup rtp_test_utils RTP Internal Test Utilities
+ * @brief Utility helpers for RTP internal unit tests.
+ * @{
+ */
 #include "common/el2go_status.h"
 #include "common/el2go_datastore.h"
 #include "ServiceDescriptor.pb.h"
@@ -24,5 +28,7 @@
  */
 el2go_status_t srv_add_service(el2go_datastore_t *datastore,
                                const nxp_iot_ServiceDescriptor *service_descriptor);
+
+/** @} */ /* end of rtp_test_utils */
 
 #endif /* __RTP_TEST_UTILS_H__ */

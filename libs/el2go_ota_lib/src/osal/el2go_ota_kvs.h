@@ -8,6 +8,11 @@
 #ifndef __EL2GO_OTA_KVS_H__
 #define __EL2GO_OTA_KVS_H__
 
+/** @defgroup el2go_ota_kvs OTA Key-Value Store Internal API
+ * @brief Internal OSAL abstraction for persistent key-value storage in the OTA library.
+ * @{
+ */
+
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -20,8 +25,8 @@
  * Must be called before any other el2go_ota_kvs_* function. Calling it more
  * than once is safe -- subsequent calls return EL2GO_OTA_SUCCESS immediately.
  *
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INTERNAL if the flash device is not ready or the
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INTERNAL if the flash device is not ready or the
  *         NVS mount fails.
  */
 el2go_ota_status_t el2go_ota_kvs_init(void);
@@ -37,9 +42,9 @@ el2go_ota_status_t el2go_ota_kvs_init(void);
  *                  is 0 (delete-by-write semantic).
  * @param[in] len   Number of bytes to write. Pass 0 to delete the entry.
  *
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INVALID_PARAM if data is NULL and len is non-zero.
- * @return EL2GO_OTA_ERROR_INTERNAL if the underlying NVS write fails.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM if data is NULL and len is non-zero.
+ * @retval EL2GO_OTA_ERROR_INTERNAL if the underlying NVS write fails.
  */
 el2go_ota_status_t el2go_ota_kvs_write(uint16_t key, const void *data, size_t len);
 
@@ -56,10 +61,10 @@ el2go_ota_status_t el2go_ota_kvs_write(uint16_t key, const void *data, size_t le
  * @param[out] found  Set to true if the key exists, false if not found. Must
  *                    not be NULL.
  *
- * @return EL2GO_OTA_SUCCESS on success (key found or not found).
- * @return EL2GO_OTA_ERROR_INVALID_PARAM if found is NULL, or if data is NULL
+ * @retval EL2GO_OTA_SUCCESS on success (key found or not found).
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM if found is NULL, or if data is NULL
  *         and len is non-zero.
- * @return EL2GO_OTA_ERROR_INTERNAL if the underlying NVS read fails.
+ * @retval EL2GO_OTA_ERROR_INTERNAL if the underlying NVS read fails.
  */
 el2go_ota_status_t el2go_ota_kvs_read(uint16_t key, void *data, size_t len, bool *found);
 
@@ -70,9 +75,11 @@ el2go_ota_status_t el2go_ota_kvs_read(uint16_t key, void *data, size_t len, bool
  *
  * @param[in] key  Numeric key identifier.
  *
- * @return EL2GO_OTA_SUCCESS on success or if the key was not present.
- * @return EL2GO_OTA_ERROR_INTERNAL if the underlying NVS delete fails.
+ * @retval EL2GO_OTA_SUCCESS on success or if the key was not present.
+ * @retval EL2GO_OTA_ERROR_INTERNAL if the underlying NVS delete fails.
  */
 el2go_ota_status_t el2go_ota_kvs_delete(uint16_t key);
+
+/** @} */ /* end of el2go_ota_kvs */
 
 #endif /* __EL2GO_OTA_KVS_H__ */

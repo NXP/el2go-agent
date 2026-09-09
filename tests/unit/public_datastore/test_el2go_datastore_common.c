@@ -524,6 +524,11 @@ exit:
 /* Test Registration                                                          */
 /* ========================================================================== */
 
+/**
+ * @brief Register all public datastore tests with the test framework.
+ *
+ * @param[in] include_fs_tests If true, filesystem-backed datastore tests are included.
+ */
 void register_datastore_tests(bool include_fs_tests)
 {
     (void)include_fs_tests;

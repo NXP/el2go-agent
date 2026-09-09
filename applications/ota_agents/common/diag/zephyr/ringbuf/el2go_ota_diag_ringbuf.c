@@ -73,8 +73,8 @@ static bool s_ready;
  * continue monotonically. On an empty log, writing starts at slot 0 with
  * sequence number 1.
  *
- * @return 0 on success
- * @return negative errno if the flash area cannot be opened or its geometry is
+ * @retval 0 on success
+ * @retval negative errno if the flash area cannot be opened or its geometry is
  *   incompatible with the record size
  */
 static int ringbuf_init(void)

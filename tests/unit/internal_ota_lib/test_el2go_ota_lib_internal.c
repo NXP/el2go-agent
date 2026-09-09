@@ -112,6 +112,10 @@ static el2go_ota_status_t s_noop_chunk_cb(const uint8_t *data, size_t len, size_
 /**
  * @brief Encode a FetchPackage request and decode it back with nanopb to verify
  *        that all string fields survive the encode/decode cycle unchanged.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_fetch_package_roundtrip(void *params)
 {
@@ -149,6 +153,10 @@ static bool test_encode_fetch_package_roundtrip(void *params)
 /**
  * @brief Encode a FetchPackage request with all fields set (including
  *        fileId, rangeStart, rangeEnd) and verify the decoded wire message.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_fetch_package_with_artifact_and_range(void *params)
 {
@@ -183,8 +191,12 @@ static bool test_encode_fetch_package_with_artifact_and_range(void *params)
 }
 
 /**
- * @brief Encode successive chunked requests and verify that range_start advances
- *        correctly (chunk 0: 0..4095, chunk 1: 4096..8191).
+ * @brief Verify that encoding successive chunked fetch-package requests advances
+ *        range_start correctly across chunks (chunk 0: 0..4095, chunk 1: 4096..8191).
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_fetch_package_chunked_range(void *params)
 {
@@ -222,6 +234,10 @@ static bool test_encode_fetch_package_chunked_range(void *params)
 /**
  * @brief Encode a ReportStatus request (STATUS_SUCCESS, with message) and
  *        decode it back to verify all fields survive the encode/decode cycle.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_report_status_roundtrip(void *params)
 {
@@ -257,6 +273,10 @@ static bool test_encode_report_status_roundtrip(void *params)
 /**
  * @brief Encode a CheckUpdate request with two device attributes and verify the
  *        encoded byte count is larger than the zero-attributes case.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_check_update_with_vs_without_attrs(void *params)
 {
@@ -291,6 +311,10 @@ static bool test_encode_check_update_with_vs_without_attrs(void *params)
 /**
  * @brief Parse a CheckUpdate response built from a known nanopb-encoded buffer
  *        containing one Update with one Package and verify all string fields.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_check_update_one_package(void *params)
 {
@@ -339,6 +363,10 @@ static bool test_parse_check_update_one_package(void *params)
 /**
  * @brief Parse a CheckUpdate response with buf_len == 0 (empty server response).
  *        Must succeed and report no update available.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_check_update_empty_buf(void *params)
 {
@@ -361,6 +389,10 @@ static bool test_parse_check_update_empty_buf(void *params)
 
 /**
  * @brief Encode a ReportStatus request with STATUS_ERROR and no status message.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_report_status_error_no_msg(void *params)
 {
@@ -394,6 +426,10 @@ static bool test_encode_report_status_error_no_msg(void *params)
 /**
  * @brief encode_report_status with NULL update_id must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_report_status_null_update_id(void *params)
 {
@@ -416,6 +452,10 @@ static bool test_encode_report_status_null_update_id(void *params)
 /**
  * @brief encode_fetch_package with NULL package_id must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_fetch_package_null_package_id(void *params)
 {
@@ -438,6 +478,10 @@ static bool test_encode_fetch_package_null_package_id(void *params)
 /**
  * @brief encode_fetch_package with a 1-byte output buffer (too small) must
  *        return EL2GO_OTA_ERROR_ENCODE.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_fetch_package_buf_too_small(void *params)
 {
@@ -460,6 +504,10 @@ static bool test_encode_fetch_package_buf_too_small(void *params)
 /**
  * @brief encode_check_update with attributes and a 1-byte buffer must return
  *        EL2GO_OTA_ERROR_ENCODE.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_check_update_buf_too_small(void *params)
 {
@@ -483,6 +531,10 @@ static bool test_encode_check_update_buf_too_small(void *params)
 /**
  * @brief parse_check_update_response with NULL buf and non-zero len must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_check_update_null_buf(void *params)
 {
@@ -499,6 +551,10 @@ static bool test_parse_check_update_null_buf(void *params)
 /**
  * @brief parse_fetch_package_response with NULL buf must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_fetch_package_null_buf(void *params)
 {
@@ -515,6 +571,10 @@ static bool test_parse_fetch_package_null_buf(void *params)
 /**
  * @brief parse_fetch_package_response with NULL out must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_fetch_package_null_out(void *params)
 {
@@ -531,6 +591,10 @@ static bool test_parse_fetch_package_null_out(void *params)
 /**
  * @brief parse_check_update_response with a garbage wire buffer must return
  *        EL2GO_OTA_ERROR_DECODE.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_check_update_corrupt_buf(void *params)
 {
@@ -548,6 +612,10 @@ static bool test_parse_check_update_corrupt_buf(void *params)
 /**
  * @brief parse_check_update_response with 4 updates (the maximum supported)
  *        must succeed and report update_count == 4.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_check_update_four_updates(void *params)
 {
@@ -591,6 +659,10 @@ static bool test_parse_check_update_four_updates(void *params)
 /**
  * @brief el2go_ota_encode_check_update() with NULL req must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_check_update_null_req(void *params)
 {
@@ -608,6 +680,10 @@ static bool test_encode_check_update_null_req(void *params)
 /**
  * @brief el2go_ota_encode_check_update() with NULL buf must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_check_update_null_buf(void *params)
 {
@@ -625,6 +701,10 @@ static bool test_encode_check_update_null_buf(void *params)
 /**
  * @brief el2go_ota_encode_check_update() with NULL out_len must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_check_update_null_out_len(void *params)
 {
@@ -640,8 +720,12 @@ static bool test_encode_check_update_null_out_len(void *params)
 }
 
 /**
- * @brief el2go_ota_encode_check_update() with no attributes must succeed and
- *        write a non-zero number of bytes into the output buffer.
+ * @brief Verify that el2go_ota_encode_check_update() with no attributes
+ *        succeeds and produces a non-empty output buffer.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_check_update_no_attrs(void *params)
 {
@@ -662,6 +746,10 @@ static bool test_encode_check_update_no_attrs(void *params)
 /**
  * @brief el2go_ota_encode_fetch_package() with NULL req must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_fetch_package_null_req(void *params)
 {
@@ -679,6 +767,10 @@ static bool test_encode_fetch_package_null_req(void *params)
 /**
  * @brief el2go_ota_encode_fetch_package() with NULL update_id must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_fetch_package_null_ids(void *params)
 {
@@ -699,6 +791,10 @@ static bool test_encode_fetch_package_null_ids(void *params)
 /**
  * @brief el2go_ota_encode_report_status() with NULL req must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_report_status_null_req(void *params)
 {
@@ -718,6 +814,10 @@ static bool test_encode_report_status_null_req(void *params)
 /**
  * @brief el2go_ota_parse_check_update_response() with NULL out must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_check_update_null_out(void *params)
 {
@@ -734,6 +834,10 @@ static bool test_parse_check_update_null_out(void *params)
 /**
  * @brief el2go_ota_parse_report_status_response() with buf_len == 0 and
  *        buf == NULL must succeed (empty proto3 response is valid).
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_report_status_empty(void *params)
 {
@@ -747,6 +851,10 @@ static bool test_parse_report_status_empty(void *params)
 /**
  * @brief Encode a ReportStatus request with STATUS_ROLLED_BACK and verify the
  *        enum survives the round-trip.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_encode_report_status_rolled_back(void *params)
 {
@@ -778,14 +886,17 @@ static bool test_encode_report_status_rolled_back(void *params)
 }
 
 /**
- * @brief Parse a FileResponse wire buffer built from known values and verify
- *        that total_file_size, range_start, range_end, and data_ptr/data_len
- *        are extracted correctly.
+ * @brief Verify that parsing a FileResponse wire buffer correctly extracts
+ *        total_file_size, range_start, range_end, data_ptr, and data_len.
  *
  * New FileResponse wire layout (schema v2):
  *   field 1 (varint):          totalFileSize
  *   field 2 (length-delimited): range (embedded Range sub-message)
  *   field 3 (length-delimited): data bytes
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_parse_fetch_package_roundtrip(void *params)
 {
@@ -846,6 +957,10 @@ static bool test_parse_fetch_package_roundtrip(void *params)
 /**
  * @brief el2go_ota_check_for_updates(NULL, ...) must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM without crashing.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_check_for_updates_null_ctx(void *params)
 {
@@ -862,6 +977,10 @@ static bool test_check_for_updates_null_ctx(void *params)
 /**
  * @brief el2go_ota_check_for_updates() with NULL out_resp must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_check_for_updates_null_out(void *params)
 {
@@ -876,6 +995,10 @@ static bool test_check_for_updates_null_out(void *params)
 /**
  * @brief el2go_ota_download_package(NULL, ...) must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM without crashing.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_download_package_null_ctx(void *params)
 {
@@ -891,6 +1014,10 @@ static bool test_download_package_null_ctx(void *params)
 /**
  * @brief el2go_ota_download_package() with NULL update_id must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_download_package_null_update_id(void *params)
 {
@@ -906,6 +1033,10 @@ static bool test_download_package_null_update_id(void *params)
 /**
  * @brief el2go_ota_download_package() with NULL package_id must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_download_package_null_package_id(void *params)
 {
@@ -921,6 +1052,10 @@ static bool test_download_package_null_package_id(void *params)
 /**
  * @brief el2go_ota_download_package() with NULL chunk_cb must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_download_package_null_callback(void *params)
 {
@@ -937,6 +1072,10 @@ static bool test_download_package_null_callback(void *params)
 /**
  * @brief el2go_ota_report_status(NULL, ...) must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_report_status_null_ctx(void *params)
 {
@@ -951,6 +1090,10 @@ static bool test_report_status_null_ctx(void *params)
 /**
  * @brief el2go_ota_report_status() with NULL update_id must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_report_status_null_update_id(void *params)
 {
@@ -965,6 +1108,10 @@ static bool test_report_status_null_update_id(void *params)
 /**
  * @brief el2go_ota_report_status() with NULL package_id must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_report_status_null_package_id(void *params)
 {
@@ -979,6 +1126,10 @@ static bool test_report_status_null_package_id(void *params)
 /**
  * @brief el2go_ota_report_status() with an out-of-range outcome value must
  *        return EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_report_status_invalid_outcome(void *params)
 {
@@ -994,6 +1145,10 @@ static bool test_report_status_invalid_outcome(void *params)
 /**
  * @brief el2go_ota_report_pending_status(NULL) must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_report_pending_status_null_ctx(void *params)
 {
@@ -1006,6 +1161,10 @@ static bool test_report_pending_status_null_ctx(void *params)
 
 /**
  * @brief sizeof(el2go_ota_pending_status_t) must be within the expected range.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_pending_status_struct_layout(void *params)
 {

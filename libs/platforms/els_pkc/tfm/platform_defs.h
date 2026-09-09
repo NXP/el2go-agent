@@ -8,6 +8,11 @@
 #ifndef __ELS_PKC_PLATFORM_DEFS_H__
 #define __ELS_PKC_PLATFORM_DEFS_H__
 
+/** @defgroup els_pkc_tfm_platform_defs ELS PKC TF-M Platform Definitions
+ * @brief Key and data object IDs for ELS PKC TF-M platform builds.
+ * @{
+ */
+
 /**
  * @brief ECC key ID for EdgeLock 2GO operations on TF-M builds.
  *
@@ -23,5 +28,7 @@
  * Identifies the secure data object where the claim code is stored.
  */
 #define EDGELOCK2GO_CLAIMCODE_DATA_ID 0xF00000E0U
+
+/** @} */ /* end of els_pkc_tfm_platform_defs */
 
 #endif /* __ELS_PKC_PLATFORM_DEFS_H__ */

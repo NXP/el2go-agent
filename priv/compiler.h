@@ -8,6 +8,11 @@
 #ifndef __COMPILER_H__
 #define __COMPILER_H__
 
+/** @defgroup priv_compiler Private Compiler Helpers
+ * @brief Internal compiler attribute macros (visibility, export, inline, etc.).
+ * @{
+ */
+
 #define __weak __attribute__((weak))
 #if defined(__ZEPHYR__)
 #define __export
@@ -20,5 +25,7 @@
 #define __packed __attribute__((packed))
 #define __aligned(n) __attribute__((aligned(n)))
 #define __fallthrough __attribute__((fallthrough))
+
+/** @} */ /* end of priv_compiler */
 
 #endif /* __COMPILER_H__ */

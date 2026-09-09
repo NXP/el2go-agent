@@ -44,30 +44,30 @@ el2go_status_t el2go_keystore_handle_request(void *ctx, const pb_field_t *messag
                                              pb_istream_t *istream, pb_ostream_t *ostream);
 
 /**
- * el2go_keystore_get_el2go_key_id - Get the ECC key ID for EdgeLock 2GO server connection
- * @keystore: Keystore structure
- * @key_id: Pointer to store the key ID
+ * @brief Get the ECC key ID for EdgeLock 2GO server connection.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in]  keystore Keystore structure
+ * @param[out] key_id   Pointer to store the key ID
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_keystore_get_el2go_key_id(el2go_keystore_t *keystore, uint32_t *key_id);
 
 /**
- * el2go_keystore_get_el2go_cert - Get client certificate for EdgeLock 2GO connection
- * @keystore: Keystore structure
- * @cert: Pointer to buffer where certificate will be stored
- * @cert_len: On input, size of buffer; on output, actual certificate length
+ * @brief Get client certificate for EdgeLock 2GO connection.
  *
  * Retrieves the client certificate used for mutual TLS authentication with
  * the EdgeLock 2GO server. Delegates to the platform-specific implementation.
- * If the platform returns EL2GO_STATUS_CERT_NOT_AVAILABLE, the caller should fall
- * back to generating a self-signed certificate.
+ * If the platform returns EL2GO_STATUS_CERT_NOT_AVAILABLE, the caller should
+ * fall back to generating a self-signed certificate.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success
- * EL2GO_STATUS_CERT_NOT_AVAILABLE if no certificate is available
- * error code otherwise
+ * @param[in]     keystore  Keystore structure
+ * @param[out]    cert      Pointer to buffer where certificate will be stored
+ * @param[in,out] cert_len  On input, size of buffer; on output, actual length
+ *
+ * @retval EL2GO_STATUS_SUCCESS on success
+ * @retval EL2GO_STATUS_CERT_NOT_AVAILABLE if no certificate is available
+ * @retval el2go_status_t other error code on failure
  */
 el2go_status_t el2go_keystore_get_el2go_cert(el2go_keystore_t *keystore, uint8_t *cert,
                                              size_t *cert_len);
@@ -77,9 +77,9 @@ el2go_status_t el2go_keystore_get_el2go_cert(el2go_keystore_t *keystore, uint8_t
  *
  * Stores the provided client certificate into the service descriptor.
  *
- * @param keystore            Keystore structure containing the platform context.
- * @param client_cert         Client certificate to use.
- * @param service_descriptor  Service descriptor in which to store the certificate.
+ * @param[in] keystore            Keystore structure containing the platform context.
+ * @param[in] client_cert         Client certificate to use.
+ * @param[out] service_descriptor  Service descriptor in which to store the certificate.
  *
  * @return EL2GO_STATUS_SUCCESS on success, error code otherwise.
  */
@@ -87,14 +87,14 @@ el2go_status_t el2go_keystore_set_cert_in_srv_desc(el2go_keystore_t *keystore,
                                                    const pb_bytes_array_t *client_cert,
                                                    nxp_iot_ServiceDescriptor *service_descriptor);
 /**
- * el2go_keystore_get_cert_from_srv_desc - Get client certificate from service descriptor
- * @keystore: Keystore structure
- * @service_descriptor: Service descriptor containing the client certificate
- * @client_cert: Output pointer to client certificate buffer
- * @client_cert_len: Output pointer to client certificate length
+ * @brief Get client certificate from service descriptor.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in]  keystore            Keystore structure
+ * @param[in]  service_descriptor  Service descriptor containing the client certificate
+ * @param[out] client_cert         Output pointer to client certificate buffer
+ * @param[out] client_cert_len     Output pointer to client certificate length
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t
 el2go_keystore_get_cert_from_srv_desc(el2go_keystore_t *keystore,

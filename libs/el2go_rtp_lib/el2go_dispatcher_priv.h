@@ -25,6 +25,12 @@
 
 #include "Dispatcher.pb.h"
 
+/**
+ * @defgroup el2go_dispatcher_int Dispatcher Internal API
+ * @brief Internal interface for the RTP session dispatcher.
+ * @{
+ */
+
 /* ========================================================================== */
 /* Protocol constants                                                          */
 /* ========================================================================== */
@@ -209,5 +215,7 @@ typedef struct {
  */
 el2go_status_t el2go_rtp_dispatch(el2go_rtp_ctx_t *ctx, pb_istream_t *istream,
                                   pb_ostream_t *ostream, nxp_iot_UpdateStatusReport *status_report);
+
+/** @} */ /* end of el2go_dispatcher_int */
 
 #endif /* __EL2GO_DISPATCHER_PRIV_H__ */

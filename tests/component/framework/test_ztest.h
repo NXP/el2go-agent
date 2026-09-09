@@ -8,6 +8,10 @@
 #ifndef EL2GO_TEST_ZTEST_H
 #define EL2GO_TEST_ZTEST_H
 
+/** @defgroup test_ztest_bridge Component Test Ztest Bridge
+ * @brief Ztest compatibility bridge for the component test framework.
+ * @{
+ */
 #include <zephyr/ztest.h>
 
 #include "test_suite.h"
@@ -70,5 +74,7 @@ static inline void test_run_suite(const test_case_t *cases, size_t count)
         const test_case_t *_c = test_suite_get_##suite(&_n); \
         test_run_suite(_c, _n);                              \
     }
+
+/** @} */ /* end of test_ztest_bridge */
 
 #endif /* EL2GO_TEST_ZTEST_H */

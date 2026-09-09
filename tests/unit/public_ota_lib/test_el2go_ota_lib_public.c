@@ -31,6 +31,10 @@ static const uint8_t s_dummy_ca[] = { 0x30, 0x01, 0x00 };
 /**
  * @brief el2go_ota_init(NULL, valid_config) must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM and leave *ctx untouched.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_init_null_ctx(void *params)
 {
@@ -51,6 +55,10 @@ static bool test_el2go_ota_init_null_ctx(void *params)
 /**
  * @brief el2go_ota_init(&ctx, NULL) must return EL2GO_OTA_ERROR_INVALID_PARAM
  *        and set *ctx to NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_init_null_config(void *params)
 {
@@ -69,6 +77,10 @@ static bool test_el2go_ota_init_null_config(void *params)
 /**
  * @brief el2go_ota_init() with config->hostname == NULL must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_init_null_hostname(void *params)
 {
@@ -91,6 +103,10 @@ static bool test_el2go_ota_init_null_hostname(void *params)
 /**
  * @brief el2go_ota_init() with server_ca_chain == NULL must return
  *        EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_init_null_ca_chain(void *params)
 {
@@ -113,6 +129,10 @@ static bool test_el2go_ota_init_null_ca_chain(void *params)
 /**
  * @brief el2go_ota_init() with server_ca_chain_size == 0 (non-NULL pointer)
  *        must return EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_init_zero_ca_chain_size(void *params)
 {
@@ -136,6 +156,10 @@ static bool test_el2go_ota_init_zero_ca_chain_size(void *params)
 
 /**
  * @brief el2go_ota_connect(NULL) must return EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_connect_null_ctx(void *params)
 {
@@ -148,6 +172,10 @@ static bool test_el2go_ota_connect_null_ctx(void *params)
 
 /**
  * @brief el2go_ota_disconnect(NULL) must return EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_disconnect_null_ctx(void *params)
 {
@@ -162,6 +190,10 @@ static bool test_el2go_ota_disconnect_null_ctx(void *params)
 
 /**
  * @brief el2go_ota_is_connected(NULL) must return false.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_is_connected_null_ctx(void *params)
 {
@@ -175,6 +207,10 @@ static bool test_el2go_ota_is_connected_null_ctx(void *params)
 /**
  * @brief el2go_ota_get_error_string() must return a non-NULL string for every
  *        defined status code, including the success case.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_get_error_string(void *params)
 {
@@ -199,6 +235,10 @@ static bool test_el2go_ota_get_error_string(void *params)
 
 /**
  * @brief el2go_ota_cleanup(NULL) and el2go_ota_cleanup(&NULL) must not crash.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_cleanup_null_safe(void *params)
 {
@@ -217,6 +257,10 @@ static bool test_el2go_ota_cleanup_null_safe(void *params)
 /**
  * @brief el2go_ota_init() with valid parameters must succeed and return a
  *        non-NULL context that can be cleaned up without crashing.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_init_cleanup(void *params)
 {
@@ -245,6 +289,10 @@ static bool test_el2go_ota_init_cleanup(void *params)
 /**
  * @brief A failed el2go_ota_init() must leave ctx NULL, which must report
  *        not connected.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_is_connected_after_init(void *params)
 {
@@ -272,6 +320,10 @@ static bool test_el2go_ota_is_connected_after_init(void *params)
 /**
  * @brief el2go_ota_get_error_string() on the status returned by a failed
  *        el2go_ota_init() must return a non-NULL, non-empty string.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_el2go_ota_get_error_string_after_failed_init(void *params)
 {
@@ -306,6 +358,10 @@ static bool test_el2go_ota_get_error_string_after_failed_init(void *params)
  *
  * Legacy callers that leave client_auth out of their designated initializer
  * rely on this to keep mTLS behaviour.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_client_auth_required_is_zero(void *params)
 {
@@ -319,6 +375,10 @@ static bool test_client_auth_required_is_zero(void *params)
 /**
  * @brief A zero-initialised el2go_ota_mtls_config_t must have
  *        client_auth == EL2GO_OTA_CLIENT_AUTH_REQUIRED.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_client_auth_default_is_required(void *params)
 {

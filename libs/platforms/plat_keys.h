@@ -64,9 +64,9 @@ el2go_status_t el2go_platform_get_el2go_key_id(el2go_platform_ctx_t *platform_ct
  * @param[out] cert Pointer to buffer where certificate will be stored
  * @param[in,out] cert_len On input, size of buffer; on output, actual certificate length
  *
- * @return EL2GO_STATUS_SUCCESS on success
- * @return EL2GO_STATUS_CERT_NOT_AVAILABLE if no certificate is available
- * @return error code otherwise
+ * @retval EL2GO_STATUS_SUCCESS on success
+ * @retval EL2GO_STATUS_CERT_NOT_AVAILABLE if no certificate is available
+ * @retval error code otherwise
  */
 el2go_status_t el2go_platform_get_el2go_cert(el2go_platform_ctx_t *platform_ctx, uint8_t *cert,
                                              size_t *cert_len);

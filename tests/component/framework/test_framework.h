@@ -8,6 +8,10 @@
 #ifndef EL2GO_TEST_FRAMEWORK_H
 #define EL2GO_TEST_FRAMEWORK_H
 
+/** @defgroup test_framework Component Test Framework
+ * @brief Core framework API for EL2GO component tests.
+ * @{
+ */
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -172,5 +176,7 @@ static inline bool ct_has_caps(uint32_t caps)
             goto label;                                   \
         }                                                 \
     } while (0)
+
+/** @} */ /* end of test_framework */
 
 #endif /* EL2GO_TEST_FRAMEWORK_H */

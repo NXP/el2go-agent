@@ -11,16 +11,24 @@
 #include "common/el2go_datastore.h"
 
 /**
- * el2go_datastore_plain_create - Create and initialize a plain memory datastore
- * @datastore: Pointer to datastore structure to initialize
- * @basename: Unused parameter (for signature consistency)
+ * @defgroup el2go_datastore_plain Plain Memory Datastore
+ * @brief Plain memory-backed datastore implementation for EdgeLock 2GO.
+ * @{
+ */
+
+/**
+ * @brief Create and initialize a plain memory datastore.
  *
- * This function initializes a plain memory-based datastore by setting up the
- * operation handlers and allocating the internal context.
+ * Initializes a plain memory-based datastore by setting up the operation
+ * handlers and allocating the internal context.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[out] datastore Pointer to datastore structure to initialize
+ * @param[in]  basename  Unused parameter (for signature consistency)
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_datastore_plain_create(el2go_datastore_t *datastore, const char *basename);
+
+/** @} */ /* end of el2go_datastore_plain */
 
 #endif /* __EL2GO_DATASTORE_PLAIN_H__ */

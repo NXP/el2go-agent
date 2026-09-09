@@ -8,6 +8,11 @@
 #ifndef __SMW_PLATFORM_DEFS_H__
 #define __SMW_PLATFORM_DEFS_H__
 
+/** @defgroup smw_platform_defs SMW Platform Definitions
+ * @brief Key and data object IDs for SMW-based platform builds.
+ * @{
+ */
+
 /**
  * @brief ECC key ID for EdgeLock 2GO operations.
  *
@@ -33,5 +38,7 @@
  * @brief AES-256 key ID used to authenticate (CMAC) the EdgeLock 2GO claim code.
  */
 #define EDGELOCK2GO_CLAIMCODE_AUTH_KEY_ID 0x7FFF8172U
+
+/** @} */ /* end of smw_platform_defs */
 
 #endif /* __SMW_PLATFORM_DEFS_H__ */

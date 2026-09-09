@@ -36,10 +36,10 @@ typedef enum {
  *
  * @param[in] resp  Check-update response describing the available update.
  *
- * @return POLICY_PROCEED to apply the update now
- * @return POLICY_DEFER to retry after the defer window elapses
- * @return POLICY_BLACKOUT if currently inside a blackout window
- * @return POLICY_CANCEL if the update must not be applied
+ * @retval POLICY_PROCEED to apply the update now
+ * @retval POLICY_DEFER to retry after the defer window elapses
+ * @retval POLICY_BLACKOUT if currently inside a blackout window
+ * @retval POLICY_CANCEL if the update must not be applied
  */
 policy_result_t policy_evaluate(const el2go_ota_check_update_resp_t *resp);
 

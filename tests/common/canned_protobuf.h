@@ -8,6 +8,10 @@
 #ifndef EL2GO_TEST_CANNED_PROTOBUF_H
 #define EL2GO_TEST_CANNED_PROTOBUF_H
 
+/** @defgroup test_canned_protobuf Test Canned Protobuf Data
+ * @brief Pre-built protobuf byte arrays used by unit and component tests.
+ * @{
+ */
 #include <stddef.h>
 #include <stdint.h>
 
@@ -56,5 +60,7 @@ int canned_fetch_package_chunk(uint8_t *buf, size_t buf_size, int64_t range_star
  * @return 0 on success, non-zero on encode error.
  */
 int canned_report_status_ack(uint8_t *buf, size_t buf_size, size_t *out_len);
+
+/** @} */ /* end of test_canned_protobuf */
 
 #endif /* EL2GO_TEST_CANNED_PROTOBUF_H */

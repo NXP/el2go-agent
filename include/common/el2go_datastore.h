@@ -13,13 +13,19 @@
 
 #include "common/el2go_status.h"
 
-/*
- * Datastore types
+/**
+ * @defgroup el2go_datastore Datastore Public API
+ * @brief Datastore abstraction interface for EdgeLock 2GO.
+ * @{
+ */
+
+/**
+ * @brief Datastore types.
  */
 typedef enum {
-    EL2GO_DATASTORE_TYPE_FS,    /* Filesystem-based datastore */
-    EL2GO_DATASTORE_TYPE_PLAIN, /* Plain memory datastore */
-    EL2GO_DATASTORE_TYPE_CUSTOM /* Custom user-provided datastore */
+    EL2GO_DATASTORE_TYPE_FS,    /**< Filesystem-based datastore */
+    EL2GO_DATASTORE_TYPE_PLAIN, /**< Plain memory datastore */
+    EL2GO_DATASTORE_TYPE_CUSTOM /**< Custom user-provided datastore */
 } el2go_datastore_type_t;
 
 /**
@@ -38,257 +44,256 @@ typedef struct el2go_datastore el2go_datastore_t;
 typedef struct el2go_datastore_ops el2go_datastore_ops_t;
 
 /**
- * Datastore validator function pointer type
+ * @brief Datastore validator function pointer type.
  *
  * A validator function is called to verify the integrity and validity of
- * datastore contents.
+ * datastore contents. The function should perform any necessary checks
+ * (e.g., checksum verification, format validation). If no custom validator
+ * is provided (NULL), a default implementation will be used.
  *
- * The validator function receives the datastore and should perform
- * any necessary checks on the datastore contents (e.g., checksum verification,
- * format validation, etc).
+ * @param[in] datastore Datastore to validate
  *
- * If no custom validator is provided (NULL), a default implementation will be used.
- *
- * @datastore: Datastore to validate
- *
- * Return:
- * EL2GO_STATUS_SUCCESS if validation passes, error code otherwise
+ * @return EL2GO_STATUS_SUCCESS if validation passes, error code otherwise
  */
 typedef el2go_status_t (*el2go_datastore_validator_t)(el2go_datastore_t *datastore);
 
 /* Function pointer types for datastore operations */
 
 /**
- * el2go_datastore_init_t - Initialize the custom datastore
- * @context: User-provided context pointer
- * @validator: Validator function pointer (can be NULL)
+ * @brief Initialize the custom datastore.
  *
- * This is called during datastore initialization to set up any
- * custom datastore resources (e.g., open files, establish connections,
- * allocate buffers, etc.).
+ * Called during datastore initialization to set up any custom datastore
+ * resources (e.g., open files, establish connections, allocate buffers).
  *
- * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] context   User-provided context pointer
+ * @param[in] validator Validator function pointer (can be NULL)
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 typedef el2go_status_t (*el2go_datastore_init_t)(void *context,
                                                  el2go_datastore_validator_t validator);
 
 /**
- * el2go_datastore_allocate_t - Allocate memory in the datastore
- * @context: User-provided context pointer
- * @len: Number of bytes to allocate
+ * @brief Allocate memory in the datastore.
  *
- * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] context User-provided context pointer
+ * @param[in] len     Number of bytes to allocate
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 typedef el2go_status_t (*el2go_datastore_allocate_t)(void *context, size_t len);
 
 /**
- * el2go_datastore_read_t - Read data from the datastore
- * @context: User-provided context pointer
- * @dest: Destination buffer
- * @offset: Offset in the datastore to read from
- * @len: Number of bytes to read
- * @bytes_read: Output parameter for actual number of bytes read
+ * @brief Read data from the datastore.
  *
- * This function attempts to read 'len' bytes from the datastore at the specified
- * offset. The actual number of bytes read is returned in 'bytes_read'.
+ * Attempts to read @p len bytes from the datastore at the specified offset.
+ * The actual number of bytes read is returned in @p bytes_read.
  *
- * Return: EL2GO_STATUS_SUCCESS if all requested bytes were read,
- *         EL2GO_STATUS_INCOMPLETE_READ if fewer bytes were read,
- *         or other error code on failure
+ * @param[in]  context    User-provided context pointer
+ * @param[out] dest       Destination buffer
+ * @param[in]  offset     Offset in the datastore to read from
+ * @param[in]  len        Number of bytes to read
+ * @param[out] bytes_read Actual number of bytes read
+ *
+ * @retval EL2GO_STATUS_SUCCESS if all requested bytes were read
+ * @retval EL2GO_STATUS_INCOMPLETE_READ if fewer bytes were read
+ * @retval el2go_status_t other error code on failure
  */
 typedef el2go_status_t (*el2go_datastore_read_t)(void *context, void *dest, size_t offset,
                                                  size_t len, size_t *bytes_read);
 
 /**
- * el2go_datastore_write_t - Write data to the datastore
- * @context: User-provided context pointer
- * @src: Source buffer
- * @offset: Offset in the datastore to write to
- * @len: Number of bytes to write
- * @bytes_written: Output parameter for actual number of bytes written
+ * @brief Write data to the datastore.
  *
- * This function attempts to write 'len' bytes to the datastore at the specified
- * offset. The actual number of bytes written is returned in 'bytes_written'.
+ * Attempts to write @p len bytes to the datastore at the specified offset.
+ * The actual number of bytes written is returned in @p bytes_written.
  *
- * Return: EL2GO_STATUS_SUCCESS if all requested bytes were written,
- *         EL2GO_STATUS_INCOMPLETE_WRITE if fewer bytes were written,
- *         or other error code on failure
+ * @param[in]  context       User-provided context pointer
+ * @param[in]  src           Source buffer
+ * @param[in]  offset        Offset in the datastore to write to
+ * @param[in]  len           Number of bytes to write
+ * @param[out] bytes_written Actual number of bytes written
+ *
+ * @retval EL2GO_STATUS_SUCCESS if all requested bytes were written
+ * @retval EL2GO_STATUS_INCOMPLETE_WRITE if fewer bytes were written
+ * @retval el2go_status_t other error code on failure
  */
 typedef el2go_status_t (*el2go_datastore_write_t)(void *context, const void *src, size_t offset,
                                                   size_t len, size_t *bytes_written);
 
 /**
- * el2go_datastore_commit_t - Commit pending changes to the datastore
- * @context: User-provided context pointer
+ * @brief Commit pending changes to the datastore.
  *
- * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] context User-provided context pointer
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 typedef el2go_status_t (*el2go_datastore_commit_t)(void *context);
 
 /**
- * el2go_datastore_get_size_t - Get the number of bytes currently stored
- * @context: User-provided context pointer
- * @size:    Output: number of bytes available for reading from the current
- *           read slot (i.e. excluding the write-in-progress slot)
+ * @brief Get the number of bytes currently stored.
  *
- * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in]  context User-provided context pointer
+ * @param[out] size    Number of bytes available for reading from the current
+ *                     read slot (i.e. excluding the write-in-progress slot)
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 typedef el2go_status_t (*el2go_datastore_get_size_t)(void *context, size_t *size);
 
 /**
- * el2go_datastore_free_t - Free datastore resources
- * @context: User-provided context pointer
+ * @brief Free datastore resources.
  *
- * This is called during datastore cleanup to release any custom
- * datastore resources.
+ * Called during datastore cleanup to release any custom datastore resources.
  *
- * Return: EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] context User-provided context pointer
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 typedef el2go_status_t (*el2go_datastore_free_t)(void *context);
 
+/**
+ * @brief Datastore operations table.
+ */
 struct el2go_datastore_ops {
-    el2go_datastore_init_t init;         /* Initialize the custom datastore */
-    el2go_datastore_allocate_t allocate; /* Allocate memory in datastore */
-    el2go_datastore_read_t read;         /* Read data from the datastore */
-    el2go_datastore_write_t write;       /* Write data to the datastore */
-    el2go_datastore_commit_t commit;     /* Commit pending changes */
-    el2go_datastore_get_size_t get_size; /* Get stored data size */
-    el2go_datastore_free_t free;         /* Free datastore resources */
+    el2go_datastore_init_t init;         /**< Initialize the custom datastore */
+    el2go_datastore_allocate_t allocate; /**< Allocate memory in datastore */
+    el2go_datastore_read_t read;         /**< Read data from the datastore */
+    el2go_datastore_write_t write;       /**< Write data to the datastore */
+    el2go_datastore_commit_t commit;     /**< Commit pending changes */
+    el2go_datastore_get_size_t get_size; /**< Get stored data size */
+    el2go_datastore_free_t free;         /**< Free datastore resources */
 };
 
 /**
- * RTP Agent datastore
+ * @brief RTP Agent datastore.
  *
- * This structure contains fields used to manage datastores. Some fields are
- * used by the datastore implementations (context) and others are used for
- * managing the datastores internal implementation. Some of them are public
- * fields (like id, name, type) and some of them are private (priv).
- *
- * Users should only access and modify the public fields and the context field
- * for custom datastore implementations. The priv field is for internal
- * use only and must not be accessed or modified by users.
+ * Contains fields used to manage datastores. Some fields are used by the
+ * datastore implementations (context) and others manage the internal
+ * implementation. Public fields include id, name, and type; the priv field
+ * is for internal use only and must not be accessed or modified by users.
  */
 struct el2go_datastore {
-    uint32_t id;                      /* Datastore identifier */
-    char *name;                       /* Datastore name */
-    el2go_datastore_type_t type;      /* Datastore type */
-    const el2go_datastore_ops_t *ops; /* Operations (for custom type) */
-    void *context;                    /* Data store context */
-    void *priv;                       /* Private data (do not access) */
+    uint32_t id;                      /**< Datastore identifier */
+    char *name;                       /**< Datastore name */
+    el2go_datastore_type_t type;      /**< Datastore type */
+    const el2go_datastore_ops_t *ops; /**< Operations table (for custom type) */
+    void *context;                    /**< Datastore context */
+    void *priv;                       /**< Private data (do not access) */
 };
 
 /**
- * el2go_datastore_init - Initialize a datastore
- * @id: Datastore identifier
- * @name: Datastore name
- * @type: Datastore type (FS, PLAIN, or CUSTOM)
- * @datastore: Pointer to store the created datastore
- * @validator: Validator function pointer (can be NULL for all types)
+ * @brief Initialize a datastore.
  *
- * This function initializes a datastore with the specified parameters.
+ * Initializes a datastore with the specified parameters. The validator
+ * function can be provided for any datastore type (FS, PLAIN, or CUSTOM)
+ * to perform custom validation of datastore contents.
  *
- * The validator function can be provided for any datastore type (FS, PLAIN,
- * or CUSTOM) to perform custom validation of datastore contents.
- *
- * For CUSTOM type datastores, before calling this function, the user must:
+ * For CUSTOM type datastores, before calling this function the user must:
  * 1. Set datastore->ops to point to their el2go_datastore_ops_t structure
  * 2. Set datastore->context to their custom context (if needed)
  *
- * This function will then call datastore->ops->init(datastore->context, validator) to
- * initialize the custom datastore.
+ * @param[in]  id        Datastore identifier
+ * @param[in]  name      Datastore name
+ * @param[in]  type      Datastore type (FS, PLAIN, or CUSTOM)
+ * @param[out] datastore Pointer to the datastore structure to initialize
+ * @param[in]  validator Validator function pointer (can be NULL for all types)
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_datastore_init(uint32_t id, const char *name, el2go_datastore_type_t type,
                                     el2go_datastore_t *datastore,
                                     el2go_datastore_validator_t validator);
 
 /**
- * el2go_datastore_allocate - Allocate memory in the datastore
- * @datastore: Datastore
- * @len: Number of bytes to allocate
+ * @brief Allocate memory in the datastore.
  *
- * Allocates len bytes in the datastore. The allocation behavior depends
+ * Allocates @p len bytes in the datastore. The allocation behavior depends
  * on the datastore type (FS or PLAIN).
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] datastore Datastore
+ * @param[in] len       Number of bytes to allocate
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_datastore_allocate(el2go_datastore_t *datastore, size_t len);
 
 /**
- * el2go_datastore_read - Read data from the datastore
- * @datastore: Datastore
- * @dest: Destination buffer
- * @offset: Offset in the datastore to read from
- * @len: Number of bytes to read
- * @bytes_read: Output parameter for actual number of bytes read
+ * @brief Read data from the datastore.
  *
- * Reads up to len bytes from the datastore at the specified offset into the
- * destination buffer. The actual number of bytes read is returned in bytes_read.
+ * Reads up to @p len bytes from the datastore at the specified offset into
+ * the destination buffer. The actual number of bytes read is returned in
+ * @p bytes_read.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS if all requested bytes were read,
- * EL2GO_STATUS_INCOMPLETE_READ if fewer bytes were read,
- * or other error code on failure
+ * @param[in]  datastore  Datastore
+ * @param[out] dest       Destination buffer
+ * @param[in]  offset     Offset in the datastore to read from
+ * @param[in]  len        Number of bytes to read
+ * @param[out] bytes_read Actual number of bytes read
+ *
+ * @retval EL2GO_STATUS_SUCCESS if all requested bytes were read
+ * @retval EL2GO_STATUS_INCOMPLETE_READ if fewer bytes were read
+ * @retval el2go_status_t other error code on failure
  */
 el2go_status_t el2go_datastore_read(el2go_datastore_t *datastore, void *dest, size_t offset,
                                     size_t len, size_t *bytes_read);
 
 /**
- * el2go_datastore_write - Write data to the datastore
- * @datastore: Datastore
- * @src: Source buffer
- * @offset: Offset in the datastore to write to
- * @len: Number of bytes to write
- * @bytes_written: Output parameter for actual number of bytes written
+ * @brief Write data to the datastore.
  *
- * Writes up to len bytes from the source buffer to the datastore at the
- * specified offset. The actual number of bytes written is returned in bytes_written.
+ * Writes up to @p len bytes from the source buffer to the datastore at the
+ * specified offset. The actual number of bytes written is returned in
+ * @p bytes_written.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS if all requested bytes were written,
- * EL2GO_STATUS_INCOMPLETE_WRITE if fewer bytes were written,
- * or other error code on failure
+ * @param[in]  datastore     Datastore
+ * @param[in]  src           Source buffer
+ * @param[in]  offset        Offset in the datastore to write to
+ * @param[in]  len           Number of bytes to write
+ * @param[out] bytes_written Actual number of bytes written
+ *
+ * @retval EL2GO_STATUS_SUCCESS if all requested bytes were written
+ * @retval EL2GO_STATUS_INCOMPLETE_WRITE if fewer bytes were written
+ * @retval el2go_status_t other error code on failure
  */
 el2go_status_t el2go_datastore_write(el2go_datastore_t *datastore, const void *src, size_t offset,
                                      size_t len, size_t *bytes_written);
 
 /**
- * el2go_datastore_commit - Commit a transaction to the datastore
- * @datastore: Datastore
+ * @brief Commit a transaction to the datastore.
  *
  * Commits pending changes to the datastore.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] datastore Datastore
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_datastore_commit(el2go_datastore_t *datastore);
 
 /**
- * el2go_datastore_get_size - Get the number of bytes available for reading
- * @datastore: Datastore
- * @size:      Output: number of bytes available from the current read slot
+ * @brief Get the number of bytes available for reading.
  *
  * Returns the size of the data currently readable from the datastore.
  * For FS datastores this is the file size; for PLAIN datastores this is
  * the allocated buffer length. Does not read any data.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in]  datastore Datastore
+ * @param[out] size      Number of bytes available from the current read slot
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_datastore_get_size(el2go_datastore_t *datastore, size_t *size);
 
 /**
- * el2go_datastore_free - Free a datastore
- * @datastore: Pointer to datastore (internal fields will be reset)
+ * @brief Free a datastore.
  *
- * This function frees all datastore resources.
+ * Frees all datastore resources and resets internal fields.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in] datastore Pointer to datastore (internal fields will be reset)
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 el2go_status_t el2go_datastore_free(el2go_datastore_t *datastore);
+
+/** @} */ /* end of el2go_datastore */
 
 #endif /* __EL2GO_DATASTORE_H__ */

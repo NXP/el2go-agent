@@ -8,6 +8,11 @@
 #ifndef __EL2GO_OTA_DOWNLOAD_ENGINE_H__
 #define __EL2GO_OTA_DOWNLOAD_ENGINE_H__
 
+/** @defgroup el2go_ota_download_engine OTA Download Engine Internal API
+ * @brief Internal API for checking updates and downloading OTA packages.
+ * @{
+ */
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -28,10 +33,10 @@
  * @param[in]  attrs       Device attribute array. May be NULL if attr_count is 0.
  * @param[in]  attr_count  Number of entries in attrs[].
  * @param[out] out_resp    Parsed response. Guaranteed non-NULL by caller.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_ENCODE on request encoding failure.
- * @return EL2GO_OTA_ERROR_NETWORK on send/receive failure.
- * @return EL2GO_OTA_ERROR_DECODE on response parsing failure.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_ENCODE on request encoding failure.
+ * @retval EL2GO_OTA_ERROR_NETWORK on send/receive failure.
+ * @retval EL2GO_OTA_ERROR_DECODE on response parsing failure.
  */
 __export el2go_ota_status_t el2go_ota_download_engine_check_for_updates(
     el2go_ota_transport_t *transport, const el2go_ota_attr_t *attrs, size_t attr_count,
@@ -47,15 +52,17 @@ __export el2go_ota_status_t el2go_ota_download_engine_check_for_updates(
  * @param[in] resume_offset  Byte offset to resume from (0 = start fresh).
  * @param[in] chunk_cb       Chunk delivery callback. Guaranteed non-NULL by caller.
  * @param[in] cb_ctx         Opaque context for chunk_cb. May be NULL.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_ENCODE on encoding failure (not retried).
- * @return EL2GO_OTA_ERROR_NETWORK on unrecoverable network failure after retries.
- * @return EL2GO_OTA_ERROR_DECODE on decoding failure (not retried).
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_ENCODE on encoding failure (not retried).
+ * @retval EL2GO_OTA_ERROR_NETWORK on unrecoverable network failure after retries.
+ * @retval EL2GO_OTA_ERROR_DECODE on decoding failure (not retried).
  */
 __export el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     el2go_ota_transport_t *transport, const char *update_id, const char *package_id,
     const char *file_id, size_t resume_offset,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *ctx),
     void *cb_ctx);
+
+/** @} */ /* end of el2go_ota_download_engine */
 
 #endif /* __EL2GO_OTA_DOWNLOAD_ENGINE_H__ */

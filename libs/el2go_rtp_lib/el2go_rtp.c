@@ -261,17 +261,17 @@ exit:
     return status;
 }
 /**
- * get_datastore_index_by_id - Get datastore index by identifier
- * @ctx: RTP agent context
- * @id: Datastore identifier to search for
- * @index: Pointer to store the found index
+ * @brief Get datastore index by identifier.
  *
- * This function searches through the registered datastores in the agent context
- * to find a datastore with the specified identifier. If found, the index of the
- * datastore in the internal array is returned through the index parameter.
+ * Searches through the registered datastores in the agent context to find a
+ * datastore with the specified identifier. If found, the index of the datastore
+ * in the internal array is returned through @p index.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in]  ctx   RTP agent context
+ * @param[in]  id    Datastore identifier to search for
+ * @param[out] index Pointer to store the found index
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 static el2go_status_t get_datastore_index_by_id(const el2go_rtp_ctx_t *ctx, uint32_t id,
                                                 size_t *index)
@@ -300,17 +300,17 @@ exit:
 }
 
 /**
- * get_keystore_index_by_id - Get keystore index by identifier
- * @ctx: RTP agent context
- * @id: Keystore identifier to search for
- * @index: Pointer to store the found index
+ * @brief Get keystore index by identifier.
  *
- * This function searches through the registered keystores in the agent context
- * to find a keystore with the specified identifier. If found, the index of the
- * keystore in the internal array is returned through the index parameter.
+ * Searches through the registered keystores in the agent context to find a
+ * keystore with the specified identifier. If found, the index of the keystore
+ * in the internal array is returned through @p index.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in]  ctx   RTP agent context
+ * @param[in]  id    Keystore identifier to search for
+ * @param[out] index Pointer to store the found index
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 static el2go_status_t get_keystore_index_by_id(const el2go_rtp_ctx_t *ctx, uint32_t id,
                                                size_t *index)
@@ -564,15 +564,15 @@ exit:
 }
 
 /**
- * get_el2go_service_descriptor - Find and return the EL2GOSERVICE descriptor from datastore
- * @datastore: EL2GO datastore containing the service descriptor
- * @service_descriptor: Caller-owned descriptor to populate - must be released by caller
+ * @brief Find and return the EL2GOSERVICE descriptor from a datastore.
  *
- * Searches the datastore for a service descriptor of type EL2GOSERVICE
- * and populates the caller-provided descriptor with the found data.
+ * Searches the datastore for a service descriptor of type EL2GOSERVICE and
+ * populates the caller-provided descriptor with the found data.
  *
- * Return:
- * EL2GO_STATUS_SUCCESS on success, error code otherwise
+ * @param[in]  datastore          EL2GO datastore containing the service descriptor
+ * @param[out] service_descriptor Caller-owned descriptor to populate; must be released by caller
+ *
+ * @return EL2GO_STATUS_SUCCESS on success, error code otherwise
  */
 static el2go_status_t get_el2go_service_descriptor(el2go_datastore_t *datastore,
                                                    nxp_iot_ServiceDescriptor *service_descriptor)

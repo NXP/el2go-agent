@@ -8,6 +8,11 @@
 #ifndef __FWUAL_TYPES_H__
 #define __FWUAL_TYPES_H__
 
+/** @defgroup fwual_types FWUAL Types
+ * @brief Type definitions shared between the FWUAL public API and its backends.
+ * @{
+ */
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -129,5 +134,7 @@ typedef struct {
     uint32_t write_alignment;        /**< Required byte alignment for offset and len; 1 if none */
     uint32_t max_write_size;         /**< Max bytes per fwual_write() call; 0 if no limit */
 } fwual_caps_t;
+
+/** @} */ /* end of fwual_types */
 
 #endif /* __FWUAL_TYPES_H__ */

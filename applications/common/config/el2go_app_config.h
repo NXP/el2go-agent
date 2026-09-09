@@ -7,8 +7,8 @@
 #ifndef __EL2GO_APP_CONFIG_H__
 #define __EL2GO_APP_CONFIG_H__
 
-/**
- * The plain claimcode string to encrypt and write to flash.
+/** @brief Plain claimcode string to encrypt and write to flash.
+ *
  * Can be overridden via Kconfig (CONFIG_EL2GO_CLAIMCODE_STRING) or by
  * defining EL2GO_CLAIMCODE_STRING before including this header.
  */

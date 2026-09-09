@@ -8,6 +8,10 @@
 #ifndef TEST_EL2GO_DATASTORE_COMMON_H
 #define TEST_EL2GO_DATASTORE_COMMON_H
 
+/** @defgroup test_el2go_datastore_common Datastore Unit Test Common
+ * @brief Shared fixtures for public datastore unit tests.
+ * @{
+ */
 #include "rtp/el2go_rtp.h"
 #include "common/el2go_datastore.h"
 
@@ -61,5 +65,7 @@ void register_datastore_sanity_tests(void);
 void register_datastore_fs_tests(void);
 void register_datastore_plain_tests(void);
 void register_datastore_custom_tests(void);
+
+/** @} */ /* end of test_el2go_datastore_common */
 
 #endif /* TEST_EL2GO_DATASTORE_COMMON_H */

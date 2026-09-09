@@ -88,6 +88,10 @@ static void fill_service_descriptor(nxp_iot_ServiceDescriptor *sd, uint64_t iden
  *
  * Verifies that srv_get_number_of_services() returns 0 when
  * NULL is passed as the datastore.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_number_of_services_null(void *params)
 {
@@ -107,6 +111,10 @@ static bool test_srv_get_number_of_services_null(void *params)
  *
  * Verifies that srv_get_number_of_services() returns 0 when
  * called on a freshly initialized datastore with no services added.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_number_of_services_empty(void *params)
 {
@@ -137,6 +145,10 @@ exit:
  * Verifies that srv_get_number_of_services() correctly reflects the number
  * of services after each successive call to srv_add_service(), incrementing
  * from 1 to 3.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_number_of_services_after_add(void *params)
 {
@@ -194,6 +206,10 @@ exit:
  * Verifies that srv_get_service_by_index() returns
  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the datastore,
  * offset, or service descriptor.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_service_by_index_null(void *params)
 {
@@ -231,6 +247,10 @@ exit:
  *
  * Verifies that srv_get_service_by_index() returns
  * EL2GO_STATUS_NOT_FOUND when called on a datastore with no services.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_service_by_index_empty(void *params)
 {
@@ -261,6 +281,10 @@ exit:
  * Verifies that srv_get_service_by_index() returns
  * EL2GO_STATUS_NOT_FOUND when the requested index exceeds the number
  * of services stored in the datastore.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_service_by_index_out_of_bounds(void *params)
 {
@@ -298,6 +322,10 @@ exit:
  * Verifies that srv_get_service_by_index() correctly retrieves each
  * service by its index and that all fields including identifier, hostname,
  * port, and service type match the originally stored values.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_service_by_index_multiple(void *params)
 {
@@ -369,6 +397,10 @@ exit:
  * Verifies that srv_get_service_by_id() returns
  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the datastore,
  * offset, or service descriptor.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_service_by_id_null(void *params)
 {
@@ -406,6 +438,10 @@ exit:
  *
  * Verifies that srv_get_service_by_id() returns EL2GO_STATUS_NOT_FOUND
  * when searching for a service ID that is not present in the datastore.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_service_by_id_not_found(void *params)
 {
@@ -443,6 +479,10 @@ exit:
  * Verifies that srv_get_service_by_id() correctly retrieves each service
  * by its unique identifier and that all fields including hostname and port
  * match the originally stored values.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_get_service_by_id_multiple(void *params)
 {
@@ -509,6 +549,10 @@ exit:
  *
  * Verifies that srv_validate_configuration_data() returns
  * EL2GO_STATUS_INVALID_PARAMETER when NULL is passed as the datastore.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_validate_configuration_data_null(void *params)
 {
@@ -529,6 +573,10 @@ static bool test_srv_validate_configuration_data_null(void *params)
  * Verifies that srv_validate_configuration_data() returns
  * EL2GO_STATUS_SUCCESS when the datastore contains a correctly written
  * and checksummed service descriptor.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_srv_validate_configuration_data_valid(void *params)
 {

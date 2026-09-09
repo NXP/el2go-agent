@@ -13,6 +13,9 @@
  * Will be replaced with real internal tests as the fwual implementation matures.
  */
 
+/**
+ * @brief Register all internal FWUAL tests with the test framework.
+ */
 void register_fwual_tests(void)
 {
 }

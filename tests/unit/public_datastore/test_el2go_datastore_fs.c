@@ -18,6 +18,16 @@
 /* File System Datastore Tests                                                */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that a filesystem datastore can be initialized and freed without errors.
+ *
+ * Delegates to the common initialization and free test using
+ * EL2GO_DATASTORE_TYPE_FS with no custom ops or context.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_init_and_free(void *params)
 {
     (void)params;
@@ -25,6 +35,13 @@ static bool test_datastore_fs_init_and_free(void *params)
     return common_test_ds_init_and_free(EL2GO_DATASTORE_TYPE_FS, __func__, 2, NULL, NULL);
 }
 
+/**
+ * @brief Verify that a filesystem datastore can perform a complete allocate/write/commit/read cycle.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_full_transaction(void *params)
 {
     (void)params;
@@ -32,6 +49,16 @@ static bool test_datastore_fs_full_transaction(void *params)
     return common_test_ds_full_transaction(EL2GO_DATASTORE_TYPE_FS, __func__, NULL, NULL);
 }
 
+/**
+ * @brief Verify that a filesystem datastore handles multiple sequential transactions correctly.
+ *
+ * Each transaction overwrites the backing file; the last committed content
+ * must be readable after the final commit.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_multiple_transactions(void *params)
 {
     (void)params;
@@ -39,6 +66,13 @@ static bool test_datastore_fs_multiple_transactions(void *params)
     return common_test_ds_multiple_transactions(EL2GO_DATASTORE_TYPE_FS, __func__, NULL, NULL);
 }
 
+/**
+ * @brief Verify that a filesystem datastore accepts writes at non-zero offsets within the file.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_write_at_different_offsets(void *params)
 {
     (void)params;
@@ -46,6 +80,17 @@ static bool test_datastore_fs_write_at_different_offsets(void *params)
     return common_test_ds_write_at_different_offsets(EL2GO_DATASTORE_TYPE_FS, __func__, NULL, NULL);
 }
 
+/**
+ * @brief Verify that the filesystem datastore allows writing beyond the allocated hint
+ *        (the file grows) and reports the correct number of bytes written.
+ *
+ * The FS backend does not enforce a hard upper limit at write time; writes
+ * beyond the allocation hint must succeed and report the full byte count.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_write_out_of_bounds(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -80,6 +125,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that reading beyond the written file content returns
+ *        EL2GO_STATUS_INCOMPLETE_READ and reports the actual bytes available.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_read_out_of_bounds(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -125,6 +178,16 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that a filesystem datastore recovers correctly after an aborted transaction.
+ *
+ * A second allocate without a preceding commit must discard the first pending
+ * file and allow the new transaction to proceed normally.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_transaction_recovery(void *params)
 {
     (void)params;
@@ -132,6 +195,13 @@ static bool test_datastore_fs_transaction_recovery(void *params)
     return common_test_ds_transaction_recovery(EL2GO_DATASTORE_TYPE_FS, __func__, NULL, NULL);
 }
 
+/**
+ * @brief Verify that a filesystem datastore can handle a large allocation without errors.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_large_allocation(void *params)
 {
     (void)params;
@@ -139,6 +209,14 @@ static bool test_datastore_fs_large_allocation(void *params)
     return common_test_ds_large_allocation(EL2GO_DATASTORE_TYPE_FS, __func__, NULL, NULL);
 }
 
+/**
+ * @brief Verify that a partial read on the filesystem datastore returns
+ *        EL2GO_STATUS_INCOMPLETE_READ, the correct byte count, and the correct data.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_partial_read(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -182,6 +260,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that writing more data than the initial allocation hint
+ *        succeeds on the filesystem datastore (the file grows) and that
+ *        all written data can subsequently be read back.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_partial_write(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -253,6 +340,15 @@ exit:
     return status;
 }
 
+/**
+ * @brief Verify that data written by one filesystem datastore instance
+ *        can be read by a second instance that opens the same backing file. bytes, frees it, then
+ * creates a second instance with a validator callback. Verifies that the
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_persistence(void *params)
 {
     el2go_datastore_t datastore[2] = { 0 };
@@ -320,6 +416,9 @@ exit:
 /* Test Registration                                                          */
 /* ========================================================================== */
 
+/**
+ * @brief Register all filesystem-backed datastore tests with the test framework.
+ */
 void register_datastore_fs_tests(void)
 {
     /* Initialization tests */

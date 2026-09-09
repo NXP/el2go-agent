@@ -19,6 +19,12 @@
 #include "pb_utils.h"
 
 /**
+ * @defgroup el2go_datastore_int Datastore Internal API
+ * @brief Internal datastore interface for protobuf serialization and endpoint dispatch.
+ * @{
+ */
+
+/**
  * @brief Return the nxp_iot_EndpointType for a datastore.
  *
  * Maps the el2go_datastore_type_t stored in the datastore to the protobuf
@@ -64,5 +70,7 @@ el2go_status_t el2go_datastore_get_endpoint_info(void *ctx, nxp_iot_EndpointInfo
  */
 el2go_status_t el2go_datastore_handle_request(void *ctx, const pb_field_t *message_type,
                                               pb_istream_t *istream, pb_ostream_t *ostream);
+
+/** @} */ /* end of el2go_datastore_int */
 
 #endif /* __DATASTORE_PRIV_H__ */

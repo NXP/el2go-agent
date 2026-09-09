@@ -8,6 +8,11 @@
 #ifndef __ELS_PKC_PLATFORM_DEFS_H__
 #define __ELS_PKC_PLATFORM_DEFS_H__
 
+/** @defgroup els_pkc_psa_platform_defs ELS PKC PSA Platform Definitions
+ * @brief Key and data object IDs for ELS PKC PSA platform builds.
+ * @{
+ */
+
 /**
  * @brief ECC key ID for EdgeLock 2GO operations on ELS PKC platforms.
  *
@@ -25,5 +30,7 @@
  * via smw_store_data().
  */
 #define EDGELOCK2GO_CLAIMCODE_DATA_ID 0x3F0000E0U
+
+/** @} */ /* end of els_pkc_psa_platform_defs */
 
 #endif /* __ELS_PKC_PLATFORM_DEFS_H__ */

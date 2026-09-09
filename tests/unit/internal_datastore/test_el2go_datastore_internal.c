@@ -75,6 +75,14 @@ bool check_datastore(const el2go_datastore_t datastore)
 /* Test: Plain Datastore Internal Structure                                   */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that el2go_datastore_plain_create() populates the datastore structure
+ *        correctly and that the init callback can be called on the resulting context.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_context_structure(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -99,6 +107,17 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the plain datastore correctly replaces its committed buffer
+ *        when a second transaction is committed over a first.
+ *
+ * Writes distinct data in two consecutive transactions and confirms that the
+ * read after the second commit returns only the second dataset.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_buffer_switching(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -160,6 +179,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that all plain datastore ops return EL2GO_STATUS_INVALID_PARAMETER
+ *        when called with a NULL context pointer.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_null_context(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -205,6 +232,14 @@ exit:
 /* Test: FS Datastore Internal Structure                                      */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that el2go_datastore_fs_create() populates the datastore structure
+ *        correctly and that the init callback can be called on the resulting context.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_context_structure(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -229,6 +264,17 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the filesystem datastore correctly replaces its backing file
+ *        when a second transaction is committed over a first.
+ *
+ * Writes distinct data in two consecutive transactions and confirms that the
+ * read after the second commit returns only the second dataset.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_file_switching(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -290,6 +336,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that all filesystem datastore ops return EL2GO_STATUS_INVALID_PARAMETER
+ *        when called with a NULL context pointer.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_null_context(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -331,6 +385,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that el2go_datastore_fs_create() rejects a NULL basename argument.
+ *
+ * Expects EL2GO_STATUS_INVALID_PARAMETER when basename is NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_null_basename(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -348,6 +411,15 @@ static bool test_datastore_fs_null_basename(void *params)
 /* Test: Datastore Operations Boundary Conditions                             */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that the plain datastore accepts a write that fills the
+ *        allocated buffer exactly and rejects any write starting at the
+ *        end of the allocation.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_exact_boundary_write(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -387,6 +459,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the filesystem datastore handles writes at different
+ *        offsets and that each region can subsequently be read back correctly.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_seek_operations(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -460,6 +540,16 @@ exit:
 /* Test: Datastore Error Recovery                                             */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that the plain datastore replaces a pending allocation when
+ *        a new allocate is issued before the first transaction is committed.
+ *
+ * The first pending buffer must be discarded and the second write must succeed.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_allocate_recovery(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -504,6 +594,16 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the filesystem datastore replaces a pending file when
+ *        a new allocate is issued before the first transaction is committed.
+ *
+ * The first pending file must be discarded and the second write must succeed.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_file_recovery(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -552,6 +652,15 @@ exit:
 /* Test: Datastore Memory Management                                          */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that the plain datastore handles multiple consecutive
+ *        allocate/write/commit cycles with increasing allocation sizes
+ *        without leaking memory or failing.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_multiple_allocations(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -594,6 +703,15 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the filesystem datastore handles multiple consecutive
+ *        allocate/write/commit cycles without errors, overwriting the
+ *        backing file on each iteration.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_multiple_files(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -640,6 +758,17 @@ exit:
 /* Test: Datastore Data Integrity                                             */
 /* ========================================================================== */
 
+/**
+ * @brief Verify data integrity for the plain datastore across multiple
+ *        write segments covering the full allocated dataset.
+ *
+ * Writes several chunks at successive offsets, commits, then reads each
+ * chunk back and verifies it matches the original data.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_data_integrity(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -716,6 +845,17 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify data integrity for the filesystem datastore across multiple
+ *        write segments covering the full allocated dataset.
+ *
+ * Writes several chunks at successive offsets, commits, then reads each
+ * chunk back and verifies it matches the original data.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_data_integrity(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -796,6 +936,14 @@ exit:
 /* Test: Datastore Stress Tests                                               */
 /* ========================================================================== */
 
+/**
+ * @brief Stress-test the plain datastore by performing many allocate/write/commit/read
+ *        iterations, each with a fresh pattern, verifying data integrity every round.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_stress_test(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -847,6 +995,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Stress-test the filesystem datastore by performing many allocate/write/commit/read
+ *        iterations, each with a fresh pattern, verifying data integrity every round.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_stress_test(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -902,6 +1058,15 @@ exit:
 /* Test: Datastore Operations with NULL Pointers                              */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that el2go_datastore_plain_create() rejects a NULL datastore pointer.
+ *
+ * Expects EL2GO_STATUS_INVALID_PARAMETER when the output datastore is NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_create_null_pointer(void *params)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
@@ -914,6 +1079,15 @@ static bool test_datastore_plain_create_null_pointer(void *params)
     return true;
 }
 
+/**
+ * @brief Verify that el2go_datastore_fs_create() rejects a NULL datastore pointer.
+ *
+ * Expects EL2GO_STATUS_INVALID_PARAMETER when the output datastore is NULL.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_create_null_datastore(void *params)
 {
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
@@ -930,6 +1104,14 @@ static bool test_datastore_fs_create_null_datastore(void *params)
 /* Test: Datastore Index Overflow Protection                                  */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that the plain datastore correctly tracks allocated and
+ *        committed buffers across multiple successive transactions.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_index_management(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -980,6 +1162,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the filesystem datastore correctly overwrites and
+ *        re-reads the backing file across multiple successive transactions.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_index_management(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1035,6 +1225,15 @@ exit:
 /* Test: Partial Read/Write Operations                                        */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that the plain datastore reports EL2GO_STATUS_INCOMPLETE_WRITE when
+ *        a write exceeds the allocation, and EL2GO_STATUS_INCOMPLETE_READ when a
+ *        read exceeds the committed data, with correct byte counts in both cases.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_partial_read_write(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1086,6 +1285,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the filesystem datastore reports EL2GO_STATUS_INCOMPLETE_READ
+ *        when a read request exceeds the committed file size.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_partial_read_write(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1141,6 +1348,14 @@ exit:
 /* Test: Bytes Read/Written NULL Pointer Tests                                */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that the plain datastore write and read ops reject a NULL bytes_written
+ *        or bytes_read output pointer respectively.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_null_bytes_pointers(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1180,6 +1395,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the filesystem datastore write and read ops reject a NULL
+ *        bytes_written or bytes_read output pointer respectively.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_null_bytes_pointers(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1223,6 +1446,14 @@ exit:
 /* Test: Edge Cases for Offset Operations                                     */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that the plain datastore handles writes and reads that land exactly
+ *        at the buffer boundary, and correctly truncates writes that extend past it.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_offset_at_boundary(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1282,6 +1513,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that the filesystem datastore correctly reads back data written at
+ *        a non-zero offset within the allocated file.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_fs_offset_at_boundary(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1335,6 +1574,14 @@ exit:
 /* Test: Zero Bytes Read/Written Scenarios                                    */
 /* ========================================================================== */
 
+/**
+ * @brief Verify that reading from an offset equal to the committed data size returns
+ *        EL2GO_STATUS_BUFFER_TOO_SMALL for the plain datastore.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_read_at_end(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1381,6 +1628,14 @@ exit:
     return test_status;
 }
 
+/**
+ * @brief Verify that writing at an offset equal to the allocated size returns
+ *        EL2GO_STATUS_BUFFER_TOO_SMALL for the plain datastore.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
 static bool test_datastore_plain_write_at_end(void *params)
 {
     el2go_datastore_t datastore = { 0 };
@@ -1422,6 +1677,11 @@ exit:
 /* Test Registration                                                          */
 /* ========================================================================== */
 
+/**
+ * @brief Register all internal datastore tests with the test framework.
+ *
+ * @param[in] include_fs_tests If true, filesystem-backed datastore tests are included.
+ */
 void register_datastore_tests(bool include_fs_tests)
 {
     /* Set suite-level setup function */

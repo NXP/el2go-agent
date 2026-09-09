@@ -8,6 +8,11 @@
 #ifndef __EL2GO_OTA_STATUS_REPORTING_H__
 #define __EL2GO_OTA_STATUS_REPORTING_H__
 
+/** @defgroup el2go_ota_status_reporting OTA Status Reporting Internal API
+ * @brief Internal API for persisting and delivering OTA update status reports.
+ * @{
+ */
+
 #include "ota/el2go_ota_lib.h"
 #include "el2go_ota_transport.h"
 #include "compiler.h"
@@ -32,10 +37,10 @@
  * @param[in] update_id   Update identifier. Guaranteed non-NULL.
  * @param[in] package_id  Package identifier. Guaranteed non-NULL.
  * @param[in] outcome     Update outcome. Guaranteed valid by caller.
- * @return EL2GO_OTA_SUCCESS on success (backend acknowledged).
- * @return EL2GO_OTA_ERROR_NETWORK on delivery failure (NVS entry retained).
- * @return EL2GO_OTA_ERROR_SERVER on server error response.
- * @return EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
+ * @retval EL2GO_OTA_SUCCESS on success (backend acknowledged).
+ * @retval EL2GO_OTA_ERROR_NETWORK on delivery failure (NVS entry retained).
+ * @retval EL2GO_OTA_ERROR_SERVER on server error response.
+ * @retval EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
  */
 __export el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transport_t *transport,
                                                               const char *update_id,
@@ -52,8 +57,8 @@ __export el2go_ota_status_t el2go_ota_status_reporting_report(el2go_ota_transpor
  * @param[in] update_id   Update identifier. Guaranteed non-NULL.
  * @param[in] package_id  Package identifier. Guaranteed non-NULL.
  * @param[in] outcome     Update outcome. Guaranteed valid by caller.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INTERNAL on KVS init or write failure.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INTERNAL on KVS init or write failure.
  */
 __export el2go_ota_status_t el2go_ota_status_reporting_schedule(const char *update_id,
                                                                 const char *package_id,
@@ -67,10 +72,10 @@ __export el2go_ota_status_t el2go_ota_status_reporting_schedule(const char *upda
  * immediately if no valid entry exists.
  *
  * @param[in] transport  Initialised transport instance. Guaranteed non-NULL.
- * @return EL2GO_OTA_SUCCESS if no pending entry exists or delivery succeeded.
- * @return EL2GO_OTA_ERROR_NETWORK if delivery failed (entry retained).
- * @return EL2GO_OTA_ERROR_SERVER on server error response.
- * @return EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
+ * @retval EL2GO_OTA_SUCCESS if no pending entry exists or delivery succeeded.
+ * @retval EL2GO_OTA_ERROR_NETWORK if delivery failed (entry retained).
+ * @retval EL2GO_OTA_ERROR_SERVER on server error response.
+ * @retval EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
  */
 __export el2go_ota_status_t
 el2go_ota_status_reporting_retry_pending(el2go_ota_transport_t *transport);
@@ -82,9 +87,11 @@ el2go_ota_status_reporting_retry_pending(el2go_ota_transport_t *transport);
  * If no entry exists, returns EL2GO_OTA_SUCCESS with out->valid == 0.
  *
  * @param[out] out  Receives the pending entry. Guaranteed non-NULL by caller.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INTERNAL on KVS init or read failure.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INTERNAL on KVS init or read failure.
  */
 __export el2go_ota_status_t el2go_ota_status_reporting_read_pending(el2go_ota_pending_status_t *out);
+
+/** @} */ /* end of el2go_ota_status_reporting */
 
 #endif /* __EL2GO_OTA_STATUS_REPORTING_H__ */

@@ -327,9 +327,9 @@ int net_crypto_ct_memcmp(const void *a, const void *b, size_t len);
  * @param[in] ctx          Network crypto context.
  * @param[in] alpn_protos  NULL-terminated array of ALPN protocol name strings.
  *
- * @return EL2GO_STATUS_SUCCESS           ALPN protocols configured successfully.
- * @return EL2GO_STATUS_INVALID_PARAMETER ctx or alpn_protos is NULL.
- * @return EL2GO_STATUS_FAILURE           mbedTLS returned a non-zero error code.
+ * @retval EL2GO_STATUS_SUCCESS           ALPN protocols configured successfully.
+ * @retval EL2GO_STATUS_INVALID_PARAMETER ctx or alpn_protos is NULL.
+ * @retval EL2GO_STATUS_FAILURE           mbedTLS returned a non-zero error code.
  */
 el2go_status_t net_crypto_set_alpn(net_crypto_ctx_t *ctx, const char **alpn_protos);
 

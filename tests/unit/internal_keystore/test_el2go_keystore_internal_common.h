@@ -8,6 +8,10 @@
 #ifndef TEST_EL2GO_KEYSTORE_INTERNAL_COMMON_H
 #define TEST_EL2GO_KEYSTORE_INTERNAL_COMMON_H
 
+/** @defgroup test_el2go_keystore_int_common Keystore Internal Unit Test Common
+ * @brief Shared fixtures for internal keystore unit tests.
+ * @{
+ */
 #include "common/el2go_keystore.h"
 #include "test_framework.h"
 
@@ -42,5 +46,7 @@ bool common_test_keystore_init_with_id(uint32_t keystore_id, el2go_keystore_type
  * It is called from register_keystore_tests() in the common module.
  */
 void register_keystore_specific_tests(void);
+
+/** @} */ /* end of test_el2go_keystore_int_common */
 
 #endif /* TEST_EL2GO_KEYSTORE_INTERNAL_COMMON_H */

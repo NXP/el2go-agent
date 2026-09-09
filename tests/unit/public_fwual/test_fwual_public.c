@@ -28,10 +28,9 @@ static const uint8_t s_hash_256x_ab[32U] = {
 /**
  * @brief Verify that fwual_get_caps(NULL) returns FWUAL_ERR_INVALID_PARAM.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_get_caps_null(void *params)
 {
@@ -54,10 +53,9 @@ exit:
 /**
  * @brief Verify that fwual_open_session(NULL) returns FWUAL_ERR_INVALID_PARAM.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_open_session_null(void *params)
 {
@@ -82,10 +80,9 @@ exit:
  *
  * Must return FWUAL_OK without crashing.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_close_session_null(void *params)
 {
@@ -106,10 +103,9 @@ exit:
 /**
  * @brief Verify that fwual_prepare_image(NULL, desc) returns FWUAL_ERR_INVALID_PARAM.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_prepare_image_null_session(void *params)
 {
@@ -466,6 +462,10 @@ exit:
 
 /**
  * @brief Write the full image in a single chunk and finalize successfully.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_write_single_chunk(void *params)
 {
@@ -501,6 +501,10 @@ exit:
 
 /**
  * @brief Write the image in three sequential chunks and finalize successfully.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_write_multi_chunk(void *params)
 {
@@ -543,6 +547,10 @@ exit:
 
 /**
  * @brief Out-of-order write must be rejected with FWUAL_ERR_INVALID_STATE.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_write_out_of_order(void *params)
 {
@@ -580,6 +588,10 @@ exit:
 
 /**
  * @brief Finalize with incomplete data must return FWUAL_ERR_INVALID_STATE.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_finalize_incomplete(void *params)
 {
@@ -618,6 +630,10 @@ exit:
 
 /**
  * @brief Write beyond declared image size must return FWUAL_ERR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_write_overflow(void *params)
 {
@@ -653,10 +669,9 @@ exit:
 /**
  * @brief Verify that fwual_verify_image(NULL, 0) returns FWUAL_ERR_INVALID_PARAM.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_verify_null_session(void *params)
 {
@@ -676,10 +691,9 @@ exit:
  * @brief Verify that fwual_verify_image() returns FWUAL_ERR_INVALID_STATE
  *        when the slot has not been finalized yet.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_verify_not_finalized(void *params)
 {
@@ -728,10 +742,9 @@ exit:
  * @brief Verify that fwual_verify_image() returns FWUAL_ERR_UNSUPPORTED when
  *        the image descriptor specifies an unsupported hash algorithm.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_verify_unsupported_algo(void *params)
 {
@@ -797,10 +810,9 @@ exit:
  *        If the backend flash is not available the test prints a skip message
  *        and still passes (infrastructure not ready in the unit-test host).
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_verify_correct_hash(void *params)
 {
@@ -850,12 +862,11 @@ exit:
 
 /**
  * @brief Wrong-hash verify: write 256 bytes of 0xAB, finalize, then verify
- *        with an all-zero expected hash.  Expects FWUAL_ERR_CORRUPT.
+ *        with an all-zero expected hash. Expects FWUAL_ERR_CORRUPT.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_verify_wrong_hash(void *params)
 {
@@ -908,10 +919,9 @@ exit:
  * @brief Verify that calling fwual_verify_image() twice on a successfully
  *        verified slot returns FWUAL_OK both times (idempotent).
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_verify_idempotent(void *params)
 {
@@ -967,10 +977,9 @@ exit:
  * @brief After a successful full lifecycle (write -> finalize -> verify),
  *        fwual_is_image_staged() must return true.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_is_image_staged_true_after_verify(void *params)
 {
@@ -1026,10 +1035,9 @@ exit:
 /**
  * @brief Verify that fwual_commit_session(NULL) returns FWUAL_ERR_INVALID_PARAM.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_commit_session_null(void *params)
 {
@@ -1052,10 +1060,9 @@ exit:
  *
  *        Gracefully skips any step that fails due to missing backend flash.
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_commit_session_valid(void *params)
 {
@@ -1115,6 +1122,10 @@ exit:
  * Calls fwual_rollback() first to force the lifecycle into ROLLED_BACK, which is
  * never a valid precondition for activate().  This makes the test independent of
  * any NVS state left by previous runs.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_activate_wrong_state(void *params)
 {
@@ -1139,6 +1150,10 @@ exit:
 
 /**
  * @brief Verify that fwual_confirm() in IDLE state returns FWUAL_ERR_INVALID_STATE.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_confirm_wrong_state(void *params)
 {
@@ -1158,6 +1173,10 @@ exit:
 
 /**
  * @brief Verify that fwual_list_installed(NULL, &count) returns FWUAL_ERR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ *
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_list_installed_null(void *params)
 {
@@ -1183,10 +1202,9 @@ exit:
  * to COMMITTED without calling boot_request_upgrade_multi -- that call belongs
  * exclusively in fwual_activate().
  *
- * @param[in] params Unused test parameter, pass NULL.
+ * @param params Unused.
  *
- * @return true  Test passed.
- * @return false Test failed.
+ * @return @c true if all assertions pass, @c false otherwise.
  */
 static bool test_fwual_get_state_committed_after_commit(void *params)
 {

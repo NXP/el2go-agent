@@ -52,8 +52,8 @@ void el2go_app_time_sync(void)
  * current time from the cached epoch plus the uptime elapsed since the last
  * successful sync, then reduces it to the hour within the UTC day.
  *
- * @return Hour of day in the range 0-23
- * @return -1 if no successful sync has occurred yet
+ * @retval Hour of day in the range 0-23
+ * @retval -1 if no successful sync has occurred yet
  */
 int el2go_app_time_get_hour_of_day(void)
 {

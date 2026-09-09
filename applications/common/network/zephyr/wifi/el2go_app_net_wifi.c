@@ -87,8 +87,8 @@ static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, st
  *
  * @param[in] iface Wi-Fi station interface to configure
  *
- * @return 0 on success
- * @return negative errno if setting the MAC address fails
+ * @retval 0 on success
+ * @retval negative errno if setting the MAC address fails
  */
 static int set_mac_address(struct net_if *iface)
 {
@@ -118,10 +118,10 @@ static int set_mac_address(struct net_if *iface)
  * the SSID and PSK from Kconfig. Blocks until both association and DHCP IPv4
  * assignment complete, each bounded by WIFI_CONNECT_TIMEOUT_S.
  *
- * @return 0 once the interface is connected and has an IPv4 address
- * @return -ENODEV if no Wi-Fi station interface is present
- * @return -ETIMEDOUT if association or DHCP does not complete in time
- * @return negative errno if the MAC setup or connect request fails
+ * @retval 0 once the interface is connected and has an IPv4 address
+ * @retval -ENODEV if no Wi-Fi station interface is present
+ * @retval -ETIMEDOUT if association or DHCP does not complete in time
+ * @retval negative errno if the MAC setup or connect request fails
  */
 int el2go_app_net_init(void)
 {

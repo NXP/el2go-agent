@@ -8,6 +8,11 @@
 #ifndef __BUILTIN_MACROS_H__
 #define __BUILTIN_MACROS_H__
 
+/** @defgroup priv_builtin_macros Private Built-in Macros
+ * @brief Internal compiler built-in macro wrappers.
+ * @{
+ */
+
 #include <stdint.h>
 
 #ifndef BIT
@@ -117,5 +122,7 @@
     })
 
 #define SET_CLEAR_MASK(val, set, clear) (((val) & ~(clear)) | (set))
+
+/** @} */ /* end of priv_builtin_macros */
 
 #endif /* __BUILTIN_MACROS_H__ */

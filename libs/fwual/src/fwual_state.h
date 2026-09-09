@@ -7,6 +7,11 @@
 #ifndef __FWUAL_STATE_H__
 #define __FWUAL_STATE_H__
 
+/** @defgroup fwual_state FWUAL State Internal API
+ * @brief Internal state machine definitions for the FWUAL library.
+ * @{
+ */
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -95,5 +100,7 @@ typedef struct fwual_internal_state_t {
     fwual_state_t lifecycle_state;     /**< Full device lifecycle state (IOTDL-2822). */
     fwual_caps_t caps;                 /**< Cached capabilities - populated once at fwual_init(). */
 } fwual_internal_state_t;
+
+/** @} */ /* end of fwual_state */
 
 #endif /* __FWUAL_STATE_H__ */

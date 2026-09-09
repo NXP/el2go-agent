@@ -8,6 +8,11 @@
 #ifndef __EL2GO_OTA_REQUEST_BUILDER_H__
 #define __EL2GO_OTA_REQUEST_BUILDER_H__
 
+/** @defgroup el2go_ota_request_builder OTA Request Builder Internal API
+ * @brief Internal API for encoding protobuf OTA request messages.
+ * @{
+ */
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -73,9 +78,9 @@ typedef struct {
  * @param[out] buf      Output buffer. Must not be NULL.
  * @param[in]  buf_len  Size of buf in bytes.
  * @param[out] out_len  Number of bytes written. Must not be NULL.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INVALID_PARAM if req, buf, or out_len is NULL.
- * @return EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM if req, buf, or out_len is NULL.
+ * @retval EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
  */
 __export el2go_ota_status_t el2go_ota_encode_check_update(const el2go_ota_check_update_req_t *req,
                                                           uint8_t *buf, size_t buf_len,
@@ -88,10 +93,10 @@ __export el2go_ota_status_t el2go_ota_encode_check_update(const el2go_ota_check_
  * @param[out] buf      Output buffer. Must not be NULL.
  * @param[in]  buf_len  Size of buf in bytes.
  * @param[out] out_len  Number of bytes written. Must not be NULL.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INVALID_PARAM if req, buf, out_len, update_id,
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM if req, buf, out_len, update_id,
  *         package_id, or file_id is NULL.
- * @return EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
+ * @retval EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
  */
 __export el2go_ota_status_t el2go_ota_encode_fetch_package(const el2go_ota_fetch_pkg_req_t *req,
                                                            uint8_t *buf, size_t buf_len,
@@ -104,13 +109,15 @@ __export el2go_ota_status_t el2go_ota_encode_fetch_package(const el2go_ota_fetch
  * @param[out] buf      Output buffer. Must not be NULL.
  * @param[in]  buf_len  Size of buf in bytes.
  * @param[out] out_len  Number of bytes written. Must not be NULL.
- * @return EL2GO_OTA_SUCCESS on success.
- * @return EL2GO_OTA_ERROR_INVALID_PARAM if req, buf, out_len, or update_id
+ * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM if req, buf, out_len, or update_id
  *         is NULL.
- * @return EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
+ * @retval EL2GO_OTA_ERROR_ENCODE if nanopb encoding fails or buf is too small.
  */
 __export el2go_ota_status_t el2go_ota_encode_report_status(const el2go_ota_report_status_req_t *req,
                                                            uint8_t *buf, size_t buf_len,
                                                            size_t *out_len);
+
+/** @} */ /* end of el2go_ota_request_builder */
 
 #endif /* __EL2GO_OTA_REQUEST_BUILDER_H__ */
