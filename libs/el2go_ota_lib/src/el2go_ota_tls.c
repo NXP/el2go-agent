@@ -66,7 +66,7 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
             goto cleanup;
         }
     } else {
-        EL2GO_DBG_PRINTF(WARNING, "Client certificate authentication disabled\n");
+        EL2GO_DBG_PRINTF(INFO, "Client certificate authentication disabled\n");
     }
 
     /* Step 2: Allocate a new net_crypto context. */
