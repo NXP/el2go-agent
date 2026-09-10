@@ -24,6 +24,7 @@
 
 #include "el2go_app_net.h"
 #include "el2go_app_time.h"
+#include "el2go_app_sys.h"
 
 #include "el2go_ota_diag.h"
 
@@ -40,6 +41,29 @@ static void on_scheduler_fire(void *user_data)
 {
     updater_ctx_t *updater = (updater_ctx_t *)user_data;
     updater_run_check(updater);
+}
+
+/**
+ * @brief Main time syncronization loop.
+ *
+ * Tries to syncronze the time up to the configured nubmer of attempts.
+ *
+ */
+static void wait_for_time_sync(void)
+{
+    int cycle = -1;
+
+    for (cycle = 0; cycle < CONFIG_EL2GO_OTA_ADV_TIME_SYNC_MAX_CYCLES; cycle++) {
+        if (el2go_app_time_get_hour_of_day() >= 0) {
+            break;
+        }
+
+        OTA_DIAG_INFO("waiting for time sync before connect (%d/%d)...", cycle + 1,
+                      CONFIG_EL2GO_OTA_ADV_TIME_SYNC_MAX_CYCLES);
+        el2go_app_sys_sleep_ms(CONFIG_EL2GO_OTA_ADV_TIME_SYNC_RETRY_DELAY_MS);
+        el2go_app_time_sync();
+    }
+    OTA_DIAG_WARN("time sync unavailable - proceeding (cert checks/blackout degraded)");
 }
 
 /**
@@ -125,8 +149,8 @@ int main(int argc, char *argv[])
     }
     OTA_DIAG_DONE("el2go_app_net_init()");
 
-    /* Best-effort time sync; a no-op if no time backend is configured. */
     el2go_app_time_sync();
+    wait_for_time_sync();
 
     el2go_ota_status_t status = el2go_ota_init(&updater.ota_ctx, &config);
     if (status != EL2GO_OTA_SUCCESS) {

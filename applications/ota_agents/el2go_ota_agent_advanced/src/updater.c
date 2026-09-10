@@ -233,10 +233,22 @@ static el2go_ota_status_t run_download_and_handoff(updater_ctx_t *updater,
          */
         if (persist != NULL) {
             persist->state = (uint32_t)AGENT_STATE_DOWNLOAD;
+
             (void)strncpy(persist->update_id, update->update_id, sizeof(persist->update_id) - 1U);
             persist->update_id[sizeof(persist->update_id) - 1U] = '\0';
+
             (void)strncpy(persist->package_id, pkg->package_id, sizeof(persist->package_id) - 1U);
             persist->package_id[sizeof(persist->package_id) - 1U] = '\0';
+
+            if (sizeof(persist->expected_version) != sizeof(pkg->version)) {
+                OTA_DIAG_WARN("expected_version/version size mismatch (%zu vs %zu)",
+                              sizeof(persist->expected_version), sizeof(pkg->version));
+            }
+
+            (void)strncpy(persist->expected_version, pkg->version,
+                          sizeof(persist->expected_version) - 1U);
+            persist->expected_version[sizeof(persist->expected_version) - 1U] = '\0';
+
             persist->valid = EL2GO_OTA_PERSIST_VALID_MAGIC;
             (void)el2go_ota_persist_write(persist);
         }
@@ -373,12 +385,24 @@ static void report_status_with_retry(updater_ctx_t *updater, const char *update_
  */
 static void deliver_pending_status(updater_ctx_t *updater)
 {
-    el2go_ota_status_t status = el2go_ota_report_pending_status(updater->ota_ctx);
-    if (status != EL2GO_OTA_SUCCESS) {
-        OTA_DIAG_FAIL("el2go_ota_report_pending_status()");
-        OTA_DIAG_ERROR("%s", el2go_ota_get_error_string(status));
-    } else {
+    el2go_ota_status_t status = EL2GO_OTA_ERROR_INTERNAL;
+
+    for (int attempt = 0; attempt < CONFIG_EL2GO_OTA_ADV_REPORT_MAX_RETRIES; attempt++) {
+        retry_backoff(attempt, CONFIG_EL2GO_OTA_ADV_REPORT_MAX_RETRIES, "status report");
+
+        status = el2go_ota_report_pending_status(updater->ota_ctx);
+        if (status == EL2GO_OTA_SUCCESS) {
+            break;
+        }
+
+        OTA_DIAG_ERROR("status report attempt %d failed: %s", attempt + 1,
+                       el2go_ota_get_error_string(status));
+    }
+
+    if (status == EL2GO_OTA_SUCCESS) {
         OTA_DIAG_DONE("el2go_ota_report_pending_status()");
+    } else {
+        OTA_DIAG_FAIL("el2go_ota_report_pending_status()");
     }
 }
 
@@ -417,6 +441,17 @@ void updater_finalize_boot(updater_ctx_t *updater, fwual_state_t fw_state)
 
     switch (fw_state) {
     case FWUAL_STATE_WAITING_CONFIRM:
+        if (persist.valid == EL2GO_OTA_PERSIST_VALID_MAGIC && persist.expected_version[0] != '\0' &&
+            strcmp(OTA_FW_VERSION, persist.expected_version) != 0) {
+            OTA_DIAG_WARN("running %s but expected %s -- MCUBoot rejected swap", OTA_FW_VERSION,
+                          persist.expected_version);
+            (void)fwual_rollback();
+            OTA_DIAG_WARN("rollback detected - reporting ROLLBACK to server");
+            report_rollback(updater);
+            (void)el2go_ota_persist_clear();
+            break;
+        }
+
         OTA_DIAG_INFO("new firmware validated - confirming image");
 
         if (fwual_confirm() != FWUAL_OK) {

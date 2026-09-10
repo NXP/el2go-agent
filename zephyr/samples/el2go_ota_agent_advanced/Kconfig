@@ -62,9 +62,23 @@ config EL2GO_OTA_ADV_BLACKOUT_END_HOUR
 
 config EL2GO_OTA_ADV_DEFER_WINDOW_S
     int "Minimum seconds between update attempts (0 = disabled)"
-    default 0
+    default 100
     help
       If non-zero, the agent will not start a new download within this
       many seconds of the previous attempt.
+
+config EL2GO_OTA_ADV_TIME_SYNC_MAX_CYCLES
+    int "Maximum time-sync retry cycles before proceeding"
+    default 10
+    help
+      Number of times the advanced OTA agent re-runs el2go_app_time_sync()
+      while waiting for a valid time, before proceeding without one.
+
+ config EL2GO_OTA_ADV_TIME_SYNC_RETRY_DELAY_MS
+    int "Delay in milliseconds between time-sync retry cycles"
+    default 5000
+    help
+      Time in milliseconds the advanced OTA agent sleeps between successive
+      calls to el2go_app_time_sync() while waiting for a valid time.
 
 endmenu

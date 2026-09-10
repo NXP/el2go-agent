@@ -469,12 +469,24 @@ int main(int argc, char *argv[])
             OTA_DIAG_DONE("fwual_confirm()");
         }
 
-        status = el2go_ota_report_pending_status(ctx);
+        for (int report_attempt = 0; report_attempt < CONFIG_EL2GO_OTA_CORE_REPORT_MAX_RETRIES;
+             report_attempt++) {
+            if (report_attempt > 0) {
+                el2go_app_sys_sleep_ms(EL2GO_OTA_POLL_INTERVAL_MS);
+            }
+
+            status = el2go_ota_report_pending_status(ctx);
+            if (status == EL2GO_OTA_SUCCESS) {
+                OTA_DIAG_DONE("el2go_ota_report_pending_status()");
+                break;
+            }
+
+            OTA_DIAG_ERROR("status report attempt %d failed: %s", report_attempt + 1,
+                           el2go_ota_get_error_string(status));
+        }
+
         if (status != EL2GO_OTA_SUCCESS) {
             OTA_DIAG_FAIL("el2go_ota_report_pending_status()");
-            OTA_DIAG_ERROR("err: %s", el2go_ota_get_error_string(status));
-        } else {
-            OTA_DIAG_DONE("el2go_ota_report_pending_status()");
         }
     }
 

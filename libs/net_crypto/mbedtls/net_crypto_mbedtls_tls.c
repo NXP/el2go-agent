@@ -137,28 +137,6 @@ static el2go_status_t configure_max_fragment_len(mbedtls_ssl_config *conf)
 }
 
 /**
- * @brief Handle SSL handshake verification failure
- *
- * @param[in] ctx Network crypto context
- * @param[in] ret mbedTLS error code
- *
- * @return Appropriate el2go_status_t error code.
- */
-static el2go_status_t handle_handshake_failure(net_crypto_ctx_t *ctx, int ret)
-{
-    el2go_status_t status = EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED;
-    uint32_t __maybe_unused verify_result = 0;
-
-    if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
-        verify_result = mbedtls_ssl_get_verify_result(&ctx->ssl);
-        EL2GO_DBG_PRINTF(ERROR, "Certificate verification failed: 0x%08x\n", verify_result);
-        status = EL2GO_STATUS_NET_CRYPTO_CERT_VERIFY_FAILED;
-    }
-
-    return status;
-}
-
-/**
  * @brief Warn about certificate/CRL validity period issues
  *
  * Logs a warning if the certificate or CRL are outside their validity period,
@@ -176,6 +154,29 @@ static void warn_crt_crl_period(uint32_t verify_result)
         EL2GO_DBG_PRINTF(INFO, "The device time may be wrong.\n");
         EL2GO_DBG_PRINTF(INFO, "Please make sure that the time is correctly set.\n");
     }
+}
+
+/**
+ * @brief Handle SSL handshake verification failure
+ *
+ * @param[in] ctx Network crypto context
+ * @param[in] ret mbedTLS error code
+ *
+ * @return Appropriate el2go_status_t error code.
+ */
+static el2go_status_t handle_handshake_failure(net_crypto_ctx_t *ctx, int ret)
+{
+    el2go_status_t status = EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED;
+    uint32_t verify_result = 0;
+
+    if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
+        verify_result = mbedtls_ssl_get_verify_result(&ctx->ssl);
+        EL2GO_DBG_PRINTF(ERROR, "Certificate verification failed: 0x%08x\n", verify_result);
+        warn_crt_crl_period(verify_result);
+        status = EL2GO_STATUS_NET_CRYPTO_CERT_VERIFY_FAILED;
+    }
+
+    return status;
 }
 
 /**

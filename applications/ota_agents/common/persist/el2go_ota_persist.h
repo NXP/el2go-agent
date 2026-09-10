@@ -38,6 +38,9 @@ typedef enum {
     AGENT_STATE_FINALIZE, /**< Finalizing and reporting the outcome. */
 } agent_state_t;
 
+/** @brief Maximum length of a firmware version string, including the null terminator. */
+#define EL2GO_OTA_MAX_VERSION_LEN 32U
+
 /**
  * @brief Persisted record kept across reboots.
  *
@@ -45,11 +48,18 @@ typedef enum {
  * report SUCCESS, FAILURE or ROLLBACK to the server. Download resume is
  * handled in-session only (see updater.c) and does not rely on any persisted
  * offset.
+ *
+ * expected_version holds the server-reported version string of the package
+ * that was staged for installation. On the next boot, updater_finalize_boot()
+ * compares OTA_FW_VERSION against this value to detect whether MCUBoot
+ * actually performed the swap or rejected it (bad signature, downgrade
+ * prevention, etc.).
  */
 typedef struct {
     uint32_t state;                                /**< agent_state_t value. */
     char update_id[EL2GO_OTA_MAX_UPDATE_ID_LEN];   /**< Null-terminated update identifier. */
     char package_id[EL2GO_OTA_MAX_PACKAGE_ID_LEN]; /**< Null-terminated package identifier. */
+    char expected_version[EL2GO_OTA_MAX_VERSION_LEN]; /**< Package version staged for install. */
     uint8_t valid; /**< EL2GO_OTA_PERSIST_VALID_MAGIC when the record is live. */
 } agent_persist_t;
 
