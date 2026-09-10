@@ -41,7 +41,7 @@ static bool test_el2go_rtp_provision_null_context(void *params)
 
     (void)params;
 
-    status = el2go_rtp_provision(NULL, EL2GO_STATUS_SILENT);
+    status = el2go_rtp_provision(NULL, NULL);
     TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_INVALID_PARAMETER, status);
 
     return test_status;
@@ -75,7 +75,7 @@ static bool test_el2go_rtp_provision_no_keystore(void *params)
     TEST_ASSERT_NOT_NULL_GOTO(ctx, exit);
 
     /* No keystore registered - should fail */
-    status = el2go_rtp_provision(ctx, EL2GO_STATUS_SILENT);
+    status = el2go_rtp_provision(ctx, NULL);
     TEST_ASSERT_NOT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
     TEST_PRINT_INFO("Provision without keystore failed as expected: 0x%04x", status);
 
@@ -124,7 +124,7 @@ static bool test_el2go_rtp_provision_no_datastore(void *params)
     /* No EL2GO datastore added - should fall back to compile-time constants */
     TEST_PRINT_INFO("No EL2GO datastore set - will use compile-time constants");
 
-    status = el2go_rtp_provision(ctx, EL2GO_STATUS_SILENT);
+    status = el2go_rtp_provision(ctx, NULL);
     TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_NET_CRYPTO_CONNECT_FAILED, status);
     TEST_PRINT_INFO("Provision without datastore returned: 0x%04x", status);
 
@@ -199,7 +199,7 @@ static bool test_el2go_rtp_provision_invalid_datastore(void *params)
 
     TEST_PRINT_INFO("Datastore contains invalid data - will fall back to compile-time constants");
 
-    status = el2go_rtp_provision(ctx, EL2GO_STATUS_SILENT);
+    status = el2go_rtp_provision(ctx, NULL);
     TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_NET_CRYPTO_CONNECT_FAILED, status);
     TEST_PRINT_INFO("Provision with invalid datastore returned: 0x%04x", status);
 
@@ -274,7 +274,7 @@ static bool test_el2go_rtp_provision_valid_datastore_default_config(void *params
     status = el2go_rtp_add_datastore(ctx, &datastore);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup_ctx);
 
-    status = el2go_rtp_provision(ctx, EL2GO_STATUS_SILENT);
+    status = el2go_rtp_provision(ctx, NULL);
     TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_NET_CRYPTO_CONNECT_FAILED, status);
     TEST_PRINT_INFO("Provision with valid datastore (default config) returned: 0x%04x", status);
 
@@ -358,7 +358,7 @@ static bool test_el2go_rtp_provision_valid_datastore_custom_config(void *params)
     status = el2go_rtp_add_datastore(ctx, &datastore);
     TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup_ctx);
 
-    status = el2go_rtp_provision(ctx, EL2GO_STATUS_SILENT);
+    status = el2go_rtp_provision(ctx, NULL);
     TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_SUCCESS, status);
     TEST_PRINT_INFO("Provision with valid datastore (custom config) returned: 0x%04x", status);
 

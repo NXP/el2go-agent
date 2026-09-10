@@ -66,16 +66,6 @@ typedef enum el2go_status_t {
     EL2GO_STATUS_RTP_PROVISIONING_FAILED /**< Server reported provisioning failure in GoodbyeRequest */
 } el2go_status_t;
 
-/**
- * @enum el2go_verbosity_t
- * @brief Status report verbosity levels
- */
-typedef enum {
-    EL2GO_STATUS_SILENT,   /**< Do not print status report */
-    EL2GO_STATUS_ON_ERROR, /**< Print status report only on error */
-    EL2GO_STATUS_ALWAYS    /**< Always print status report */
-} el2go_verbosity_t;
-
 /** @} */ /* end of el2go_status */
 
 #endif /* __EL2GO_STATUS_H__ */
