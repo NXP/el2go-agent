@@ -20,10 +20,11 @@
 #endif
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include <mbedtls/version.h>
-#include <mbedtls/sha256.h>
 #if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
 #include <nxp_iot_agent_macros_psa.h>
 #include <psa/crypto.h>
+#else
+#include <mbedtls/sha256.h>
 #endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x04000000)
 #endif
 

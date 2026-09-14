@@ -95,7 +95,7 @@ endif()
 if(CONFIG_EL2GO_TFM_LEGACY_CRYPTO_ENABLE)
     set_property(TARGET zephyr_property_target
         APPEND PROPERTY TFM_CMAKE_OPTIONS
-        -DTFM_MBEDCRYPTO_PLATFORM_EXTRA_CONFIG_PATH=${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/common/mbedcrypto_extra_config.h
+        -DTFM_TF_PSA_CRYPTO_PLATFORM_EXTRA_CONFIG_PATH=${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/common/mbedcrypto_extra_config.h
     )
 endif()
 

@@ -34,12 +34,12 @@
 #if defined(NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS) && (NXP_IOT_AGENT_HAVE_HOSTCRYPTO_MBEDTLS == 1)
 #include "network_mbedtls.h"
 #include <mbedtls/version.h>
-#include <mbedtls/sha256.h>
 #include <mbedtls/oid.h>
 #include <mbedtls/x509_crt.h>
 #if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
+#include <mbedtls/sha256.h>
 #endif //#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER < 0x04000000)
 #include "psa_crypto_its.h"
 #endif
