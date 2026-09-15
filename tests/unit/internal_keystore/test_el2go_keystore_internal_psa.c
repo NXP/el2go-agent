@@ -276,6 +276,7 @@ static bool test_destroy_key_missing_identifier(void *params)
 
     /* Create destroy_key request without identifier */
     request.which_command = nxp_iot_PsaRequest_destroy_key_tag;
+    request.command.destroy_key = (nxp_iot_DestroyKeyRequest)nxp_iot_DestroyKeyRequest_init_default;
     request.command.destroy_key.has_identifier = false;
 
     /* Encode the request */
@@ -321,6 +322,7 @@ static bool test_import_key_missing_fields(void *params)
 
     /* Create import_key request with missing fields */
     request.which_command = nxp_iot_PsaRequest_import_key_tag;
+    request.command.import_key = (nxp_iot_ImportKeyRequest)nxp_iot_ImportKeyRequest_init_default;
     request.command.import_key.has_identifier = true;
     request.command.import_key.identifier = 1;
     /* Missing: type, usage, algorithm, key_data_format, lifetime, data */
@@ -369,6 +371,7 @@ static bool test_import_key_zero_size(void *params)
 
     /* Create import_key request with zero-size data */
     request.which_command = nxp_iot_PsaRequest_import_key_tag;
+    request.command.import_key = (nxp_iot_ImportKeyRequest)nxp_iot_ImportKeyRequest_init_default;
     request.command.import_key.has_identifier = true;
     request.command.import_key.identifier = 1;
     request.command.import_key.has_type = true;
@@ -427,6 +430,7 @@ static bool test_import_key_unsupported_key_format(void *params)
 
     /* Create import_key request with unsupported format */
     request.which_command = nxp_iot_PsaRequest_import_key_tag;
+    request.command.import_key = (nxp_iot_ImportKeyRequest)nxp_iot_ImportKeyRequest_init_default;
     request.command.import_key.has_identifier = true;
     request.command.import_key.identifier = 1;
     request.command.import_key.has_type = true;
@@ -484,6 +488,7 @@ static bool test_read_object_missing_identifier(void *params)
 
     /* Create read_object request without identifier */
     request.which_command = nxp_iot_PsaRequest_read_object_tag;
+    request.command.read_object = (nxp_iot_ReadObjectRequest)nxp_iot_ReadObjectRequest_init_default;
     request.command.read_object.has_identifier = false;
 
     /* Encode the request */
@@ -529,6 +534,8 @@ static bool test_remove_object_missing_identifier(void *params)
 
     /* Create remove_object request without identifier */
     request.which_command = nxp_iot_PsaRequest_remove_object_tag;
+    request.command.remove_object =
+        (nxp_iot_RemoveObjectRequest)nxp_iot_RemoveObjectRequest_init_default;
     request.command.remove_object.has_identifier = false;
 
     /* Encode the request */
@@ -574,6 +581,7 @@ static bool test_get_version_success(void *params)
 
     /* Create get_version request */
     request.which_command = nxp_iot_PsaRequest_get_version_tag;
+    request.command.get_version = (nxp_iot_GetVersionRequest)nxp_iot_GetVersionRequest_init_default;
 
     /* Encode the request */
     encoded = pb_encode_delimited(&encode_stream, nxp_iot_PsaRequest_fields, &request);
