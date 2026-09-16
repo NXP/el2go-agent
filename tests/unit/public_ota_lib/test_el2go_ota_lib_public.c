@@ -5,6 +5,7 @@
  *
  */
 
+#include "common/el2go_version.h"
 #include "ota/el2go_ota_lib.h"
 #include "test_framework.h"
 #include "test_suites.h"
@@ -391,6 +392,64 @@ static bool test_client_auth_default_is_required(void *params)
     return true;
 }
 
+/* Version Tests */
+
+/**
+ * @brief Test el2go_ota_get_version() with NULL parameters.
+ *
+ * Verifies that passing @c NULL for any output pointer returns
+ * @c EL2GO_OTA_ERROR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_el2go_ota_get_version_null_params(void *params)
+{
+    unsigned int major = 0, minor = 0, patch = 0;
+    el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
+
+    (void)params;
+
+    status = el2go_ota_get_version(NULL, &minor, &patch);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, status);
+
+    status = el2go_ota_get_version(&major, NULL, &patch);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, status);
+
+    status = el2go_ota_get_version(&major, &minor, NULL);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, status);
+
+    status = el2go_ota_get_version(NULL, NULL, NULL);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, status);
+
+    return true;
+}
+
+/**
+ * @brief Test el2go_ota_get_version() returns the expected version.
+ *
+ * Verifies that the returned major, minor, and patch numbers match the
+ * compile-time constants defined in el2go_version.h.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_el2go_ota_get_version_success(void *params)
+{
+    unsigned int major = 0, minor = 0, patch = 0;
+    el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
+
+    (void)params;
+
+    status = el2go_ota_get_version(&major, &minor, &patch);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, status);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_MAJOR, major);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_MINOR, minor);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_PATCH, patch);
+
+    return true;
+}
+
 /* Test Registration */
 
 /**
@@ -413,4 +472,6 @@ void register_ota_lib_tests(void)
     TEST_REGISTER_ID("OTA_UT_OL_1.13", test_el2go_ota_get_error_string_after_failed_init);
     TEST_REGISTER_ID("", test_client_auth_required_is_zero);
     TEST_REGISTER_ID("", test_client_auth_default_is_required);
+    TEST_REGISTER_ID("OTA_UT_OL_1.14", test_el2go_ota_get_version_null_params);
+    TEST_REGISTER_ID("OTA_UT_OL_1.15", test_el2go_ota_get_version_success);
 }

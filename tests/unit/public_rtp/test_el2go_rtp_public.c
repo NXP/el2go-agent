@@ -7,6 +7,7 @@
 
 #include "rtp/el2go_rtp.h"
 #include "rtp/el2go_rtp_config.h"
+#include "common/el2go_version.h"
 
 #include "test_framework.h"
 #include "test_suites.h"
@@ -761,6 +762,66 @@ exit:
 }
 
 /**
+ * @brief Test el2go_rtp_get_version() with NULL parameters.
+ *
+ * Verifies that passing @c NULL for any output pointer returns
+ * @c EL2GO_STATUS_INVALID_POINTER.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_el2go_rtp_get_version_null_params(void *params)
+{
+    unsigned int major = 0;
+    unsigned int minor = 0;
+    unsigned int patch = 0;
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+
+    (void)params;
+
+    status = el2go_rtp_get_version(NULL, &minor, &patch);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+
+    status = el2go_rtp_get_version(&major, NULL, &patch);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+
+    status = el2go_rtp_get_version(&major, &minor, NULL);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+
+    status = el2go_rtp_get_version(NULL, NULL, NULL);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+
+    return true;
+}
+
+/**
+ * @brief Test el2go_rtp_get_version() returns the expected version.
+ *
+ * Verifies that the returned major, minor, and patch numbers match the
+ * compile-time constants defined in el2go_version.h.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_el2go_rtp_get_version_success(void *params)
+{
+    unsigned int major = 0;
+    unsigned int minor = 0;
+    unsigned int patch = 0;
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+
+    (void)params;
+
+    status = el2go_rtp_get_version(&major, &minor, &patch);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, status);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_MAJOR, major);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_MINOR, minor);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_PATCH, patch);
+
+    return true;
+}
+
+/**
   * @brief Test el2go_rtp_datastore_el2go() with NULL parameters.
   *
   * Verifies that el2go_rtp_datastore_el2go() returns
@@ -826,6 +887,8 @@ void register_el2go_rtp_tests(bool include_fs_tests)
     TEST_REGISTER(test_el2go_get_keystore_by_id_success);
     TEST_REGISTER(test_el2go_get_keystore_by_id_not_found);
     TEST_REGISTER(test_el2go_rtp_keystore_datastore_id_conflict);
+    TEST_REGISTER(test_el2go_rtp_get_version_null_params);
+    TEST_REGISTER(test_el2go_rtp_get_version_success);
 
     /* el2go_rtp_provision tests */
     register_el2go_rtp_provision_tests(include_fs_tests);

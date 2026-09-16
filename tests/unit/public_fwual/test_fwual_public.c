@@ -6,6 +6,7 @@
 
 #include <string.h>
 
+#include "common/el2go_version.h"
 #include "fwual/fwual.h"
 #include "test_framework.h"
 #include "test_suites.h"
@@ -1263,6 +1264,64 @@ exit:
     return test_status;
 }
 
+/* Version Tests */
+
+/**
+ * @brief Test fwual_get_version() with NULL parameters.
+ *
+ * Verifies that passing @c NULL for any output pointer returns
+ * @c FWUAL_ERR_INVALID_PARAM.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_fwual_get_version_null_params(void *params)
+{
+    unsigned int major = 0, minor = 0, patch = 0;
+    fwual_result_t result = FWUAL_OK;
+
+    (void)params;
+
+    result = fwual_get_version(NULL, &minor, &patch);
+    TEST_ASSERT_EQUAL(FWUAL_ERR_INVALID_PARAM, result);
+
+    result = fwual_get_version(&major, NULL, &patch);
+    TEST_ASSERT_EQUAL(FWUAL_ERR_INVALID_PARAM, result);
+
+    result = fwual_get_version(&major, &minor, NULL);
+    TEST_ASSERT_EQUAL(FWUAL_ERR_INVALID_PARAM, result);
+
+    result = fwual_get_version(NULL, NULL, NULL);
+    TEST_ASSERT_EQUAL(FWUAL_ERR_INVALID_PARAM, result);
+
+    return true;
+}
+
+/**
+ * @brief Test fwual_get_version() returns the expected version.
+ *
+ * Verifies that the returned major, minor, and patch numbers match the
+ * compile-time constants defined in el2go_version.h.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_fwual_get_version_success(void *params)
+{
+    unsigned int major = 0, minor = 0, patch = 0;
+    fwual_result_t result = FWUAL_OK;
+
+    (void)params;
+
+    result = fwual_get_version(&major, &minor, &patch);
+    TEST_ASSERT_EQUAL(FWUAL_OK, result);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_MAJOR, major);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_MINOR, minor);
+    TEST_ASSERT_EQUAL(EL2GO_LIB_VERSION_PATCH, patch);
+
+    return true;
+}
+
 /* Test suite registration */
 
 void register_fwual_tests(void)
@@ -1313,4 +1372,8 @@ void register_fwual_tests(void)
     /* Commit and post-commit state tests (OTA_UT_FW_5.x) */
     TEST_REGISTER_ID("OTA_UT_FW_5.1", test_fwual_commit_session_valid);
     TEST_REGISTER_ID("OTA_UT_FW_5.2", test_fwual_get_state_committed_after_commit);
+
+    /* Version tests (OTA_UT_FW_1.13 - OTA_UT_FW_1.14) */
+    TEST_REGISTER_ID("OTA_UT_FW_1.13", test_fwual_get_version_null_params);
+    TEST_REGISTER_ID("OTA_UT_FW_1.14", test_fwual_get_version_success);
 }
