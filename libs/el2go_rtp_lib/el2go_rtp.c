@@ -13,6 +13,7 @@
 #include "rtp/el2go_rtp.h"
 #include "rtp/el2go_rtp_config.h"
 #include "common/el2go_status.h"
+#include "common/el2go_version.h"
 
 #include "compiler.h"
 #include "osal.h"
@@ -338,17 +339,19 @@ exit:
     return status;
 }
 
-__export el2go_status_t el2go_rtp_get_version(unsigned int *major, unsigned int *minor)
+__export el2go_status_t el2go_rtp_get_version(unsigned int *major, unsigned int *minor,
+                                              unsigned int *patch)
 {
     el2go_status_t status = EL2GO_STATUS_INVALID_PARAMETER;
 
     EL2GO_DBG_TRACE_API_CALL;
 
-    if (!major || !minor)
+    if (major == NULL || minor == NULL || patch == NULL)
         goto exit;
 
-    *major = 0;
-    *minor = 0;
+    *major = EL2GO_LIB_VERSION_MAJOR;
+    *minor = EL2GO_LIB_VERSION_MINOR;
+    *patch = EL2GO_LIB_VERSION_PATCH;
 
     status = EL2GO_STATUS_SUCCESS;
 

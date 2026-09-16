@@ -5,7 +5,9 @@
  */
 
 #include "fwual/fwual.h"
+#include "common/el2go_version.h"
 #include "compiler.h"
+#include "debug.h"
 
 __weak __export fwual_result_t fwual_init(void)
 {
@@ -120,4 +122,25 @@ __weak __export bool fwual_is_image_staged(fwual_session_t *session, fwual_image
     (void)session;
     (void)image_id;
     return false;
+}
+
+__export fwual_result_t fwual_get_version(unsigned int *major, unsigned int *minor,
+                                          unsigned int *patch)
+{
+    fwual_result_t status = FWUAL_ERR_INVALID_PARAM;
+
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (major == NULL || minor == NULL || patch == NULL)
+        goto exit;
+
+    *major = EL2GO_LIB_VERSION_MAJOR;
+    *minor = EL2GO_LIB_VERSION_MINOR;
+    *patch = EL2GO_LIB_VERSION_PATCH;
+
+    status = FWUAL_OK;
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
 }

@@ -17,6 +17,18 @@
  */
 
 /**
+ * @brief Return the version of the FWUAL library.
+ *
+ * @param[out] major  Pointer to store major version number. Must not be NULL.
+ * @param[out] minor  Pointer to store minor version number. Must not be NULL.
+ * @param[out] patch  Pointer to store patch version number. Must not be NULL.
+ *
+ * @retval FWUAL_OK                  Version filled successfully.
+ * @retval FWUAL_ERR_INVALID_PARAM   At least one output pointer is NULL.
+ */
+fwual_result_t fwual_get_version(unsigned int *major, unsigned int *minor, unsigned int *patch);
+
+/**
  * @brief Initializes the FWUAL backend
  *
  * Idempotent - safe to call multiple times without side effects. Prepares

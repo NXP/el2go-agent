@@ -47,14 +47,16 @@ typedef struct el2go_rtp_datastore_config {
 } el2go_rtp_datastore_config_t;
 
 /**
- * @brief Get RTP Agent version information.
+ * @brief Return the version of the EL2GO RTP library.
  *
- * @param[out] major Pointer to store major version number
- * @param[out] minor Pointer to store minor version number
+ * @param[out] major  Pointer to store major version number. Must not be NULL.
+ * @param[out] minor  Pointer to store minor version number. Must not be NULL.
+ * @param[out] patch  Pointer to store patch version number. Must not be NULL.
  *
- * @return EL2GO_STATUS_SUCCESS on success, EL2GO_STATUS_FAILURE otherwise
+ * @retval EL2GO_STATUS_SUCCESS            Version filled successfully.
+ * @retval EL2GO_STATUS_INVALID_PARAMETER  At least one output pointer is NULL.
  */
-el2go_status_t el2go_rtp_get_version(unsigned int *major, unsigned int *minor);
+el2go_status_t el2go_rtp_get_version(unsigned int *major, unsigned int *minor, unsigned int *patch);
 
 /**
  * @brief Initialize and allocate RTP Agent context.

@@ -397,6 +397,19 @@ el2go_ota_status_t el2go_ota_get_pending_status(el2go_ota_pending_status_t *out)
  */
 el2go_ota_status_t el2go_ota_report_pending_status(el2go_ota_ctx_t *ctx);
 
+/**
+ * @brief Return the version of the EL2GO OTA library.
+ *
+ * @param[out] major  Pointer to store major version number. Must not be NULL.
+ * @param[out] minor  Pointer to store minor version number. Must not be NULL.
+ * @param[out] patch  Pointer to store patch version number. Must not be NULL.
+ *
+ * @retval EL2GO_OTA_SUCCESS               Version filled successfully.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM   At least one output pointer is NULL.
+ */
+el2go_ota_status_t el2go_ota_get_version(unsigned int *major, unsigned int *minor,
+                                         unsigned int *patch);
+
 /** @} */ /* end of el2go_ota_lib */
 
 #endif /* __EL2GO_OTA_LIB_H__ */

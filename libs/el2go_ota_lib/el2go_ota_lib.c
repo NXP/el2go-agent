@@ -11,6 +11,7 @@
 #include "compiler.h"
 
 #include "ota/el2go_ota_lib.h"
+#include "common/el2go_version.h"
 #include "common/el2go_platform.h"
 #include "el2go_ota_tls.h"
 #include "el2go_ota_transport.h"
@@ -404,4 +405,25 @@ __export el2go_ota_status_t el2go_ota_report_pending_status(el2go_ota_ctx_t *ctx
     }
 
     return el2go_ota_status_reporting_retry_pending(&ctx->transport);
+}
+
+__export el2go_ota_status_t el2go_ota_get_version(unsigned int *major, unsigned int *minor,
+                                                  unsigned int *patch)
+{
+    el2go_ota_status_t status = EL2GO_OTA_ERROR_INVALID_PARAM;
+
+    EL2GO_DBG_TRACE_API_CALL;
+
+    if (major == NULL || minor == NULL || patch == NULL)
+        goto exit;
+
+    *major = EL2GO_LIB_VERSION_MAJOR;
+    *minor = EL2GO_LIB_VERSION_MINOR;
+    *patch = EL2GO_LIB_VERSION_PATCH;
+
+    status = EL2GO_OTA_SUCCESS;
+
+exit:
+    EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
+    return status;
 }

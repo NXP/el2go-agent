@@ -68,6 +68,7 @@ static int agent_start(int argc, const char *argv[])
     int rc = 0;
     unsigned int major = 0U;
     unsigned int minor = 0U;
+    unsigned int patch = 0U;
 
     el2go_time_ctx_t demo_time = { 0 };
     el2go_time_ctx_t phase_time = { 0 };
@@ -110,9 +111,9 @@ static int agent_start(int argc, const char *argv[])
     }
     EL2GO_RTP_LOG_INFO("RTP agent initialized");
 
-    status = el2go_rtp_get_version(&major, &minor);
+    status = el2go_rtp_get_version(&major, &minor, &patch);
     if (status == EL2GO_STATUS_SUCCESS)
-        EL2GO_RTP_LOG_INFO("EL2GO RTP Agent Version: %u.%u", major, minor);
+        EL2GO_RTP_LOG_INFO("EL2GO RTP Agent Version: %u.%u.%u", major, minor, patch);
 
     /* ---------------------------------------------------------------------- */
     /* Keystore initialization                                                 */
