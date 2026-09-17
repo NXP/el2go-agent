@@ -14,6 +14,16 @@ config EL2GO_NET_CRYPTO_SOURCES
       operations) in the build. Automatically selected by EL2GO_OTA_LIBRARY_SOURCES.
       Also required by the el2go_csr Zephyr sample.
 
+config EL2GO_NET_CRYPTO_SSL_READ_TIMEOUT_MS
+    int "SSL read timeout in milliseconds"
+    depends on EL2GO_NET_CRYPTO_SOURCES
+    default 60000
+    help
+      Timeout passed to mbedtls_ssl_conf_read_timeout(). select() blocks for
+      at most this duration waiting for a complete SSL record from the server.
+      A clean link drop (RST/FIN) is detected immediately regardless of this
+      value. Increase for unusually slow or heavily loaded servers.
+
 config EL2GO_OTA_LIBRARY_SOURCES
     bool "Include EL2GO OTA Library sources"
     select EL2GO_NET_CRYPTO_SOURCES
@@ -60,7 +70,7 @@ config EL2GO_OTA_DISABLE_MTLS
     depends on EL2GO_OTA_LIBRARY_SOURCES
     default n
     help
-      When enabled, the OTA agent connects with server-authenticated TLS only. 
+      When enabled, the OTA agent connects with server-authenticated TLS only.
       Server certificate verification remains mandatory.
 
 # ---------------------------------------------------------------------------

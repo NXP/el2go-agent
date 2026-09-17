@@ -118,6 +118,9 @@ endif()
 # support. Must come before el2go_ota_lib (it is a dependency).
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_NET_CRYPTO_SOURCES)
+    # Forward the Kconfig SSL read timeout to the net_crypto cmake layer so
+    # mbedtls/CMakeLists.txt picks it up via -DNET_CRYPTO_SSL_READ_TIMEOUT_MS.
+    set(NET_CRYPTO_SSL_READ_TIMEOUT_MS ${CONFIG_EL2GO_NET_CRYPTO_SSL_READ_TIMEOUT_MS})
     add_subdirectory(
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/net_crypto
         ${CMAKE_CURRENT_BINARY_DIR}/net_crypto

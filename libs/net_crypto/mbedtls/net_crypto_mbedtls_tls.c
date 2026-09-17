@@ -46,6 +46,14 @@
 /** Maximum length for port number string representation */
 #define NET_CRYPTO_PORT_STR_LEN 16
 
+/** Read timeout in milliseconds for a single SSL read call.
+ * select() blocks for at most this duration waiting for data from the server.
+ * A clean link drop (RST/FIN) is detected immediately regardless of this value.
+ * Override at cmake configure time with -DNET_CRYPTO_SSL_READ_TIMEOUT_MS=<ms>. */
+#ifndef NET_CRYPTO_SSL_READ_TIMEOUT_MS
+#define NET_CRYPTO_SSL_READ_TIMEOUT_MS 60000U
+#endif
+
 /**
  * @brief Debug callback for mbedTLS library
  *
@@ -629,7 +637,12 @@ el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
     }
 
     /* Set blocking mode */
-    mbedtls_net_set_block(&ctx->net_ctx);
+    ret = mbedtls_net_set_block(&ctx->net_ctx);
+    if (ret != 0) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to set blocking mode: -0x%04x\n", -ret);
+        status = EL2GO_STATUS_NET_CRYPTO_CONNECT_FAILED;
+        goto cleanup_net;
+    }
 
     /* Configure certificate verification */
     if (ctx->ca_cert_set) {
@@ -672,6 +685,10 @@ el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
     /* Filter cipher suites to match the configured key size */
     filter_ciphers_by_key_bitlen(ctx);
 
+    /* Limit how long a single SSL record read may block waiting for data.
+     * See NET_CRYPTO_SSL_READ_TIMEOUT_MS for the chosen value. */
+    mbedtls_ssl_conf_read_timeout(&ctx->conf, NET_CRYPTO_SSL_READ_TIMEOUT_MS);
+
     /* Setup SSL context */
     ret = mbedtls_ssl_setup(&ctx->ssl, &ctx->conf);
     if (ret != 0) {
@@ -679,11 +696,6 @@ el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
         status = EL2GO_STATUS_NET_CRYPTO_SSL_SETUP_FAILED;
         goto cleanup_net;
     }
-
-    /* Set a read timeout so callers do not block forever waiting for data
-     * after processing a packet (e.g. CONNACK).
-     * mbedtls_net_recv_timeout uses select() internally with this timeout. */
-    mbedtls_ssl_conf_read_timeout(&ctx->conf, 5000U);
 
     /* Set hostname for SNI */
     EL2GO_DBG_PRINTF(VERBOSE, "Setting SNI hostname: %s\n", ctx->hostname);
@@ -901,7 +913,7 @@ int net_crypto_read(net_crypto_ctx_t *ctx, uint8_t *buffer, size_t len)
     ret = mbedtls_ssl_read(&ctx->ssl, buffer, len);
     if (ret < 0) {
         if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
-            return 0; /* no data yet, not fatal */
+            return 0; /* no data available yet, not fatal */
         }
         EL2GO_DBG_PRINTF(ERROR, "SSL read failed: -0x%04x\n", -ret);
         return ret;

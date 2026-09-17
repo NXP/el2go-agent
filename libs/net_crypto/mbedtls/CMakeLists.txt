@@ -197,3 +197,12 @@ if(MBEDTLS_VERSION_MAJOR EQUAL 3)
     add_private_definitions(net_crypto MBEDTLS_USE_PSA_CRYPTO)
     message(STATUS "Enabled MBEDTLS_USE_PSA_CRYPTO for mbedTLS 3.x")
 endif()
+
+# Configurable SSL read timeout passed to mbedtls_ssl_conf_read_timeout().
+# Override at cmake time with -DNET_CRYPTO_SSL_READ_TIMEOUT_MS=<value>.
+if(NOT NET_CRYPTO_SSL_READ_TIMEOUT_MS)
+    set(NET_CRYPTO_SSL_READ_TIMEOUT_MS 60000)
+endif()
+message(STATUS "NET_CRYPTO_SSL_READ_TIMEOUT_MS: ${NET_CRYPTO_SSL_READ_TIMEOUT_MS}")
+add_private_definitions(net_crypto
+    NET_CRYPTO_SSL_READ_TIMEOUT_MS=${NET_CRYPTO_SSL_READ_TIMEOUT_MS}U)
