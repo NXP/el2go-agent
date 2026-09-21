@@ -1,3 +1,4 @@
+#!/bin/bash
 # SPDX-License-Identifier: Apache-2.0 */
 #
 # Copyright 2026 NXP
@@ -52,7 +53,7 @@ function usage()
       |── secure_enclave  (smw dependency)
       └── simw-devicelink/  ((run script from here))
 
-    $(basename "$0") <dir> <smw_subsystem> toolpath=[dir]
+    $(basename "$0") <dir> <smw_subsystem> toolpath=[dir] [testing] [ota]
       <dir>           : Output build directory
       <smw_subsystem> : SMW subsystem(s) - comma-separated list (no spaces)
                         Valid combinations:
@@ -62,6 +63,8 @@ function usage()
                           tee,seco      : SECO + TEE
                           tee,ele       : ELE + TEE
       <toolpath>      : [Optional] Toolchain installation path
+      testing         : [Optional] Enable unit test build (BUILD_TESTING=ON)
+      ota             : [Optional] Enable OTA build (BUILD_OTA=ON)
 
 EOF
     exit 1
@@ -82,6 +85,8 @@ readonly smw_export_dir="${out}/export-smw"
 readonly export_dir="${out}/export"
 
 opt_toolpath="toolpath=/toolchains"
+opt_testing=
+opt_ota=
 for arg in "$@"
 do
     case ${arg} in
@@ -89,6 +94,12 @@ do
             opt_toolpath="${arg#*=}"
             check_directory opt_toolpath
             opt_toolpath="toolpath=${opt_toolpath}"
+            ;;
+        testing)
+            opt_testing="testing"
+            ;;
+        ota)
+            opt_ota="ota"
             ;;
         *)
             pr_err "Unknown argument \"${arg}\""
@@ -142,6 +153,14 @@ conf_opts_array=(
     "smw=${smw_config}"
     "mbedtls=${mbedtls_config}"
 )
+
+if [[ -n "${opt_testing}" ]]; then
+    conf_opts_array+=("${opt_testing}")
+fi
+
+if [[ -n "${opt_ota}" ]]; then
+    conf_opts_array+=("${opt_ota}")
+fi
 
 # Configure build targets
 build_component "configure" \

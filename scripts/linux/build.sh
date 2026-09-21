@@ -159,18 +159,21 @@ function usage_build()
     printf "To build the EL2GO Agent\n"
     printf " - Note: Project must have been configure first\n"
     printf " (ref. %s configure)\n" "${script_name}"
-    printf "  %s build out=[dir]" "${script_name}"
+    printf "  %s build out=[dir] [testing]" "${script_name}"
     printf "\n"
-    printf "    out    = Build directory\n"
+    printf "    out      = Build directory\n"
+    printf "    testing  = [optional] Also build unit tests (requires BUILD_TESTING=ON)\n"
+    printf "\n"
 }
 
 function usage_install()
 {
     printf "\n"
     printf "To install the EL2GO Agent binaries\n"
-    printf "  %s install out=[dir] dest=[dir]\n" "${script_name}"
+    printf "  %s install out=[dir] dest=[dir] [testing]\n" "${script_name}"
     printf "    out      = Build directory\n"
     printf "    dest     = [optional] Installation directory\n"
+    printf "    testing  = [optional] Also install unit tests (requires BUILD_TESTING=ON)\n"
     printf "\n"
 }
 
@@ -323,6 +326,14 @@ function build()
     cmd_make="make -C ${opt_out}"
     printf "Execute %s\n" "${cmd_make}"
     eval "${cmd_make}"
+
+    # Build test executables when testing is requested. Test targets are
+    # EXCLUDE_FROM_ALL so they are not part of the default make target.
+    if [[ -n ${opt_testing} ]]; then
+        cmd_make_tests="make -C ${opt_out} build_tests"
+        printf "Execute %s\n" "${cmd_make_tests}"
+        eval "${cmd_make_tests}"
+    fi
 }
 
 function install()
@@ -340,8 +351,19 @@ function install()
     if [[ -n ${opt_dest} ]]; then
         cmd_script="DESTDIR=${opt_dest}"
     fi
-    printf "Execute ${cmd_make} install ${cmd_script}\n"
+    printf "Execute %s install %s\n" "${cmd_make}" "${cmd_script}"
     eval "${cmd_make} install ${cmd_script}"
+
+    # Install test executables and CTestTestfile.cmake when testing is requested.
+    # The install_tests target is EXCLUDE_FROM_ALL so it must be called explicitly.
+    if [[ -n ${opt_testing} ]]; then
+        cmd_make_tests="make -C ${opt_out} install_tests"
+        if [[ -n ${opt_dest} ]]; then
+            cmd_make_tests="${cmd_make_tests} DESTDIR=${opt_dest}"
+        fi
+        printf "Execute %s\n" "${cmd_make_tests}"
+        eval "${cmd_make_tests}"
+    fi
 }
 
 function package()

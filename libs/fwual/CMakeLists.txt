@@ -28,6 +28,7 @@ if(NOT BUILD_ZEPHYR)
 
     target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_SOURCE_DIR}/priv
+        ${CMAKE_SOURCE_DIR}/libs/osal/include
     )
 
     # ============================================================================
