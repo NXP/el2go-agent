@@ -13,7 +13,10 @@
  * @{
  */
 
+#ifndef __weak
 #define __weak __attribute__((weak))
+#endif
+#ifndef __export
 #if defined(__ZEPHYR__)
 #define __export
 #elif defined(__GNUC__) || defined(__clang__)
@@ -21,10 +24,17 @@
 #else
 #define __export
 #endif
+#endif
 #define __maybe_unused __attribute__((unused))
+#ifndef __packed
 #define __packed __attribute__((packed))
+#endif
+#ifndef __aligned
 #define __aligned(n) __attribute__((aligned(n)))
+#endif
+#ifndef __fallthrough
 #define __fallthrough __attribute__((fallthrough))
+#endif
 
 /** @} */ /* end of priv_compiler */
 
