@@ -158,7 +158,7 @@ el2go_status_t net_crypto_cert_get_pubkey(const uint8_t *cert_der, size_t cert_d
     ret = mbedtls_compat_pk_get_ec_pubkey_raw(&cert.pk, pubkey_out, pubkey_out_size, pubkey_len);
     if (ret != 0) {
         EL2GO_DBG_PRINTF(ERROR, "EC public key export failed: -0x%04x\n", -ret);
-        if (ret == MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL)
+        if (ret == MBEDTLS_COMPAT_ERR_PK_BUFFER_TOO_SMALL)
             status = EL2GO_STATUS_BUFFER_TOO_SMALL;
         else
             status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;

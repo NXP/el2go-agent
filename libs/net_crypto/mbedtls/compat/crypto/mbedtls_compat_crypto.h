@@ -16,6 +16,19 @@
 
 #include "compat/mbedtls_compat_rng.h"
 
+/* ========================================================================== */
+/* Compat-layer error codes                                                   */
+/* ========================================================================== */
+
+/**
+ * Returned by mbedtls_compat_pk_get_ec_pubkey_raw() when the output buffer is
+ * too small to hold the EC public key. Defined in terms of
+ * MBEDTLS_ERR_PK_BUFFER_TOO_SMALL so that it resolves on all supported mbedTLS
+ * versions (2.x, 3.x, 4.x) and in TF-M NS builds where the legacy ECP headers
+ * are not exposed.
+ */
+#define MBEDTLS_COMPAT_ERR_PK_BUFFER_TOO_SMALL MBEDTLS_ERR_PK_BUFFER_TOO_SMALL
+
 /**
  * @defgroup mbedtls_compat_crypto mbedTLS Crypto Compatibility
  * @brief Version-specific SHA-256 and EC public key extraction wrappers.

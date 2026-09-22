@@ -121,7 +121,7 @@ int mbedtls_compat_pk_get_ec_pubkey_raw(const mbedtls_pk_context *pk, uint8_t *b
 
     /* Remaining bytes are the raw EC point: 0x04 || X || Y */
     if (len > buf_size)
-        return MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL;
+        return MBEDTLS_COMPAT_ERR_PK_BUFFER_TOO_SMALL;
 
     memcpy(buf, p, len);
     *out_len = len;

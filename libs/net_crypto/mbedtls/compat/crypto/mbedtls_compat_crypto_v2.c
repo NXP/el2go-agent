@@ -61,8 +61,11 @@ int mbedtls_compat_pk_get_ec_pubkey_raw(const mbedtls_pk_context *pk, uint8_t *b
     if (ecp == NULL)
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
 
-    return mbedtls_ecp_point_write_binary(&ecp->grp, &ecp->Q, MBEDTLS_ECP_PF_UNCOMPRESSED, out_len,
-                                          buf, buf_size);
+    int ret = mbedtls_ecp_point_write_binary(&ecp->grp, &ecp->Q, MBEDTLS_ECP_PF_UNCOMPRESSED,
+                                             out_len, buf, buf_size);
+    if (ret == MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL)
+        return MBEDTLS_COMPAT_ERR_PK_BUFFER_TOO_SMALL;
+    return ret;
 }
 
 /* ========================================================================== */
