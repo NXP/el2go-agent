@@ -1,6 +1,21 @@
 # Copyright 2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
+config EL2GO_TFM_LEGACY_CRYPTO_ENABLE
+    bool "Enable EL2GO TF-M legacy crypto"
+    depends on BUILD_WITH_TFM
+    help
+      Enables usage of legacy crypto inside TF-M (e.g. SHA-1 hashes) by EL2GO.
+      Passes a custom mbedCrypto extra-config header to the TF-M secure build.
+
+config EL2GO_TFM_DATA_IMPORT_REGION
+    bool "Configure EL2GO TF-M data import region"
+    depends on BUILD_WITH_TFM
+    help
+      Configures the flash memory region of the EL2GO offline provisioned blobs
+      to be accessible from EL2GO NSPE applications (sets USE_TFM_EL2GO_DATA_IMPORT_REGION
+      in the TF-M secure build).
+
 config EL2GO_OTA_FWUAL_LIBRARY_SOURCES
     bool "Include FWUAL (Firmware Update Abstraction Layer) sources"
     help

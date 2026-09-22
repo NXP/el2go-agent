@@ -20,6 +20,7 @@ config VALIDATE_PSA_IMPORT_KEY_PAIR
 config VALIDATE_PSA_IMPORT_CERT
 	bool "Validate imported certificate blob by parsing it with mbedTLS"
 	depends on VALIDATE_PSA_IMPORT_KEY_PAIR
+	select EL2GO_NET_CRYPTO_SOURCES
 	help
 	  When enabled, the sample exports the certificate blob via
 	  psa_export_key() and parses it with mbedTLS to print the subject,

@@ -14,6 +14,20 @@ set(CMAKE_MODULE_PATH
 # ---------------------------------------------------------------------------
 set(BUILD_OTA ON)
 
+if(CONFIG_EL2GO_TFM_LEGACY_CRYPTO_ENABLE)
+    set_property(TARGET zephyr_property_target
+        APPEND PROPERTY TFM_CMAKE_OPTIONS
+        -DTFM_TF_PSA_CRYPTO_PLATFORM_EXTRA_CONFIG_PATH=${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/common/mbedcrypto_extra_config.h
+    )
+endif()
+
+if(CONFIG_EL2GO_TFM_DATA_IMPORT_REGION)
+    set_property(TARGET zephyr_property_target
+        APPEND PROPERTY TFM_CMAKE_OPTIONS
+        -DUSE_TFM_EL2GO_DATA_IMPORT_REGION=ON
+    )
+endif()
+
 # ---------------------------------------------------------------------------
 # Default PLATFORM for Zephyr -- ELS PKC for RW6xx family.
 # Can be overridden by the application CMake before including this file.

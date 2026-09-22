@@ -1,0 +1,16 @@
+/*
+ * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ */
+
+#define PSA_WANT_ALG_SHA_1 1
+#define PSA_WANT_ALG_SHA_256 1
+#define PSA_WANT_ALG_SHA_384 1
+#define PSA_WANT_ALG_SHA_512 1
+#define PSA_WANT_ALG_PBKDF2_HMAC 1
+#define PSA_WANT_ALG_HKDF_EXPAND 1
+
+#define MBEDTLS_PEM_PARSE_C 1
+#define MBEDTLS_BASE64_C 1

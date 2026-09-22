@@ -17,6 +17,12 @@ if(CONFIG_VALIDATE_PSA_IMPORT_CERT)
     set(VALIDATE_PSA_IMPORT_CERT 1)
 endif()
 
+if(CONFIG_BUILD_WITH_TFM)
+    zephyr_include_directories(
+        $<TARGET_PROPERTY:tfm,TFM_BINARY_DIR>/api_ns/interface/include
+    )
+endif()
+
 include(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/el2go_import_blob/sources.cmake)
 target_sources(app PRIVATE ${EL2GO_IMPORT_BLOB_SOURCES})
 
