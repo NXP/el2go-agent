@@ -16,6 +16,14 @@
 #include <zephyr/dfu/mcuboot.h>
 
 static bool s_boot_upgrade_pending;
+static bool s_erase_fault_armed;
+
+/* Arm or disarm a forced failure of boot_erase_img_bank(). */
+bool ct_fw_bootutil_erase_fault_arm(bool arm)
+{
+    s_erase_fault_armed = arm;
+    return true;
+}
 
 int boot_request_upgrade_multi(int image_index, int permanent)
 {
@@ -35,8 +43,13 @@ int boot_write_img_confirmed_multi(int image_index)
 int boot_erase_img_bank(uint8_t area_id)
 {
     const struct flash_area *fa = NULL;
-    int rc = flash_area_open(area_id, &fa);
+    int rc = 0;
 
+    if (s_erase_fault_armed) {
+        return -EIO;
+    }
+
+    rc = flash_area_open(area_id, &fa);
     if (rc != 0) {
         return rc;
     }

@@ -12,11 +12,6 @@
 
 ZTEST_SUITE(el2go_ota_unit, NULL, NULL, NULL, NULL, NULL);
 
-ZTEST(el2go_ota_unit, test_fwual_public)
-{
-    zassert_ok(el2go_run_suite(register_fwual_tests), "FWUAL public unit suite reported failures");
-}
-
 ZTEST(el2go_ota_unit, test_ota_lib_public)
 {
     zassert_ok(el2go_run_suite(register_ota_lib_tests),

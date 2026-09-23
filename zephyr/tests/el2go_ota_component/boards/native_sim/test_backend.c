@@ -9,5 +9,6 @@
 
 uint32_t ct_backend_caps(void)
 {
-    return CT_CAP_MOCK_TRANSPORT | CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT;
+    /* FWUAL is mocked here; see el2go_fwual_component for the real backend. */
+    return CT_CAP_MOCK_TRANSPORT | CT_CAP_REAL_FLASH;
 }

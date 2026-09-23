@@ -222,8 +222,9 @@ static bool test_fwual_prepare_image_no_session(void *params)
 
     fwual_close_session(session);
 
+    /* Closed session is treated as an invalid-parameter condition, not wrong-state. */
     r = fwual_prepare_image(session, &desc);
-    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_STATE, r, exit);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, r, exit);
 
 exit:
     return test_status;
@@ -298,8 +299,9 @@ static bool test_fwual_cancel_image_not_prepared(void *params)
     r = fwual_open_session(&session);
     TEST_ASSERT_EQUAL_GOTO(FWUAL_OK, r, exit);
 
+    /* No matching slot is an invalid-parameter condition, not wrong-state. */
     r = fwual_cancel_image(session, 99U);
-    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_STATE, r, exit);
+    TEST_ASSERT_EQUAL_GOTO(FWUAL_ERR_INVALID_PARAM, r, exit);
 
 exit:
     fwual_close_session(session);
@@ -473,7 +475,7 @@ static bool test_fwual_write_single_chunk(void *params)
     bool test_status = true;
     fwual_session_t *session = NULL;
     fwual_image_desc_t desc = { .image_id = 0U, .size = 256U };
-    uint8_t buf[256U];
+    uint8_t buf[256U] = { 0 };
     fwual_result_t r = FWUAL_ERR_INTERNAL;
 
     (void)params;
@@ -1373,7 +1375,7 @@ void register_fwual_tests(void)
     TEST_REGISTER_ID("OTA_UT_FW_5.1", test_fwual_commit_session_valid);
     TEST_REGISTER_ID("OTA_UT_FW_5.2", test_fwual_get_state_committed_after_commit);
 
-    /* Version tests (OTA_UT_FW_1.13 - OTA_UT_FW_1.14) */
-    TEST_REGISTER_ID("OTA_UT_FW_1.13", test_fwual_get_version_null_params);
-    TEST_REGISTER_ID("OTA_UT_FW_1.14", test_fwual_get_version_success);
+    /* Version tests */
+    TEST_REGISTER_ID("-", test_fwual_get_version_null_params);
+    TEST_REGISTER_ID("-", test_fwual_get_version_success);
 }

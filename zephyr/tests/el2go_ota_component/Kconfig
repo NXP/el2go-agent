@@ -1,9 +1,6 @@
 # Copyright 2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
-config EL2GO_OTA_FWUAL_LIBRARY_SOURCES
-    bool "Include FWUAL sources"
-
 config EL2GO_OTA_LIBRARY_SOURCES
     bool "Include EL2GO OTA Library sources"
 
@@ -12,11 +9,5 @@ config EL2GO_OTA_PLATFORM_SOURCES
 
 config EL2GO_OTA_TESTS
     bool "Include EL2GO OTA test sources"
-
-# The component test compiles libs/fwual/mcuboot/fwual_mcuboot.c directly on
-# native_sim (with local stubs), so it needs CONFIG_FWUAL_MCUBOOT_IMAGE_COUNT
-# visible regardless of whether BOOTLOADER_MCUBOOT is enabled (the module-level
-# zephyr/Kconfig only sources this fragment under BOOTLOADER_MCUBOOT=y).
-source "$(ZEPHYR_NXP_IOT_AGENT_MODULE_DIR)/libs/fwual/mcuboot/Kconfig"
 
 source "Kconfig.zephyr"

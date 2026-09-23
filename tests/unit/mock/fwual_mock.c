@@ -134,8 +134,9 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
     if (session == NULL || desc == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
+    /* Closed session is an invalid-parameter condition, not wrong-state. */
     if (!s_mock.session.active) {
-        return FWUAL_ERR_INVALID_STATE;
+        return FWUAL_ERR_INVALID_PARAM;
     }
     if (desc->size > FWUAL_MOCK_IMAGE_BUF_SIZE) {
         return FWUAL_ERR_NO_SPACE;
@@ -200,7 +201,8 @@ fwual_result_t fwual_cancel_image(fwual_session_t *session, fwual_image_id_t ima
 
     slot = find_active_image(image_id);
     if (slot == NULL) {
-        return FWUAL_ERR_INVALID_STATE;
+        /* No matching slot is an invalid-parameter condition, not wrong-state. */
+        return FWUAL_ERR_INVALID_PARAM;
     }
 
     slot->cancelled = true;

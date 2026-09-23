@@ -34,7 +34,7 @@ void register_el2go_rtp_tests(bool include_fs_tests);
 void register_datastore_tests(bool include_fs_tests);
 
 /**
- * @brief Register all FWUAL library tests.
+ * @brief Register all FWUAL tests.
  */
 void register_fwual_tests(void);
 

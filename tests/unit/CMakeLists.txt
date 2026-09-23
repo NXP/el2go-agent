@@ -60,6 +60,7 @@ add_subdirectory(internal_net_crypto)
 if(BUILD_OTA)
     add_subdirectory(public_fwual)
     add_subdirectory(internal_fwual)
+    add_subdirectory(mock)
     add_subdirectory(public_ota_lib)
     add_subdirectory(internal_ota_lib)
     add_subdirectory(public_ota_agent_core)
@@ -153,10 +154,16 @@ if(BUILD_OTA)
         PRIVATE
             ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src
             ${CMAKE_SOURCE_DIR}/libs/protobuf/ota
+            ${CMAKE_SOURCE_DIR}/tests/unit/mock
     )
     target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
         PRIVATE
+            fwual
             el2go_ota_lib
+    )
+    target_sources(${INTERNAL_TEST_EXECUTABLE}
+        PRIVATE
+            ${FWUAL_MOCK_SOURCES}
     )
 endif()
 

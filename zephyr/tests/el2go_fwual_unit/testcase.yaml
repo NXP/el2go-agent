@@ -1,0 +1,11 @@
+tests:
+  nxp_iot_agent.el2go_fwual_unit:
+    tags:
+      - el2go
+      - ota
+      - fwual
+      - unit
+    platform_allow:
+      - native_sim
+    timeout: 60
+    harness: ztest

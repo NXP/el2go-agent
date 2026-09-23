@@ -3,7 +3,6 @@ tests:
     tags:
       - el2go
       - ota
-      - fwual
       - component
     platform_allow:
       - native_sim
