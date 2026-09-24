@@ -15,6 +15,7 @@ target_sources(app PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ztest_component_main.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/common/canned_protobuf.c
     ${CT_ROOT}/common/mock_transport.c
+    ${CT_ROOT}/common/wrap_ota_tls.c
     ${CT_ROOT}/internal_ota_lib/test_el2go_ota_lib_internal.c
     ${CT_ROOT}/public_ota_lib/test_el2go_ota_lib_public.c
     ${CT_ROOT}/internal_ota_agent_core/test_el2go_ota_agent_core_internal.c
@@ -24,6 +25,19 @@ target_sources(app PRIVATE
     # FWUAL is mocked here; the real backend is exercised by el2go_fwual_component.
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/mock/fwual_mock.c
 )
+
+# Redirect the real TLS functions to the stubs in wrap_ota_tls so that
+# init/connect work on native_sim without a real TLS stack.
+if(CONFIG_BOARD_NATIVE_SIM)
+    zephyr_ld_options(
+        -Wl,--wrap=el2go_ota_tls_init
+        -Wl,--wrap=el2go_ota_tls_connect
+        -Wl,--wrap=el2go_ota_tls_disconnect
+        -Wl,--wrap=el2go_ota_tls_deinit
+        -Wl,--wrap=el2go_ota_transport_init
+    )
+endif()
+
 if(CONFIG_BOARD_NATIVE_SIM)
     target_sources(app PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim/test_backend.c
