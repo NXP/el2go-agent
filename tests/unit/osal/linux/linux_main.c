@@ -84,6 +84,33 @@ int main(int argc, char **argv)
     if (!suite || strcmp(suite, "ota_lib") == 0)
         register_ota_lib_internal_tests();
 
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_grpc_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_request_builder_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_response_handler_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_status_reporting_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_download_engine_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_kvs_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_tls_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_cred_psa_tests();
+
+    if (!suite || strcmp(suite, "ota_lib") == 0)
+        register_ota_lib_core_tests();
+
     if (!suite || strcmp(suite, "ota_agent_core") == 0)
         register_ota_agent_core_tests();
 

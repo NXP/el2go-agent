@@ -37,7 +37,7 @@ static const uint8_t s_dummy_ca[] = { 0x30, 0x01, 0x00 };
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_init_null_ctx(void *params)
+static bool test_ota_init_null_ctx(void *params)
 {
     el2go_ota_mtls_config_t cfg = {
         .hostname = "ota.example.com",
@@ -61,7 +61,7 @@ static bool test_el2go_ota_init_null_ctx(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_init_null_config(void *params)
+static bool test_ota_init_null_config(void *params)
 {
     el2go_ota_ctx_t *ctx = (el2go_ota_ctx_t *)0xDEADBEEF; /* sentinel */
     el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
@@ -83,7 +83,7 @@ static bool test_el2go_ota_init_null_config(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_init_null_hostname(void *params)
+static bool test_ota_init_null_hostname(void *params)
 {
     el2go_ota_ctx_t *ctx = NULL;
     el2go_ota_mtls_config_t cfg = {
@@ -109,7 +109,7 @@ static bool test_el2go_ota_init_null_hostname(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_init_null_ca_chain(void *params)
+static bool test_ota_init_null_ca_chain(void *params)
 {
     el2go_ota_ctx_t *ctx = NULL;
     el2go_ota_mtls_config_t cfg = {
@@ -135,7 +135,7 @@ static bool test_el2go_ota_init_null_ca_chain(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_init_zero_ca_chain_size(void *params)
+static bool test_ota_init_zero_ca_chain_size(void *params)
 {
     el2go_ota_ctx_t *ctx = NULL;
     el2go_ota_mtls_config_t cfg = {
@@ -162,7 +162,7 @@ static bool test_el2go_ota_init_zero_ca_chain_size(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_connect_null_ctx(void *params)
+static bool test_ota_connect_null_ctx(void *params)
 {
     (void)params;
 
@@ -178,7 +178,7 @@ static bool test_el2go_ota_connect_null_ctx(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_disconnect_null_ctx(void *params)
+static bool test_ota_disconnect_null_ctx(void *params)
 {
     (void)params;
 
@@ -196,7 +196,7 @@ static bool test_el2go_ota_disconnect_null_ctx(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_is_connected_null_ctx(void *params)
+static bool test_ota_is_connected_null_ctx(void *params)
 {
     (void)params;
 
@@ -213,7 +213,7 @@ static bool test_el2go_ota_is_connected_null_ctx(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_get_error_string(void *params)
+static bool test_ota_get_error_string(void *params)
 {
     (void)params;
 
@@ -241,7 +241,7 @@ static bool test_el2go_ota_get_error_string(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_cleanup_null_safe(void *params)
+static bool test_ota_cleanup_null_safe(void *params)
 {
     el2go_ota_ctx_t *ctx = NULL;
 
@@ -263,7 +263,7 @@ static bool test_el2go_ota_cleanup_null_safe(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_init_cleanup(void *params)
+static bool test_ota_init_cleanup(void *params)
 {
     el2go_ota_ctx_t *ctx = NULL;
     el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
@@ -295,7 +295,7 @@ static bool test_el2go_ota_init_cleanup(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_is_connected_after_init(void *params)
+static bool test_ota_is_connected_after_init(void *params)
 {
     el2go_ota_ctx_t *ctx = NULL;
     el2go_ota_mtls_config_t cfg = {
@@ -307,7 +307,7 @@ static bool test_el2go_ota_is_connected_after_init(void *params)
 
     (void)params;
 
-    /* Ignore the specific error -- see test_el2go_ota_init_cleanup. */
+    /* Ignore the specific error -- see test_ota_init_cleanup. */
     (void)el2go_ota_init(&ctx, &cfg);
     TEST_ASSERT_NULL(ctx);
 
@@ -326,7 +326,7 @@ static bool test_el2go_ota_is_connected_after_init(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_get_error_string_after_failed_init(void *params)
+static bool test_ota_get_error_string_after_failed_init(void *params)
 {
     el2go_ota_ctx_t *ctx = NULL;
     el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
@@ -364,7 +364,7 @@ static bool test_el2go_ota_get_error_string_after_failed_init(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_client_auth_required_is_zero(void *params)
+static bool test_ota_client_auth_required_is_zero(void *params)
 {
     (void)params;
 
@@ -381,7 +381,7 @@ static bool test_client_auth_required_is_zero(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_client_auth_default_is_required(void *params)
+static bool test_ota_client_auth_default_is_required(void *params)
 {
     el2go_ota_mtls_config_t cfg = { 0 };
 
@@ -403,7 +403,7 @@ static bool test_client_auth_default_is_required(void *params)
  * @param params Unused.
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_get_version_null_params(void *params)
+static bool test_ota_get_version_null_params(void *params)
 {
     unsigned int major = 0, minor = 0, patch = 0;
     el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
@@ -434,7 +434,7 @@ static bool test_el2go_ota_get_version_null_params(void *params)
  * @param params Unused.
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_el2go_ota_get_version_success(void *params)
+static bool test_ota_get_version_success(void *params)
 {
     unsigned int major = 0, minor = 0, patch = 0;
     el2go_ota_status_t status = EL2GO_OTA_SUCCESS;
@@ -450,6 +450,82 @@ static bool test_el2go_ota_get_version_success(void *params)
     return true;
 }
 
+/* Additional public API branch coverage */
+
+/**
+ * @brief Verify init port zero.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_init_port_zero(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_mtls_config_t cfg = {
+        .hostname = "ota.example.com",
+        .port = 0U, /* zero port must be rejected */
+        .server_ca_chain = s_dummy_ca,
+        .server_ca_chain_size = sizeof(s_dummy_ca),
+    };
+
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_init(&ctx, &cfg));
+    TEST_ASSERT_NULL(ctx);
+
+    return true;
+}
+
+/**
+ * @brief Verify schedule status report null params.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_schedule_status_report_null_params(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_schedule_status_report(NULL, "pkg-1", EL2GO_OTA_OUTCOME_SUCCESS));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_schedule_status_report("upd-1", NULL, EL2GO_OTA_OUTCOME_SUCCESS));
+
+    return true;
+}
+
+/**
+ * @brief Verify schedule status report invalid outcome.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_schedule_status_report_invalid_outcome(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_schedule_status_report("upd-1", "pkg-1",
+                                                       (el2go_ota_update_outcome_t)99));
+
+    return true;
+}
+
+/**
+ * @brief Verify get pending status null.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_get_pending_status_null(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_get_pending_status(NULL));
+
+    return true;
+}
+
 /* Test Registration */
 
 /**
@@ -457,21 +533,25 @@ static bool test_el2go_ota_get_version_success(void *params)
  */
 void register_ota_lib_tests(void)
 {
-    TEST_REGISTER_ID("OTA_UT_OL_1.1", test_el2go_ota_init_null_ctx);
-    TEST_REGISTER_ID("OTA_UT_OL_1.2", test_el2go_ota_init_null_config);
-    TEST_REGISTER_ID("OTA_UT_OL_1.3", test_el2go_ota_init_null_hostname);
-    TEST_REGISTER_ID("OTA_UT_OL_1.4", test_el2go_ota_init_null_ca_chain);
-    TEST_REGISTER_ID("OTA_UT_OL_1.5", test_el2go_ota_init_zero_ca_chain_size);
-    TEST_REGISTER_ID("OTA_UT_OL_1.6", test_el2go_ota_connect_null_ctx);
-    TEST_REGISTER_ID("OTA_UT_OL_1.7", test_el2go_ota_disconnect_null_ctx);
-    TEST_REGISTER_ID("OTA_UT_OL_1.8", test_el2go_ota_is_connected_null_ctx);
-    TEST_REGISTER_ID("OTA_UT_OL_1.9", test_el2go_ota_get_error_string);
-    TEST_REGISTER_ID("OTA_UT_OL_1.10", test_el2go_ota_cleanup_null_safe);
-    TEST_REGISTER_ID("OTA_UT_OL_1.11", test_el2go_ota_init_cleanup);
-    TEST_REGISTER_ID("OTA_UT_OL_1.12", test_el2go_ota_is_connected_after_init);
-    TEST_REGISTER_ID("OTA_UT_OL_1.13", test_el2go_ota_get_error_string_after_failed_init);
-    TEST_REGISTER_ID("", test_client_auth_required_is_zero);
-    TEST_REGISTER_ID("", test_client_auth_default_is_required);
-    TEST_REGISTER_ID("OTA_UT_OL_1.14", test_el2go_ota_get_version_null_params);
-    TEST_REGISTER_ID("OTA_UT_OL_1.15", test_el2go_ota_get_version_success);
+    TEST_REGISTER_ID("OTA_UT_OL_1.1", test_ota_init_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_1.2", test_ota_init_null_config);
+    TEST_REGISTER_ID("OTA_UT_OL_1.3", test_ota_init_null_hostname);
+    TEST_REGISTER_ID("OTA_UT_OL_1.4", test_ota_init_null_ca_chain);
+    TEST_REGISTER_ID("OTA_UT_OL_1.5", test_ota_init_zero_ca_chain_size);
+    TEST_REGISTER_ID("OTA_UT_OL_1.6", test_ota_connect_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_1.7", test_ota_disconnect_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_1.8", test_ota_is_connected_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_1.9", test_ota_get_error_string);
+    TEST_REGISTER_ID("OTA_UT_OL_1.10", test_ota_cleanup_null_safe);
+    TEST_REGISTER_ID("OTA_UT_OL_1.11", test_ota_init_cleanup);
+    TEST_REGISTER_ID("OTA_UT_OL_1.12", test_ota_is_connected_after_init);
+    TEST_REGISTER_ID("OTA_UT_OL_1.13", test_ota_get_error_string_after_failed_init);
+    TEST_REGISTER_ID("-", test_ota_client_auth_required_is_zero);
+    TEST_REGISTER_ID("-", test_ota_client_auth_default_is_required);
+    TEST_REGISTER_ID("-", test_ota_get_version_null_params);
+    TEST_REGISTER_ID("-", test_ota_get_version_success);
+    TEST_REGISTER_ID("-", test_ota_init_port_zero);
+    TEST_REGISTER_ID("-", test_ota_schedule_status_report_null_params);
+    TEST_REGISTER_ID("-", test_ota_schedule_status_report_invalid_outcome);
+    TEST_REGISTER_ID("-", test_ota_get_pending_status_null);
 }

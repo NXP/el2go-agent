@@ -5,21 +5,27 @@
  *
  */
 
+#include "test_el2go_ota_compat_shim.h"
+
 #include <string.h>
 
 #include <pb_decode.h>
 #include <pb_encode.h>
+
+#include "ota/el2go_ota_lib.h"
 
 #include "el2go_ota_request_builder.h"
 #include "el2go_ota_response_handler.h"
 #include "types/available_updates_response.pb.h"
 #include "types/file_request.pb.h"
 #include "types/file_response.pb.h"
+#include "types/file_metadata.pb.h"
 #include "types/package.pb.h"
 #include "types/update.pb.h"
 #include "types/update_status_notification.pb.h"
 #include "test_framework.h"
 #include "test_suites.h"
+#include "ota/el2go_ota_config.h"
 
 /**
  * @defgroup test_el2go_ota_lib_internal Internal EL2GO OTA Library Tests
@@ -117,7 +123,7 @@ static el2go_ota_status_t s_noop_chunk_cb(const uint8_t *data, size_t len, size_
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_fetch_package_roundtrip(void *params)
+static bool test_ota_encode_fetch_package_roundtrip(void *params)
 {
     el2go_ota_fetch_pkg_req_t req = {
         .update_id = "update-abc-123",
@@ -158,7 +164,7 @@ static bool test_encode_fetch_package_roundtrip(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_fetch_package_with_artifact_and_range(void *params)
+static bool test_ota_encode_fetch_package_with_artifact_and_range(void *params)
 {
     el2go_ota_fetch_pkg_req_t req = {
         .update_id = "upd-range-1",
@@ -198,7 +204,7 @@ static bool test_encode_fetch_package_with_artifact_and_range(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_fetch_package_chunked_range(void *params)
+static bool test_ota_encode_fetch_package_chunked_range(void *params)
 {
     const int64_t chunk_size = 4096;
     uint8_t buf[256];
@@ -239,7 +245,7 @@ static bool test_encode_fetch_package_chunked_range(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_report_status_roundtrip(void *params)
+static bool test_ota_encode_report_status_roundtrip(void *params)
 {
     el2go_ota_report_status_req_t req = {
         .update_id = "upd-1",
@@ -278,7 +284,7 @@ static bool test_encode_report_status_roundtrip(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_check_update_with_vs_without_attrs(void *params)
+static bool test_ota_encode_check_update_with_vs_without_attrs(void *params)
 {
     static const el2go_ota_attr_t attrs[] = {
         { "board", "rw612" },
@@ -316,7 +322,7 @@ static bool test_encode_check_update_with_vs_without_attrs(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_check_update_one_package(void *params)
+static bool test_ota_parse_check_update_one_package(void *params)
 {
     uint8_t pkg_buf[128];
     uint8_t upd_buf[256];
@@ -368,7 +374,7 @@ static bool test_parse_check_update_one_package(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_check_update_empty_buf(void *params)
+static bool test_ota_parse_check_update_empty_buf(void *params)
 {
     static el2go_ota_check_update_resp_t out;
     static const uint8_t empty_buf[1] = { 0x00 };
@@ -394,7 +400,7 @@ static bool test_parse_check_update_empty_buf(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_report_status_error_no_msg(void *params)
+static bool test_ota_encode_report_status_error_no_msg(void *params)
 {
     el2go_ota_report_status_req_t req = {
         .update_id = "upd-1",
@@ -431,7 +437,7 @@ static bool test_encode_report_status_error_no_msg(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_report_status_null_update_id(void *params)
+static bool test_ota_encode_report_status_null_update_id(void *params)
 {
     el2go_ota_report_status_req_t req = {
         .update_id = NULL,
@@ -457,7 +463,7 @@ static bool test_encode_report_status_null_update_id(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_fetch_package_null_package_id(void *params)
+static bool test_ota_encode_fetch_package_null_package_id(void *params)
 {
     el2go_ota_fetch_pkg_req_t req = {
         .update_id = "upd-1",
@@ -483,7 +489,7 @@ static bool test_encode_fetch_package_null_package_id(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_fetch_package_buf_too_small(void *params)
+static bool test_ota_encode_fetch_package_buf_too_small(void *params)
 {
     el2go_ota_fetch_pkg_req_t req = {
         .update_id = "update-abc-123",
@@ -509,7 +515,7 @@ static bool test_encode_fetch_package_buf_too_small(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_check_update_buf_too_small(void *params)
+static bool test_ota_encode_check_update_buf_too_small(void *params)
 {
     static const el2go_ota_attr_t attrs[] = {
         { "board", "rw612" },
@@ -536,7 +542,7 @@ static bool test_encode_check_update_buf_too_small(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_check_update_null_buf(void *params)
+static bool test_ota_parse_check_update_null_buf(void *params)
 {
     static el2go_ota_check_update_resp_t out;
 
@@ -556,7 +562,7 @@ static bool test_parse_check_update_null_buf(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_fetch_package_null_buf(void *params)
+static bool test_ota_parse_fetch_package_null_buf(void *params)
 {
     el2go_ota_fetch_pkg_resp_t out;
 
@@ -576,7 +582,7 @@ static bool test_parse_fetch_package_null_buf(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_fetch_package_null_out(void *params)
+static bool test_ota_parse_fetch_package_null_out(void *params)
 {
     static const uint8_t buf[] = { 0x00 };
 
@@ -596,7 +602,7 @@ static bool test_parse_fetch_package_null_out(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_check_update_corrupt_buf(void *params)
+static bool test_ota_parse_check_update_corrupt_buf(void *params)
 {
     static const uint8_t corrupt[] = { 0xFF, 0xFF };
     static el2go_ota_check_update_resp_t out;
@@ -617,7 +623,7 @@ static bool test_parse_check_update_corrupt_buf(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_check_update_four_updates(void *params)
+static bool test_ota_parse_check_update_four_updates(void *params)
 {
     uint8_t wire[1024];
     uint8_t pkg_buf[128];
@@ -664,7 +670,7 @@ static bool test_parse_check_update_four_updates(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_check_update_null_req(void *params)
+static bool test_ota_encode_check_update_null_req(void *params)
 {
     uint8_t buf[64];
     size_t out_len = 0U;
@@ -685,7 +691,7 @@ static bool test_encode_check_update_null_req(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_check_update_null_buf(void *params)
+static bool test_ota_encode_check_update_null_buf(void *params)
 {
     el2go_ota_check_update_req_t req = { .attrs = NULL, .attr_count = 0U };
     size_t out_len = 0U;
@@ -706,7 +712,7 @@ static bool test_encode_check_update_null_buf(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_check_update_null_out_len(void *params)
+static bool test_ota_encode_check_update_null_out_len(void *params)
 {
     el2go_ota_check_update_req_t req = { .attrs = NULL, .attr_count = 0U };
     uint8_t buf[64];
@@ -751,7 +757,7 @@ static bool test_encode_check_update_no_attrs(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_fetch_package_null_req(void *params)
+static bool test_ota_encode_fetch_package_null_req(void *params)
 {
     uint8_t buf[64];
     size_t out_len = 0U;
@@ -772,7 +778,7 @@ static bool test_encode_fetch_package_null_req(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_fetch_package_null_ids(void *params)
+static bool test_ota_encode_fetch_package_null_ids(void *params)
 {
     el2go_ota_fetch_pkg_req_t req = { .update_id = NULL,
                                       .package_id = "pkg-1",
@@ -796,7 +802,7 @@ static bool test_encode_fetch_package_null_ids(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_report_status_null_req(void *params)
+static bool test_ota_encode_report_status_null_req(void *params)
 {
     uint8_t buf[64];
     size_t out_len = 0U;
@@ -819,7 +825,7 @@ static bool test_encode_report_status_null_req(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_check_update_null_out(void *params)
+static bool test_ota_parse_check_update_null_out(void *params)
 {
     static const uint8_t buf[] = { 0x00U };
 
@@ -839,7 +845,7 @@ static bool test_parse_check_update_null_out(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_report_status_empty(void *params)
+static bool test_ota_parse_report_status_empty(void *params)
 {
     (void)params;
 
@@ -856,7 +862,7 @@ static bool test_parse_report_status_empty(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_encode_report_status_rolled_back(void *params)
+static bool test_ota_encode_report_status_rolled_back(void *params)
 {
     el2go_ota_report_status_req_t req = {
         .update_id = "upd-rb",
@@ -898,7 +904,7 @@ static bool test_encode_report_status_rolled_back(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_parse_fetch_package_roundtrip(void *params)
+static bool test_ota_parse_fetch_package_roundtrip(void *params)
 {
     static const uint8_t payload[] = { 0xDE, 0xAD, 0xBE, 0xEF };
     uint8_t range_buf[16];
@@ -962,7 +968,7 @@ static bool test_parse_fetch_package_roundtrip(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_check_for_updates_null_ctx(void *params)
+static bool test_ota_check_for_updates_null_ctx(void *params)
 {
     static el2go_ota_check_update_resp_t out;
 
@@ -982,7 +988,7 @@ static bool test_check_for_updates_null_ctx(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_check_for_updates_null_out(void *params)
+static bool test_ota_check_for_updates_null_out(void *params)
 {
     (void)params;
 
@@ -1000,7 +1006,7 @@ static bool test_check_for_updates_null_out(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_download_package_null_ctx(void *params)
+static bool test_ota_download_package_null_ctx(void *params)
 {
     (void)params;
 
@@ -1019,7 +1025,7 @@ static bool test_download_package_null_ctx(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_download_package_null_update_id(void *params)
+static bool test_ota_download_package_null_update_id(void *params)
 {
     (void)params;
 
@@ -1038,7 +1044,7 @@ static bool test_download_package_null_update_id(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_download_package_null_package_id(void *params)
+static bool test_ota_download_package_null_package_id(void *params)
 {
     (void)params;
 
@@ -1057,7 +1063,7 @@ static bool test_download_package_null_package_id(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_download_package_null_callback(void *params)
+static bool test_ota_download_package_null_callback(void *params)
 {
     (void)params;
 
@@ -1077,7 +1083,7 @@ static bool test_download_package_null_callback(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_report_status_null_ctx(void *params)
+static bool test_ota_report_status_null_ctx(void *params)
 {
     (void)params;
 
@@ -1095,7 +1101,7 @@ static bool test_report_status_null_ctx(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_report_status_null_update_id(void *params)
+static bool test_ota_report_status_null_update_id(void *params)
 {
     (void)params;
 
@@ -1113,7 +1119,7 @@ static bool test_report_status_null_update_id(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_report_status_null_package_id(void *params)
+static bool test_ota_report_status_null_package_id(void *params)
 {
     (void)params;
 
@@ -1131,7 +1137,7 @@ static bool test_report_status_null_package_id(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_report_status_invalid_outcome(void *params)
+static bool test_ota_report_status_invalid_outcome(void *params)
 {
     (void)params;
 
@@ -1150,7 +1156,7 @@ static bool test_report_status_invalid_outcome(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_report_pending_status_null_ctx(void *params)
+static bool test_ota_report_pending_status_null_ctx(void *params)
 {
     (void)params;
 
@@ -1166,7 +1172,7 @@ static bool test_report_pending_status_null_ctx(void *params)
  *
  * @return @c true if all assertions pass, @c false otherwise.
  */
-static bool test_pending_status_struct_layout(void *params)
+static bool test_ota_pending_status_struct_layout(void *params)
 {
     size_t sz = sizeof(el2go_ota_pending_status_t);
 
@@ -1187,43 +1193,45 @@ static bool test_pending_status_struct_layout(void *params)
 void register_ota_lib_internal_tests(void)
 {
     TEST_REGISTER_ID("-", test_encode_check_update_no_attrs);
-    TEST_REGISTER_ID("OTA_UT_OL_2.1", test_encode_fetch_package_roundtrip);
-    TEST_REGISTER_ID("OTA_UT_OL_2.2", test_encode_fetch_package_with_artifact_and_range);
-    TEST_REGISTER_ID("OTA_UT_OL_2.3", test_encode_fetch_package_chunked_range);
-    TEST_REGISTER_ID("OTA_UT_OL_2.4", test_encode_report_status_roundtrip);
-    TEST_REGISTER_ID("OTA_UT_OL_2.5", test_encode_check_update_with_vs_without_attrs);
-    TEST_REGISTER_ID("OTA_UT_OL_2.6", test_encode_report_status_error_no_msg);
-    TEST_REGISTER_ID("OTA_UT_OL_2.7", test_encode_report_status_null_update_id);
-    TEST_REGISTER_ID("OTA_UT_OL_2.8", test_encode_fetch_package_null_package_id);
-    TEST_REGISTER_ID("OTA_UT_OL_2.9", test_encode_fetch_package_buf_too_small);
-    TEST_REGISTER_ID("OTA_UT_OL_2.10", test_encode_check_update_buf_too_small);
-    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_encode_check_update_null_req);
-    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_encode_check_update_null_buf);
-    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_encode_check_update_null_out_len);
-    TEST_REGISTER_ID("OTA_UT_OL_2.12", test_encode_fetch_package_null_req);
-    TEST_REGISTER_ID("OTA_UT_OL_2.12", test_encode_fetch_package_null_ids);
-    TEST_REGISTER_ID("OTA_UT_OL_2.13", test_encode_report_status_null_req);
-    TEST_REGISTER_ID("OTA_UT_OL_2.14", test_encode_report_status_rolled_back);
-    TEST_REGISTER_ID("OTA_UT_OL_3.1", test_parse_check_update_one_package);
-    TEST_REGISTER_ID("OTA_UT_OL_3.2", test_parse_check_update_empty_buf);
-    TEST_REGISTER_ID("OTA_UT_OL_3.3", test_parse_check_update_null_buf);
-    TEST_REGISTER_ID("OTA_UT_OL_3.4", test_parse_check_update_null_out);
-    TEST_REGISTER_ID("OTA_UT_OL_3.5", test_parse_check_update_corrupt_buf);
-    TEST_REGISTER_ID("OTA_UT_OL_3.6", test_parse_check_update_four_updates);
-    TEST_REGISTER_ID("OTA_UT_OL_3.7", test_parse_fetch_package_null_buf);
-    TEST_REGISTER_ID("OTA_UT_OL_3.7", test_parse_fetch_package_null_out);
-    TEST_REGISTER_ID("OTA_UT_OL_3.8", test_parse_fetch_package_roundtrip);
-    TEST_REGISTER_ID("OTA_UT_OL_3.9", test_parse_report_status_empty);
-    TEST_REGISTER_ID("OTA_UT_OL_4.1", test_check_for_updates_null_ctx);
-    TEST_REGISTER_ID("OTA_UT_OL_4.2", test_check_for_updates_null_out);
-    TEST_REGISTER_ID("OTA_UT_OL_4.3", test_download_package_null_ctx);
-    TEST_REGISTER_ID("OTA_UT_OL_4.4", test_download_package_null_update_id);
-    TEST_REGISTER_ID("OTA_UT_OL_4.5", test_download_package_null_package_id);
-    TEST_REGISTER_ID("OTA_UT_OL_4.6", test_download_package_null_callback);
-    TEST_REGISTER_ID("OTA_UT_OL_5.1", test_report_status_null_ctx);
-    TEST_REGISTER_ID("OTA_UT_OL_5.2", test_report_status_null_update_id);
-    TEST_REGISTER_ID("OTA_UT_OL_5.3", test_report_status_null_package_id);
-    TEST_REGISTER_ID("OTA_UT_OL_5.4", test_report_status_invalid_outcome);
-    TEST_REGISTER_ID("OTA_UT_OL_5.5", test_report_pending_status_null_ctx);
-    TEST_REGISTER_ID("OTA_UT_OL_5.6", test_pending_status_struct_layout);
+    TEST_REGISTER_ID("OTA_UT_OL_2.1", test_ota_encode_fetch_package_roundtrip);
+    TEST_REGISTER_ID("OTA_UT_OL_2.2", test_ota_encode_fetch_package_with_artifact_and_range);
+    TEST_REGISTER_ID("OTA_UT_OL_2.3", test_ota_encode_fetch_package_chunked_range);
+    TEST_REGISTER_ID("OTA_UT_OL_2.4", test_ota_encode_report_status_roundtrip);
+    TEST_REGISTER_ID("OTA_UT_OL_2.5", test_ota_encode_check_update_with_vs_without_attrs);
+    TEST_REGISTER_ID("OTA_UT_OL_2.6", test_ota_encode_report_status_error_no_msg);
+    TEST_REGISTER_ID("OTA_UT_OL_2.7", test_ota_encode_report_status_null_update_id);
+    TEST_REGISTER_ID("OTA_UT_OL_2.8", test_ota_encode_fetch_package_null_package_id);
+    TEST_REGISTER_ID("OTA_UT_OL_2.9", test_ota_encode_fetch_package_buf_too_small);
+    TEST_REGISTER_ID("OTA_UT_OL_2.10", test_ota_encode_check_update_buf_too_small);
+    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_ota_encode_check_update_null_req);
+    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_ota_encode_check_update_null_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_2.11", test_ota_encode_check_update_null_out_len);
+    TEST_REGISTER_ID("OTA_UT_OL_2.12", test_ota_encode_fetch_package_null_req);
+    TEST_REGISTER_ID("OTA_UT_OL_2.12", test_ota_encode_fetch_package_null_ids);
+    TEST_REGISTER_ID("OTA_UT_OL_2.13", test_ota_encode_report_status_null_req);
+    TEST_REGISTER_ID("OTA_UT_OL_2.14", test_ota_encode_report_status_rolled_back);
+    TEST_REGISTER_ID("OTA_UT_OL_3.1", test_ota_parse_check_update_one_package);
+    TEST_REGISTER_ID("OTA_UT_OL_3.2", test_ota_parse_check_update_empty_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_3.3", test_ota_parse_check_update_null_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_3.4", test_ota_parse_check_update_null_out);
+    TEST_REGISTER_ID("OTA_UT_OL_3.5", test_ota_parse_check_update_corrupt_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_3.6", test_ota_parse_check_update_four_updates);
+    TEST_REGISTER_ID("OTA_UT_OL_3.7", test_ota_parse_fetch_package_null_buf);
+    TEST_REGISTER_ID("OTA_UT_OL_3.7", test_ota_parse_fetch_package_null_out);
+    TEST_REGISTER_ID("OTA_UT_OL_3.8", test_ota_parse_fetch_package_roundtrip);
+    TEST_REGISTER_ID("OTA_UT_OL_3.9", test_ota_parse_report_status_empty);
+    TEST_REGISTER_ID("OTA_UT_OL_4.1", test_ota_check_for_updates_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_4.2", test_ota_check_for_updates_null_out);
+    TEST_REGISTER_ID("OTA_UT_OL_4.3", test_ota_download_package_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_4.4", test_ota_download_package_null_update_id);
+    TEST_REGISTER_ID("OTA_UT_OL_4.5", test_ota_download_package_null_package_id);
+    TEST_REGISTER_ID("OTA_UT_OL_4.6", test_ota_download_package_null_callback);
+    TEST_REGISTER_ID("OTA_UT_OL_5.1", test_ota_report_status_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_5.2", test_ota_report_status_null_update_id);
+    TEST_REGISTER_ID("OTA_UT_OL_5.3", test_ota_report_status_null_package_id);
+    TEST_REGISTER_ID("OTA_UT_OL_5.4", test_ota_report_status_invalid_outcome);
+    TEST_REGISTER_ID("OTA_UT_OL_5.5", test_ota_report_pending_status_null_ctx);
+    TEST_REGISTER_ID("OTA_UT_OL_5.6", test_ota_pending_status_struct_layout);
 }
+
+/** @} */
