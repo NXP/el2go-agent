@@ -17,7 +17,16 @@
 #include "common/el2go_status.h"
 #include "plat_crypto_params.h"
 
-const struct device __device_dts_ord_30;
+/*
+ * device_is_ready() dereferences dev->state, so a non-NULL device_state is 
+ * required even though the real flash/NVS subsystem is stubbed out below.
+ */
+static struct device_state s_mock_flash_device_state;
+
+const struct device __device_dts_ord_30 = {
+    .name = "mock-flash",
+    .state = &s_mock_flash_device_state,
+};
 
 struct nvs_fs;
 
