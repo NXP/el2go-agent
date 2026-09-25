@@ -153,8 +153,13 @@ if(BUILD_OTA)
     target_include_directories(${INTERNAL_TEST_EXECUTABLE}
         PRIVATE
             ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src
+            ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src/cred
+            ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src/osal
+            ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src/download
+            ${CMAKE_SOURCE_DIR}/libs/el2go_ota_lib/src/transport
             ${CMAKE_SOURCE_DIR}/libs/protobuf/ota
             ${CMAKE_SOURCE_DIR}/tests/unit/mock
+            ${CMAKE_SOURCE_DIR}/tests/unit/internal_ota_lib
     )
     target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
         PRIVATE
@@ -164,6 +169,7 @@ if(BUILD_OTA)
     target_sources(${INTERNAL_TEST_EXECUTABLE}
         PRIVATE
             ${FWUAL_MOCK_SOURCES}
+            ${NET_CRYPTO_MOCK_SOURCES}
     )
 endif()
 

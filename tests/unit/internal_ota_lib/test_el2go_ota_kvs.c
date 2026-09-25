@@ -104,9 +104,9 @@ static bool test_ota_kvs_read_zero_len(void *params)
 
 void register_ota_lib_kvs_tests(void)
 {
-    TEST_REGISTER_ID("-", test_ota_kvs_write_null_data_nonzero_len);
-    TEST_REGISTER_ID("-", test_ota_kvs_read_null_found);
-    TEST_REGISTER_ID("-", test_ota_kvs_read_null_data_nonzero_len);
-    TEST_REGISTER_ID("-", test_ota_kvs_write_zero_len);
-    TEST_REGISTER_ID("-", test_ota_kvs_read_zero_len);
+    TEST_REGISTER_ID("11.1", test_ota_kvs_write_null_data_nonzero_len);
+    TEST_REGISTER_ID("11.2", test_ota_kvs_read_null_found);
+    TEST_REGISTER_ID("11.3", test_ota_kvs_read_null_data_nonzero_len);
+    TEST_REGISTER_ID("11.4", test_ota_kvs_write_zero_len);
+    TEST_REGISTER_ID("11.5", test_ota_kvs_read_zero_len);
 }

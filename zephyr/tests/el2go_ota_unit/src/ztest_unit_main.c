@@ -10,6 +10,9 @@
 #include "test_suites.h"
 #include "ztest_bridge.h"
 #include "wrap_net_crypto.h"
+#include "test_el2go_ota_lib_internal_suites.h"
+
+void register_ota_lib_internal_tests(void);
 
 /* Reset wrap_net_crypto.c mock state before every ZTEST so mock 
  * state cannot leak into another test. */

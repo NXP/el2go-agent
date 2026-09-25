@@ -34,6 +34,11 @@ target_sources(app PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/mock/wrap_net_crypto.c
 )
 
+set_source_files_properties(
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_lib/test_el2go_ota_lib_internal.c
+    PROPERTIES COMPILE_DEFINITIONS "register_ota_lib_tests=register_ota_lib_internal_tests"
+)
+
 # wrap flags so el2go_ota_tls.c, el2go_ota_cred_psa.c, and el2go_ota_grpc.c
 # execute their real code paths while net_crypto_*/psa_its_* are stubbed.
 zephyr_ld_options(
@@ -59,13 +64,19 @@ zephyr_compile_definitions(EL2GO_OTA_GRPC_HAVE_NET_WRAP)
 zephyr_include_directories(
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/tests/common
     ${CMAKE_CURRENT_SOURCE_DIR}/mock
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/mock
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/common
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/framework
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_lib
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/nanopb
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/src
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/src/cred
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/src/osal
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/src/download
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/src/transport
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/ota
 )
 

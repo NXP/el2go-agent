@@ -213,13 +213,13 @@ static bool test_ota_encode_check_zero_buflen(void *params)
 
 void register_ota_lib_request_builder_tests(void)
 {
-    TEST_REGISTER_ID("-", test_ota_encode_check_update_no_attrs);
-    TEST_REGISTER_ID("-", test_ota_encode_check_update_one_attr);
-    TEST_REGISTER_ID("-", test_ota_encode_fetch_package_zero_range);
-    TEST_REGISTER_ID("-", test_ota_encode_report_status_unspecified);
-    TEST_REGISTER_ID("-", test_ota_encode_check_update_attrs_null_zero);
-    TEST_REGISTER_ID("-", test_ota_encode_report_status_default);
-    TEST_REGISTER_ID("-", test_ota_encode_check_update_null_attr_key);
-    TEST_REGISTER_ID("-", test_ota_encode_check_update_null_attr_value);
-    TEST_REGISTER_ID("-", test_ota_encode_check_zero_buflen);
+    TEST_REGISTER_ID("7.1", test_ota_encode_check_update_no_attrs);
+    TEST_REGISTER_ID("7.2", test_ota_encode_check_update_one_attr);
+    TEST_REGISTER_ID("7.3", test_ota_encode_fetch_package_zero_range);
+    TEST_REGISTER_ID("7.4", test_ota_encode_report_status_unspecified);
+    TEST_REGISTER_ID("7.5", test_ota_encode_check_update_attrs_null_zero);
+    TEST_REGISTER_ID("7.6", test_ota_encode_report_status_default);
+    TEST_REGISTER_ID("7.7", test_ota_encode_check_update_null_attr_key);
+    TEST_REGISTER_ID("7.8", test_ota_encode_check_update_null_attr_value);
+    TEST_REGISTER_ID("7.9", test_ota_encode_check_zero_buflen);
 }

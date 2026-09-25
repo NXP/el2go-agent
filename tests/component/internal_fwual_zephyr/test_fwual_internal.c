@@ -252,10 +252,6 @@ static test_result_t test_fwual_flash_erase_fault(void)
     }
     (void)ct_fw_flash_fault_arm(false);
 
-    /* POSSIBLY A BUG: fwual_mcuboot_prepare_slot() leaves result at its
-     * FWUAL_ERR_INTERNAL default on the flash erase-failure path instead of
-     * FWUAL_ERR_IO which seems more apropriate. 
-     * Test asserts actual behavior of fwual here */
     TEST_ASSERT_EQ_GOTO(FWUAL_ERR_INTERNAL, r, cleanup);
     TEST_ASSERT_FALSE_GOTO(fwual_is_image_staged(session, CT_FW_IMAGE_ID), cleanup);
 
@@ -853,7 +849,6 @@ static test_result_t test_fwual_int_cancel_and_reuse(void)
 
     fwual_session_t *session = NULL;
     fwual_image_desc_t desc = { 0 };
-    memset(&desc, 0, sizeof(desc));
     desc.image_id = 0U;
     desc.size = 64U;
     desc.update_type = FWUAL_UPDATE_FULL;
@@ -916,7 +911,6 @@ static test_result_t test_fwual_int_close_with_prepared(void)
 
     fwual_session_t *session = NULL;
     fwual_image_desc_t desc = { 0 };
-    memset(&desc, 0, sizeof(desc));
     desc.image_id = 0U;
     desc.size = 64U;
     desc.update_type = FWUAL_UPDATE_FULL;
@@ -947,7 +941,6 @@ static test_result_t test_fwual_int_commit_marks_committed(void)
 
     fwual_session_t *session = NULL;
     fwual_image_desc_t desc = { 0 };
-    memset(&desc, 0, sizeof(desc));
     desc.image_id = 0U;
     desc.size = 64U;
     desc.update_type = FWUAL_UPDATE_FULL;
@@ -1039,31 +1032,31 @@ TEST_REGISTER("OTA_CT_FW_1.12", test_fwual_state_persist_committed)
 TEST_REGISTER("OTA_CT_FW_1.13", test_fwual_state_persist_writing)
 TEST_REGISTER("OTA_CT_FW_1.10", test_fwual_flash_erase_fault)
 TEST_REGISTER("OTA_CT_FW_1.11", test_fwual_flash_write_fault)
-TEST_REGISTER("-", test_fwual_prepare_image_nvs_fault)
-TEST_REGISTER("-", test_fwual_commit_session_nvs_fault)
-TEST_REGISTER("-", test_fwual_open_session_nvs_fault)
-TEST_REGISTER("-", test_fwual_close_session_nvs_fault)
-TEST_REGISTER("-", test_fwual_cancel_image_nvs_fault)
-TEST_REGISTER("-", test_fwual_rollback_bootutil_fault)
+TEST_REGISTER("OTA_CT_FW_2.7", test_fwual_prepare_image_nvs_fault)
+TEST_REGISTER("OTA_CT_FW_2.8", test_fwual_commit_session_nvs_fault)
+TEST_REGISTER("OTA_CT_FW_2.9", test_fwual_open_session_nvs_fault)
+TEST_REGISTER("OTA_CT_FW_2.10", test_fwual_close_session_nvs_fault)
+TEST_REGISTER("OTA_CT_FW_2.11", test_fwual_cancel_image_nvs_fault)
+TEST_REGISTER("OTA_CT_FW_2.12", test_fwual_rollback_bootutil_fault)
 TEST_REGISTER("OTA_CT_FW_2.1", test_fwual_mcuboot_activate_sets_swap)
 TEST_REGISTER("OTA_CT_FW_2.2", test_fwual_mcuboot_confirm_sets_image_ok)
 TEST_REGISTER("OTA_CT_FW_2.3", test_fwual_rollback_recovers)
 TEST_REGISTER("OTA_CT_FW_2.4", test_fwual_active_slot_from_dt_chosen)
 TEST_REGISTER("OTA_CT_FW_2.5", test_fwual_write_block_alignment)
 TEST_REGISTER("OTA_CT_FW_2.6", test_fwual_erase_sector_count)
-TEST_REGISTER("-", test_fwual_activate_without_commit)
-TEST_REGISTER("-", test_fwual_confirm_wrong_state)
-TEST_REGISTER("-", test_fwual_rollback_idempotent)
-TEST_REGISTER("-", test_fwual_list_installed_zero_capacity)
-TEST_REGISTER("-", test_fwual_write_many_chunks)
-TEST_REGISTER("-", test_fwual_check_storage_null_session)
-TEST_REGISTER("-", test_fwual_int_open_close_reopen)
-TEST_REGISTER("-", test_fwual_int_cancel_and_reuse)
-TEST_REGISTER("-", test_fwual_int_commit_no_images)
-TEST_REGISTER("-", test_fwual_int_close_inactive)
-TEST_REGISTER("-", test_fwual_int_close_with_prepared)
-TEST_REGISTER("-", test_fwual_int_commit_marks_committed)
-TEST_REGISTER("-", test_fwual_int_activate_verified)
+TEST_REGISTER("OTA_CT_FW_2.13", test_fwual_activate_without_commit)
+TEST_REGISTER("OTA_CT_FW_2.14", test_fwual_confirm_wrong_state)
+TEST_REGISTER("OTA_CT_FW_2.15", test_fwual_rollback_idempotent)
+TEST_REGISTER("OTA_CT_FW_2.16", test_fwual_list_installed_zero_capacity)
+TEST_REGISTER("OTA_CT_FW_2.17", test_fwual_write_many_chunks)
+TEST_REGISTER("OTA_CT_FW_2.18", test_fwual_check_storage_null_session)
+TEST_REGISTER("OTA_CT_FW_2.19", test_fwual_int_open_close_reopen)
+TEST_REGISTER("OTA_CT_FW_2.20", test_fwual_int_cancel_and_reuse)
+TEST_REGISTER("OTA_CT_FW_2.21", test_fwual_int_commit_no_images)
+TEST_REGISTER("OTA_CT_FW_2.22", test_fwual_int_close_inactive)
+TEST_REGISTER("OTA_CT_FW_2.23", test_fwual_int_close_with_prepared)
+TEST_REGISTER("OTA_CT_FW_2.24", test_fwual_int_commit_marks_committed)
+TEST_REGISTER("OTA_CT_FW_2.25", test_fwual_int_activate_verified)
 TEST_SUITE_END(fwual_internal)
 
 /** @} */

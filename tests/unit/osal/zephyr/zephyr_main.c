@@ -9,6 +9,8 @@
 #include "test_framework.h"
 #include "test_suites.h"
 
+void register_ota_lib_internal_tests(void);
+
 ZTEST_SUITE(el2go_ota_tests, NULL, NULL, NULL, NULL, NULL);
 
 ZTEST(el2go_ota_tests, test_run_all_ota_suites)

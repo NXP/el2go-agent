@@ -759,22 +759,22 @@ static bool test_ota_parse_check_both_null_zero(void *params)
 
 void register_ota_lib_response_handler_tests(void)
 {
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_with_file_metadata);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_file_metadata_overflow);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_package_overflow);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_update_overflow);
-    TEST_REGISTER_ID("-", test_ota_parse_fetch_package_zero_len);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_with_name_and_attrs);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_package_with_all_fields);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_description_discarded);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_no_packages);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_file_checksum);
-    TEST_REGISTER_ID("-", test_ota_response_handler_attributes_map);
-    TEST_REGISTER_ID("-", test_ota_response_handler_update_attributes);
-    TEST_REGISTER_ID("-", test_ota_response_handler_compressed_flag);
-    TEST_REGISTER_ID("-", test_ota_response_handler_long_update_id);
-    TEST_REGISTER_ID("-", test_ota_parse_check_update_null_nonzero);
-    TEST_REGISTER_ID("-", test_ota_parse_fetch_zero_len_buf);
-    TEST_REGISTER_ID("-", test_ota_parse_fetch_zero_body);
-    TEST_REGISTER_ID("-", test_ota_parse_check_both_null_zero);
+    TEST_REGISTER_ID("8.1", test_ota_parse_check_update_with_file_metadata);
+    TEST_REGISTER_ID("8.2", test_ota_parse_check_update_file_metadata_overflow);
+    TEST_REGISTER_ID("8.3", test_ota_parse_check_update_package_overflow);
+    TEST_REGISTER_ID("8.4", test_ota_parse_check_update_update_overflow);
+    TEST_REGISTER_ID("8.5", test_ota_parse_fetch_package_zero_len);
+    TEST_REGISTER_ID("8.6", test_ota_parse_check_update_with_name_and_attrs);
+    TEST_REGISTER_ID("8.7", test_ota_parse_check_update_package_with_all_fields);
+    TEST_REGISTER_ID("8.8", test_ota_parse_check_update_description_discarded);
+    TEST_REGISTER_ID("8.9", test_ota_parse_check_update_no_packages);
+    TEST_REGISTER_ID("8.10", test_ota_parse_check_update_file_checksum);
+    TEST_REGISTER_ID("8.11", test_ota_response_handler_attributes_map);
+    TEST_REGISTER_ID("8.12", test_ota_response_handler_update_attributes);
+    TEST_REGISTER_ID("8.13", test_ota_response_handler_compressed_flag);
+    TEST_REGISTER_ID("8.14", test_ota_response_handler_long_update_id);
+    TEST_REGISTER_ID("8.15", test_ota_parse_check_update_null_nonzero);
+    TEST_REGISTER_ID("8.16", test_ota_parse_fetch_zero_len_buf);
+    TEST_REGISTER_ID("8.17", test_ota_parse_fetch_zero_body);
+    TEST_REGISTER_ID("8.18", test_ota_parse_check_both_null_zero);
 }

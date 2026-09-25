@@ -1190,7 +1190,7 @@ static bool test_ota_pending_status_struct_layout(void *params)
 /**
  * @brief Register all internal EL2GO OTA Library tests with the test framework.
  */
-void register_ota_lib_internal_tests(void)
+void register_ota_lib_tests(void)
 {
     TEST_REGISTER_ID("-", test_encode_check_update_no_attrs);
     TEST_REGISTER_ID("OTA_UT_OL_2.1", test_ota_encode_fetch_package_roundtrip);

@@ -824,33 +824,35 @@ static bool test_ota_grpc_send_handshake_with_ping(void *params)
 
 void register_ota_lib_grpc_tests(void)
 {
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_status_ok, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_status_nonzero, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_not_found, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_null_block, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_too_short, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_status, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_h2_build_frame_hdr_layout, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_hpack_put_string_buffer_too_small, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_hpack_put_string_len_too_large, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_status_all_codes, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_truncated_value, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_non_digit_value, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_overflow_guard, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_parse_trailers_val_start_beyond_block, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_hpack_encode_grpc_request_success, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_hpack_encode_grpc_request_buffer_too_small, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_send_null_params, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_null_params, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_roundtrip_send_recv_success, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_send_preface_write_fail, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_ping_then_data, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_window_update_then_data, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_rst_stream, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_goaway, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_data_with_padding, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_headers_before_data, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_trailer_nonzero_status, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_recv_frame_limit_exceeded, NULL);
-    TEST_REGISTER_ID_WITH_PARAMS("-", test_ota_grpc_send_handshake_with_ping, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.1", test_ota_grpc_parse_trailers_status_ok, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.2", test_ota_grpc_parse_trailers_status_nonzero, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.3", test_ota_grpc_parse_trailers_not_found, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.4", test_ota_grpc_parse_trailers_null_block, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.5", test_ota_grpc_parse_trailers_too_short, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.6", test_ota_grpc_status, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.7", test_ota_h2_build_frame_hdr_layout, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.8", test_ota_hpack_put_string_buffer_too_small, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.9", test_ota_hpack_put_string_len_too_large, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.10", test_ota_grpc_parse_trailers_status_all_codes, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.11", test_ota_grpc_parse_trailers_truncated_value, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.12", test_ota_grpc_parse_trailers_non_digit_value, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.13", test_ota_grpc_parse_trailers_overflow_guard, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.14", test_ota_grpc_parse_trailers_val_start_beyond_block,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.15", test_ota_hpack_encode_grpc_request_success, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.16", test_ota_hpack_encode_grpc_request_buffer_too_small,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.17", test_ota_grpc_send_null_params, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.18", test_ota_grpc_recv_null_params, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.19", test_ota_grpc_roundtrip_send_recv_success, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.20", test_ota_grpc_send_preface_write_fail, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.21", test_ota_grpc_recv_ping_then_data, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.22", test_ota_grpc_recv_window_update_then_data, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.23", test_ota_grpc_recv_rst_stream, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.24", test_ota_grpc_recv_goaway, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.25", test_ota_grpc_recv_data_with_padding, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.26", test_ota_grpc_recv_headers_before_data, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.27", test_ota_grpc_recv_trailer_nonzero_status, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.28", test_ota_grpc_recv_frame_limit_exceeded, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.29", test_ota_grpc_send_handshake_with_ping, NULL);
 }

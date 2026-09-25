@@ -7,3 +7,8 @@ set(FWUAL_MOCK_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/fwual_storage_fault_stub.c
     PARENT_SCOPE
 )
+
+set(NET_CRYPTO_MOCK_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/wrap_net_crypto_stub.c
+    PARENT_SCOPE
+)

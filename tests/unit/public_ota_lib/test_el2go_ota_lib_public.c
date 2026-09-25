@@ -546,12 +546,12 @@ void register_ota_lib_tests(void)
     TEST_REGISTER_ID("OTA_UT_OL_1.11", test_ota_init_cleanup);
     TEST_REGISTER_ID("OTA_UT_OL_1.12", test_ota_is_connected_after_init);
     TEST_REGISTER_ID("OTA_UT_OL_1.13", test_ota_get_error_string_after_failed_init);
-    TEST_REGISTER_ID("-", test_ota_client_auth_required_is_zero);
-    TEST_REGISTER_ID("-", test_ota_client_auth_default_is_required);
-    TEST_REGISTER_ID("-", test_ota_get_version_null_params);
-    TEST_REGISTER_ID("-", test_ota_get_version_success);
-    TEST_REGISTER_ID("-", test_ota_init_port_zero);
-    TEST_REGISTER_ID("-", test_ota_schedule_status_report_null_params);
-    TEST_REGISTER_ID("-", test_ota_schedule_status_report_invalid_outcome);
-    TEST_REGISTER_ID("-", test_ota_get_pending_status_null);
+    TEST_REGISTER_ID("OTA_UT_OL_1.14", test_ota_client_auth_required_is_zero);
+    TEST_REGISTER_ID("OTA_UT_OL_1.15", test_ota_client_auth_default_is_required);
+    TEST_REGISTER_ID("OTA_UT_OL_1.16", test_ota_get_version_null_params);
+    TEST_REGISTER_ID("OTA_UT_OL_1.17", test_ota_get_version_success);
+    TEST_REGISTER_ID("OTA_UT_OL_1.18", test_ota_init_port_zero);
+    TEST_REGISTER_ID("OTA_UT_OL_1.19", test_ota_schedule_status_report_null_params);
+    TEST_REGISTER_ID("OTA_UT_OL_1.20", test_ota_schedule_status_report_invalid_outcome);
+    TEST_REGISTER_ID("OTA_UT_OL_1.21", test_ota_get_pending_status_null);
 }

@@ -204,15 +204,15 @@ static bool test_ota_schedule_null_package(void *param)
 
 void register_ota_lib_status_reporting_tests(void)
 {
-    TEST_REGISTER_ID("-", test_ota_status_reporting_report_null_transport);
-    TEST_REGISTER_ID("-", test_ota_status_reporting_report_null_update_id);
-    TEST_REGISTER_ID("-", test_ota_status_reporting_retry_null_transport);
-    TEST_REGISTER_ID("-", test_ota_status_reporting_read_pending_null);
-    TEST_REGISTER_ID("-", test_ota_status_report_failure);
-    TEST_REGISTER_ID("-", test_ota_status_report_rollback);
-    TEST_REGISTER_ID("-", test_ota_retry_pending_null);
-    TEST_REGISTER_ID("-", test_ota_deliver_null_vtable);
-    TEST_REGISTER_ID("-", test_ota_status_report_all_outcomes_null_vtable);
-    TEST_REGISTER_ID("-", test_ota_status_report_null_transport);
-    TEST_REGISTER_ID("-", test_ota_schedule_null_package);
+    TEST_REGISTER_ID("12.1", test_ota_status_reporting_report_null_transport);
+    TEST_REGISTER_ID("12.2", test_ota_status_reporting_report_null_update_id);
+    TEST_REGISTER_ID("12.3", test_ota_status_reporting_retry_null_transport);
+    TEST_REGISTER_ID("12.4", test_ota_status_reporting_read_pending_null);
+    TEST_REGISTER_ID("12.5", test_ota_status_report_failure);
+    TEST_REGISTER_ID("12.6", test_ota_status_report_rollback);
+    TEST_REGISTER_ID("12.7", test_ota_retry_pending_null);
+    TEST_REGISTER_ID("12.8", test_ota_deliver_null_vtable);
+    TEST_REGISTER_ID("12.9", test_ota_status_report_all_outcomes_null_vtable);
+    TEST_REGISTER_ID("12.10", test_ota_status_report_null_transport);
+    TEST_REGISTER_ID("12.11", test_ota_schedule_null_package);
 }

@@ -44,54 +44,11 @@ void register_fwual_tests(void);
 void register_ota_lib_tests(void);
 
 /**
- * @brief Register all internal EL2GO OTA Library tests.
+ * @brief Register all internal EL2GO OTA Library submodule tests
+ *        (grpc, request_builder, response_handler, status_reporting,
+ *        download_engine, kvs, tls, cred_psa, core) in one call.
  */
-void register_ota_lib_internal_tests(void);
-
-/**
- * @brief Register all internal EL2GO OTA gRPC transport tests.
- */
-void register_ota_lib_grpc_tests(void);
-
-/**
- * @brief Register el2go_ota_request_builder.c unit tests.
- */
-void register_ota_lib_request_builder_tests(void);
-
-/**
- * @brief Register el2go_ota_response_handler.c unit tests.
- */
-void register_ota_lib_response_handler_tests(void);
-
-/**
- * @brief Register el2go_ota_status_reporting.c unit tests.
- */
-void register_ota_lib_status_reporting_tests(void);
-
-/**
- * @brief Register el2go_ota_download_engine.c unit tests.
- */
-void register_ota_lib_download_engine_tests(void);
-
-/**
- * @brief Register el2go_ota_kvs.c unit tests.
- */
-void register_ota_lib_kvs_tests(void);
-
-/**
- * @brief Register el2go_ota_tls.c unit tests
- */
-void register_ota_lib_tls_tests(void);
-
-/**
- * @brief Register el2go_ota_cred_psa.c unit tests
- */
-void register_ota_lib_cred_psa_tests(void);
-
-/**
- * @brief Register el2go_ota_lib.c public state-machine unit tests
- */
-void register_ota_lib_core_tests(void);
+void register_ota_lib_internal_all_tests(void);
 
 /**
  * @brief Register all el2go_ota_agent_core tests.

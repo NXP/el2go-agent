@@ -1376,6 +1376,6 @@ void register_fwual_tests(void)
     TEST_REGISTER_ID("OTA_UT_FW_5.2", test_fwual_get_state_committed_after_commit);
 
     /* Version tests */
-    TEST_REGISTER_ID("-", test_fwual_get_version_null_params);
-    TEST_REGISTER_ID("-", test_fwual_get_version_success);
+    TEST_REGISTER_ID("OTA_UT_FW_6.1", test_fwual_get_version_null_params);
+    TEST_REGISTER_ID("OTA_UT_FW_6.2", test_fwual_get_version_success);
 }

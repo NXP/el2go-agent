@@ -18,6 +18,11 @@ target_sources(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/osal/zephyr/zephyr_main.c
 )
 
+set_source_files_properties(
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_lib/test_el2go_ota_lib_internal.c
+    PROPERTIES COMPILE_DEFINITIONS "register_ota_lib_tests=register_ota_lib_internal_tests"
+)
+
 zephyr_include_directories(
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/framework
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit

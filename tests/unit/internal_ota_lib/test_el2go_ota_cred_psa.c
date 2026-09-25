@@ -176,11 +176,11 @@ static bool test_ota_cred_psa_null_key_id(void *params)
 
 void register_ota_lib_cred_psa_tests(void)
 {
-    TEST_REGISTER_ID("-", test_ota_cred_psa_null_config);
-    TEST_REGISTER_ID("-", test_ota_cred_psa_null_cert_out);
-    TEST_REGISTER_ID("-", test_ota_cred_psa_get_info_fail);
-    TEST_REGISTER_ID("-", test_ota_cred_psa_zero_cert_size);
-    TEST_REGISTER_ID("-", test_ota_cred_psa_get_fail);
-    TEST_REGISTER_ID("-", test_ota_cred_psa_success);
-    TEST_REGISTER_ID("-", test_ota_cred_psa_null_key_id);
+    TEST_REGISTER_ID("10.1", test_ota_cred_psa_null_config);
+    TEST_REGISTER_ID("10.2", test_ota_cred_psa_null_cert_out);
+    TEST_REGISTER_ID("10.3", test_ota_cred_psa_get_info_fail);
+    TEST_REGISTER_ID("10.4", test_ota_cred_psa_zero_cert_size);
+    TEST_REGISTER_ID("10.5", test_ota_cred_psa_get_fail);
+    TEST_REGISTER_ID("10.6", test_ota_cred_psa_success);
+    TEST_REGISTER_ID("10.7", test_ota_cred_psa_null_key_id);
 }

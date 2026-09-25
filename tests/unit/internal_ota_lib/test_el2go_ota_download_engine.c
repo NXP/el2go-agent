@@ -208,15 +208,15 @@ static bool test_ota_engine_fetch_null_transport(void *params)
 
 void register_ota_lib_download_engine_tests(void)
 {
-    TEST_REGISTER_ID("-", test_ota_download_engine_null_send_fn);
-    TEST_REGISTER_ID("-", test_ota_download_engine_null_file_id);
-    TEST_REGISTER_ID("-", test_ota_engine_check_null_resp);
-    TEST_REGISTER_ID("-", test_ota_engine_fetch_null_update_id);
-    TEST_REGISTER_ID("-", test_ota_engine_fetch_null_pkg_id);
-    TEST_REGISTER_ID("-", test_ota_engine_fetch_null_callback);
-    TEST_REGISTER_ID("-", test_ota_engine_check_null_resp_valid_transport);
-    TEST_REGISTER_ID("-", test_ota_check_update_null_recv);
-    TEST_REGISTER_ID("-", test_ota_fetch_null_recv);
-    TEST_REGISTER_ID("-", test_ota_engine_check_attr_count_no_attrs);
-    TEST_REGISTER_ID("-", test_ota_engine_fetch_null_transport);
+    TEST_REGISTER_ID("9.1", test_ota_download_engine_null_send_fn);
+    TEST_REGISTER_ID("9.2", test_ota_download_engine_null_file_id);
+    TEST_REGISTER_ID("9.3", test_ota_engine_check_null_resp);
+    TEST_REGISTER_ID("9.4", test_ota_engine_fetch_null_update_id);
+    TEST_REGISTER_ID("9.5", test_ota_engine_fetch_null_pkg_id);
+    TEST_REGISTER_ID("9.6", test_ota_engine_fetch_null_callback);
+    TEST_REGISTER_ID("9.7", test_ota_engine_check_null_resp_valid_transport);
+    TEST_REGISTER_ID("9.8", test_ota_check_update_null_recv);
+    TEST_REGISTER_ID("9.9", test_ota_fetch_null_recv);
+    TEST_REGISTER_ID("9.10", test_ota_engine_check_attr_count_no_attrs);
+    TEST_REGISTER_ID("9.11", test_ota_engine_fetch_null_transport);
 }

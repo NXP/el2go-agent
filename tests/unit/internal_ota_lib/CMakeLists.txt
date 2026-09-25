@@ -6,7 +6,7 @@
 set(INTERNAL_TEST_SOURCES
     ${INTERNAL_TEST_SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_el2go_ota_lib_internal.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_el2go_ota_lib_internal_stubs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_el2go_ota_lib_internal_all.c
     ${CMAKE_CURRENT_SOURCE_DIR}/test_el2go_ota_grpc_internal.c
     ${CMAKE_CURRENT_SOURCE_DIR}/test_el2go_ota_fixtures.c
     ${CMAKE_CURRENT_SOURCE_DIR}/test_el2go_ota_request_builder.c
