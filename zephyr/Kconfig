@@ -626,3 +626,20 @@ source "${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/fwual/mcuboot/Kconfig"
 endif
 
 source "${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/Kconfig"
+
+config EL2GO_SIGN_USING_NXPIMAGE
+    bool "Sign s/ns binaries using nxpimage"
+    help
+        Sign s/ns binaries using SPSDK nxpimage tool.
+
+config EL2GO_PRIVATE_KEY
+    string "Private key input"
+    depends on EL2GO_SIGN_USING_NXPIMAGE
+    help
+        Private key input to sign merged s/ns image.
+
+config EL2GO_CERT_BLOCK
+    string "Certificate file"
+    depends on EL2GO_SIGN_USING_NXPIMAGE
+    help
+        Certificate input for the keys.
