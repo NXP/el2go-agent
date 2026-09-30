@@ -58,4 +58,9 @@ size_t el2go_ota_lib_mock_report_pending_call_count(void);
 void el2go_ota_lib_mock_set_connect_fail(bool fail);
 size_t el2go_ota_lib_mock_connect_call_count(void);
 
+/** @brief Forces el2go_ota_is_connected() to report false until the next
+ * successful connect() call, simulating a dropped connection detected at
+ * check time. */
+void el2go_ota_lib_mock_force_disconnected(void);
+
 #endif /* EL2GO_OTA_LIB_MOCK_H */

@@ -82,7 +82,6 @@ static void wait_for_time_sync(void)
  *
  * @return 1 if any initialization step fails (does not return on success)
  */
-/* LCOV_EXCL_START */
 int main(int argc, char *argv[])
 {
     static updater_ctx_t updater = { 0 };
@@ -180,4 +179,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-/* LCOV_EXCL_STOP */

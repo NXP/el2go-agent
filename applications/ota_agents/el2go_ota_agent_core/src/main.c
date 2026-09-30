@@ -400,7 +400,6 @@ static void core_updater_finalize_boot(core_updater_ctx_t *updater, fwual_state_
  *
  * @return 1 if any initialization step fails (does not return on success)
  */
-/* LCOV_EXCL_START */
 int main(int argc, char *argv[])
 {
     core_updater_ctx_t updater = { 0 };
@@ -498,4 +497,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-/* LCOV_EXCL_STOP */

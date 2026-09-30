@@ -9,10 +9,10 @@
 
 #include "test_ztest.h"
 
-#include "test_el2go_ota_agent_core_internal.h"
-#include "test_el2go_ota_agent_core_public.h"
-#include "test_el2go_ota_agent_advanced_internal.h"
-#include "test_el2go_ota_agent_advanced_public.h"
+#include "test_el2go_ota_agent_core_internal_zephyr.h"
+#include "test_el2go_ota_agent_core_public_zephyr.h"
+#include "test_el2go_ota_agent_advanced_internal_zephyr.h"
+#include "test_el2go_ota_agent_advanced_public_zephyr.h"
 
 ZTEST_SUITE(el2go_agent_ct, NULL, NULL, NULL, NULL, NULL);
 

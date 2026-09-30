@@ -13,8 +13,8 @@ target_sources(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_fwual/test_fwual_public.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_lib/test_el2go_ota_lib_public.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_lib/test_el2go_ota_lib_internal.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_core/test_el2go_ota_agent_core_public.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_advanced/test_el2go_ota_agent_advanced_public.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_core/test_el2go_ota_agent_core_public_zephyr.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_advanced/test_el2go_ota_agent_advanced_public_zephyr.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/osal/zephyr/zephyr_main.c
 )
 

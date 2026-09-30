@@ -40,6 +40,22 @@ void fwual_mock_set_prepare_fail_for_test(bool fail_next);
  * flag clears itself. */
 void fwual_mock_set_check_storage_fail_for_test(bool fail_next);
 
+/** @brief Persistent flag (until explicitly cleared with false): every
+ * call to fwual_write() returns FWUAL_ERR_IO immediately, before any
+ * other logic runs. Unlike the other fail flags this is not one-shot,
+ * so it survives the updater's internal per-chunk download retries. */
+void fwual_mock_set_write_fail_for_test(bool fail_next);
+
+/** @brief One-shot flag: the next call to fwual_finalize_image() returns
+ * FWUAL_ERR_INTERNAL immediately, before any other logic runs, then the
+ * flag clears itself. */
+void fwual_mock_set_finalize_fail_for_test(bool fail_next);
+
+/** @brief One-shot flag: the next call to fwual_verify_image() returns
+ * FWUAL_ERR_INTERNAL immediately, before any other logic runs, then the
+ * flag clears itself. */
+void fwual_mock_set_verify_fail_for_test(bool fail_next);
+
 /** @brief Resets the mock to its uninitialized state, simulating a reboot. */
 void fwual_mock_simulate_reboot(void);
 

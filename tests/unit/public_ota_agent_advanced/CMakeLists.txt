@@ -5,6 +5,6 @@
 
 set(PUBLIC_TEST_SOURCES
     ${PUBLIC_TEST_SOURCES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_el2go_ota_agent_advanced_public.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_el2go_ota_agent_advanced_public_zephyr.c
     PARENT_SCOPE
 )

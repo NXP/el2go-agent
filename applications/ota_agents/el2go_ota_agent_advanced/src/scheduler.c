@@ -53,14 +53,12 @@ void scheduler_step(void)
     s_next_target_ms = el2go_app_sys_uptime_ms() + (int64_t)current_delay_ms;
 }
 
-/* LCOV_EXCL_START */
 void scheduler_run_forever(void)
 {
     for (;;) {
         scheduler_step();
     }
 }
-/* LCOV_EXCL_STOP */
 
 /**
  * @brief Network-up event handler.

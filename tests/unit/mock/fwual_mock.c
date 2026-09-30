@@ -38,6 +38,9 @@ typedef struct {
     struct fwual_session session;
     bool prepare_fail_next;
     bool check_storage_fail_next;
+    bool write_fail_next;
+    bool finalize_fail_next;
+    bool verify_fail_next;
 } fwual_mock_state_t;
 
 static fwual_mock_state_t s_mock;
@@ -46,17 +49,14 @@ static fwual_mock_image_t *find_active_image(fwual_image_id_t image_id)
 {
     size_t i = 0U;
 
-    if (s_mock.session.images == NULL) {
-        return NULL;
-    }
-
     for (i = 0U; i < s_mock.session.image_count; i++) {
         fwual_mock_image_t *slot = &s_mock.session.images[i];
 
-        if (slot != NULL && slot->image_id == image_id && slot->prepared && !slot->cancelled) {
+        if (slot->image_id == image_id && slot->prepared && !slot->cancelled) {
             return slot;
         }
     }
+
     return NULL;
 }
 
@@ -228,6 +228,12 @@ fwual_result_t fwual_write(fwual_session_t *session, fwual_image_id_t image_id, 
 {
     fwual_mock_image_t *slot = NULL;
 
+    if (s_mock.write_fail_next) {
+        /* Persistent until explicitly cleared: permanent-failure testing
+         * needs this to survive the updater's internal download retries. */
+        return FWUAL_ERR_IO;
+    }
+
     if (session == NULL || data == NULL || len == 0U || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
@@ -263,6 +269,11 @@ fwual_result_t fwual_finalize_image(fwual_session_t *session, fwual_image_id_t i
 {
     fwual_mock_image_t *slot = NULL;
 
+    if (s_mock.finalize_fail_next) {
+        s_mock.finalize_fail_next = false;
+        return FWUAL_ERR_INTERNAL;
+    }
+
     if (session == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
@@ -289,6 +300,11 @@ fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image_id_t ima
     uint8_t computed[32] = { 0 };
     size_t hash_len = 0U;
     psa_status_t ps = PSA_ERROR_GENERIC_ERROR;
+
+    if (s_mock.verify_fail_next) {
+        s_mock.verify_fail_next = false;
+        return FWUAL_ERR_INTERNAL;
+    }
 
     if (session == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
@@ -471,6 +487,21 @@ void fwual_mock_set_prepare_fail_for_test(bool fail_next)
 void fwual_mock_set_check_storage_fail_for_test(bool fail_next)
 {
     s_mock.check_storage_fail_next = fail_next;
+}
+
+void fwual_mock_set_write_fail_for_test(bool fail_next)
+{
+    s_mock.write_fail_next = fail_next;
+}
+
+void fwual_mock_set_finalize_fail_for_test(bool fail_next)
+{
+    s_mock.finalize_fail_next = fail_next;
+}
+
+void fwual_mock_set_verify_fail_for_test(bool fail_next)
+{
+    s_mock.verify_fail_next = fail_next;
 }
 
 void fwual_mock_simulate_reboot(void)

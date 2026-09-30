@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(native_sim_agent_unit)
+project(el2go_ota_agent_unit)
 
 add_compile_definitions(ENABLE_TRACE)
 
@@ -23,10 +23,10 @@ target_sources(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/framework/test_framework.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/framework/test_utils.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/framework/ztest_bridge.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_agent_core/test_el2go_ota_agent_core_internal.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_core/test_el2go_ota_agent_core_public.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_agent_advanced/test_el2go_ota_agent_advanced_internal.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_advanced/test_el2go_ota_agent_advanced_public.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_agent_core/test_el2go_ota_agent_core_internal_zephyr.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_core/test_el2go_ota_agent_core_public_zephyr.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_agent_advanced/test_el2go_ota_agent_advanced_internal_zephyr.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_advanced/test_el2go_ota_agent_advanced_public_zephyr.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ztest_agent_unit_main.c
 )
 

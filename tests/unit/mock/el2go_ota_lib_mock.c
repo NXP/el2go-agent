@@ -165,6 +165,11 @@ size_t el2go_ota_lib_mock_connect_call_count(void)
     return s_mock.connect_call_count;
 }
 
+void el2go_ota_lib_mock_force_disconnected(void)
+{
+    s_mock.connected = false;
+}
+
 el2go_ota_update_outcome_t el2go_ota_lib_mock_last_scheduled_outcome(void)
 {
     return s_mock.last_scheduled_outcome;
@@ -379,12 +384,13 @@ el2go_ota_status_t __wrap_el2go_ota_schedule_status_report(const char *update_id
     }
 
     s_mock.pending_status.outcome = (uint8_t)outcome;
-    (void)strncpy(s_mock.pending_status.update_id, s_mock.last_scheduled_update_id,
-                  sizeof(s_mock.pending_status.update_id) - 1U);
-    s_mock.pending_status.update_id[sizeof(s_mock.pending_status.update_id) - 1U] = '\0';
-    (void)strncpy(s_mock.pending_status.package_id, s_mock.last_scheduled_package_id,
-                  sizeof(s_mock.pending_status.package_id) - 1U);
-    s_mock.pending_status.package_id[sizeof(s_mock.pending_status.package_id) - 1U] = '\0';
+
+    (void)memcpy(s_mock.pending_status.update_id, s_mock.last_scheduled_update_id,
+                 sizeof(s_mock.pending_status.update_id));
+
+    (void)memcpy(s_mock.pending_status.package_id, s_mock.last_scheduled_package_id,
+                 sizeof(s_mock.pending_status.package_id));
+
     s_mock.pending_status.valid = EL2GO_OTA_STATUS_VALID_MAGIC;
 
     return EL2GO_OTA_SUCCESS;

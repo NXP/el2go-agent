@@ -86,11 +86,6 @@ int main(int argc, char **argv)
         register_ota_lib_internal_all_tests();
 #endif
 
-    if (!suite || strcmp(suite, "ota_agent_core") == 0)
-        register_ota_agent_core_tests();
-
-    if (!suite || strcmp(suite, "ota_agent_advanced") == 0)
-        register_ota_agent_advanced_tests();
 #endif /* BUILD_OTA */
 
     /* Run all registered tests */

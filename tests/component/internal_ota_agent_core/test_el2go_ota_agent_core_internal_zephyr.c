@@ -14,7 +14,7 @@
 #include <string.h>
 #include <psa/crypto.h>
 
-#include "test_el2go_ota_agent_core_internal.h"
+#include "test_el2go_ota_agent_core_internal_zephyr.h"
 
 #include "agent_test_fixtures.h"
 #include "el2go_ota_lib_mock.h"

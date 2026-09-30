@@ -63,10 +63,6 @@ if(BUILD_OTA)
     add_subdirectory(mock)
     add_subdirectory(public_ota_lib)
     add_subdirectory(internal_ota_lib)
-    add_subdirectory(public_ota_agent_core)
-    add_subdirectory(internal_ota_agent_core)
-    add_subdirectory(public_ota_agent_advanced)
-    add_subdirectory(internal_ota_agent_advanced)
 endif()
 
 # ============================================================================
@@ -160,16 +156,71 @@ if(BUILD_OTA)
             ${CMAKE_SOURCE_DIR}/libs/protobuf/ota
             ${CMAKE_SOURCE_DIR}/tests/unit/mock
             ${CMAKE_SOURCE_DIR}/tests/unit/internal_ota_lib
+            ${CMAKE_SOURCE_DIR}/applications/ota_agents
+            ${CMAKE_SOURCE_DIR}/applications/ota_agents/el2go_ota_agent_advanced/include
+            ${CMAKE_SOURCE_DIR}/applications/ota_agents/common/diag
+            ${CMAKE_SOURCE_DIR}/applications/ota_agents/common/persist
+            ${CMAKE_SOURCE_DIR}/applications/ota_agents/common/event
+            ${CMAKE_SOURCE_DIR}/applications/common/system
+            ${CMAKE_SOURCE_DIR}/applications/common/network
+            ${CMAKE_SOURCE_DIR}/applications/common/time
+            ${CMAKE_SOURCE_DIR}/applications/common/compiler
+    )
+    target_compile_definitions(${INTERNAL_TEST_EXECUTABLE}
+        PRIVATE
+            OTA_FW_VERSION="0.0.0-test"
+            CONFIG_EL2GO_OTA_SERVER_HOST=""
+            CONFIG_EL2GO_OTA_SERVER_PORT=50051
+            CONFIG_EL2GO_OTA_POLL_INTERVAL_S=30
+            CONFIG_EL2GO_OTA_CLIENT_KEY_OBJECT_ID=0x3010
+            CONFIG_EL2GO_OTA_CLIENT_CERT_OBJECT_ID=0x3021
+            CONFIG_EL2GO_OTA_DISABLE_MTLS=0
+            CONFIG_EL2GO_OTA_CORE_REPORT_MAX_RETRIES=3
+            CONFIG_EL2GO_OTA_ADV_POLL_INTERVAL_S=3600
+            CONFIG_EL2GO_OTA_ADV_RETRY_INITIAL_BACKOFF_S=60
+            CONFIG_EL2GO_OTA_ADV_RETRY_MAX_BACKOFF_S=3600
+            CONFIG_EL2GO_OTA_ADV_DOWNLOAD_MAX_RETRIES=3
+            CONFIG_EL2GO_OTA_ADV_REPORT_MAX_RETRIES=5
+            CONFIG_EL2GO_OTA_ADV_BLACKOUT_START_HOUR=0
+            CONFIG_EL2GO_OTA_ADV_BLACKOUT_END_HOUR=0
+            CONFIG_EL2GO_OTA_ADV_DEFER_WINDOW_S=100
+            CONFIG_EL2GO_OTA_ADV_TIME_SYNC_MAX_CYCLES=10
+            CONFIG_EL2GO_OTA_ADV_TIME_SYNC_RETRY_DELAY_MS=5000
     )
     target_link_libraries(${INTERNAL_TEST_EXECUTABLE}
         PRIVATE
             fwual
             el2go_ota_lib
     )
+
     target_sources(${INTERNAL_TEST_EXECUTABLE}
         PRIVATE
             ${FWUAL_MOCK_SOURCES}
             ${NET_CRYPTO_MOCK_SOURCES}
+            ${OTA_AGENT_MOCK_SOURCES}
+    )
+
+    target_link_options(${INTERNAL_TEST_EXECUTABLE}
+        PRIVATE
+            -Wl,--wrap=el2go_ota_init
+            -Wl,--wrap=el2go_ota_connect
+            -Wl,--wrap=el2go_ota_disconnect
+            -Wl,--wrap=el2go_ota_cleanup
+            -Wl,--wrap=el2go_ota_is_connected
+            -Wl,--wrap=el2go_ota_get_error_string
+            -Wl,--wrap=el2go_ota_check_for_updates
+            -Wl,--wrap=el2go_ota_download_package
+            -Wl,--wrap=el2go_ota_report_status
+            -Wl,--wrap=el2go_ota_schedule_status_report
+            -Wl,--wrap=el2go_ota_get_pending_status
+            -Wl,--wrap=el2go_ota_report_pending_status
+            -Wl,--wrap=el2go_app_sys_activate_update
+            -Wl,--wrap=el2go_app_sys_sleep_ms
+            -Wl,--wrap=el2go_app_sys_uptime_ms
+            -Wl,--wrap=el2go_app_sys_wait
+            -Wl,--wrap=el2go_app_sys_signal
+            -Wl,--wrap=el2go_app_time_get_hour_of_day
+            -Wl,--wrap=el2go_app_time_sync
     )
 endif()
 

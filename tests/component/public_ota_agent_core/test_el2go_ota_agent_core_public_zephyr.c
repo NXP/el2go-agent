@@ -5,7 +5,7 @@
  *
  */
 
-#include "test_el2go_ota_agent_core_public.h"
+#include "test_el2go_ota_agent_core_public_zephyr.h"
 
 #include "agent_component_fixtures.h"
 

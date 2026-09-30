@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(native_sim_agent_component)
+project(el2go_ota_agent_component)
 
 add_compile_definitions(ENABLE_TRACE)
 
@@ -22,10 +22,10 @@ target_sources(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/mock/fwual_mock.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/mock/wrap_app_sys.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/mock/agent_test_fixtures.c
-    ${CT_ROOT}/internal_ota_agent_core/test_el2go_ota_agent_core_internal.c
-    ${CT_ROOT}/public_ota_agent_core/test_el2go_ota_agent_core_public.c
-    ${CT_ROOT}/internal_ota_agent_advanced/test_el2go_ota_agent_advanced_internal.c
-    ${CT_ROOT}/public_ota_agent_advanced/test_el2go_ota_agent_advanced_public.c
+    ${CT_ROOT}/internal_ota_agent_core/test_el2go_ota_agent_core_internal_zephyr.c
+    ${CT_ROOT}/public_ota_agent_core/test_el2go_ota_agent_core_public_zephyr.c
+    ${CT_ROOT}/internal_ota_agent_advanced/test_el2go_ota_agent_advanced_internal_zephyr.c
+    ${CT_ROOT}/public_ota_agent_advanced/test_el2go_ota_agent_advanced_public_zephyr.c
     ${CT_ROOT}/common/agent_component_fixtures.c
     ${CMAKE_CURRENT_SOURCE_DIR}/boards/native_sim/test_backend.c
 )
