@@ -34,7 +34,17 @@ typedef void (*scheduler_check_fn_t)(void *user_data);
  * @param[in] check_fn   Callback invoked when a check is due.
  * @param[in] user_data  Opaque pointer passed back to @p check_fn.
  */
-void scheduler_init(scheduler_check_fn_t check_fn, void *user_data);
+void scheduler_configure(scheduler_check_fn_t check_fn, void *user_data);
+
+/**
+ * @brief Runs exactly one scheduler cycle: wait, check, rearm.
+ */
+void scheduler_step(void);
+
+/**
+ * @brief Calls scheduler_step() in an infinite loop. Does not return.
+ */
+void scheduler_run_forever(void);
 
 /**
  * @brief Wake the scheduler to run a check immediately.

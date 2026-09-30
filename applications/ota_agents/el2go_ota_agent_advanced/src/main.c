@@ -82,6 +82,7 @@ static void wait_for_time_sync(void)
  *
  * @return 1 if any initialization step fails (does not return on success)
  */
+/* LCOV_EXCL_START */
 int main(int argc, char *argv[])
 {
     static updater_ctx_t updater = { 0 };
@@ -174,7 +175,9 @@ int main(int argc, char *argv[])
     updater_finalize_boot(&updater, fw_state);
 
     OTA_DIAG_INFO("starting scheduler (base interval: %d s)", CONFIG_EL2GO_OTA_ADV_POLL_INTERVAL_S);
-    scheduler_init(on_scheduler_fire, &updater);
+    scheduler_configure(on_scheduler_fire, &updater);
+    scheduler_run_forever();
 
     return 0;
 }
+/* LCOV_EXCL_STOP */

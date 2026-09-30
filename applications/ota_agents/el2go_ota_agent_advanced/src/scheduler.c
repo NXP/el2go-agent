@@ -36,27 +36,31 @@ static int64_t s_next_target_ms;
  * until woken early), invokes the registered check callback, then schedules the
  * next target based on the current delay.
  */
-static void run_schedule_loop(void)
+void scheduler_step(void)
+{
+    int64_t wait_ms = s_next_target_ms - el2go_app_sys_uptime_ms();
+
+    if (wait_ms < 0) {
+        wait_ms = 0;
+    }
+
+    el2go_app_sys_wait((uint32_t)wait_ms);
+
+    if (s_check_fn != NULL) {
+        s_check_fn(s_user_data);
+    }
+
+    s_next_target_ms = el2go_app_sys_uptime_ms() + (int64_t)current_delay_ms;
+}
+
+/* LCOV_EXCL_START */
+void scheduler_run_forever(void)
 {
     for (;;) {
-        /* Derive the wait from the absolute target so cycles do not drift. */
-        int64_t wait_ms = s_next_target_ms - el2go_app_sys_uptime_ms();
-
-        if (wait_ms < 0) {
-            wait_ms = 0;
-        }
-
-        el2go_app_sys_wait((uint32_t)wait_ms);
-
-        if (s_check_fn != NULL) {
-            s_check_fn(s_user_data);
-        }
-
-        s_next_target_ms = el2go_app_sys_uptime_ms() + (int64_t)current_delay_ms;
-
-        /* Intentional infinite loop */
+        scheduler_step();
     }
 }
+/* LCOV_EXCL_STOP */
 
 /**
  * @brief Network-up event handler.
@@ -73,7 +77,7 @@ static void net_up_handler(void *user_data)
     scheduler_trigger_now();
 }
 
-void scheduler_init(scheduler_check_fn_t check_fn, void *user_data)
+void scheduler_configure(scheduler_check_fn_t check_fn, void *user_data)
 {
     s_check_fn = check_fn;
     s_user_data = user_data;
@@ -84,9 +88,6 @@ void scheduler_init(scheduler_check_fn_t check_fn, void *user_data)
 
     /* Target the first check for now so the loop runs one immediately. */
     s_next_target_ms = el2go_app_sys_uptime_ms();
-
-    /* Runs the scheduler loop on the main thread; does not return. */
-    run_schedule_loop();
 }
 
 void scheduler_trigger_now(void)
