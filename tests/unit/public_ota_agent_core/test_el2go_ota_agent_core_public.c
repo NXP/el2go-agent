@@ -76,6 +76,6 @@ static bool test_ota_agent_core_calls_ota_lib_init(void *params)
  */
 void register_ota_agent_core_tests(void)
 {
-    TEST_REGISTER(test_ota_agent_core_calls_fwual_init);
-    TEST_REGISTER(test_ota_agent_core_calls_ota_lib_init);
+    TEST_REGISTER_ID("OTA_UT_AC_1.1", test_ota_agent_core_calls_fwual_init);
+    TEST_REGISTER_ID("OTA_UT_AC_1.2", test_ota_agent_core_calls_ota_lib_init);
 }
