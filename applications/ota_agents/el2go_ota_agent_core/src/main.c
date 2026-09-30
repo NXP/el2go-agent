@@ -40,7 +40,12 @@ static const el2go_ota_attr_t device_attrs[] = {
 /* Length in hex characters of a SHA-256 checksum string (32 bytes * 2). */
 #define EL2GO_OTA_SHA256_HEX_LEN 64U
 
-static fwual_caps_t fwual_caps = { 0 };
+/** @brief Updater context for the core agent's poll loop. */
+typedef struct {
+    el2go_ota_ctx_t *ota_ctx;
+    fwual_caps_t fwual_caps;
+    uint32_t connect_fail_count; /* throttles reconnect-failure log spam */
+} core_updater_ctx_t;
 
 /** @brief Context passed to chunk_cb() while streaming a package into FWUAL. */
 typedef struct {
@@ -48,6 +53,7 @@ typedef struct {
     fwual_image_id_t image_id;
     fwual_result_t last_fw_err;
     size_t bytes_written;
+    uint32_t max_write_size;
 } chunk_cb_ctx_t;
 
 /**
@@ -70,8 +76,8 @@ static el2go_ota_status_t chunk_cb(const uint8_t *data, size_t len, size_t offse
 
     (void)offset;
 
-    if (fwual_caps.max_write_size > 0 && len > (size_t)fwual_caps.max_write_size) {
-        OTA_DIAG_ERROR("chunk size %zu exceeds max_write_size %u", len, fwual_caps.max_write_size);
+    if (ctx->max_write_size > 0 && len > (size_t)ctx->max_write_size) {
+        OTA_DIAG_ERROR("chunk size %zu exceeds max_write_size %u", len, ctx->max_write_size);
         ctx->last_fw_err = FWUAL_ERR_INVALID_PARAM;
         return EL2GO_OTA_ERROR_INTERNAL;
     }
@@ -105,9 +111,10 @@ static el2go_ota_status_t chunk_cb(const uint8_t *data, size_t len, size_t offse
  * @retval EL2GO_OTA_SUCCESS if all packages were applied and activated
  * @retval EL2GO_OTA_ERROR_INTERNAL on any download, FWUAL, or session error
  */
-static el2go_ota_status_t run_download_and_handoff(el2go_ota_ctx_t *ctx,
+static el2go_ota_status_t run_download_and_handoff(core_updater_ctx_t *updater,
                                                    const el2go_ota_update_info_t *update)
 {
+    el2go_ota_ctx_t *ctx = updater->ota_ctx;
     fwual_session_t *session = NULL;
 
     const el2go_ota_file_metadata_t *file = NULL;
@@ -196,6 +203,7 @@ static el2go_ota_status_t run_download_and_handoff(el2go_ota_ctx_t *ctx,
             .image_id = image_id,
             .last_fw_err = FWUAL_OK,
             .bytes_written = 0,
+            .max_write_size = updater->fwual_caps.max_write_size,
         };
 
         OTA_DIAG_INFO("downloading image %u, size %lld bytes", (unsigned)image_id,
@@ -269,17 +277,34 @@ cleanup:
  *
  * @param[in] ctx  OTA context
  */
-static void run_update_check(el2go_ota_ctx_t *ctx)
+static void core_updater_run_check(core_updater_ctx_t *updater)
 {
     el2go_ota_check_update_resp_t resp = { 0 };
     const el2go_ota_update_info_t *update = NULL;
     const char *update_id = NULL;
     const char *package_id = NULL;
 
+    if (!el2go_ota_is_connected(updater->ota_ctx)) {
+        OTA_DIAG_WARN("connection lost - reconnecting");
+        el2go_ota_disconnect(updater->ota_ctx);
+
+        el2go_ota_status_t rc = el2go_ota_connect(updater->ota_ctx);
+        if (rc != EL2GO_OTA_SUCCESS) {
+            updater->connect_fail_count++;
+            if (updater->connect_fail_count <= 3U) {
+                OTA_DIAG_FAIL("el2go_ota_connect()");
+                OTA_DIAG_ERROR("%s", el2go_ota_get_error_string(rc));
+            }
+            return;
+        }
+        OTA_DIAG_DONE("el2go_ota_connect()");
+        updater->connect_fail_count = 0U;
+    }
+
     OTA_DIAG_INFO("checking for updates...");
 
     el2go_ota_status_t status =
-        el2go_ota_check_for_updates(ctx, device_attrs, DEVICE_ATTR_COUNT, &resp);
+        el2go_ota_check_for_updates(updater->ota_ctx, device_attrs, DEVICE_ATTR_COUNT, &resp);
     if (status != EL2GO_OTA_SUCCESS) {
         OTA_DIAG_FAIL("el2go_ota_check_for_updates()");
         OTA_DIAG_ERROR("%s", el2go_ota_get_error_string(status));
@@ -299,10 +324,10 @@ static void run_update_check(el2go_ota_ctx_t *ctx)
     update_id = update->update_id;
     package_id = (update->package_count > 0) ? update->packages[0].package_id : update_id;
 
-    status = run_download_and_handoff(ctx, update);
+    status = run_download_and_handoff(updater, update);
     if (status != EL2GO_OTA_SUCCESS) {
         OTA_DIAG_ERROR("download/handoff failed: %s", el2go_ota_get_error_string(status));
-        el2go_ota_report_status(ctx, update_id, package_id, EL2GO_OTA_OUTCOME_FAILURE);
+        el2go_ota_report_status(updater->ota_ctx, update_id, package_id, EL2GO_OTA_OUTCOME_FAILURE);
         return;
     }
 
@@ -316,8 +341,8 @@ static void run_update_check(el2go_ota_ctx_t *ctx)
     }
 
     OTA_DIAG_INFO("activating update...");
-    el2go_ota_disconnect(ctx);
-    el2go_ota_cleanup(&ctx);
+    el2go_ota_disconnect(updater->ota_ctx);
+    el2go_ota_cleanup(&updater->ota_ctx);
     if (el2go_app_sys_activate_update() != 0) {
         OTA_DIAG_ERROR("activation failed");
     }
@@ -325,39 +350,37 @@ static void run_update_check(el2go_ota_ctx_t *ctx)
     /* On Zephyr this line is never reached. */
 }
 
-/**
- * @brief Poll loop running on the main thread.
- *
- * Ensures the connection is up (reconnecting if needed), runs one update check,
- * then sleeps for the poll interval. Runs forever and does not return.
- *
- * @param[in] ctx  Pointer to the OTA context
- */
-static void run_poll_loop(el2go_ota_ctx_t *ctx)
+static void core_updater_finalize_boot(core_updater_ctx_t *updater, fwual_state_t fw_state)
 {
-    uint32_t connect_fail_count = 0U;
-
-    for (;;) {
-        if (!el2go_ota_is_connected(ctx)) {
-            OTA_DIAG_WARN("connection lost - reconnecting");
-            el2go_ota_disconnect(ctx);
-
-            el2go_ota_status_t rc = el2go_ota_connect(ctx);
-            if (rc != EL2GO_OTA_SUCCESS) {
-                connect_fail_count++;
-                if (connect_fail_count <= 3U) {
-                    OTA_DIAG_FAIL("el2go_ota_connect()");
-                    OTA_DIAG_ERROR("%s", el2go_ota_get_error_string(rc));
-                }
-                el2go_app_sys_sleep_ms(EL2GO_OTA_POLL_INTERVAL_MS);
-                continue;
-            }
-            OTA_DIAG_DONE("el2go_ota_connect()");
-            connect_fail_count = 0U;
+    if (fw_state == FWUAL_STATE_WAITING_CONFIRM) {
+        OTA_DIAG_INFO("new firmware validated - confirming image");
+        if (fwual_confirm() != FWUAL_OK) {
+            OTA_DIAG_FAIL("fwual_confirm()"); /* An unconfirmed image reverts on the next reset. */
+        } else {
+            OTA_DIAG_DONE("fwual_confirm()");
         }
 
-        run_update_check(ctx);
-        el2go_app_sys_sleep_ms(EL2GO_OTA_POLL_INTERVAL_MS);
+        el2go_ota_status_t status = EL2GO_OTA_ERROR_INTERNAL;
+
+        for (int report_attempt = 0; report_attempt < CONFIG_EL2GO_OTA_CORE_REPORT_MAX_RETRIES;
+             report_attempt++) {
+            if (report_attempt > 0) {
+                el2go_app_sys_sleep_ms(EL2GO_OTA_POLL_INTERVAL_MS);
+            }
+
+            status = el2go_ota_report_pending_status(updater->ota_ctx);
+            if (status == EL2GO_OTA_SUCCESS) {
+                OTA_DIAG_DONE("el2go_ota_report_pending_status()");
+                break;
+            }
+
+            OTA_DIAG_ERROR("status report attempt %d failed: %s", report_attempt + 1,
+                           el2go_ota_get_error_string(status));
+        }
+
+        if (status != EL2GO_OTA_SUCCESS) {
+            OTA_DIAG_FAIL("el2go_ota_report_pending_status()");
+        }
     }
 }
 
@@ -377,9 +400,10 @@ static void run_poll_loop(el2go_ota_ctx_t *ctx)
  *
  * @return 1 if any initialization step fails (does not return on success)
  */
+/* LCOV_EXCL_START */
 int main(int argc, char *argv[])
 {
-    el2go_ota_ctx_t *ctx = NULL;
+    core_updater_ctx_t updater = { 0 };
 
     /* hostname and port default to compile-time Kconfig values.
      * On Linux (or Zephyr with CONFIG_BOOTARGS) they can be overridden
@@ -428,14 +452,15 @@ int main(int argc, char *argv[])
     fwual_state_t fw_state = fwual_get_state();
     OTA_DIAG_INFO("fwual state: %d", (int)fw_state);
 
-    rc = fwual_get_caps(&fwual_caps);
+    rc = fwual_get_caps(&updater.fwual_caps);
     if (rc != FWUAL_OK) {
         OTA_DIAG_FAIL("fwual_get_caps()");
         return 1;
     }
     OTA_DIAG_DONE("fwual_get_caps()");
-    OTA_DIAG_INFO("caps: max_write=%u, sequential=%d, delta=%d", fwual_caps.max_write_size,
-                  (int)fwual_caps.requires_sequential_writes, (int)fwual_caps.supports_delta);
+    OTA_DIAG_INFO("caps: max_write=%u, sequential=%d, delta=%d", updater.fwual_caps.max_write_size,
+                  (int)updater.fwual_caps.requires_sequential_writes,
+                  (int)updater.fwual_caps.supports_delta);
 
     if (el2go_app_net_init() != 0) {
         OTA_DIAG_FAIL("el2go_app_net_init()");
@@ -443,7 +468,7 @@ int main(int argc, char *argv[])
     }
     OTA_DIAG_DONE("el2go_app_net_init()");
 
-    el2go_ota_status_t status = el2go_ota_init(&ctx, &config);
+    el2go_ota_status_t status = el2go_ota_init(&updater.ota_ctx, &config);
     if (status != EL2GO_OTA_SUCCESS) {
         OTA_DIAG_FAIL("el2go_ota_init()");
         OTA_DIAG_ERROR("%s", el2go_ota_get_error_string(status));
@@ -451,49 +476,26 @@ int main(int argc, char *argv[])
     }
     OTA_DIAG_DONE("el2go_ota_init()");
 
-    status = el2go_ota_connect(ctx);
+    status = el2go_ota_connect(updater.ota_ctx);
     if (status != EL2GO_OTA_SUCCESS) {
         OTA_DIAG_FAIL("el2go_ota_connect()");
         OTA_DIAG_ERROR("%s", el2go_ota_get_error_string(status));
-        el2go_ota_cleanup(&ctx);
+        el2go_ota_cleanup(&updater.ota_ctx);
         return 1;
     }
     OTA_DIAG_DONE("el2go_ota_connect()");
     OTA_DIAG_INFO("connected to %s:%u", hostname, (unsigned)port);
 
-    if (fw_state == FWUAL_STATE_WAITING_CONFIRM) {
-        OTA_DIAG_INFO("new firmware validated - confirming image");
-        if (fwual_confirm() != FWUAL_OK) {
-            OTA_DIAG_FAIL("fwual_confirm()"); /* An unconfirmed image reverts on the next reset. */
-        } else {
-            OTA_DIAG_DONE("fwual_confirm()");
-        }
-
-        for (int report_attempt = 0; report_attempt < CONFIG_EL2GO_OTA_CORE_REPORT_MAX_RETRIES;
-             report_attempt++) {
-            if (report_attempt > 0) {
-                el2go_app_sys_sleep_ms(EL2GO_OTA_POLL_INTERVAL_MS);
-            }
-
-            status = el2go_ota_report_pending_status(ctx);
-            if (status == EL2GO_OTA_SUCCESS) {
-                OTA_DIAG_DONE("el2go_ota_report_pending_status()");
-                break;
-            }
-
-            OTA_DIAG_ERROR("status report attempt %d failed: %s", report_attempt + 1,
-                           el2go_ota_get_error_string(status));
-        }
-
-        if (status != EL2GO_OTA_SUCCESS) {
-            OTA_DIAG_FAIL("el2go_ota_report_pending_status()");
-        }
-    }
+    core_updater_finalize_boot(&updater, fw_state);
 
     OTA_DIAG_INFO("entering update-check loop (poll: %u ms)", EL2GO_OTA_POLL_INTERVAL_MS);
 
     /* Runs the poll loop on the main thread; does not return. */
-    run_poll_loop(ctx);
+    for (;;) {
+        core_updater_run_check(&updater);
+        el2go_app_sys_sleep_ms(EL2GO_OTA_POLL_INTERVAL_MS);
+    }
 
     return 0;
 }
+/* LCOV_EXCL_STOP */

@@ -8,9 +8,9 @@
 #include <string.h>
 #include <psa/crypto.h>
 #include "fwual/fwual.h"
+#include "fwual_mock.h"
 
 #define FWUAL_MOCK_MAX_IMAGES 4U
-#define FWUAL_MOCK_IMAGE_BUF_SIZE 4096U
 
 typedef struct {
     fwual_image_id_t image_id;
@@ -36,6 +36,8 @@ typedef struct {
     fwual_caps_t caps;
     fwual_state_t lifecycle_state;
     struct fwual_session session;
+    bool prepare_fail_next;
+    bool check_storage_fail_next;
 } fwual_mock_state_t;
 
 static fwual_mock_state_t s_mock;
@@ -131,6 +133,11 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
     size_t i = 0U;
     fwual_mock_image_t *slot = NULL;
 
+    if (s_mock.prepare_fail_next) {
+        s_mock.prepare_fail_next = false;
+        return FWUAL_ERR_INTERNAL;
+    }
+
     if (session == NULL || desc == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
     }
@@ -172,6 +179,11 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
 fwual_result_t fwual_check_storage(fwual_session_t *session, fwual_image_id_t image_id)
 {
     fwual_mock_image_t *slot = NULL;
+
+    if (s_mock.check_storage_fail_next) {
+        s_mock.check_storage_fail_next = false;
+        return FWUAL_ERR_NO_SPACE;
+    }
 
     if (session == NULL || session != &s_mock.session) {
         return FWUAL_ERR_INVALID_PARAM;
@@ -432,6 +444,33 @@ bool fwual_is_image_staged(fwual_session_t *session, fwual_image_id_t image_id)
     }
 
     return slot->finalized && slot->verified;
+}
+
+bool fwual_mock_image_cancelled(fwual_image_id_t image_id)
+{
+    size_t i = 0U;
+
+    for (i = 0U; i < s_mock.session.image_count; i++) {
+        if (s_mock.session.images[i].image_id == image_id) {
+            return s_mock.session.images[i].cancelled;
+        }
+    }
+    return false;
+}
+
+void fwual_mock_set_lifecycle_state_for_test(fwual_state_t state)
+{
+    s_mock.lifecycle_state = state;
+}
+
+void fwual_mock_set_prepare_fail_for_test(bool fail_next)
+{
+    s_mock.prepare_fail_next = fail_next;
+}
+
+void fwual_mock_set_check_storage_fail_for_test(bool fail_next)
+{
+    s_mock.check_storage_fail_next = fail_next;
 }
 
 void fwual_mock_simulate_reboot(void)

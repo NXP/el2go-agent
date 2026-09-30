@@ -18,12 +18,6 @@ target_sources(app PRIVATE
     ${CT_ROOT}/common/wrap_ota_tls.c
     ${CT_ROOT}/internal_ota_lib/test_el2go_ota_lib_internal.c
     ${CT_ROOT}/public_ota_lib/test_el2go_ota_lib_public.c
-    ${CT_ROOT}/internal_ota_agent_core/test_el2go_ota_agent_core_internal.c
-    ${CT_ROOT}/public_ota_agent_core/test_el2go_ota_agent_core_public.c
-    ${CT_ROOT}/internal_ota_agent_advanced/test_el2go_ota_agent_advanced_internal.c
-    ${CT_ROOT}/public_ota_agent_advanced/test_el2go_ota_agent_advanced_public.c
-    # FWUAL is mocked here; the real backend is exercised by el2go_fwual_component.
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/mock/fwual_mock.c
 )
 
 # Redirect the real TLS functions to the stubs in wrap_ota_tls so that
@@ -54,10 +48,6 @@ zephyr_include_directories(
     ${CT_ROOT}/common
     ${CT_ROOT}/internal_ota_lib
     ${CT_ROOT}/public_ota_lib
-    ${CT_ROOT}/internal_ota_agent_core
-    ${CT_ROOT}/public_ota_agent_core
-    ${CT_ROOT}/internal_ota_agent_advanced
-    ${CT_ROOT}/public_ota_agent_advanced
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/protobuf/nanopb

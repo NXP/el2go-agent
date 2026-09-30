@@ -89,15 +89,3 @@ ZTEST(el2go_ota_unit, test_ota_lib_core)
     zassert_ok(el2go_run_suite(register_ota_lib_core_tests),
                "OTA lib core (el2go_ota_lib.c) unit suite reported failures");
 }
-
-ZTEST(el2go_ota_unit, test_ota_agent_core)
-{
-    zassert_ok(el2go_run_suite(register_ota_agent_core_tests),
-               "OTA agent core unit suite reported failures");
-}
-
-ZTEST(el2go_ota_unit, test_ota_agent_advanced)
-{
-    zassert_ok(el2go_run_suite(register_ota_agent_advanced_tests),
-               "OTA agent advanced unit suite reported failures");
-}

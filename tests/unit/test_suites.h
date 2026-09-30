@@ -56,9 +56,19 @@ void register_ota_lib_internal_all_tests(void);
 void register_ota_agent_core_tests(void);
 
 /**
+ * @brief Register all internal el2go_ota_agent_core tests.
+ */
+void register_ota_agent_core_internal_tests(void);
+
+/**
  * @brief Register all el2go_ota_agent_advanced tests.
  */
 void register_ota_agent_advanced_tests(void);
+
+/**
+ * @brief Register all internal el2go_ota_agent_advanced tests.
+ */
+void register_ota_agent_advanced_internal_tests(void);
 
 /**
  * @brief Register all net_crypto tests.

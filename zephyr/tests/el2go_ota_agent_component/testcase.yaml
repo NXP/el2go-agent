@@ -1,0 +1,11 @@
+tests:
+  nxp_iot_agent.el2go_ota_agent_component:
+    tags:
+      - el2go
+      - ota
+      - agent
+      - component
+    platform_allow:
+      - native_sim
+    timeout: 180
+    harness: ztest

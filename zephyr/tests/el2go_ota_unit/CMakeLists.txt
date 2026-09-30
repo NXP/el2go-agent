@@ -25,11 +25,8 @@ target_sources(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_lib/test_el2go_ota_tls.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_lib/test_el2go_ota_cred_psa.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_ota_lib/test_el2go_ota_lib_core.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_core/test_el2go_ota_agent_core_public.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_ota_agent_advanced/test_el2go_ota_agent_advanced_public.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ztest_unit_main.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/tests/common/ztest_bridge.c
-    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/mock/fwual_mock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/mock/platform_stubs.c
     ${CMAKE_CURRENT_SOURCE_DIR}/mock/wrap_net_crypto.c
 )
