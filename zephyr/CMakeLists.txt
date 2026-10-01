@@ -96,6 +96,10 @@ else()
     set(EVENT_BACKEND default)
 endif()
 
+if(CONFIG_EL2GO_RTP_PSA_BACKEND_TFM)
+    set(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM 1)
+endif()
+
 # ---------------------------------------------------------------------------
 # Shared public include root -- resolves <ota/...> and <fwual/...> headers.
 # ---------------------------------------------------------------------------
