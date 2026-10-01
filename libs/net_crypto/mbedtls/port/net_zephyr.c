@@ -21,8 +21,12 @@
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/error.h"
 
+#ifndef USEC_PER_SEC
 #define USEC_PER_SEC 1000000U
+#endif
+#ifndef MSEC_PER_SEC
 #define MSEC_PER_SEC 1000U
+#endif
 
 /*
  * Prepare for using the sockets interface

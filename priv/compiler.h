@@ -25,7 +25,9 @@
 #define __export
 #endif
 #endif
+#ifndef __maybe_unused
 #define __maybe_unused __attribute__((unused))
+#endif
 #ifndef __packed
 #define __packed __attribute__((packed))
 #endif
