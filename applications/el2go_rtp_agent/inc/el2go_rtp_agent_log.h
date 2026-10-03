@@ -121,6 +121,17 @@ extern "C" {
         printc(__VA_ARGS__);      \
     } while (0)
 
+#if defined(EL2GO_RTP_TEST) && EL2GO_RTP_TEST
+#define EL2GO_RTP_TEST_LOG(ID, ...)     \
+    do {                                \
+        printc("TEST_LOG(%s): ", (ID)); \
+        printc(__VA_ARGS__);            \
+        printc("\n");                   \
+    } while (0)
+#else
+#define EL2GO_RTP_TEST_LOG(ID, ...)
+#endif
+
 #ifdef __cplusplus
 }
 #endif

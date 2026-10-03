@@ -174,6 +174,13 @@ static el2go_status_t handle_handshake_failure(net_crypto_ctx_t *ctx, int ret)
         EL2GO_DBG_PRINTF(ERROR, "Certificate verification failed: 0x%08x\n", verify_result);
         warn_crt_crl_period(verify_result);
         status = EL2GO_STATUS_NET_CRYPTO_CERT_VERIFY_FAILED;
+    } else {
+#ifdef MBEDTLS_ERROR_C
+        if (mbedtls_high_level_strerr(ret) != NULL)
+            EL2GO_DBG_PRINTF(ERROR, "High-level error: %s\n", mbedtls_high_level_strerr(ret));
+        if (mbedtls_low_level_strerr(ret) != NULL)
+            EL2GO_DBG_PRINTF(ERROR, "Low-level error: %s\n", mbedtls_low_level_strerr(ret));
+#endif
     }
 
     return status;
@@ -788,7 +795,7 @@ el2go_status_t net_crypto_verify_cert(net_crypto_ctx_t *ctx, const uint8_t *crl_
     peer_cert = MBEDTLS_COMPAT_GET_PEER_CERT(&ctx->ssl);
 
     if (!peer_cert) {
-        EL2GO_DBG_PRINTF(ERROR, "No peer certificate available\n");
+        EL2GO_DBG_PRINTF(ERROR, "No peer certificate available for CRL verification\n");
         status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
         goto exit;
     }
@@ -800,7 +807,9 @@ el2go_status_t net_crypto_verify_cert(net_crypto_ctx_t *ctx, const uint8_t *crl_
     if (verify_result != 0 || ret != 0) {
         if (verify_result != 0) {
             warn_crt_crl_period(verify_result);
-            EL2GO_DBG_PRINTF(ERROR, "CRL verification failed (Verify: 0x%08x)\n", verify_result);
+            EL2GO_DBG_PRINTF(ERROR,
+                             "Failed to verify server certificate with CRL (Verify: 0x%08x)\n",
+                             verify_result);
         } else {
             EL2GO_DBG_PRINTF(ERROR, "Certificate verification failed: -0x%04x\n", -ret);
         }

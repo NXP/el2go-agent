@@ -163,6 +163,7 @@ static el2go_status_t handle_import_key(el2go_keystore_t *keystore, nxp_iot_PsaR
         !import_key_req->has_usage || !import_key_req->has_algorithm ||
         !import_key_req->has_key_data_format || !import_key_req->has_lifetime ||
         !import_key_req->data) {
+        EL2GO_DBG_PRINTF(ERROR, "Import key request is missing required fields\n");
         el2go_status = EL2GO_STATUS_INVALID_REQUEST;
         goto exit;
     }

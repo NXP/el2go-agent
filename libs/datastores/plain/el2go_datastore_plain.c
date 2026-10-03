@@ -91,8 +91,10 @@ static el2go_status_t el2go_datastore_plain_init(void *context,
 
     (void)validator;
 
-    if (!context)
+    if (!context) {
+        EL2GO_DBG_PRINTF(ERROR, "datastore_context is NULL.\n");
         status = EL2GO_STATUS_INVALID_PARAMETER;
+    }
 
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
@@ -196,7 +198,7 @@ static el2go_status_t el2go_datastore_plain_write(void *context, const void *src
     }
 
     if (ADD_OVERFLOW(offset, len, &end_offset)) {
-        EL2GO_DBG_PRINTF(ERROR, "Overflow in offset calculation\n");
+        EL2GO_DBG_PRINTF(ERROR, "Wraparound in offset and length variables.\n");
         status = EL2GO_STATUS_ARITHMETIC_OVERFLOW;
         goto exit;
     }

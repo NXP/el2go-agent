@@ -41,14 +41,14 @@ if(NOT DEFINED PROJECT_ROOT)
     set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
 endif()
 
-# Verbosity level for tracing
+# Verbosity level for tracing.
+# Default is 2 (INFO) so that ERROR and INFO messages are visible out of the
+# box, matching the behaviour of the old nxp_iot_agent branch where
+# ENABLE_IOT_AGENT_ERROR/WARN/INFO/DEBUG were all ON by default.
+# Pass -DVERBOSE=0 to silence all library output, or -DVERBOSE=3..5 for more.
 if(VERBOSE)
     if(NOT VERBOSE MATCHES "^[0-9]$")
         message(FATAL_ERROR "VERBOSE must be an integer")
-    endif()
-
-    if(NOT VERBOSE EQUAL 0)
-        add_compile_definitions(ENABLE_TRACE)
     endif()
 
     if(${VERBOSE} GREATER 5)
@@ -60,13 +60,16 @@ if(VERBOSE)
             set(VERBOSE 2)
         endif()
     endif()
-
-    add_compile_definitions(TRACE_LEVEL=${VERBOSE})
-    message(STATUS TRACE_LEVEL: ${VERBOSE})
 else()
-    set(VERBOSE 0)
-    add_compile_definitions(TRACE_LEVEL=0)
+    # No explicit VERBOSE given -- default to INFO level (ERROR + INFO visible)
+    set(VERBOSE 2)
 endif()
+
+if(NOT VERBOSE EQUAL 0)
+    add_compile_definitions(ENABLE_TRACE)
+endif()
+add_compile_definitions(TRACE_LEVEL=${VERBOSE})
+message(STATUS "TRACE_LEVEL: ${VERBOSE}")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 

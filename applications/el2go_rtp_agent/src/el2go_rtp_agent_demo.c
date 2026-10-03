@@ -24,9 +24,20 @@
 /* UUID printing                                                               */
 /* ========================================================================== */
 
-static void print_uuid(const uint8_t *buf, size_t len)
+static void print_uuid_decimal(const uint8_t *buf, size_t len)
 {
-    EL2GO_RTP_LOG_INFO("Device UUID (%zu bytes):", len);
+    EL2GO_RTP_LOG_INFO("UID in decimal format:");
+    for (size_t i = 0U; i < len; i++) {
+        printc("%u", buf[i]);
+        if (i < len - 1U)
+            printc(".");
+    }
+    printc("\r\n");
+}
+
+static void print_uuid_hex(const uint8_t *buf, size_t len)
+{
+    EL2GO_RTP_LOG_INFO("UID in hex format:");
     for (size_t i = 0U; i < len; i++) {
         printc("%02x", buf[i]);
     }
@@ -160,9 +171,10 @@ static int agent_start(int argc, const char *argv[])
         size_t uuid_len = 0U;
 
         status = el2go_platform_get_uuid(platform_ctx, uuid_buf, sizeof(uuid_buf), &uuid_len);
-        if (status == EL2GO_STATUS_SUCCESS)
-            print_uuid(uuid_buf, uuid_len);
-        else
+        if (status == EL2GO_STATUS_SUCCESS) {
+            print_uuid_decimal(uuid_buf, uuid_len);
+            print_uuid_hex(uuid_buf, uuid_len);
+        } else
             EL2GO_RTP_LOG_INFO("Could not get device UUID (status: %d)", status);
     }
 

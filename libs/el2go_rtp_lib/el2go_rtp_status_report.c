@@ -200,16 +200,16 @@ __export el2go_status_t el2go_rtp_print_status_report(const void *status_report)
     EL2GO_DBG_TRACE_API_CALL;
 
     if (!status_report) {
-        EL2GO_PRINTF_ALWAYS("Update status report: (none)\n");
+        EL2GO_PRINTF_ALWAYS("Update status report:\r\n");
         goto exit;
     }
 
     r = (const nxp_iot_UpdateStatusReport *)status_report;
 
-    EL2GO_PRINTF_ALWAYS("Update status report:\n");
+    EL2GO_PRINTF_ALWAYS("Update status report:\r\n");
 
     if (r->has_status) {
-        EL2GO_PRINTF_ALWAYS("  Overall update %s (0x%04x: %s)\n",
+        EL2GO_PRINTF_ALWAYS("  The device update %s (0x%04x: %s)\r\n",
                             (r->status == nxp_iot_UpdateStatusReport_UpdateStatus_SUCCESS ?
                                  "was successful" :
                                  "FAILED"),
@@ -217,13 +217,13 @@ __export el2go_status_t el2go_rtp_print_status_report(const void *status_report)
     }
 
     if (r->has_correlationId) {
-        EL2GO_PRINTF_ALWAYS("  Correlation ID: %s\n", r->correlationId);
+        EL2GO_PRINTF_ALWAYS("  The correlation-id for this update is %s.\r\n", r->correlationId);
     }
 
     if (r->has_claimStatus) {
         const nxp_iot_AgentClaimStatus *cs = &r->claimStatus;
-        EL2GO_PRINTF_ALWAYS("  Claim status: 0x%04x: %s\n", (unsigned int)cs->status,
-                            claim_status_description(cs->status));
+        EL2GO_PRINTF_ALWAYS("  Status for claiming the device: 0x%04x: %s.\r\n",
+                            (unsigned int)cs->status, claim_status_description(cs->status));
         for (i = 0U; i < cs->details_count; i++) {
             const nxp_iot_AgentClaimStatus_DetailedClaimStatus *d = &cs->details[i];
             EL2GO_PRINTF_ALWAYS("    Endpoint 0x%08" PRIx32 ": claim status 0x%04x: %s\n",
@@ -234,8 +234,8 @@ __export el2go_status_t el2go_rtp_print_status_report(const void *status_report)
 
     if (r->has_rtpStatus) {
         const nxp_iot_AgentRtpStatus *rs = &r->rtpStatus;
-        EL2GO_PRINTF_ALWAYS("  RTP status: 0x%04x: %s\n", (unsigned int)rs->status,
-                            rtp_status_description(rs->status));
+        EL2GO_PRINTF_ALWAYS("  Status for remote trust provisioning: 0x%04x: %s.\r\n",
+                            (unsigned int)rs->status, rtp_status_description(rs->status));
         for (i = 0U; i < rs->details_count; i++) {
             const nxp_iot_AgentRtpStatus_RtpObjectStatus *d = &rs->details[i];
             EL2GO_PRINTF_ALWAYS("    Endpoint 0x%08" PRIx32 ", object 0x%08" PRIx32
@@ -247,8 +247,8 @@ __export el2go_status_t el2go_rtp_print_status_report(const void *status_report)
 
     if (r->has_cspStatus) {
         const nxp_iot_AgentCspStatus *cs = &r->cspStatus;
-        EL2GO_PRINTF_ALWAYS("  CSP status: 0x%04x: %s\n", (unsigned int)cs->status,
-                            csp_status_description(cs->status));
+        EL2GO_PRINTF_ALWAYS("  Status for cloud service provisioning: 0x%04x: %s.\r\n",
+                            (unsigned int)cs->status, csp_status_description(cs->status));
         for (i = 0U; i < cs->details_count; i++) {
             const nxp_iot_AgentCspStatus_CspServiceStatus *d = &cs->details[i];
             EL2GO_PRINTF_ALWAYS("    Endpoint 0x%08" PRIx32 ", service %" PRIu64
