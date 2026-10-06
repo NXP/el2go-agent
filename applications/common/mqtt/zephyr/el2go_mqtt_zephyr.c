@@ -25,15 +25,12 @@
 #include <zephyr/kernel.h>
 #include <zephyr/net/mqtt.h>
 #include <zephyr/data/json.h>
-#include <zephyr/logging/log.h>
-
 #include "psa/crypto.h"
 
 #include "net_crypto.h"
 #include "el2go_mqtt.h"
 #include "el2go_mqtt_config.h"
-
-LOG_MODULE_REGISTER(el2go_mqtt, LOG_LEVEL_INF);
+#include "el2go_app_log.h"
 
 /* -------------------------------------------------------------------------
  * Key/cert PSA IDs for each MQTT backend
@@ -154,11 +151,9 @@ int mqtt_client_custom_transport_connect(struct mqtt_client *client)
     rc = net_crypto_connect(ctx);
 
     if (rc != EL2GO_STATUS_SUCCESS) {
-        LOG_ERR("net_crypto_connect failed (status: %d)", rc);
+        EL2GO_APP_LOG_ERROR("net_crypto_connect failed (status: %d)", rc);
         return -EIO;
     }
-
-    LOG_DBG("net_crypto_connect OK");
     return 0;
 }
 
@@ -221,7 +216,7 @@ static int export_cert_der_from_psa_keystore(psa_key_id_t key_id, uint8_t **buf_
 
     psa_rc = psa_get_key_attributes(key_id, &attributes);
     if (psa_rc != PSA_SUCCESS) {
-        LOG_ERR("psa_get_key_attributes(0x%08x) failed: %d", (unsigned)key_id, psa_rc);
+        EL2GO_APP_LOG_ERROR("psa_get_key_attributes(0x%08x) failed: %d", (unsigned)key_id, psa_rc);
         return -EIO;
     }
 
@@ -232,14 +227,14 @@ static int export_cert_der_from_psa_keystore(psa_key_id_t key_id, uint8_t **buf_
 
     uint8_t *buf = k_malloc(buf_size);
     if (buf == NULL) {
-        LOG_ERR("Failed to allocate cert buffer (%zu bytes)", buf_size);
+        EL2GO_APP_LOG_ERROR("Failed to allocate cert buffer (%zu bytes)", buf_size);
         return -ENOMEM;
     }
 
     size_t cert_len = 0;
     psa_rc = psa_export_key(key_id, buf, buf_size, &cert_len);
     if (psa_rc != PSA_SUCCESS) {
-        LOG_ERR("psa_export_key(0x%08x) failed: %d", (unsigned)key_id, psa_rc);
+        EL2GO_APP_LOG_ERROR("psa_export_key(0x%08x) failed: %d", (unsigned)key_id, psa_rc);
         k_free(buf);
         return -EIO;
     }
@@ -312,7 +307,7 @@ static int setupMQTTClient(struct mqtt_client *client, mqtt_evt_cb_t evt_cb, con
         struct mqtt_utf8 *uname = k_malloc(sizeof(struct mqtt_utf8));
 
         if (uname == NULL) {
-            LOG_ERR("Failed to allocate MQTT username struct");
+            EL2GO_APP_LOG_ERROR("Failed to allocate MQTT username struct");
             return -ENOMEM;
         }
         uname->utf8 = (uint8_t *)username;
@@ -322,7 +317,7 @@ static int setupMQTTClient(struct mqtt_client *client, mqtt_evt_cb_t evt_cb, con
 
     /* Create net_crypto context and configure it. */
     if (net_crypto_new(&net_ctx) != EL2GO_STATUS_SUCCESS) {
-        LOG_ERR("net_crypto_new failed");
+        EL2GO_APP_LOG_ERROR("net_crypto_new failed");
         rc = -ENOMEM;
         goto err_uname;
     }
@@ -333,14 +328,14 @@ static int setupMQTTClient(struct mqtt_client *client, mqtt_evt_cb_t evt_cb, con
     };
 
     if (net_crypto_configure(net_ctx, &cfg) != EL2GO_STATUS_SUCCESS) {
-        LOG_ERR("net_crypto_configure failed");
+        EL2GO_APP_LOG_ERROR("net_crypto_configure failed");
         rc = -EIO;
         goto err_ctx;
     }
 
     /* Root CA certificate. */
     if (net_crypto_set_server_cert(net_ctx, ca_cert_der, ca_cert_len) != EL2GO_STATUS_SUCCESS) {
-        LOG_ERR("net_crypto_set_server_cert failed");
+        EL2GO_APP_LOG_ERROR("net_crypto_set_server_cert failed");
         rc = -EIO;
         goto err_ctx;
     }
@@ -352,14 +347,14 @@ static int setupMQTTClient(struct mqtt_client *client, mqtt_evt_cb_t evt_cb, con
     }
 
     if (net_crypto_set_cli_cert(net_ctx, cert_buf, cert_len) != EL2GO_STATUS_SUCCESS) {
-        LOG_ERR("net_crypto_set_cli_cert failed");
+        EL2GO_APP_LOG_ERROR("net_crypto_set_cli_cert failed");
         rc = -EIO;
         goto err_ctx;
     }
 
     /* PSA opaque private key. */
     if (net_crypto_associate_key(net_ctx, (uint32_t)key_id) != EL2GO_STATUS_SUCCESS) {
-        LOG_ERR("net_crypto_associate_key(0x%08x) failed", key_id);
+        EL2GO_APP_LOG_ERROR("net_crypto_associate_key(0x%08x) failed", key_id);
         rc = -EIO;
         goto err_ctx;
     }
@@ -401,16 +396,12 @@ static int connectMQTTClient(struct mqtt_client *client, const char *service_nam
 
     while (retry < MQTT_CONNECTION_RETRY_COUNT) {
         retry++;
-        LOG_INF("Connecting to '%s' (attempt %u/%u) ...", service_name, retry,
-                (uint16_t)MQTT_CONNECTION_RETRY_COUNT);
-
         k_sem_reset(&sem_connected);
         k_sem_reset(&sem_disconnected);
 
         int rc = mqtt_connect(client);
-        LOG_INF("mqtt_connect returned: %d", rc);
         if (rc != 0) {
-            LOG_ERR("mqtt_connect failed: %d", rc);
+            EL2GO_APP_LOG_ERROR("mqtt_connect failed: %d", rc);
             k_msleep(MQTT_CONNACK_WAIT_MSEC);
             continue;
         }
@@ -428,7 +419,7 @@ static int connectMQTTClient(struct mqtt_client *client, const char *service_nam
             k_msleep(10);
         }
 
-        LOG_ERR("No CONNACK received");
+        EL2GO_APP_LOG_ERROR("No CONNACK received");
         mqtt_disconnect(client, NULL);
     }
 
@@ -440,13 +431,13 @@ static int connectMQTTClient(struct mqtt_client *client, const char *service_nam
  * ------------------------------------------------------------------------- */
 static void genericMQTTCallback(struct mqtt_client *client, const struct mqtt_evt *evt)
 {
-    LOG_INF("MQTT event %d", evt->type);
-
     switch (evt->type) {
     case MQTT_EVT_CONNACK:
+        EL2GO_APP_LOG_INFO("Received MQTT event CONNACK");
         k_sem_give(&sem_connected);
         break;
     case MQTT_EVT_DISCONNECT:
+        EL2GO_APP_LOG_INFO("Received MQTT event DISCONNECT");
         k_sem_give(&sem_disconnected);
         break;
     default:
@@ -459,16 +450,17 @@ static void genericMQTTCallback(struct mqtt_client *client, const struct mqtt_ev
  * ------------------------------------------------------------------------- */
 static void azureRegistrationCallback(struct mqtt_client *client, const struct mqtt_evt *evt)
 {
-    LOG_INF("Azure MQTT event %d", evt->type);
-
     switch (evt->type) {
     case MQTT_EVT_CONNACK:
+        EL2GO_APP_LOG_INFO("Received MQTT event CONNACK");
         k_sem_give(&sem_connected);
         break;
     case MQTT_EVT_DISCONNECT:
+        EL2GO_APP_LOG_INFO("Received MQTT event DISCONNECT");
         k_sem_give(&sem_disconnected);
         break;
     case MQTT_EVT_SUBACK:
+        EL2GO_APP_LOG_INFO("Received MQTT event SUBACK");
         k_sem_give(&sem_subscribed);
         break;
     case MQTT_EVT_PUBLISH: {
@@ -478,12 +470,12 @@ static void azureRegistrationCallback(struct mqtt_client *client, const struct m
         char *message = k_malloc(msg_size + 1U);
 
         if (message == NULL) {
-            LOG_ERR("OOM for DPS publish payload");
+            EL2GO_APP_LOG_ERROR("OOM for DPS publish payload");
             break;
         }
 
         if (mqtt_readall_publish_payload(client, message, msg_size) < 0) {
-            LOG_ERR("Failed to read DPS publish payload");
+            EL2GO_APP_LOG_ERROR("Failed to read DPS publish payload");
             k_free(message);
             break;
         }
@@ -493,7 +485,7 @@ static void azureRegistrationCallback(struct mqtt_client *client, const struct m
 
         if (json_obj_parse(message, msg_size, azure_publish_message_description,
                            ARRAY_SIZE(azure_publish_message_description), &publish_msg) < 0) {
-            LOG_ERR("Failed to parse DPS JSON response");
+            EL2GO_APP_LOG_ERROR("Failed to parse DPS JSON response");
             k_free(message);
             break;
         }
@@ -501,7 +493,8 @@ static void azureRegistrationCallback(struct mqtt_client *client, const struct m
         azure_registration_info_t *reg = reg_info_p;
 
         if (publish_msg.status != NULL && strcmp(publish_msg.status, "assigning") == 0) {
-            LOG_INF("DPS state: ASSIGNING");
+            EL2GO_APP_LOG_INFO("Received MQTT event PUBLISH");
+            EL2GO_APP_LOG_INFO("Device State is now ASSIGNING");
             if (publish_msg.operationId != NULL) {
                 strncpy(reg->operationId, AZURE_MQTT_PUBLISH_MSG_OPID_AZURE,
                         sizeof(reg->operationId) - 1U);
@@ -511,7 +504,8 @@ static void azureRegistrationCallback(struct mqtt_client *client, const struct m
             reg->state = ASSIGNING;
             k_sem_give(&sem_assigning);
         } else if (publish_msg.status != NULL && strcmp(publish_msg.status, "assigned") == 0) {
-            LOG_INF("DPS state: ASSIGNED");
+            EL2GO_APP_LOG_INFO("Received MQTT event PUBLISH");
+            EL2GO_APP_LOG_INFO("Device State is now ASSIGNED");
             if (publish_msg.registrationState.assignedHub != NULL) {
                 strncpy(reg->assignedHub, publish_msg.registrationState.assignedHub,
                         sizeof(reg->assignedHub) - 1U);
@@ -547,7 +541,7 @@ static int azureFormatRegistrationUsername(azure_registration_info_t *reg_info,
                      registration_id);
 
     if (n < 0 || (size_t)n >= sizeof(reg_info->username)) {
-        LOG_ERR("Azure registration username truncated");
+        EL2GO_APP_LOG_ERROR("Azure registration username truncated");
         return -ENOMEM;
     }
     return 0;
@@ -560,7 +554,7 @@ static int azureFormatConnectionInfo(azure_connection_info_t *conn_info, const c
                      "%s/%s/?api-version=2018-06-30", hub_name, device_id);
 
     if (n < 0 || (size_t)n >= sizeof(conn_info->username)) {
-        LOG_ERR("Azure hub username truncated");
+        EL2GO_APP_LOG_ERROR("Azure hub username truncated");
         return -ENOMEM;
     }
 
@@ -568,7 +562,7 @@ static int azureFormatConnectionInfo(azure_connection_info_t *conn_info, const c
                  device_id);
 
     if (n < 0 || (size_t)n >= sizeof(conn_info->topic)) {
-        LOG_ERR("Azure hub topic truncated");
+        EL2GO_APP_LOG_ERROR("Azure hub topic truncated");
         return -ENOMEM;
     }
 
@@ -605,22 +599,22 @@ static int awsPubMqttMessage(void)
     }
 
     if (client_id[0] == '\0') {
-        LOG_ERR("AWS client ID is empty");
+        EL2GO_APP_LOG_ERROR("AWS client ID is empty");
         return -EINVAL;
     }
 
-    const char *hostname = CONFIG_EL2GO_RTP_MQTT_AWS_HOSTNAME;
+    const char *hostname = AWS_HOSTNAME;
 
     rc = setupMQTTClient(&client_ctx, genericMQTTCallback, client_id, NULL, hostname, 8883U,
                          MQTT_AWS_KEY_ID, MQTT_AWS_CERT_ID, aws_root_ca, sizeof(aws_root_ca));
     if (rc != 0) {
-        LOG_ERR("AWS setupMQTTClient failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("AWS setupMQTTClient failed (%d)", rc);
         return rc;
     }
 
     rc = connectMQTTClient(&client_ctx, hostname);
     if (rc != 0) {
-        LOG_ERR("AWS connectMQTTClient failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("Error in MQTT connection");
         goto cleanup;
     }
 
@@ -639,9 +633,9 @@ static int awsPubMqttMessage(void)
 
     while (attempts < MQTT_PUBLISH_ATTEMPTS) {
         if (mqtt_publish(&client_ctx, &msg) == 0) {
-            LOG_INF("AWS publish OK (msg_id=%u)", msg.message_id);
+            EL2GO_APP_LOG_INFO("Successfully published");
         } else {
-            LOG_WRN("AWS publish failed (msg_id=%u)", msg.message_id);
+            EL2GO_APP_LOG_ERROR("Publish failed");
             fails++;
         }
         attempts++;
@@ -649,7 +643,8 @@ static int awsPubMqttMessage(void)
     }
 
     if (fails >= (MQTT_PUBLISH_ATTEMPTS / 2U)) {
-        LOG_ERR("Too many AWS publish failures (%u/%u)", fails, (uint16_t)MQTT_PUBLISH_ATTEMPTS);
+        EL2GO_APP_LOG_ERROR("Too many AWS publish failures (%u/%u)", fails,
+                            (uint16_t)MQTT_PUBLISH_ATTEMPTS);
         rc = -EIO;
     }
 
@@ -694,7 +689,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
     }
 
     if (reg_id[0] == '\0') {
-        LOG_ERR("Azure registration ID is empty");
+        EL2GO_APP_LOG_ERROR("Azure registration ID is empty");
         return -EINVAL;
     }
 
@@ -707,7 +702,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
                          AZURE_MQTT_REGISTER_HOSTNAME, AZURE_MQTT_REGISTER_PORT, MQTT_AZURE_KEY_ID,
                          MQTT_AZURE_CERT_ID, azure_root_ca, sizeof(azure_root_ca));
     if (rc != 0) {
-        LOG_ERR("Azure DPS setupMQTTClient failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("Azure DPS setupMQTTClient failed (%d)", rc);
         return rc;
     }
 
@@ -715,7 +710,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
 
     rc = connectMQTTClient(&client_ctx, AZURE_MQTT_REGISTER_HOSTNAME);
     if (rc != 0) {
-        LOG_ERR("Azure DPS connect failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("Error in MQTT connection");
         goto cleanup;
     }
 
@@ -736,7 +731,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
     };
 
     if (mqtt_subscribe(&client_ctx, &sub_list) != 0) {
-        LOG_ERR("Azure DPS subscribe failed");
+        EL2GO_APP_LOG_ERROR("Azure DPS subscribe failed");
         rc = -EIO;
         goto cleanup;
     }
@@ -744,7 +739,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
     mqtt_input(&client_ctx);
 
     if (k_sem_take(&sem_subscribed, K_MSEC(MQTT_SUBACK_WAIT_MSEC)) != 0) {
-        LOG_ERR("Timeout waiting for DPS SUBACK");
+        EL2GO_APP_LOG_ERROR("Timeout waiting for DPS SUBACK");
         rc = -ETIMEDOUT;
         goto cleanup;
     }
@@ -761,7 +756,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
     };
 
     if (mqtt_publish(&client_ctx, &reg_msg) != 0) {
-        LOG_ERR("Azure DPS register publish failed");
+        EL2GO_APP_LOG_ERROR("Azure DPS register publish failed");
         rc = -EIO;
         goto cleanup;
     }
@@ -769,7 +764,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
     mqtt_input(&client_ctx);
 
     if (k_sem_take(&sem_assigning, K_MSEC(MQTT_PUBACK_WAIT_MSEC)) != 0) {
-        LOG_ERR("Timeout waiting for DPS ASSIGNING state");
+        EL2GO_APP_LOG_ERROR("Timeout waiting for DPS ASSIGNING state");
         rc = -ETIMEDOUT;
         goto cleanup;
     }
@@ -789,7 +784,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
 
     while (reg_info->state != ASSIGNED && wait_count < AZURE_MQTT_REGISTRATION_WAIT_COUNT) {
         if (mqtt_publish(&client_ctx, &poll_msg) != 0) {
-            LOG_ERR("Azure DPS poll publish failed");
+            EL2GO_APP_LOG_ERROR("Azure DPS poll publish failed");
             rc = -EIO;
             goto cleanup;
         }
@@ -802,7 +797,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
     }
 
     if (reg_info->state != ASSIGNED) {
-        LOG_ERR("Timeout waiting for DPS ASSIGNED state after %u polls", wait_count);
+        EL2GO_APP_LOG_ERROR("Timeout waiting for DPS ASSIGNED state after %u polls", wait_count);
         rc = -ETIMEDOUT;
     }
 
@@ -831,13 +826,13 @@ static int azurePub(azure_registration_info_t *reg_info)
                          reg_info->assignedHub, AZURE_MQTT_REGISTER_PORT, MQTT_AZURE_KEY_ID,
                          MQTT_AZURE_CERT_ID, azure_root_ca, sizeof(azure_root_ca));
     if (rc != 0) {
-        LOG_ERR("Azure hub setupMQTTClient failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("Azure hub setupMQTTClient failed (%d)", rc);
         return rc;
     }
 
     rc = connectMQTTClient(&client_ctx, reg_info->assignedHub);
     if (rc != 0) {
-        LOG_ERR("Azure hub connect failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("Error in MQTT connection");
         goto cleanup;
     }
 
@@ -856,9 +851,9 @@ static int azurePub(azure_registration_info_t *reg_info)
 
     while (attempts < MQTT_PUBLISH_ATTEMPTS) {
         if (mqtt_publish(&client_ctx, &msg) == 0) {
-            LOG_INF("Azure hub publish OK (msg_id=%u)", msg.message_id);
+            EL2GO_APP_LOG_INFO("Successfully published");
         } else {
-            LOG_WRN("Azure hub publish failed (msg_id=%u)", msg.message_id);
+            EL2GO_APP_LOG_ERROR("Publish failed");
             fails++;
         }
         attempts++;
@@ -866,8 +861,8 @@ static int azurePub(azure_registration_info_t *reg_info)
     }
 
     if (fails >= (MQTT_PUBLISH_ATTEMPTS / 2U)) {
-        LOG_ERR("Too many Azure hub publish failures (%u/%u)", fails,
-                (uint16_t)MQTT_PUBLISH_ATTEMPTS);
+        EL2GO_APP_LOG_ERROR("Too many Azure hub publish failures (%u/%u)", fails,
+                            (uint16_t)MQTT_PUBLISH_ATTEMPTS);
         rc = -EIO;
     }
 
@@ -882,18 +877,30 @@ static int azurePubMqttMessage(void)
     azure_registration_info_t reg_info = { 0 };
     int rc;
 
-    LOG_INF("Starting Azure DPS registration ...");
+    {
+        char reg_id_azure[CERT_CN_MAX_LEN] = { 0 };
+        if (strlen(AZURE_REGISTRATION_ID) > 0U) {
+            strncpy(reg_id_azure, AZURE_REGISTRATION_ID, sizeof(reg_id_azure) - 1U);
+        } else {
+            uint8_t *cert_buf = NULL;
+            size_t cert_len = 0;
+            if (export_cert_der_from_psa_keystore(MQTT_AZURE_CERT_ID, &cert_buf, &cert_len) == 0) {
+                (void)extract_cn_from_cert(cert_buf, cert_len, reg_id_azure, sizeof(reg_id_azure));
+                k_free(cert_buf);
+            }
+        }
+        EL2GO_APP_LOG_INFO("Attempting to register service '%s' ...", reg_id_azure);
+    }
     rc = azureRegister(&reg_info);
     if (rc != 0) {
-        LOG_ERR("Azure DPS registration failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("Azure DPS registration failed (%d)", rc);
         return rc;
     }
 
-    LOG_INF("DPS assigned hub: %s  device: %s", reg_info.assignedHub, reg_info.deviceId);
-
+    EL2GO_APP_LOG_INFO("Attempting to connect to service '%s' ...", reg_info.deviceId);
     rc = azurePub(&reg_info);
     if (rc != 0) {
-        LOG_ERR("Azure hub publish failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("Azure hub publish failed (%d)", rc);
     }
 
     return rc;
@@ -909,31 +916,42 @@ int el2go_mqtt_verify(el2go_keystore_t *keystore)
     ARG_UNUSED(keystore);
 
 #if defined(CONFIG_EL2GO_RTP_MQTT_AWS)
-    LOG_INF("Verifying AWS IoT Core credentials (MQTT CONNECT + PUBLISH) ...");
+    {
+        char client_id_aws[CERT_CN_MAX_LEN] = { 0 };
+        if (strlen(AWS_CLIENT_ID) > 0U) {
+            strncpy(client_id_aws, AWS_CLIENT_ID, sizeof(client_id_aws) - 1U);
+        } else {
+            uint8_t *cert_buf = NULL;
+            size_t cert_len = 0;
+            if (export_cert_der_from_psa_keystore(MQTT_AWS_CERT_ID, &cert_buf, &cert_len) == 0) {
+                (void)extract_cn_from_cert(cert_buf, cert_len, client_id_aws,
+                                           sizeof(client_id_aws));
+                k_free(cert_buf);
+            }
+        }
+        EL2GO_APP_LOG_INFO("Attempting to connect to service '%s' ...", client_id_aws);
+    }
     uint16_t aws_retry = 0U;
     do {
         rc = awsPubMqttMessage();
         aws_retry++;
     } while (rc != 0 && aws_retry < MQTT_CONNECTION_RETRY_COUNT);
     if (rc != 0) {
-        LOG_ERR("AWS MQTT verify failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("AWS MQTT verify failed (%d)", rc);
         return rc;
     }
-    LOG_INF("AWS IoT Core MQTT credentials verified");
 #endif
 
 #if defined(CONFIG_EL2GO_RTP_MQTT_AZURE)
-    LOG_INF("Verifying Azure IoT Hub credentials (DPS + MQTT CONNECT + PUBLISH) ...");
     uint16_t azure_retry = 0U;
     do {
         rc = azurePubMqttMessage();
         azure_retry++;
     } while (rc != 0 && azure_retry < MQTT_CONNECTION_RETRY_COUNT);
     if (rc != 0) {
-        LOG_ERR("Azure MQTT verify failed (%d)", rc);
+        EL2GO_APP_LOG_ERROR("Azure MQTT verify failed (%d)", rc);
         return rc;
     }
-    LOG_INF("Azure IoT Hub MQTT credentials verified");
 #endif
 
     return rc;

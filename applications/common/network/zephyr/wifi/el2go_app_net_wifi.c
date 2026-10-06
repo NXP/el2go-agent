@@ -15,13 +15,11 @@
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/net_event.h>
 #include <zephyr/net/ethernet_mgmt.h>
-#include <zephyr/logging/log.h>
 
 #include <string.h>
 
 #include "el2go_app_net.h"
-
-LOG_MODULE_REGISTER(network, CONFIG_LOG_DEFAULT_LEVEL);
+#include "el2go_app_log.h"
 
 #define WIFI_CONNECT_TIMEOUT_S 60
 
@@ -30,6 +28,8 @@ static K_SEM_DEFINE(s_ipv4_sem, 0, 1);
 
 static struct net_mgmt_event_callback s_wifi_cb;
 static struct net_mgmt_event_callback s_ipv4_cb;
+
+static struct net_if *s_iface = NULL;
 
 /**
  * @brief net_mgmt event handler for Wi-Fi connect and DHCP address events
@@ -47,10 +47,21 @@ static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, st
     switch (event) {
     case NET_EVENT_WIFI_CONNECT_RESULT:
         if (((const struct wifi_status *)cb->info)->status) {
-            LOG_WRN("WiFi connection failed");
+            EL2GO_APP_LOG_WARN("WIFI connection failed");
             break;
         }
-        LOG_INF("WiFi connected");
+
+        {
+            struct wifi_iface_status if_status = { 0 };
+            if (net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, iface, &if_status, sizeof(if_status)) ==
+                0) {
+                EL2GO_APP_LOG_INFO("Using %s @ %s (Channel %d, %d dBm)",
+                                   wifi_link_mode_txt(if_status.link_mode),
+                                   wifi_band_txt(if_status.band), if_status.channel,
+                                   if_status.rssi);
+            }
+        }
+
         k_sem_give(&s_wifi_sem);
         break;
 
@@ -58,13 +69,18 @@ static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, st
         if (iface->config.ip.ipv4 == NULL)
             break;
         for (int i = 0; i < NET_IF_MAX_IPV4_ADDR; i++) {
-            if (iface->config.ip.ipv4->unicast[i].ipv4.addr_type != NET_ADDR_DHCP) {
+            if (iface->config.ip.ipv4->unicast[i].ipv4.addr_type != NET_ADDR_DHCP)
                 continue;
-            }
-            char buf[NET_IPV4_ADDR_LEN];
-            net_addr_ntop(AF_INET, &iface->config.ip.ipv4->unicast[i].ipv4.address.in_addr, buf,
-                          sizeof(buf));
-            LOG_INF("DHCP address: %s", buf);
+
+            char addr_buf[NET_IPV4_ADDR_LEN];
+            char gw_buf[NET_IPV4_ADDR_LEN];
+
+            net_addr_ntop(AF_INET, &iface->config.ip.ipv4->unicast[i].ipv4.address.in_addr,
+                          addr_buf, sizeof(addr_buf));
+            net_addr_ntop(AF_INET, &iface->config.ip.ipv4->gw, gw_buf, sizeof(gw_buf));
+
+            EL2GO_APP_LOG_INFO("Using IPv4 address %s @ Gateway %s (DHCP)", addr_buf, gw_buf);
+
             k_sem_give(&s_ipv4_sem);
             break;
         }
@@ -100,7 +116,7 @@ static int set_mac_address(struct net_if *iface)
     int ret = net_mgmt(NET_REQUEST_ETHERNET_SET_MAC_ADDRESS, iface, &p, sizeof(p));
     net_if_up(iface);
     if (ret) {
-        LOG_ERR("Failed to set MAC: %d", ret);
+        EL2GO_APP_LOG_ERROR("Failed to set MAC: %d", ret);
         return ret;
     }
     k_sleep(K_SECONDS(2));
@@ -126,21 +142,19 @@ static int set_mac_address(struct net_if *iface)
 int el2go_app_net_init(void)
 {
     int ret = -1;
-    struct net_if *iface = NULL;
     struct wifi_connect_req_params params = { 0 };
 
     k_sleep(K_SECONDS(2));
 
-    iface = net_if_get_wifi_sta();
-    if (iface == NULL) {
-        LOG_ERR("No WiFi interface found");
+    s_iface = net_if_get_wifi_sta();
+    if (s_iface == NULL) {
+        EL2GO_APP_LOG_ERROR("WIFI connection request failed");
         return -ENODEV;
     }
 
-    ret = set_mac_address(iface);
-    if (ret) {
+    ret = set_mac_address(s_iface);
+    if (ret)
         return ret;
-    }
 
     net_mgmt_init_event_callback(&s_wifi_cb, event_handler, NET_EVENT_WIFI_CONNECT_RESULT);
     net_mgmt_add_event_callback(&s_wifi_cb);
@@ -152,30 +166,31 @@ int el2go_app_net_init(void)
     params.ssid_length = strlen(CONFIG_EL2GO_NET_WIFI_SSID);
     params.psk = CONFIG_EL2GO_NET_WIFI_PSK;
     params.psk_length = strlen(CONFIG_EL2GO_NET_WIFI_PSK);
-
     params.band = WIFI_FREQ_BAND_UNKNOWN;
     params.channel = WIFI_CHANNEL_ANY;
     params.security = WIFI_SECURITY_TYPE_WPA_AUTO_PERSONAL;
     params.mfp = WIFI_MFP_OPTIONAL;
     params.timeout = WIFI_CONNECT_TIMEOUT_S;
 
-    LOG_INF("Connecting to '%s' ...", CONFIG_EL2GO_NET_WIFI_SSID);
-    ret = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &params, sizeof(params));
+    EL2GO_APP_LOG_INFO("Connecting to SSID '%s' ...", CONFIG_EL2GO_NET_WIFI_SSID);
+
+    ret = net_mgmt(NET_REQUEST_WIFI_CONNECT, s_iface, &params, sizeof(params));
     if (ret) {
-        LOG_ERR("WiFi connect request failed: %d", ret);
+        EL2GO_APP_LOG_ERROR("WIFI connection request failed");
         return ret;
     }
 
     if (k_sem_take(&s_wifi_sem, K_SECONDS(WIFI_CONNECT_TIMEOUT_S)) != 0) {
-        LOG_ERR("WiFi connect timeout");
+        EL2GO_APP_LOG_ERROR("WIFI connection timeout");
         return -ETIMEDOUT;
     }
 
     if (k_sem_take(&s_ipv4_sem, K_SECONDS(WIFI_CONNECT_TIMEOUT_S)) != 0) {
-        LOG_ERR("DHCP timeout");
+        EL2GO_APP_LOG_ERROR("DHCP address timeout");
         return -ETIMEDOUT;
     }
 
-    LOG_INF("Network ready");
+    EL2GO_APP_LOG_INFO("Successfully connected to WIFI");
+
     return 0;
 }

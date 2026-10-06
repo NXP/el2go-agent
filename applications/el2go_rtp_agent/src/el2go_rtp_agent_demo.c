@@ -5,8 +5,11 @@
  *
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+#define UUID_DECIMAL_STRING_SIZE 44U
 
 #include "rtp/el2go_rtp.h"
 #include "common/el2go_datastore.h"
@@ -14,10 +17,12 @@
 #include "common/el2go_platform.h"
 #include "common/el2go_status.h"
 #include "rtp/el2go_rtp_config.h"
+#include "rtp/el2go_rtp_timing.h"
 #include "el2go_app_net.h"
 #include "el2go_mqtt.h"
 #include "osal.h"
 #include "el2go_rtp_agent_log.h"
+#include "el2go_rtp_agent_config.h"
 #include "el2go_app_time_measurement.h"
 
 /* ========================================================================== */
@@ -26,22 +31,75 @@
 
 static void print_uuid_decimal(const uint8_t *buf, size_t len)
 {
-    EL2GO_RTP_LOG_INFO("UID in decimal format:");
-    for (size_t i = 0U; i < len; i++) {
-        printc("%u", buf[i]);
-        if (i < len - 1U)
-            printc(".");
+    /* Convert raw bytes -> hex string, then hex string -> single decimal integer.
+     * Matches the old iot_agent_print_uid_integer() algorithm exactly. */
+    char hexString[UUID_DECIMAL_STRING_SIZE + 1U];
+    char decimalString[UUID_DECIMAL_STRING_SIZE + 1U];
+    uint32_t weightValueArray[UUID_DECIMAL_STRING_SIZE] = { 0U };
+    uint32_t decimalDigitWeightedSum[UUID_DECIMAL_STRING_SIZE] = { 0U };
+    size_t hexLen = 0U;
+
+    if (!buf || len == 0U)
+        return;
+
+    /* Build uppercase hex string from raw bytes */
+    hexLen = len * 2U;
+    if (hexLen > UUID_DECIMAL_STRING_SIZE)
+        hexLen = UUID_DECIMAL_STRING_SIZE;
+    for (size_t i = 0U; i < len && (i * 2U + 1U) < sizeof(hexString); i++)
+        (void)snprintf(hexString + (i * 2U), 3U, "%02X", buf[i]);
+    hexString[hexLen] = '\0';
+
+    /* Weighted-sum hex-to-decimal conversion */
+    weightValueArray[0] = 1U;
+    memset(decimalString, '0', UUID_DECIMAL_STRING_SIZE);
+    decimalString[UUID_DECIMAL_STRING_SIZE] = '\0';
+
+    for (size_t i = 0U; i < hexLen; i++) {
+        for (uint8_t j = 0U; j < UUID_DECIMAL_STRING_SIZE; j++) {
+            uint32_t charWeightedContrib = 0U;
+            unsigned char pickChar = (unsigned char)hexString[hexLen - 1U - i];
+            if (pickChar >= '0' && pickChar <= '9')
+                charWeightedContrib = (uint32_t)(pickChar - '0');
+            else if (pickChar >= 'A' && pickChar <= 'F')
+                charWeightedContrib = (uint32_t)(pickChar - 'A') + 10U;
+            else if (pickChar >= 'a' && pickChar <= 'f')
+                charWeightedContrib = (uint32_t)(pickChar - 'a') + 10U;
+            charWeightedContrib *= weightValueArray[j];
+            decimalDigitWeightedSum[j] += charWeightedContrib;
+        }
+        uint32_t rem = 0U;
+        for (uint8_t k = 0U; k < UUID_DECIMAL_STRING_SIZE; k++) {
+            weightValueArray[k] = rem + (weightValueArray[k] << 4);
+            rem = weightValueArray[k] / 10U;
+            weightValueArray[k] %= 10U;
+        }
     }
-    printc("\r\n");
+
+    /* Accumulate weighted sums into decimal string */
+    {
+        uint32_t rem = 0U;
+        for (uint8_t i = 0U; i < UUID_DECIMAL_STRING_SIZE; i++) {
+            uint8_t index = UUID_DECIMAL_STRING_SIZE - 1U - i;
+            decimalString[index] += (char)((rem + decimalDigitWeightedSum[i]) % 10U);
+            rem = (rem + decimalDigitWeightedSum[i]) / 10U;
+        }
+    }
+
+    /* Skip leading zeros (keep at least one digit) */
+    const char *printedString = decimalString;
+    while (*printedString == '0' && *(printedString + 1) != '\0')
+        printedString++;
+
+    EL2GO_RTP_LOG_INFO("UID in decimal format: %s", printedString);
 }
 
 static void print_uuid_hex(const uint8_t *buf, size_t len)
 {
-    EL2GO_RTP_LOG_INFO("UID in hex format:");
-    for (size_t i = 0U; i < len; i++) {
-        printc("%02x", buf[i]);
-    }
-    printc("\r\n");
+    char hexString[(UUID_DECIMAL_STRING_SIZE) + 1U] = { 0 };
+    for (size_t i = 0U; i < len && (i * 2U + 1U) < sizeof(hexString); i++)
+        (void)snprintf(hexString + (i * 2U), 3U, "%02X", buf[i]);
+    EL2GO_RTP_LOG_INFO("UID in hex format: %s", hexString);
 }
 
 /* ========================================================================== */
@@ -82,15 +140,16 @@ static int agent_start(int argc, const char *argv[])
     unsigned int patch = 0U;
 
     el2go_time_ctx_t demo_time = { 0 };
+    el2go_time_ctx_t network_time = { 0 };
     el2go_time_ctx_t phase_time = { 0 };
     el2go_time_t timing = { 0 };
 
-    EL2GO_RTP_LOG_ALWAYS("\nEL2GO RTP Agent Demo\n");
-    EL2GO_RTP_LOG_ALWAYS("====================\n\n");
-    EL2GO_RTP_LOG_INFO("Hostname : %s", hostname);
-    EL2GO_RTP_LOG_INFO("Port     : %u", port);
+    EL2GO_RTP_LOG_DEBUG("EL2GO RTP Agent Demo");
+    EL2GO_RTP_LOG_DEBUG("Hostname : %s", hostname);
+    EL2GO_RTP_LOG_DEBUG("Port     : %u", port);
 
     el2go_time_init(&demo_time);
+    el2go_time_init(&network_time);
 
     /* ---------------------------------------------------------------------- */
     /* Network initialization                                                  */
@@ -100,7 +159,8 @@ static int agent_start(int argc, const char *argv[])
         EL2GO_RTP_LOG_ERROR("Network init failed (%d)", rc);
         return rc;
     }
-    EL2GO_RTP_LOG_INFO("Network initialized");
+    el2go_time_conclude(&network_time);
+    EL2GO_RTP_LOG_DEBUG("Network initialized");
 
     /* ---------------------------------------------------------------------- */
     /* Platform initialization                                                 */
@@ -110,7 +170,7 @@ static int agent_start(int argc, const char *argv[])
         EL2GO_RTP_LOG_ERROR("Platform init failed (status: %d)", status);
         return -1;
     }
-    EL2GO_RTP_LOG_INFO("Platform initialized");
+    EL2GO_RTP_LOG_DEBUG("Platform initialized");
 
     /* ---------------------------------------------------------------------- */
     /* EL2GO RTP Agent initialization                                          */
@@ -120,11 +180,13 @@ static int agent_start(int argc, const char *argv[])
         EL2GO_RTP_LOG_ERROR("RTP agent init failed (status: %d)", status);
         goto cleanup_platform;
     }
-    EL2GO_RTP_LOG_INFO("RTP agent initialized");
+    EL2GO_RTP_LOG_DEBUG("RTP agent initialized");
+    (void)el2go_rtp_enable_timing(agent_ctx);
 
     status = el2go_rtp_get_version(&major, &minor, &patch);
-    if (status == EL2GO_STATUS_SUCCESS)
-        EL2GO_RTP_LOG_INFO("EL2GO RTP Agent Version: %u.%u.%u", major, minor, patch);
+    if (status == EL2GO_STATUS_SUCCESS) {
+        EL2GO_RTP_LOG_DEBUG("EL2GO RTP Agent Version: %u.%u.%u", major, minor, patch);
+    }
 
     /* ---------------------------------------------------------------------- */
     /* Keystore initialization                                                 */
@@ -134,48 +196,42 @@ static int agent_start(int argc, const char *argv[])
         EL2GO_RTP_LOG_ERROR("Keystore init failed (status: %d)", status);
         goto cleanup_agent;
     }
-    EL2GO_RTP_LOG_INFO("Keystore initialized");
+    EL2GO_RTP_LOG_DEBUG("Keystore initialized");
+
+    /* Capture init_time -- split into DEVICE_INIT_TIME (network) and AGENT_INIT_TIME (agent setup).*/
+    el2go_time_conclude(&demo_time);
+    timing.device_init_time = el2go_time_get_ms(&network_time);
+    timing.init_time =
+        el2go_time_get_ms(&demo_time) - timing.device_init_time - timing.claimcode_inject_time;
+    el2go_time_log_phase("DEVICE_INIT_TIME", timing.device_init_time);
+
+    EL2GO_RTP_LOG_INFO("Start");
 
     /* ---------------------------------------------------------------------- */
     /* Claimcode import (timed)                                                */
     /* ---------------------------------------------------------------------- */
     el2go_time_init(&phase_time);
 
-    if (claimcode != NULL) {
-        /* Runtime claimcode provided via argv[3] or CONFIG_BOOTARGS */
-        status = el2go_keystore_import_claimcode(&keystore_ctx, claimcode, strlen(claimcode));
-        if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_RTP_LOG_ERROR("Claimcode import failed (status: %d)", status);
-            goto cleanup_keystore_free;
+    if (EL2GO_RTP_CLAIMCODE_INJECT_ENABLED) {
+        if (claimcode != NULL) {
+            /* Runtime claimcode provided via argv[3] or CONFIG_BOOTARGS */
+            status = el2go_keystore_import_claimcode(&keystore_ctx, claimcode, strlen(claimcode));
+            if (status != EL2GO_STATUS_SUCCESS) {
+                EL2GO_RTP_LOG_ERROR("Claimcode import failed (status: %d)", status);
+                goto cleanup_keystore_free;
+            }
+            EL2GO_RTP_LOG_INFO("Claimcode imported from argument");
+        } else {
+            status = el2go_keystore_import_claimcode_from_flash(&keystore_ctx);
+            if (status != EL2GO_STATUS_SUCCESS) {
+                EL2GO_RTP_LOG_ERROR("Claimcode flash import failed (status: %d)", status);
+                goto cleanup_keystore_free;
+            }
         }
-        EL2GO_RTP_LOG_INFO("Claimcode imported from argument");
-    } else {
-        /* No runtime claimcode -- read from flash (Zephyr); no-op weak stub on Linux */
-        status = el2go_keystore_import_claimcode_from_flash(&keystore_ctx);
-        if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_RTP_LOG_ERROR("Claimcode flash import failed (status: %d)", status);
-            goto cleanup_keystore_free;
-        }
-        EL2GO_RTP_LOG_INFO("Claimcode imported from flash");
-    }
 
-    el2go_time_conclude(&phase_time);
-    timing.claimcode_inject_time = el2go_time_get_ms(&phase_time);
-    el2go_time_log_phase("CLAIMCODE_INJECT_TIME", timing.claimcode_inject_time);
-
-    /* ---------------------------------------------------------------------- */
-    /* Device UUID                                                             */
-    /* ---------------------------------------------------------------------- */
-    {
-        uint8_t uuid_buf[EL2GO_UUID_MAX_LEN] = { 0 };
-        size_t uuid_len = 0U;
-
-        status = el2go_platform_get_uuid(platform_ctx, uuid_buf, sizeof(uuid_buf), &uuid_len);
-        if (status == EL2GO_STATUS_SUCCESS) {
-            print_uuid_decimal(uuid_buf, uuid_len);
-            print_uuid_hex(uuid_buf, uuid_len);
-        } else
-            EL2GO_RTP_LOG_INFO("Could not get device UUID (status: %d)", status);
+        el2go_time_conclude(&phase_time);
+        timing.claimcode_inject_time = el2go_time_get_ms(&phase_time);
+        el2go_time_log_phase("CLAIMCODE_INJECT_TIME", timing.claimcode_inject_time);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -186,7 +242,7 @@ static int agent_start(int argc, const char *argv[])
         EL2GO_RTP_LOG_ERROR("Add keystore failed (status: %d)", status);
         goto cleanup_keystore_free;
     }
-    EL2GO_RTP_LOG_INFO("Keystore added to agent");
+    EL2GO_RTP_LOG_DEBUG("Keystore added to agent");
 
     /* ---------------------------------------------------------------------- */
     /* Datastore initialization                                                */
@@ -197,7 +253,7 @@ static int agent_start(int argc, const char *argv[])
         EL2GO_RTP_LOG_ERROR("Datastore init failed (status: %d)", status);
         goto cleanup_keystore;
     }
-    EL2GO_RTP_LOG_INFO("Datastore initialized");
+    EL2GO_RTP_LOG_DEBUG("Datastore initialized");
 
     /* ---------------------------------------------------------------------- */
     /* Add datastore to agent                                                  */
@@ -207,7 +263,7 @@ static int agent_start(int argc, const char *argv[])
         EL2GO_RTP_LOG_ERROR("Add datastore failed (status: %d)", status);
         goto cleanup_datastore_free;
     }
-    EL2GO_RTP_LOG_INFO("Datastore added to agent");
+    EL2GO_RTP_LOG_DEBUG("Datastore added to agent");
 
     /* ---------------------------------------------------------------------- */
     /* EdgeLock 2GO server configuration                                       */
@@ -222,18 +278,28 @@ static int agent_start(int argc, const char *argv[])
             EL2GO_RTP_LOG_ERROR("EL2GO datastore config failed (status: %d)", status);
             goto cleanup_datastore;
         }
-        EL2GO_RTP_LOG_INFO("EL2GO server configured: %s:%u", hostname, port);
+        EL2GO_RTP_LOG_DEBUG("EL2GO server configured: %s:%u", hostname, port);
     }
 
-    /* Capture init_time -- everything up to this point */
-    el2go_time_conclude(&demo_time);
-    timing.init_time = el2go_time_get_ms(&demo_time) - timing.claimcode_inject_time;
-    el2go_time_log_phase("DEVICE_INIT_TIME", timing.init_time);
+    /* ---------------------------------------------------------------------- */
+    /* Device UUID                                                             */
+    /* ---------------------------------------------------------------------- */
+    {
+        uint8_t uuid_buf[EL2GO_UUID_MAX_LEN] = { 0 };
+        size_t uuid_len = 0U;
+
+        status = el2go_platform_get_uuid(platform_ctx, uuid_buf, sizeof(uuid_buf), &uuid_len);
+        if (status == EL2GO_STATUS_SUCCESS) {
+            print_uuid_hex(uuid_buf, uuid_len);
+            print_uuid_decimal(uuid_buf, uuid_len);
+        } else
+            EL2GO_RTP_LOG_INFO("Could not get device UUID (status: %d)", status);
+    }
 
     /* ---------------------------------------------------------------------- */
-    /* Provisioning (timed)                                                    */
+    /* Provisioning (timed)                                                   */
     /* ---------------------------------------------------------------------- */
-    EL2GO_RTP_LOG_INFO("Provisioning from EdgeLock 2GO...");
+    EL2GO_RTP_LOG_INFO("Updating device configuration from [%s]:[%u].", hostname, port);
 
     el2go_time_init(&phase_time);
     status = el2go_rtp_provision(agent_ctx, &report);
@@ -241,34 +307,40 @@ static int agent_start(int argc, const char *argv[])
     el2go_rtp_free_status_report(&report);
     el2go_time_conclude(&phase_time);
     timing.provision_time = el2go_time_get_ms(&phase_time);
-    el2go_time_log_phase("PROVISION_TIME", timing.provision_time);
+    /* Retrieve sub-phase timings from library via API.
+     * command_txrx_ms has no equivalent in PSA/ELS PKC builds 
+     */
+    {
+        el2go_rtp_timing_t lib_timing = { 0 };
+        if (el2go_rtp_get_timing(agent_ctx, &lib_timing) == EL2GO_STATUS_SUCCESS) {
+            timing.tls_prep_ms = lib_timing.tls_prep_ms;
+            timing.network_connect_ms = lib_timing.network_connect_ms;
+            timing.crl_ms = lib_timing.crl_ms;
+        }
+    }
 
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_RTP_LOG_ERROR("Provisioning failed (status: %d)", status);
         goto cleanup_datastore;
     }
-    EL2GO_RTP_LOG_INFO("Provisioning completed successfully");
+    EL2GO_RTP_LOG_DEBUG("Provisioning completed successfully");
 
     /* ---------------------------------------------------------------------- */
-    /* MQTT credential verification (timed)                                    */
-    /* ---------------------------------------------------------------------- */
-    el2go_time_init(&phase_time);
-    rc = el2go_mqtt_verify(&keystore_ctx);
-    el2go_time_conclude(&phase_time);
-    timing.mqtt_verify_time = el2go_time_get_ms(&phase_time);
-    el2go_time_log_phase("MQTT_VERIFY_TIME", timing.mqtt_verify_time);
-
-    if (rc != 0)
-        EL2GO_RTP_LOG_ERROR("MQTT verify failed (%d)", rc);
-    else
-        EL2GO_RTP_LOG_INFO("EL2GO RTP Agent demo completed successfully");
-
-    /* ---------------------------------------------------------------------- */
-    /* Final timing report                                                     */
+    /* Final timing report                                                    */
     /* ---------------------------------------------------------------------- */
     el2go_time_conclude(&demo_time);
     timing.total_time = el2go_time_get_ms(&demo_time);
     el2go_log_performance_timing(&timing);
+
+    /* ---------------------------------------------------------------------- */
+    /* MQTT credential verification (timed)                                   */
+    /* ---------------------------------------------------------------------- */
+    if (EL2GO_RTP_MQTT_VERIFY_ENABLED) {
+        rc = el2go_mqtt_verify(&keystore_ctx);
+        if (rc != 0) {
+            EL2GO_RTP_LOG_ERROR("MQTT verify failed (%d)", rc);
+        }
+    }
 
 cleanup_datastore:
     el2go_rtp_remove_datastore(agent_ctx, &datastore_ctx);

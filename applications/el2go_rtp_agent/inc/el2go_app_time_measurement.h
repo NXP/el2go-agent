@@ -40,10 +40,14 @@ typedef struct {
 } el2go_time_ctx_t;
 
 typedef struct {
-    long init_time;             /**< Platform + keystore + datastore init (ms) */
+    long device_init_time;      /**< Network init (WiFi connect + DHCP) (ms)   */
+    long init_time;             /**< Platform + agent + keystore + datastore (ms) */
     long claimcode_inject_time; /**< Claimcode import (ms)                     */
-    long provision_time;        /**< el2go_rtp_provision() duration (ms)       */
-    long mqtt_verify_time;      /**< el2go_mqtt_verify() duration (ms)         */
+    long tls_prep_ms;           /**< TLS context preparation (ms)              */
+    long network_connect_ms;    /**< TCP connect + TLS handshake (ms)          */
+    long provision_time;        /**< el2go_rtp_provision() total duration (ms) */
+    long crl_ms;                /**< CRL fetch + verification (ms)             */
+    long command_txrx_ms;       /**< Protobuf dispatch loop (ms)               */
     long total_time;            /**< Entire agent_start() duration (ms)        */
 } el2go_time_t;
 
@@ -71,14 +75,16 @@ static inline void el2go_time_log_phase(const char *name, long ms)
 
 static inline void el2go_log_performance_timing(const el2go_time_t *t)
 {
-    EL2GO_RTP_LOG_ALWAYS("Performance timing: ENTIRE_SESSION_TIME    : %ldms\r\n", t->total_time);
-    EL2GO_RTP_LOG_ALWAYS("\tPerformance timing: DEVICE_INIT_TIME      : %ldms\r\n", t->init_time);
-    EL2GO_RTP_LOG_ALWAYS("\tPerformance timing: CLAIMCODE_INJECT_TIME : %ldms\r\n",
-                         t->claimcode_inject_time);
-    EL2GO_RTP_LOG_ALWAYS("\tPerformance timing: PROVISION_TIME        : %ldms\r\n",
+    EL2GO_RTP_LOG_ALWAYS("Performance timing: ENTIRE_SESSION_TIME : %ldms\r\n", t->total_time);
+    EL2GO_RTP_LOG_ALWAYS("        Performance timing: AGENT_INIT_TIME : %ldms\r\n", t->init_time);
+    EL2GO_RTP_LOG_ALWAYS("        Performance timing: TLS_PREP_TIME : %ldms\r\n", t->tls_prep_ms);
+    EL2GO_RTP_LOG_ALWAYS("        Performance timing: NETWORK_CONNECT_TIME : %ldms\r\n",
+                         t->network_connect_ms);
+    EL2GO_RTP_LOG_ALWAYS("        Performance timing: PROCESS_PROVISION_TIME : %ldms\r\n",
                          t->provision_time);
-    EL2GO_RTP_LOG_ALWAYS("\tPerformance timing: MQTT_VERIFY_TIME      : %ldms\r\n",
-                         t->mqtt_verify_time);
+    EL2GO_RTP_LOG_ALWAYS(
+        "\tCRL_TIME : [%ldms] and COMMAND_TXRX_TIME : [%ldms] included in PROCESS_PROVISION_TIME\r\n",
+        t->crl_ms, t->command_txrx_ms);
 }
 
 /* =========================================================================
@@ -90,10 +96,14 @@ typedef struct {
     char _dummy;
 } el2go_time_ctx_t;
 typedef struct {
+    long device_init_time;
     long init_time;
     long claimcode_inject_time;
+    long tls_prep_ms;
+    long network_connect_ms;
     long provision_time;
-    long mqtt_verify_time;
+    long crl_ms;
+    long command_txrx_ms;
     long total_time;
 } el2go_time_t;
 

@@ -442,14 +442,6 @@ config EL2GO_RTP_MQTT_AWS
       certificate (PSA ITS UID 0x4001) by performing a TLS handshake
       against the configured AWS IoT Core endpoint.
 
-config EL2GO_RTP_MQTT_AWS_HOSTNAME
-    string "AWS IoT Core endpoint hostname"
-    depends on EL2GO_RTP_MQTT_AWS
-    default "aw9969rp3sm22-ats.iot.eu-central-1.amazonaws.com"
-    help
-      The AWS IoT Core device endpoint hostname, e.g.
-      "<account-id>-ats.iot.<region>.amazonaws.com".
-
 config EL2GO_RTP_MQTT_AWS_KEY_ID
     hex "PSA key ID for the AWS IoT Core device private key"
     depends on EL2GO_RTP_MQTT_AWS
@@ -474,13 +466,6 @@ config EL2GO_RTP_MQTT_AZURE
     help
       Verifies the Azure IoT Hub device key and certificate by performing a
       TLS handshake against the configured Azure IoT Hub or DPS endpoint.
-
-config EL2GO_RTP_MQTT_AZURE_HOSTNAME
-    string "Azure IoT Hub / DPS hostname"
-    depends on EL2GO_RTP_MQTT_AZURE
-    default "global.azure-devices-provisioning.net"
-    help
-      The Azure IoT Hub or DPS hostname for MQTT TLS verification.
 
 config EL2GO_RTP_MQTT_AZURE_KEY_ID
     hex "PSA key ID for the Azure IoT Hub device private key"
@@ -569,6 +554,22 @@ config EL2GO_TIME_MEASUREMENT
       Enable performance timing measurements in the EL2GO RTP agent demo.
       Records and prints durations for claimcode injection, provisioning,
       MQTT verification, and the full session. Disable to reduce code size.
+
+config EL2GO_RTP_LIB_LOG_LEVEL
+    int "EL2GO RTP library log level"
+    depends on EL2GO_RTP_AGENT
+    default 3
+    range 0 5
+    help
+      Controls EL2GO_DBG_PRINTF output from the RTP library, datastores,
+      keystores and net_crypto on Zephyr. Default matches the old branch
+      where ERROR/WARN/INFO/DEBUG were all ON by default.
+      0 = off (all library logging silent)
+      1 = ERROR only
+      2 = ERROR + INFO
+      3 = ERROR + INFO + DEBUG  (default)
+      4 = + VERBOSE (API call traces)
+      5 = + EXTRA (every function entry)
 
 config EL2GO_RTP_ENABLE_INFO
     bool "Enable EL2GO RTP agent INFO logging"

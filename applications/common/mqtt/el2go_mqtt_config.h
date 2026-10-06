@@ -4,25 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * MQTT configuration for the EL2GO RTP Agent.
- *
- * Maps Kconfig symbols to C preprocessor defines, following the same
- * structure as the old iot_agent_demo_config.h from the simw-devicelink
- * master branch.  All user-facing settings are controlled via Kconfig
- * (prj.conf or one of the overlay-el2go-*.conf files); this header
- * provides the C-visible names consumed by el2go_mqtt_zephyr.c.
- *
- * Settings to change:
- *   CONFIG_EL2GO_RTP_MQTT_AWS_HOSTNAME        - your AWS IoT Core endpoint
- *   CONFIG_EL2GO_RTP_MQTT_AZURE_ID_SCOPE      - your Azure DPS ID scope
- *   CONFIG_EL2GO_RTP_MQTT_AZURE_HOSTNAME      - Azure DPS / IoT Hub hostname
- *   CONFIG_EL2GO_RTP_MQTT_AWS_KEY_ID          - PSA key ID for AWS device key
- *   CONFIG_EL2GO_RTP_MQTT_AWS_CERT_ID         - PSA ITS UID for AWS device cert
- *   CONFIG_EL2GO_RTP_MQTT_AZURE_KEY_ID        - PSA key ID for Azure device key
- *   CONFIG_EL2GO_RTP_MQTT_AZURE_CERT_ID       - PSA ITS UID for Azure device cert
- */
-
 #ifndef __EL2GO_MQTT_CONFIG_H__
 #define __EL2GO_MQTT_CONFIG_H__
 
@@ -49,8 +30,8 @@
 #define AWS_SERVICE_DEVICE_CERT_ID ((uint32_t)CONFIG_EL2GO_RTP_MQTT_AWS_CERT_ID)
 #endif
 
-/* AWS IoT Core endpoint hostname - CHANGE THIS to your account endpoint */
-#define AWS_HOSTNAME CONFIG_EL2GO_RTP_MQTT_AWS_HOSTNAME
+/* AWS IoT Core endpoint hostname */
+#define AWS_HOSTNAME "aw9969rp3sm22-ats.iot.eu-central-1.amazonaws.com"
 
 /*
  * MQTT client ID for AWS IoT Core.
@@ -84,13 +65,13 @@
 #endif
 
 /*
- * Azure DPS ID scope - CHANGE THIS to your DPS account ID scope.
+ * Azure DPS ID scope.
  * Found in the Azure portal under your DPS instance overview.
  */
-#define AZURE_ID_SCOPE CONFIG_EL2GO_RTP_MQTT_AZURE_ID_SCOPE
+#define AZURE_ID_SCOPE "0ne004510C6"
 
 /* Azure DPS global endpoint or dedicated IoT Hub hostname */
-#define AZURE_GLOBAL_DEVICE_ENDPOINT CONFIG_EL2GO_RTP_MQTT_AZURE_HOSTNAME
+#define AZURE_GLOBAL_DEVICE_ENDPOINT "global.azure-devices-provisioning.net"
 
 /*
  * DPS registration ID for Azure.
