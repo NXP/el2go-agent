@@ -22,8 +22,8 @@
 #include "el2go_rtp_internal.h"
 #include "el2go_dispatcher_priv.h"
 #include "el2go_agent_endpoint.h"
-#include "rtp/el2go_rtp_timing.h"
 #include "osal.h"
+#include "el2go_rtp_timing_priv.h"
 
 /* ========================================================================== */
 /* Agent endpoint - get_info                                                   */
@@ -133,12 +133,10 @@ el2go_status_t el2go_agent_handle_request(void *ctx, const pb_field_t *message_t
         }
 
         if (crl_req.crl != NULL && crl_req.crl->size > 0U) {
-            const bool timing = disp->agent_ctx && disp->agent_ctx->timing_enabled;
-            int64_t t_crl_start = timing ? osal_uptime_ms() : 0;
+            EL2GO_TIMING_START(disp->agent_ctx, crl);
             crl_st = net_crypto_verify_cert(disp->net_ctx, crl_req.crl->bytes,
                                             (size_t)crl_req.crl->size);
-            if (timing)
-                disp->agent_ctx->timing.crl_ms = (long)(osal_uptime_ms() - t_crl_start);
+            EL2GO_TIMING_STOP(disp->agent_ctx, crl);
             if (crl_st != EL2GO_STATUS_SUCCESS) {
                 EL2GO_DBG_PRINTF(ERROR, "CRL verification failed: 0x%04x\n", crl_st);
                 response_crl.has_error = true;

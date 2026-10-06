@@ -36,6 +36,7 @@
 #include "el2go_rtp_internal.h"
 #include "el2go_dispatcher_priv.h"
 #include "rtp/el2go_rtp_timing.h"
+#include "el2go_rtp_timing_priv.h"
 
 /* ========================================================================== */
 /* nanopb network stream adaptors                                               */
@@ -657,9 +658,6 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
     el2go_cipher_list_t cipher_list = { 0 };
     el2go_curve_list_t curve_list = { 0 };
     nxp_iot_UpdateStatusReport *report = NULL;
-    int64_t t_tls_prep_start = 0;
-    int64_t t_net_connect_start = 0;
-    const bool timing = (ctx != NULL) && ctx->timing_enabled;
 
     EL2GO_DBG_TRACE_API_CALL;
 
@@ -768,8 +766,7 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
     }
 
     /* 1. Create network crypto context */
-    if (timing)
-        t_tls_prep_start = osal_uptime_ms();
+    EL2GO_TIMING_START(ctx, tls_prep);
     status = net_crypto_new(&net_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "Failed to create net crypto context: 0x%04x\n", status);
@@ -822,14 +819,13 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
         goto exit;
     }
 
+    EL2GO_TIMING_STOP(ctx, tls_prep);
+
     /* 8. Connect to EdgeLock 2GO server */
-    if (timing) {
-        ctx->timing.tls_prep_ms = (long)(osal_uptime_ms() - t_tls_prep_start);
-        t_net_connect_start = osal_uptime_ms();
-    }
+    EL2GO_TIMING_START(ctx, network_connect);
     status = net_crypto_connect(net_ctx);
-    if (timing)
-        ctx->timing.network_connect_ms = (long)(osal_uptime_ms() - t_net_connect_start);
+    EL2GO_TIMING_STOP(ctx, network_connect);
+
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "Failed to connect to EL2GO server: 0x%04x\n", status);
         goto exit;

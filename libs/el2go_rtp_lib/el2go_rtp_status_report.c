@@ -259,13 +259,6 @@ __export el2go_status_t el2go_rtp_print_status_report(const void *status_report)
         }
     }
 
-    {
-        size_t num_services = 0U;
-        if (r->has_cspStatus)
-            num_services = r->cspStatus.details_count;
-        EL2GO_PRINTF_ALWAYS("Found configuration data for %d services.\r\n", (int)num_services);
-    }
-
     status = EL2GO_STATUS_SUCCESS;
 
 exit:

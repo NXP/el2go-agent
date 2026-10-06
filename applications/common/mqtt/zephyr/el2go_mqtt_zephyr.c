@@ -441,6 +441,7 @@ static void genericMQTTCallback(struct mqtt_client *client, const struct mqtt_ev
         k_sem_give(&sem_disconnected);
         break;
     default:
+        EL2GO_APP_LOG_ERROR("Received unhandled MQTT event type: %d", (int)evt->type);
         break;
     }
 }
@@ -526,6 +527,7 @@ static void azureRegistrationCallback(struct mqtt_client *client, const struct m
         break;
     }
     default:
+        EL2GO_APP_LOG_ERROR("Received unhandled MQTT event type: %d", (int)evt->type);
         break;
     }
 }

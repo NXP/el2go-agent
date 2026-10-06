@@ -36,7 +36,6 @@
 #include "el2go_rtp_internal.h"
 #include "el2go_dispatcher_priv.h"
 #include "el2go_agent_endpoint.h"
-#include "rtp/el2go_rtp_timing.h"
 
 /* ========================================================================== */
 /* Response buffer ostream adaptor                                              */

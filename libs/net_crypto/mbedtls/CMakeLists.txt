@@ -172,6 +172,7 @@ endif()
 
 add_private_sources(net_crypto
     ${CMAKE_CURRENT_SOURCE_DIR}/net_crypto_mbedtls_crypto.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_debug.c
     ${MBEDTLS_MAPPING_SOURCES}
     ${MBEDTLS_COMPAT_SOURCES}
     ${MBEDTLS_TLS_SOURCES}

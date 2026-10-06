@@ -30,6 +30,8 @@
 #include "el2go_service.h"
 #include "el2go_server_connection.h"
 #include "el2go_rtp_internal.h"
+#include "rtp/el2go_rtp_timing.h"
+#include "el2go_rtp_timing_priv.h"
 
 #include "test_framework.h"
 #include "test_suites.h"
@@ -1416,6 +1418,143 @@ exit:
     return test_status;
 }
 
+/* ========================================================================== */
+/* Timing API tests                                                            */
+/* ========================================================================== */
+
+static bool test_el2go_rtp_timing_null_parameters(void *params)
+{
+    el2go_rtp_timing_t timing = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    (void)params;
+    status = el2go_rtp_enable_timing(NULL);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+    status = el2go_rtp_disable_timing(NULL);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+    status = el2go_rtp_get_timing(NULL, &timing);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+    status = el2go_rtp_get_timing((el2go_rtp_ctx_t *)&timing, NULL);
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_INVALID_PARAMETER, status);
+    return true;
+}
+
+static bool test_el2go_rtp_get_timing_not_enabled(void *params)
+{
+    el2go_rtp_ctx_t *ctx = NULL;
+    el2go_rtp_timing_t timing = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+    (void)params;
+    status = el2go_rtp_init(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    status = el2go_rtp_get_timing(ctx, &timing);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_INVALID_STATE, status, cleanup);
+cleanup:
+    el2go_rtp_free(&ctx);
+exit:
+    return test_status;
+}
+
+static bool test_el2go_rtp_timing_enable_disable(void *params)
+{
+    el2go_rtp_ctx_t *ctx = NULL;
+    el2go_rtp_timing_t timing = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+    (void)params;
+    status = el2go_rtp_init(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    status = el2go_rtp_enable_timing(ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    status = el2go_rtp_get_timing(ctx, &timing);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(0L, timing.tls_prep_ms, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(0L, timing.network_connect_ms, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(0L, timing.crl_ms, cleanup);
+    status = el2go_rtp_disable_timing(ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    status = el2go_rtp_get_timing(ctx, &timing);
+    TEST_ASSERT_EQUAL_CONTINUE(EL2GO_STATUS_INVALID_STATE, status);
+cleanup:
+    el2go_rtp_free(&ctx);
+exit:
+    return test_status;
+}
+
+static bool test_el2go_rtp_timing_reenable_resets(void *params)
+{
+    el2go_rtp_ctx_t *ctx = NULL;
+    el2go_rtp_timing_t timing = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+    (void)params;
+    status = el2go_rtp_init(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    status = el2go_rtp_enable_timing(ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    EL2GO_TIMING_START(ctx, tls_prep);
+    EL2GO_TIMING_START(ctx, network_connect);
+    EL2GO_TIMING_START(ctx, crl);
+    status = el2go_rtp_enable_timing(ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    status = el2go_rtp_get_timing(ctx, &timing);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(0L, timing.tls_prep_ms, cleanup);
+    TEST_ASSERT_EQUAL_GOTO(0L, timing.network_connect_ms, cleanup);
+    TEST_ASSERT_EQUAL_CONTINUE(0L, timing.crl_ms);
+cleanup:
+    el2go_rtp_free(&ctx);
+exit:
+    return test_status;
+}
+
+static bool test_el2go_rtp_timing_macros_record(void *params)
+{
+    el2go_rtp_ctx_t *ctx = NULL;
+    el2go_rtp_timing_t result = { 0 };
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+    (void)params;
+    status = el2go_rtp_init(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    status = el2go_rtp_enable_timing(ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    EL2GO_TIMING_START(ctx, tls_prep);
+    EL2GO_TIMING_STOP(ctx, tls_prep);
+    EL2GO_TIMING_START(ctx, network_connect);
+    EL2GO_TIMING_STOP(ctx, network_connect);
+    EL2GO_TIMING_START(ctx, crl);
+    EL2GO_TIMING_STOP(ctx, crl);
+    status = el2go_rtp_get_timing(ctx, &result);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, cleanup);
+    TEST_ASSERT_GOTO(result.tls_prep_ms >= 0L, cleanup);
+    TEST_ASSERT_GOTO(result.network_connect_ms >= 0L, cleanup);
+    TEST_ASSERT_GOTO(result.crl_ms >= 0L, cleanup);
+cleanup:
+    el2go_rtp_free(&ctx);
+exit:
+    return test_status;
+}
+
+static bool test_el2go_rtp_timing_macros_noop_when_disabled(void *params)
+{
+    el2go_rtp_ctx_t *ctx = NULL;
+    el2go_status_t status = EL2GO_STATUS_SUCCESS;
+    bool test_status = true;
+    (void)params;
+    status = el2go_rtp_init(&ctx);
+    TEST_ASSERT_EQUAL_GOTO(EL2GO_STATUS_SUCCESS, status, exit);
+    EL2GO_TIMING_START(ctx, tls_prep);
+    EL2GO_TIMING_STOP(ctx, tls_prep);
+    TEST_ASSERT_EQUAL_GOTO(0L, ctx->timing.tls_prep_ms, cleanup);
+    EL2GO_TIMING_START((el2go_rtp_ctx_t *)NULL, tls_prep);
+    EL2GO_TIMING_STOP((el2go_rtp_ctx_t *)NULL, tls_prep);
+cleanup:
+    el2go_rtp_free(&ctx);
+exit:
+    return test_status;
+}
+
 /**
  * @brief Register all internal RTP tests with the test framework.
  *
@@ -1470,6 +1609,14 @@ void register_el2go_rtp_tests(bool include_fs_tests)
     TEST_REGISTER(test_el2go_rtp_print_status_report_full);
     TEST_REGISTER(test_el2go_rtp_free_status_report_null);
     TEST_REGISTER(test_el2go_rtp_free_status_report_valid);
+
+    /* Timing API tests */
+    TEST_REGISTER(test_el2go_rtp_timing_null_parameters);
+    TEST_REGISTER(test_el2go_rtp_get_timing_not_enabled);
+    TEST_REGISTER(test_el2go_rtp_timing_enable_disable);
+    TEST_REGISTER(test_el2go_rtp_timing_reenable_resets);
+    TEST_REGISTER(test_el2go_rtp_timing_macros_record);
+    TEST_REGISTER(test_el2go_rtp_timing_macros_noop_when_disabled);
 
     /* el2go_service tests */
     register_el2go_service_tests(include_fs_tests);

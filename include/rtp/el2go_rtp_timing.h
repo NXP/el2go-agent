@@ -31,13 +31,17 @@ typedef struct el2go_rtp_ctx el2go_rtp_ctx_t;
 
 /**
  * @brief Sub-phase timing results from el2go_rtp_provision().
+ *
+ * Each field is used both as a scratch start-timestamp (while the phase is
+ * in progress) and as the final elapsed-milliseconds result (after
+ * EL2GO_TIMING_STOP returns). Fields are 0 for phases that did not execute.
  */
 typedef struct {
     long tls_prep_ms;        /**< Steps 1-7: cert fetch, net_crypto configure,
                               *   set_server_cert, set_cli_cert, associate_key,
-                              *   set_cipher_suites, set_curves */
-    long network_connect_ms; /**< Step 8: TCP connect + TLS handshake */
-    long crl_ms;             /**< CRL fetch + verification (0 if CRL disabled) */
+                              *   set_cipher_suites, set_curves (ms) */
+    long network_connect_ms; /**< Step 8: TCP connect + TLS handshake (ms) */
+    long crl_ms;             /**< CRL fetch + verification; 0 if CRL disabled (ms) */
 } el2go_rtp_timing_t;
 
 /**

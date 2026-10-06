@@ -52,7 +52,9 @@ static void print_uuid_decimal(const uint8_t *buf, size_t len)
 
     /* Weighted-sum hex-to-decimal conversion */
     weightValueArray[0] = 1U;
-    memset(decimalString, '0', UUID_DECIMAL_STRING_SIZE);
+    for (size_t k = 0U; k < UUID_DECIMAL_STRING_SIZE; k++) {
+        decimalString[k] = '0';
+    }
     decimalString[UUID_DECIMAL_STRING_SIZE] = '\0';
 
     for (size_t i = 0U; i < hexLen; i++) {
@@ -65,8 +67,10 @@ static void print_uuid_decimal(const uint8_t *buf, size_t len)
                 charWeightedContrib = (uint32_t)(pickChar - 'A') + 10U;
             else if (pickChar >= 'a' && pickChar <= 'f')
                 charWeightedContrib = (uint32_t)(pickChar - 'a') + 10U;
-            charWeightedContrib *= weightValueArray[j];
-            decimalDigitWeightedSum[j] += charWeightedContrib;
+            (void)__builtin_mul_overflow(charWeightedContrib, weightValueArray[j],
+                                         &charWeightedContrib);
+            (void)__builtin_add_overflow(decimalDigitWeightedSum[j], charWeightedContrib,
+                                         &decimalDigitWeightedSum[j]);
         }
         uint32_t rem = 0U;
         for (uint8_t k = 0U; k < UUID_DECIMAL_STRING_SIZE; k++) {
@@ -81,8 +85,11 @@ static void print_uuid_decimal(const uint8_t *buf, size_t len)
         uint32_t rem = 0U;
         for (uint8_t i = 0U; i < UUID_DECIMAL_STRING_SIZE; i++) {
             uint8_t index = UUID_DECIMAL_STRING_SIZE - 1U - i;
-            decimalString[index] += (char)((rem + decimalDigitWeightedSum[i]) % 10U);
-            rem = (rem + decimalDigitWeightedSum[i]) / 10U;
+            uint32_t sum = 0U;
+            if (!__builtin_add_overflow(rem, decimalDigitWeightedSum[i], &sum)) {
+                decimalString[index] += (char)(sum % 10U);
+                rem = sum / 10U;
+            }
         }
     }
 

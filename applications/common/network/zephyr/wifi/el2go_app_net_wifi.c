@@ -72,8 +72,8 @@ static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, st
             if (iface->config.ip.ipv4->unicast[i].ipv4.addr_type != NET_ADDR_DHCP)
                 continue;
 
-            char addr_buf[NET_IPV4_ADDR_LEN];
-            char gw_buf[NET_IPV4_ADDR_LEN];
+            char addr_buf[NET_IPV4_ADDR_LEN] = { 0 };
+            char gw_buf[NET_IPV4_ADDR_LEN] = { 0 };
 
             net_addr_ntop(AF_INET, &iface->config.ip.ipv4->unicast[i].ipv4.address.in_addr,
                           addr_buf, sizeof(addr_buf));

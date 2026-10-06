@@ -82,6 +82,7 @@ set(INTERNAL_API_TEST_SOURCES
     ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_rtp_dispatcher.c
     ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_agent_endpoint.c
     ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_rtp_status_report.c
+    ${CMAKE_SOURCE_DIR}/libs/el2go_rtp_lib/el2go_rtp_timing.c
     ${INTERNAL_TEST_SOURCES}
 )
 
