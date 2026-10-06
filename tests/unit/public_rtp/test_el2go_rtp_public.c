@@ -862,6 +862,100 @@ exit:
 }
 
 /**
+ * @brief Test el2go_rtp_get_error_string() returns a non-NULL string for every
+ *        known el2go_status_t value, including the success case.
+ *
+ * Iterates over all enumerators defined in el2go_status_t and verifies that
+ * the function returns a non-NULL, non-empty string for each one. Also checks
+ * that an unrecognised value maps to the "Unknown error" fallback.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_el2go_rtp_get_error_string(void *params)
+{
+    (void)params;
+
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_SUCCESS));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_FAILURE));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_FILE_OPEN_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_FILE_CLOSE_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_FILE_WRITE_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_FILE_SEEK_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_FILE_TELL_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INVALID_PARAMETER));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INVALID_POINTER));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INVALID_STATE));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INVALID_DATA));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_ALLOCATION_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_BUFFER_TOO_SMALL));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NOT_FOUND));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_ALREADY_EXISTS));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_RESOURCE_LIMIT));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_ARITHMETIC_OVERFLOW));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NOT_IMPLEMENTED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_UNSUPPORTED_OPERATION));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_PLATFORM_INIT_FAILED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_PLATFORM_SMW_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_INVALID_KEY));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_CONNECT_FAILED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_SSL_CONFIG_FAILED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_SSL_SETUP_FAILED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_CERT_VERIFY_FAILED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_HOSTNAME_FAILED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_INVALID_CERT));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_SHA_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_NET_CRYPTO_NOT_CONNECTED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_CERT_NOT_AVAILABLE));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INVALID_DATASTORE));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INCOMPLETE_DATA));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INCOMPLETE_READ));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INCOMPLETE_WRITE));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_CHECKSUM_MISMATCH));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_INVALID_REQUEST));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_PSA_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_RTP_DECODE_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_RTP_ENCODE_ERROR));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_RTP_ENDPOINT_NOT_FOUND));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_RTP_CRL_NOT_VERIFIED));
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string(EL2GO_STATUS_RTP_PROVISIONING_FAILED));
+    /* Unknown value must map to the non-NULL fallback string. */
+    TEST_ASSERT_NOT_NULL(el2go_rtp_get_error_string((el2go_status_t)0xFF));
+
+    return true;
+}
+
+/**
+ * @brief Test that el2go_rtp_get_error_string() returns a non-empty string for
+ *        EL2GO_STATUS_SUCCESS and a non-empty fallback for an unknown code.
+ *
+ * Checks the returned pointers point to non-empty (non-NUL first-byte) strings,
+ * complementing the NOT_NULL checks in test_el2go_rtp_get_error_string.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_el2go_rtp_get_error_string_content(void *params)
+{
+    const char *s = NULL;
+
+    (void)params;
+
+    s = el2go_rtp_get_error_string(EL2GO_STATUS_SUCCESS);
+    TEST_ASSERT_NOT_NULL(s);
+    TEST_ASSERT_NOT_EQUAL('\0', s[0]);
+
+    /* Unknown code must return the "Unknown error" fallback, not an empty string. */
+    s = el2go_rtp_get_error_string((el2go_status_t)0xFF);
+    TEST_ASSERT_NOT_NULL(s);
+    TEST_ASSERT_NOT_EQUAL('\0', s[0]);
+
+    return true;
+}
+
+/**
  * @brief Register all public RTP tests with the test framework.
  *
  * Registers every test function in the order they should be executed.
@@ -889,6 +983,8 @@ void register_el2go_rtp_tests(bool include_fs_tests)
     TEST_REGISTER(test_el2go_rtp_keystore_datastore_id_conflict);
     TEST_REGISTER(test_el2go_rtp_get_version_null_params);
     TEST_REGISTER(test_el2go_rtp_get_version_success);
+    TEST_REGISTER(test_el2go_rtp_get_error_string);
+    TEST_REGISTER(test_el2go_rtp_get_error_string_content);
 
     /* el2go_rtp_provision tests */
     register_el2go_rtp_provision_tests(include_fs_tests);

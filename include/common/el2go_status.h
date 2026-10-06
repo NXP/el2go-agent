@@ -17,6 +17,10 @@
 /**
  * @enum el2go_status_t
  * @brief Library return type
+ *
+ * When adding a new enumerator here, also update the switch statement in
+ * el2go_rtp_get_error_string() (libs/el2go_rtp_lib/el2go_rtp.c) so that
+ * the new code gets a descriptive human-readable string.
  */
 typedef enum el2go_status_t {
     EL2GO_STATUS_SUCCESS = 0,              /**< Operation completed successfully */

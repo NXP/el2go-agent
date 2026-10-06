@@ -212,6 +212,19 @@ el2go_status_t el2go_rtp_print_status_report(const void *status_report);
 el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
                                          el2go_keystore_t *keystore_ctx,
                                          const el2go_rtp_datastore_config_t *config);
+/**
+ * @brief Return a human-readable string for an el2go_status_t error code.
+ *
+ * Converts the status value returned by any RTP agent API function into a
+ * short, statically-allocated English description suitable for logging.
+ * The returned pointer is always non-NULL and must not be freed.
+ *
+ * @param[in] status  Status code to describe.
+ *
+ * @return Pointer to a null-terminated ASCII string describing @p status.
+ */
+const char *el2go_rtp_get_error_string(el2go_status_t status);
+
 /** @} */ /* end of el2go_rtp_pub */
 
 #endif /* __EL2GO_RTP_H__ */

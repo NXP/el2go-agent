@@ -992,3 +992,101 @@ exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
     return status;
 }
+
+__export const char *el2go_rtp_get_error_string(el2go_status_t status)
+{
+    switch (status) {
+    case EL2GO_STATUS_SUCCESS:
+        return "Success";
+    case EL2GO_STATUS_FAILURE:
+        return "Generic failure";
+    case EL2GO_STATUS_FILE_OPEN_ERROR:
+        return "Failed to open file";
+    case EL2GO_STATUS_FILE_CLOSE_ERROR:
+        return "Failed to close file";
+    case EL2GO_STATUS_FILE_WRITE_ERROR:
+        return "Failed to write/flush file";
+    case EL2GO_STATUS_FILE_SEEK_ERROR:
+        return "Failed to seek in file";
+    case EL2GO_STATUS_FILE_TELL_ERROR:
+        return "Failed to query file position";
+    case EL2GO_STATUS_INVALID_PARAMETER:
+        return "Invalid parameter";
+    case EL2GO_STATUS_INVALID_POINTER:
+        return "Invalid pointer";
+    case EL2GO_STATUS_INVALID_STATE:
+        return "Invalid state";
+    case EL2GO_STATUS_INVALID_DATA:
+        return "Invalid or malformed data";
+    case EL2GO_STATUS_ALLOCATION_ERROR:
+        return "Memory allocation failed";
+    case EL2GO_STATUS_BUFFER_TOO_SMALL:
+        return "Buffer too small";
+    case EL2GO_STATUS_NOT_FOUND:
+        return "Resource not found";
+    case EL2GO_STATUS_ALREADY_EXISTS:
+        return "Resource already exists";
+    case EL2GO_STATUS_RESOURCE_LIMIT:
+        return "Resource limit reached";
+    case EL2GO_STATUS_ARITHMETIC_OVERFLOW:
+        return "Arithmetic overflow detected";
+    case EL2GO_STATUS_NOT_IMPLEMENTED:
+        return "Not implemented";
+    case EL2GO_STATUS_UNSUPPORTED_OPERATION:
+        return "Unsupported operation";
+    case EL2GO_STATUS_PLATFORM_INIT_FAILED:
+        return "Platform initialisation failed";
+    case EL2GO_STATUS_PLATFORM_SMW_ERROR:
+        return "SMW platform operation failed";
+    case EL2GO_STATUS_NET_CRYPTO_CONFIG_FAILED:
+        return "Network crypto configuration failed";
+    case EL2GO_STATUS_NET_CRYPTO_INVALID_KEY:
+        return "Invalid or unavailable key for network crypto";
+    case EL2GO_STATUS_NET_CRYPTO_CONNECT_FAILED:
+        return "TCP connection to server failed";
+    case EL2GO_STATUS_NET_CRYPTO_SSL_CONFIG_FAILED:
+        return "SSL/TLS configuration failed";
+    case EL2GO_STATUS_NET_CRYPTO_SSL_SETUP_FAILED:
+        return "SSL/TLS context setup failed";
+    case EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED:
+        return "TLS handshake failed";
+    case EL2GO_STATUS_NET_CRYPTO_CERT_VERIFY_FAILED:
+        return "Server certificate verification failed";
+    case EL2GO_STATUS_NET_CRYPTO_HOSTNAME_FAILED:
+        return "Failed to set SNI hostname";
+    case EL2GO_STATUS_NET_CRYPTO_INVALID_CERT:
+        return "Certificate invalid or could not be parsed";
+    case EL2GO_STATUS_NET_CRYPTO_SHA_ERROR:
+        return "SHA hashing operation failed";
+    case EL2GO_STATUS_NET_CRYPTO_NOT_CONNECTED:
+        return "Network crypto connection not established";
+    case EL2GO_STATUS_CERT_NOT_AVAILABLE:
+        return "Certificate not available";
+    case EL2GO_STATUS_INVALID_DATASTORE:
+        return "Datastore invalid or corrupted";
+    case EL2GO_STATUS_INCOMPLETE_DATA:
+        return "Incomplete data";
+    case EL2GO_STATUS_INCOMPLETE_READ:
+        return "Read operation incomplete";
+    case EL2GO_STATUS_INCOMPLETE_WRITE:
+        return "Write operation incomplete";
+    case EL2GO_STATUS_CHECKSUM_MISMATCH:
+        return "Checksum verification failed";
+    case EL2GO_STATUS_INVALID_REQUEST:
+        return "Invalid request";
+    case EL2GO_STATUS_PSA_ERROR:
+        return "PSA API returned an error";
+    case EL2GO_STATUS_RTP_DECODE_ERROR:
+        return "Failed to decode RTP protobuf message";
+    case EL2GO_STATUS_RTP_ENCODE_ERROR:
+        return "Failed to encode RTP protobuf response";
+    case EL2GO_STATUS_RTP_ENDPOINT_NOT_FOUND:
+        return "No registered endpoint matches the request";
+    case EL2GO_STATUS_RTP_CRL_NOT_VERIFIED:
+        return "Non-CRL message received before CRL verification";
+    case EL2GO_STATUS_RTP_PROVISIONING_FAILED:
+        return "Server reported provisioning failure";
+    default:
+        return "Unknown error";
+    }
+}
