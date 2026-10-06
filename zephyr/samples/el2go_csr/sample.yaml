@@ -1,0 +1,16 @@
+sample:
+  name: EL2GO CSR
+  description: >
+    Generates a Certificate Signing Request (CSR) for a device using the
+    EdgeLock 2GO service and the ELS PKC hardware crypto driver.
+tests:
+  sample.nxp_iot_agent.el2go_csr:
+    tags:
+      - el2go
+      - csr
+      - els_pkc
+    platform_allow:
+      - frdm_rw612
+      - rd_rw612_bga
+    integration_platforms:
+      - frdm_rw612

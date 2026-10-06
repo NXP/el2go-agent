@@ -1,0 +1,16 @@
+sample:
+  name: EL2GO OTA Agent Core
+  description: >
+    Core OTA firmware update agent that polls the EdgeLock 2GO OTA service
+    for updates and applies them via MCUboot on RW61x targets.
+tests:
+  sample.nxp_iot_agent.el2go_ota_agent_core:
+    tags:
+      - el2go
+      - ota
+      - mcuboot
+    platform_allow:
+      - frdm_rw612
+      - rd_rw612_bga
+    integration_platforms:
+      - frdm_rw612

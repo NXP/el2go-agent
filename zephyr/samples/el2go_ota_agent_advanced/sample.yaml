@@ -1,0 +1,17 @@
+sample:
+  name: EL2GO OTA Agent Advanced
+  description: >
+    Advanced OTA firmware update agent with exponential backoff retry
+    scheduling, polling the EdgeLock 2GO OTA service and applying updates
+    via MCUboot on RW61x targets.
+tests:
+  sample.nxp_iot_agent.el2go_ota_agent_advanced:
+    tags:
+      - el2go
+      - ota
+      - mcuboot
+    platform_allow:
+      - frdm_rw612
+      - rd_rw612_bga
+    integration_platforms:
+      - frdm_rw612

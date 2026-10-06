@@ -12,6 +12,13 @@
 
 #define HEX_DUMP_LINE_LENGTH 16
 
+/* Default to INFO level (ERROR + INFO) when the build system does not set
+ * TRACE_LEVEL explicitly. 
+ */
+#ifndef TRACE_LEVEL
+#define TRACE_LEVEL 2
+#endif
+
 static const unsigned int s_log_level = TRACE_LEVEL;
 
 void osal_printf(unsigned int level, const char *fmt, ...)

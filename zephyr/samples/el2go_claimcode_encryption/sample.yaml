@@ -1,7 +1,6 @@
 sample:
   name: EL2GO Claimcode Encryption
-  description: >
-    Encrypts a claimcode for onboarding a device with the EdgeLock 2GO cloud service.
+  description: The EdgeLock 2GO claimcode encryption sample demonstrates how to encrypt a claimcode for onboarding a device with the EdgeLock 2GO cloud service
 tests:
   sample.nxp_iot_agent.el2go_claimcode_encryption.pytest:
     extra_args:

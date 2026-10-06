@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "compiler.h"
 #include "rtp/el2go_rtp_timing.h"
 #include "el2go_rtp_internal.h"
 
-el2go_status_t el2go_rtp_enable_timing(el2go_rtp_ctx_t *ctx)
+__export el2go_status_t el2go_rtp_enable_timing(el2go_rtp_ctx_t *ctx)
 {
     if (!ctx)
         return EL2GO_STATUS_INVALID_PARAMETER;
@@ -17,7 +18,7 @@ el2go_status_t el2go_rtp_enable_timing(el2go_rtp_ctx_t *ctx)
     return EL2GO_STATUS_SUCCESS;
 }
 
-el2go_status_t el2go_rtp_disable_timing(el2go_rtp_ctx_t *ctx)
+__export el2go_status_t el2go_rtp_disable_timing(el2go_rtp_ctx_t *ctx)
 {
     if (!ctx)
         return EL2GO_STATUS_INVALID_PARAMETER;
@@ -26,7 +27,7 @@ el2go_status_t el2go_rtp_disable_timing(el2go_rtp_ctx_t *ctx)
     return EL2GO_STATUS_SUCCESS;
 }
 
-el2go_status_t el2go_rtp_get_timing(el2go_rtp_ctx_t *ctx, el2go_rtp_timing_t *timing)
+__export el2go_status_t el2go_rtp_get_timing(el2go_rtp_ctx_t *ctx, el2go_rtp_timing_t *timing)
 {
     if (!ctx || !timing)
         return EL2GO_STATUS_INVALID_PARAMETER;
