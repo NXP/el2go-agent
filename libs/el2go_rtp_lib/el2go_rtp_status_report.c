@@ -226,7 +226,8 @@ __export el2go_status_t el2go_rtp_print_status_report(const void *status_report)
                             (unsigned int)cs->status, claim_status_description(cs->status));
         for (i = 0U; i < cs->details_count; i++) {
             const nxp_iot_AgentClaimStatus_DetailedClaimStatus *d = &cs->details[i];
-            EL2GO_PRINTF_ALWAYS("    Endpoint 0x%08" PRIx32 ": claim status 0x%04x: %s\n",
+            EL2GO_PRINTF_ALWAYS("    On endpoint 0x%08" PRIx32
+                                ", status for claiming: 0x%04x: %s.\r\n",
                                 d->endpointId, (unsigned int)d->status,
                                 claim_status_description(d->status));
         }
@@ -238,8 +239,8 @@ __export el2go_status_t el2go_rtp_print_status_report(const void *status_report)
                             (unsigned int)rs->status, rtp_status_description(rs->status));
         for (i = 0U; i < rs->details_count; i++) {
             const nxp_iot_AgentRtpStatus_RtpObjectStatus *d = &rs->details[i];
-            EL2GO_PRINTF_ALWAYS("    Endpoint 0x%08" PRIx32 ", object 0x%08" PRIx32
-                                ": rtp status 0x%04x: %s\n",
+            EL2GO_PRINTF_ALWAYS("    On endpoint 0x%08" PRIx32 ", for object 0x%08" PRIx32
+                                ", status: 0x%04x: %s.\r\n",
                                 d->endpointId, d->objectId, (unsigned int)d->status,
                                 rtp_status_description(d->status));
         }
@@ -256,6 +257,13 @@ __export el2go_status_t el2go_rtp_print_status_report(const void *status_report)
                                 d->endpointId, (uint64_t)d->serviceId, (unsigned int)d->status,
                                 csp_status_description(d->status));
         }
+    }
+
+    {
+        size_t num_services = 0U;
+        if (r->has_cspStatus)
+            num_services = r->cspStatus.details_count;
+        EL2GO_PRINTF_ALWAYS("Found configuration data for %d services.\r\n", (int)num_services);
     }
 
     status = EL2GO_STATUS_SUCCESS;

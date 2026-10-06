@@ -58,8 +58,8 @@ bool el2go_conn_datastore_needs_update(el2go_datastore_t *datastore, const char 
          * certificate is provided by the user */
         if (svc_desc.hostname && strcmp(svc_desc.hostname, hostname) == 0 && svc_desc.has_port &&
             svc_desc.port == port && certificate == NULL) {
-            EL2GO_DBG_PRINTF(INFO, "EdgeLock 2GO hostname and port match, "
-                                   "update of datastore not required\n");
+            EL2GO_DBG_PRINTF(VERBOSE, "EdgeLock 2GO hostname and port match, "
+                                      "update of datastore not required\n");
             needs_update = false;
             goto exit;
         }

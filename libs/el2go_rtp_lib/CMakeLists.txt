@@ -93,6 +93,7 @@ add_private_sources(el2go_rtp
     el2go_rtp_dispatcher.c
     el2go_agent_endpoint.c
     el2go_rtp_status_report.c
+    el2go_rtp_timing.c
 )
 
 add_private_directories(el2go_rtp

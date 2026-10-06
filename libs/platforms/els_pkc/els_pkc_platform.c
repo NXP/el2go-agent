@@ -37,7 +37,7 @@ __export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
 
     /* Idempotent -- return immediately if already initialised. */
     if (*platform_ctx && (*platform_ctx)->initialized) {
-        EL2GO_DBG_PRINTF(INFO, "[EL2GO ELS_PKC] Platform already initialized\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "[EL2GO ELS_PKC] Platform already initialized\n");
         return EL2GO_STATUS_SUCCESS;
     }
 
@@ -54,7 +54,7 @@ __export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
         goto cleanup;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "[EL2GO ELS_PKC] PSA Crypto initialized\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "[EL2GO ELS_PKC] PSA Crypto initialized\n");
 
     status = el2go_platform_register_el2go_key();
     if (status != EL2GO_STATUS_SUCCESS) {
@@ -86,6 +86,6 @@ __export el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platform_ctx)
     osal_free(*platform_ctx);
     *platform_ctx = NULL;
 
-    EL2GO_DBG_PRINTF(INFO, "[EL2GO ELS_PKC] Platform context freed\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "[EL2GO ELS_PKC] Platform context freed\n");
     return EL2GO_STATUS_SUCCESS;
 }

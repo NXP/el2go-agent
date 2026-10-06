@@ -18,6 +18,13 @@ void osal_sleep_ms(uint32_t ms)
     (void)nanosleep(&ts, NULL);
 }
 
+int64_t osal_uptime_ms(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (int64_t)ts.tv_sec * 1000 + (int64_t)ts.tv_nsec / 1000000;
+}
+
 void osal_lib_init(void)
 {
     set_log_file();

@@ -211,6 +211,13 @@ el2go_status_t osal_uuid(uint8_t *buf, size_t buf_len, size_t *uuid_len);
 void osal_sleep_ms(uint32_t ms);
 
 /**
+ * @brief Return the number of milliseconds elapsed since boot.
+ *
+ * @return Monotonic uptime in milliseconds.
+ */
+int64_t osal_uptime_ms(void);
+
+/**
  * @brief Initialize OSAL subsystem.
  */
 void osal_lib_init(void);

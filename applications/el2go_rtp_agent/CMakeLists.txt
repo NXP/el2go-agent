@@ -17,6 +17,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PROJECT_ROOT}/applications/common/system
     ${PROJECT_ROOT}/applications/common/network
     ${PROJECT_ROOT}/applications/common/mqtt
+    ${PROJECT_ROOT}/applications/common/osal
     ${PROJECT_ROOT}/libs/osal/include
 )
 

@@ -11,7 +11,7 @@ set(EL2GO_RTP_AGENT_INCLUDE_DIRS
     ${CMAKE_CURRENT_LIST_DIR}/inc
 )
 
-# OS-specific osal_types dispatch
+# OS-specific osal_types -- sourced from common/osal
 list(APPEND EL2GO_RTP_AGENT_INCLUDE_DIRS
-    ${CMAKE_CURRENT_LIST_DIR}/osal/${OS}/inc
+    ${PROJECT_ROOT}/applications/common/osal/${OS}/inc
 )

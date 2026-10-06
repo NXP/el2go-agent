@@ -13,6 +13,11 @@ void osal_sleep_ms(uint32_t ms)
     k_msleep((int32_t)ms);
 }
 
+int64_t osal_uptime_ms(void)
+{
+    return (int64_t)k_uptime_get();
+}
+
 void osal_lib_init(void)
 {
     /* No-op on Zephyr: logging level is controlled via Kconfig

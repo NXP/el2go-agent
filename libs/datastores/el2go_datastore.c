@@ -399,7 +399,7 @@ static bool ds_read_data_encode_cb(pb_ostream_t *stream, const pb_field_t *field
         return true;
     }
 
-    EL2GO_DBG_PRINTF(DEBUG, "ds_read_data_encode_cb: declared_len=%zu offset=%zu\n", declared_len,
+    EL2GO_DBG_PRINTF(VERBOSE, "ds_read_data_encode_cb: declared_len=%zu offset=%zu\n", declared_len,
                      offset);
 
     /*
@@ -442,7 +442,7 @@ static bool ds_read_data_encode_cb(pb_ostream_t *stream, const pb_field_t *field
                          bytes_read, total_read, declared_len);
     }
 
-    EL2GO_DBG_PRINTF(DEBUG, "ds_read_data_encode_cb: done, total_read=%zu\n", total_read);
+    EL2GO_DBG_PRINTF(VERBOSE, "ds_read_data_encode_cb: done, total_read=%zu\n", total_read);
     return true;
 }
 

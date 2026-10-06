@@ -58,7 +58,8 @@ el2go_status_t el2go_keystore_import_claimcode_from_flash(el2go_keystore_t *keys
     /* Check whether claimcode is already stored in PSA ITS. */
     psa_status = psa_its_get_info(EDGELOCK2GO_CLAIMCODE_DATA_ID, &info);
     if (psa_status == PSA_SUCCESS) {
-        EL2GO_DBG_PRINTF(VERBOSE, "Claimcode already stored in PSA ITS, skipping import\n");
+        EL2GO_DBG_PRINTF(INFO, "Claimcode with object id 0x%08x is already imported, skipping...\n",
+                         (unsigned int)EDGELOCK2GO_CLAIMCODE_DATA_ID);
         status = EL2GO_STATUS_SUCCESS;
         goto exit;
     }
@@ -72,8 +73,8 @@ el2go_status_t el2go_keystore_import_claimcode_from_flash(el2go_keystore_t *keys
         goto exit;
     }
 
-    EL2GO_DBG_PRINTF(VERBOSE, "Claimcode imported from flash (size: %" PRIu32 ")\n",
-                     claimcode_size);
+    EL2GO_DBG_PRINTF(INFO, "Claimcode imported into psa its with object id 0x%08x\n",
+                     (unsigned int)EDGELOCK2GO_CLAIMCODE_DATA_ID);
 
 exit:
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);

@@ -8,10 +8,12 @@
 #ifndef __EL2GO_INTERNAL_H__
 #define __EL2GO_INTERNAL_H__
 
+#include <stdbool.h>
 #include "rtp/el2go_rtp.h"
 #include "common/el2go_keystore.h"
 #include "common/el2go_datastore.h"
 #include "rtp/el2go_rtp_config.h"
+#include "rtp/el2go_rtp_timing.h"
 
 /**
  * @defgroup el2go_rtp_int RTP Agent Internal Types
@@ -26,6 +28,8 @@ struct el2go_rtp_ctx {
     size_t num_keystores;                                    /**< Number of active keystores */
     size_t num_datastores;                                   /**< Number of active datastores */
     el2go_datastore_t *el2go_datastore;                      /**< EL2GO connection datastore */
+    bool timing_enabled;                                     /**< Timing measurement active */
+    el2go_rtp_timing_t timing;                               /**< Sub-phase timing results */
 };
 
 /** @} */ /* end of el2go_rtp_int */

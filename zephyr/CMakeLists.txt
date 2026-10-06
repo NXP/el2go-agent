@@ -296,6 +296,13 @@ if(CONFIG_EL2GO_RTP_AGENT)
         USE_RTOS=1
     )
 
+    # Enable library logging by default (ERROR + INFO)
+    # TRACE_LEVEL is controlled by CONFIG_EL2GO_RTP_LIB_LOG_LEVEL (default 2).
+    if(CONFIG_EL2GO_RTP_LIB_LOG_LEVEL GREATER 0)
+        zephyr_compile_definitions(ENABLE_TRACE)
+        zephyr_compile_definitions(TRACE_LEVEL=${CONFIG_EL2GO_RTP_LIB_LOG_LEVEL})
+    endif()
+
     if(CONFIG_EL2GO_RTP_PSA_BACKEND_TFM)
         zephyr_compile_definitions(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM=1)
     else()

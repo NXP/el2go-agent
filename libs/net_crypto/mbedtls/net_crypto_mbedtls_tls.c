@@ -72,7 +72,7 @@ __maybe_unused static void mbedtls_debug_cb(void *ctx, int level, const char *fi
     (void)line;
     (void)str;
 
-    EL2GO_DBG_PRINTF(INFO, "mbedTLS [%d] %s:%d: %s", level, file, line, str);
+    EL2GO_DBG_PRINTF(VERBOSE, "mbedTLS [%d] %s:%d: %s", level, file, line, str);
 }
 
 /**
@@ -239,7 +239,7 @@ static void filter_ciphers_by_key_bitlen(net_crypto_ctx_t *ctx)
     if (ctx->ciphers == NULL) {
         plat_list = el2go_platform_get_cipher_suites();
         if (plat_list.count == 0) {
-            EL2GO_DBG_PRINTF(DEBUG, "Platform cipher list empty, skipping filter\n");
+            EL2GO_DBG_PRINTF(VERBOSE, "Platform cipher list empty, skipping filter\n");
             return;
         }
 
@@ -435,7 +435,7 @@ el2go_status_t net_crypto_set_cipher_suites(net_crypto_ctx_t *ctx,
 
     /* Check if cipher suites are provided */
     if (!cipher_suites || !cipher_suites->suites || cipher_suites->count == 0) {
-        EL2GO_DBG_PRINTF(DEBUG, "Use mbedTLS default cipher suites\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Use mbedTLS default cipher suites\n");
         return EL2GO_STATUS_SUCCESS;
     }
 
@@ -466,8 +466,8 @@ el2go_status_t net_crypto_set_cipher_suites(net_crypto_ctx_t *ctx,
     }
 
     if (num_ciphers == 0) {
-        EL2GO_DBG_PRINTF(DEBUG, "No compatible cipher suites found\n");
-        EL2GO_DBG_PRINTF(DEBUG, "Use mbedTLS default cipher suites\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "No compatible cipher suites found\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Use mbedTLS default cipher suites\n");
         osal_free(mbedtls_ciphers);
         ctx->ciphers = NULL;
         goto exit;
@@ -623,7 +623,7 @@ el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
     if (ctx->connected)
         return EL2GO_STATUS_SUCCESS;
 
-    EL2GO_DBG_PRINTF(INFO, "Connecting to %s:%u\n", ctx->hostname, ctx->port);
+    EL2GO_DBG_PRINTF(VERBOSE, "Connecting to %s:%u\n", ctx->hostname, ctx->port);
 
     /* Convert port to string */
     ret = osal_snprintf(port_str, sizeof(port_str), "%u", ctx->port);
@@ -739,7 +739,7 @@ el2go_status_t net_crypto_connect(net_crypto_ctx_t *ctx)
     if (ctx->alpn_set) {
         const char *alpn = mbedtls_ssl_get_alpn_protocol(&ctx->ssl);
         (void)alpn;
-        EL2GO_DBG_PRINTF(INFO, "ALPN negotiated: %s\n", alpn ? alpn : "none (server ignored)");
+        EL2GO_DBG_PRINTF(VERBOSE, "ALPN negotiated: %s\n", alpn ? alpn : "none (server ignored)");
     }
 
     EL2GO_DBG_PRINTF(VERBOSE, "%s returned %d\n", __func__, status);
@@ -1004,7 +1004,7 @@ el2go_status_t net_crypto_set_curves(net_crypto_ctx_t *ctx, const el2go_curve_li
     }
 
     if (!curve_list || !curve_list->curves || curve_list->count == 0) {
-        EL2GO_DBG_PRINTF(INFO, "Use mbedTLS default curves\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Use mbedTLS default curves\n");
         return EL2GO_STATUS_SUCCESS;
     }
 
@@ -1037,8 +1037,8 @@ el2go_status_t net_crypto_set_curves(net_crypto_ctx_t *ctx, const el2go_curve_li
     }
 
     if (num_curves == 0) {
-        EL2GO_DBG_PRINTF(INFO, "No compatible curves found\n");
-        EL2GO_DBG_PRINTF(INFO, "Use mbedTLS default curves\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "No compatible curves found\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Use mbedTLS default curves\n");
         osal_free(curves);
         ctx->curves = NULL;
         goto exit;

@@ -294,7 +294,7 @@ el2go_status_t net_crypto_self_signed_cert(const char *subject, uint32_t key_id,
     }
 
     /* Setup opaque key reference using compatibility layer */
-    EL2GO_DBG_PRINTF(DEBUG, "Setting opaque for key ID %x\n", key_id);
+    EL2GO_DBG_PRINTF(VERBOSE, "Setting opaque for key ID %x\n", key_id);
     ret = mbedtls_compat_pk_setup_key(&pk_key, key_id);
     if (ret != 0) {
         EL2GO_DBG_PRINTF(ERROR, "pk_setup_key failed: -0x%04x\n", -ret);
@@ -324,12 +324,12 @@ el2go_status_t net_crypto_self_signed_cert(const char *subject, uint32_t key_id,
     /* Select hash algorithm based on key size */
     size_t key_bitlen = mbedtls_pk_get_bitlen(&pk_key);
 
-    EL2GO_DBG_PRINTF(DEBUG, "Opaque key bit length: %zu\n", key_bitlen);
+    EL2GO_DBG_PRINTF(VERBOSE, "Opaque key bit length: %zu\n", key_bitlen);
 
     if (key_bitlen == 384U)
         md_alg = MBEDTLS_MD_SHA384;
 
-    EL2GO_DBG_PRINTF(DEBUG, "Using md_alg: 0x%x\n", (unsigned int)md_alg);
+    EL2GO_DBG_PRINTF(VERBOSE, "Using md_alg: 0x%x\n", (unsigned int)md_alg);
     mbedtls_x509write_crt_set_md_alg(&crt, md_alg);
 
     /* Set serial number using compatibility layer */
@@ -371,7 +371,7 @@ el2go_status_t net_crypto_self_signed_cert(const char *subject, uint32_t key_id,
     memmove(cert_out, cert_out + buffer_size - ret, ret);
     *cert_out_len = ret;
 
-    EL2GO_DBG_PRINTF(DEBUG, "Self-signed certificate created (%zu bytes)\n", *cert_out_len);
+    EL2GO_DBG_PRINTF(VERBOSE, "Self-signed certificate created (%zu bytes)\n", *cert_out_len);
 
 exit:
     mbedtls_x509write_crt_free(&crt);

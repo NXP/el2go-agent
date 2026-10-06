@@ -35,6 +35,7 @@
 
 #include "el2go_rtp_internal.h"
 #include "el2go_dispatcher_priv.h"
+#include "rtp/el2go_rtp_timing.h"
 
 /* ========================================================================== */
 /* nanopb network stream adaptors                                               */
@@ -195,7 +196,7 @@ __export el2go_status_t el2go_rtp_datastore_el2go(el2go_datastore_t *datastore,
                          hostname, port);
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Using EdgeLock 2GO server: %s:%u\n", hostname, port);
+    EL2GO_DBG_PRINTF(VERBOSE, "Using EdgeLock 2GO server: %s:%u\n", hostname, port);
 
     if (user_provided_host &&
         !el2go_conn_datastore_needs_update(datastore, hostname, port, config->certificate)) {
@@ -656,6 +657,9 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
     el2go_cipher_list_t cipher_list = { 0 };
     el2go_curve_list_t curve_list = { 0 };
     nxp_iot_UpdateStatusReport *report = NULL;
+    int64_t t_tls_prep_start = 0;
+    int64_t t_net_connect_start = 0;
+    const bool timing = (ctx != NULL) && ctx->timing_enabled;
 
     EL2GO_DBG_TRACE_API_CALL;
 
@@ -671,12 +675,12 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
 
     /* Check if EL2GO datastore is set and valid */
     if (!ctx->el2go_datastore) {
-        EL2GO_DBG_PRINTF(INFO, "EL2GO datastore not set, using compile-time constants\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "EL2GO datastore not set, using compile-time constants\n");
         use_compile_time_config = true;
     } else {
         status = srv_validate_configuration_data(ctx->el2go_datastore);
         if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_DBG_PRINTF(INFO,
+            EL2GO_DBG_PRINTF(VERBOSE,
                              "EL2GO datastore invalid (0x%04x), "
                              "using compile-time constants\n",
                              status);
@@ -725,7 +729,7 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
         client_cert = client_cert_buf;
         client_cert_len = client_cert_buf_len;
 
-        EL2GO_DBG_PRINTF(INFO, "Using compile-time config: %s:%u\n", hostname, port);
+        EL2GO_DBG_PRINTF(VERBOSE, "Using compile-time config: %s:%u\n", hostname, port);
     } else {
         EL2GO_DBG_PRINTF(VERBOSE, "EL2GO datastore is valid, reading config\n");
 
@@ -764,6 +768,8 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
     }
 
     /* 1. Create network crypto context */
+    if (timing)
+        t_tls_prep_start = osal_uptime_ms();
     status = net_crypto_new(&net_ctx);
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "Failed to create net crypto context: 0x%04x\n", status);
@@ -817,13 +823,19 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
     }
 
     /* 8. Connect to EdgeLock 2GO server */
+    if (timing) {
+        ctx->timing.tls_prep_ms = (long)(osal_uptime_ms() - t_tls_prep_start);
+        t_net_connect_start = osal_uptime_ms();
+    }
     status = net_crypto_connect(net_ctx);
+    if (timing)
+        ctx->timing.network_connect_ms = (long)(osal_uptime_ms() - t_net_connect_start);
     if (status != EL2GO_STATUS_SUCCESS) {
         EL2GO_DBG_PRINTF(ERROR, "Failed to connect to EL2GO server: 0x%04x\n", status);
         goto exit;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Connected to EL2GO server successfully\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "Connected to EL2GO server successfully\n");
 
     /* 9. Allocate status report buffer unconditionally so that dispatch always
      * has a place to write the provisioning outcome.  If the caller did not
@@ -850,7 +862,7 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
         goto exit;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Provisioning completed successfully\n");
+    EL2GO_DBG_PRINTF(VERBOSE, "Provisioning completed successfully\n");
 
 exit:
     if (net_ctx) {

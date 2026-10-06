@@ -7,55 +7,32 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <zephyr/logging/log.h>
+#include <zephyr/sys/printk.h>
 #include "osal.h"
 
-LOG_MODULE_REGISTER(el2go, CONFIG_LOG_DEFAULT_LEVEL);
-
 #define HEX_DUMP_LINE_LENGTH 16
+
+static const unsigned int s_log_level = TRACE_LEVEL;
 
 void osal_printf(unsigned int level, const char *fmt, ...)
 {
     va_list args;
-    char buf[256] = { 0 };
 
-    if (level == DBG_LEVEL_NONE) {
+    if (level == DBG_LEVEL_NONE || level > s_log_level)
         return;
-    }
 
     va_start(args, fmt);
-    (void)vsnprintf(buf, sizeof(buf), fmt, args);
+    vprintk(fmt, args);
     va_end(args);
-
-    switch (level) {
-    case DBG_LEVEL_ERROR:
-        LOG_ERR("%s", buf);
-        break;
-    case DBG_LEVEL_INFO:
-        LOG_INF("%s", buf);
-        break;
-    case DBG_LEVEL_DEBUG:
-        LOG_DBG("%s", buf);
-        break;
-    case DBG_LEVEL_VERBOSE:
-    case DBG_LEVEL_EXTRA:
-        LOG_DBG("%s", buf);
-        break;
-    default:
-        break;
-    }
 }
 
 void osal_printf_always(const char *fmt, ...)
 {
     va_list args;
-    char buf[256] = { 0 };
 
     va_start(args, fmt);
-    (void)vsnprintf(buf, sizeof(buf), fmt, args);
+    vprintk(fmt, args);
     va_end(args);
-
-    LOG_INF("%s", buf);
 }
 
 int osal_sprintf(char *str, const char *format, ...)
@@ -90,28 +67,30 @@ int osal_snprintf(char *str, size_t size, const char *format, ...)
 
 void osal_hex_dump(unsigned int level, const void *buffer, size_t length)
 {
-    if (level == DBG_LEVEL_NONE)
+    const unsigned char *buf = (const unsigned char *)buffer;
+    size_t i = 0;
+
+    if (level == DBG_LEVEL_NONE || level > s_log_level)
         return;
+
     if (!buffer) {
-        osal_printf(level, "(null)");
-        return;
-    }
-    if (!length) {
-        osal_printf(level, "(empty)");
+        printk("(null)\n");
         return;
     }
 
-    /* Use Zephyr native hex-dump: one log record per 16-byte row,
-     * avoiding per-byte log calls that flood the log buffer. */
-    switch (level) {
-    case DBG_LEVEL_ERROR:
-        LOG_HEXDUMP_ERR(buffer, length, "");
-        break;
-    case DBG_LEVEL_INFO:
-        LOG_HEXDUMP_INF(buffer, length, "");
-        break;
-    default:
-        LOG_HEXDUMP_DBG(buffer, length, "");
-        break;
+    if (!length) {
+        printk("(empty)\n");
+        return;
     }
+
+    for (; i < length; i++) {
+        printk("%02x", buf[i]);
+        if ((i + 1) % HEX_DUMP_LINE_LENGTH == 0)
+            printk("\n");
+        else if (i < length - 1)
+            printk(" ");
+    }
+
+    if (length % HEX_DUMP_LINE_LENGTH)
+        printk("\n");
 }

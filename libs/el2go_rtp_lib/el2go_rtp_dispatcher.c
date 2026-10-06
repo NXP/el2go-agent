@@ -36,6 +36,7 @@
 #include "el2go_rtp_internal.h"
 #include "el2go_dispatcher_priv.h"
 #include "el2go_agent_endpoint.h"
+#include "rtp/el2go_rtp_timing.h"
 
 /* ========================================================================== */
 /* Response buffer ostream adaptor                                              */
@@ -451,7 +452,7 @@ el2go_status_t el2go_rtp_dispatch(el2go_rtp_ctx_t *ctx, pb_istream_t *istream,
 #if defined(EL2GO_RTP_REQUEST_CRL) && (EL2GO_RTP_REQUEST_CRL == 1)
     disp.crl_required = true;
 #endif
-    EL2GO_DBG_PRINTF(INFO, "CRL verification %s\n", disp.crl_required ? "enabled" : "disabled");
+    EL2GO_DBG_PRINTF(VERBOSE, "CRL verification %s\n", disp.crl_required ? "enabled" : "disabled");
 
     /* Build the endpoint routing table from registered keystores/datastores */
     status = build_endpoint_table(ctx, &disp);

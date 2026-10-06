@@ -114,7 +114,8 @@ int curves_to_mbedtls(const el2go_curve_list_t *curve_list, void *mbedtls_curves
 
         /* Skip curves not supported by this mbedTLS version */
         if (group_id == MBEDTLS_COMPAT_CURVE_SENTINEL) {
-            EL2GO_DBG_PRINTF(INFO, "Curve ID %d not supported by this mbedTLS version, skipping\n",
+            EL2GO_DBG_PRINTF(VERBOSE,
+                             "Curve ID %d not supported by this mbedTLS version, skipping\n",
                              platform_curve);
             continue;
         }

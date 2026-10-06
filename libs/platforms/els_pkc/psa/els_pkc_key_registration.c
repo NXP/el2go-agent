@@ -59,7 +59,7 @@ el2go_status_t el2go_platform_register_el2go_key(void)
 
     /* Key already persisted from a previous boot -- not an error. */
     if (psa_status == PSA_ERROR_ALREADY_EXISTS) {
-        EL2GO_DBG_PRINTF(INFO, "[EL2GO ELS_PKC] EL2GO conn auth key already registered\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "[EL2GO ELS_PKC] EL2GO conn auth key already registered\n");
         return EL2GO_STATUS_SUCCESS;
     }
 
@@ -69,7 +69,7 @@ el2go_status_t el2go_platform_register_el2go_key(void)
         return EL2GO_STATUS_FAILURE;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "[EL2GO ELS_PKC] EL2GO conn auth key registered (ID=0x%08X)\n",
+    EL2GO_DBG_PRINTF(VERBOSE, "[EL2GO ELS_PKC] EL2GO conn auth key registered (ID=0x%08X)\n",
                      (unsigned)EDGELOCK2GO_KEYID_ECC);
     return EL2GO_STATUS_SUCCESS;
 }

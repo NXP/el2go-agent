@@ -7,7 +7,7 @@
 #ifndef __EL2GO_RTP_AGENT_LOG_H__
 #define __EL2GO_RTP_AGENT_LOG_H__
 
-#include "el2go_rtp_agent_osal_types.h"
+#include "el2go_app_osal_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,11 +18,11 @@ extern "C" {
  * Includes function name and line number.
  */
 #if defined(ENABLE_EL2GO_RTP_DEBUG) && ENABLE_EL2GO_RTP_DEBUG
-#define EL2GO_RTP_LOG_DEBUG(...)                         \
-    do {                                                 \
-        printc("DEBUG:   %s L#%d ", __func__, __LINE__); \
-        printc(__VA_ARGS__);                             \
-        printc("\r\n");                                  \
+#define EL2GO_RTP_LOG_DEBUG(...)                                   \
+    do {                                                           \
+        EL2GO_APP_PRINTC("DEBUG:   %s L#%d ", __func__, __LINE__); \
+        EL2GO_APP_PRINTC(__VA_ARGS__);                             \
+        EL2GO_APP_PRINTC("\r\n");                                  \
     } while (0)
 #else
 #define EL2GO_RTP_LOG_DEBUG(...)
@@ -33,24 +33,24 @@ extern "C" {
  * Includes function name and line number.
  */
 #if defined(ENABLE_EL2GO_RTP_TRACE) && ENABLE_EL2GO_RTP_TRACE
-#define EL2GO_RTP_LOG_TRACE(...)                         \
-    do {                                                 \
-        printc("TRACE:   %s L#%d ", __func__, __LINE__); \
-        printc(__VA_ARGS__);                             \
-        printc("\r\n");                                  \
+#define EL2GO_RTP_LOG_TRACE(...)                                   \
+    do {                                                           \
+        EL2GO_APP_PRINTC("TRACE:   %s L#%d ", __func__, __LINE__); \
+        EL2GO_APP_PRINTC(__VA_ARGS__);                             \
+        EL2GO_APP_PRINTC("\r\n");                                  \
     } while (0)
-#define EL2GO_RTP_FUNC_ENTRY                                     \
-    do {                                                         \
-        printc("FUNC_ENTRY:   %s L#%d\r\n", __func__, __LINE__); \
+#define EL2GO_RTP_FUNC_ENTRY                                               \
+    do {                                                                   \
+        EL2GO_APP_PRINTC("FUNC_ENTRY:   %s L#%d\r\n", __func__, __LINE__); \
     } while (0)
-#define EL2GO_RTP_FUNC_EXIT                                      \
-    do {                                                         \
-        printc("FUNC_EXIT:    %s L#%d\r\n", __func__, __LINE__); \
+#define EL2GO_RTP_FUNC_EXIT                                                \
+    do {                                                                   \
+        EL2GO_APP_PRINTC("FUNC_EXIT:    %s L#%d\r\n", __func__, __LINE__); \
     } while (0)
-#define EL2GO_RTP_FUNC_EXIT_RC(x)                                                      \
-    do {                                                                               \
-        printc("FUNC_EXIT:    %s L#%d return code : %d\r\n", __func__, __LINE__, (x)); \
-        return (x);                                                                    \
+#define EL2GO_RTP_FUNC_EXIT_RC(x)                                                                \
+    do {                                                                                         \
+        EL2GO_APP_PRINTC("FUNC_EXIT:    %s L#%d return code : %d\r\n", __func__, __LINE__, (x)); \
+        return (x);                                                                              \
     } while (0)
 #else
 #define EL2GO_RTP_LOG_TRACE(...)
@@ -67,10 +67,10 @@ extern "C" {
  * Message only -- no function name or line number.
  */
 #if defined(ENABLE_EL2GO_RTP_INFO) && ENABLE_EL2GO_RTP_INFO
-#define EL2GO_RTP_LOG_INFO(...) \
-    do {                        \
-        printc(__VA_ARGS__);    \
-        printc("\r\n");         \
+#define EL2GO_RTP_LOG_INFO(...)        \
+    do {                               \
+        EL2GO_APP_PRINTC(__VA_ARGS__); \
+        EL2GO_APP_PRINTC("\r\n");      \
     } while (0)
 #else
 #define EL2GO_RTP_LOG_INFO(...)
@@ -81,11 +81,11 @@ extern "C" {
  * Includes function name and line number.
  */
 #if defined(ENABLE_EL2GO_RTP_WARN) && ENABLE_EL2GO_RTP_WARN
-#define EL2GO_RTP_LOG_WARN(...)                          \
-    do {                                                 \
-        printc("WARN:    %s L#%d ", __func__, __LINE__); \
-        printc(__VA_ARGS__);                             \
-        printc("\r\n");                                  \
+#define EL2GO_RTP_LOG_WARN(...)                                    \
+    do {                                                           \
+        EL2GO_APP_PRINTC("WARN:    %s L#%d ", __func__, __LINE__); \
+        EL2GO_APP_PRINTC(__VA_ARGS__);                             \
+        EL2GO_APP_PRINTC("\r\n");                                  \
     } while (0)
 #else
 #define EL2GO_RTP_LOG_WARN(...)
@@ -96,16 +96,17 @@ extern "C" {
  * Includes function name and line number.
  */
 #if defined(ENABLE_EL2GO_RTP_ERROR) && ENABLE_EL2GO_RTP_ERROR
-#define EL2GO_RTP_LOG_ERROR(...)                         \
-    do {                                                 \
-        printc("ERROR:   %s L#%d ", __func__, __LINE__); \
-        printc(__VA_ARGS__);                             \
-        printc("\r\n");                                  \
+#define EL2GO_RTP_LOG_ERROR(...)                                   \
+    do {                                                           \
+        EL2GO_APP_PRINTC("ERROR:   %s L#%d ", __func__, __LINE__); \
+        EL2GO_APP_PRINTC(__VA_ARGS__);                             \
+        EL2GO_APP_PRINTC("\r\n");                                  \
     } while (0)
-#define EL2GO_RTP_FUNC_EXIT_ERROR(x)                                                      \
-    do {                                                                                  \
-        printc("FUNC_EXIT_ERROR: %s L#%d return code : %d\r\n", __func__, __LINE__, (x)); \
-        return (x);                                                                       \
+#define EL2GO_RTP_FUNC_EXIT_ERROR(x)                                                          \
+    do {                                                                                      \
+        EL2GO_APP_PRINTC("FUNC_EXIT_ERROR: %s L#%d return code : %d\r\n", __func__, __LINE__, \
+                         (x));                                                                \
+        return (x);                                                                           \
     } while (0)
 #else
 #define EL2GO_RTP_LOG_ERROR(...)
@@ -116,17 +117,17 @@ extern "C" {
  * @brief Always-on output -- used for banners and performance reports.
  * Not gated by any enable flag.
  */
-#define EL2GO_RTP_LOG_ALWAYS(...) \
-    do {                          \
-        printc(__VA_ARGS__);      \
+#define EL2GO_RTP_LOG_ALWAYS(...)      \
+    do {                               \
+        EL2GO_APP_PRINTC(__VA_ARGS__); \
     } while (0)
 
 #if defined(EL2GO_RTP_TEST) && EL2GO_RTP_TEST
-#define EL2GO_RTP_TEST_LOG(ID, ...)     \
-    do {                                \
-        printc("TEST_LOG(%s): ", (ID)); \
-        printc(__VA_ARGS__);            \
-        printc("\n");                   \
+#define EL2GO_RTP_TEST_LOG(ID, ...)               \
+    do {                                          \
+        EL2GO_APP_PRINTC("TEST_LOG(%s): ", (ID)); \
+        EL2GO_APP_PRINTC(__VA_ARGS__);            \
+        EL2GO_APP_PRINTC("\n");                   \
     } while (0)
 #else
 #define EL2GO_RTP_TEST_LOG(ID, ...)
