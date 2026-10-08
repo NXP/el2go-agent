@@ -42,9 +42,7 @@ if(NOT DEFINED PROJECT_ROOT)
 endif()
 
 # Verbosity level for tracing.
-# Default is 2 (INFO) so that ERROR and INFO messages are visible out of the
-# box, matching the behaviour of the old nxp_iot_agent branch where
-# ENABLE_IOT_AGENT_ERROR/WARN/INFO/DEBUG were all ON by default.
+# Default is 2 (INFO) so that ERROR and INFO messages are visible out of the box.
 # Pass -DVERBOSE=0 to silence all library output, or -DVERBOSE=3..5 for more.
 if(VERBOSE)
     if(NOT VERBOSE MATCHES "^[0-9]$")

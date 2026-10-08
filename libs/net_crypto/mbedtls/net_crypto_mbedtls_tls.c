@@ -38,6 +38,7 @@
 #include "debug.h"
 
 #include "net_crypto.h"
+#include "mbedtls_debug.h"
 
 #include "mapping/mbedtls_mapping.h"
 #include "tls/mbedtls_compat_tls.h"
@@ -53,27 +54,6 @@
 #ifndef NET_CRYPTO_SSL_READ_TIMEOUT_MS
 #define NET_CRYPTO_SSL_READ_TIMEOUT_MS 60000U
 #endif
-
-/**
- * @brief Debug callback for mbedTLS library
- *
- * @param[in] ctx Context pointer (unused)
- * @param[in] level Debug level
- * @param[in] file Source file name
- * @param[in] line Line number
- * @param[in] str Debug message string
- */
-__maybe_unused static void mbedtls_debug_cb(void *ctx, int level, const char *file, int line,
-                                            const char *str)
-{
-    (void)ctx;
-    (void)level;
-    (void)file;
-    (void)line;
-    (void)str;
-
-    EL2GO_DBG_PRINTF(VERBOSE, "mbedTLS [%d] %s:%d: %s", level, file, line, str);
-}
 
 /**
  * @brief Network crypto context structure
@@ -175,12 +155,7 @@ static el2go_status_t handle_handshake_failure(net_crypto_ctx_t *ctx, int ret)
         warn_crt_crl_period(verify_result);
         status = EL2GO_STATUS_NET_CRYPTO_CERT_VERIFY_FAILED;
     } else {
-#ifdef MBEDTLS_ERROR_C
-        if (mbedtls_high_level_strerr(ret) != NULL)
-            EL2GO_DBG_PRINTF(ERROR, "High-level error: %s\n", mbedtls_high_level_strerr(ret));
-        if (mbedtls_low_level_strerr(ret) != NULL)
-            EL2GO_DBG_PRINTF(ERROR, "Low-level error: %s\n", mbedtls_low_level_strerr(ret));
-#endif
+        el2go_dbg_mbedtls_err(ret);
     }
 
     return status;

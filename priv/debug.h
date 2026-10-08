@@ -43,13 +43,13 @@
         EL2GO_PRINTF(EL2GO_DBG_LEVEL_EXTRA, "Executing %s\n", __func__); \
     } while (0)
 
-#define EL2GO_DBG_PRINTF(level, fmt, ...)                                                    \
-    do {                                                                                     \
-        if (EL2GO_DBG_LEVEL_##level == EL2GO_DBG_LEVEL_ERROR)                                \
-            EL2GO_PRINTF(EL2GO_DBG_LEVEL_##level, "ERROR: %s L#%d " fmt, __func__, __LINE__, \
-                         ##__VA_ARGS__);                                                     \
-        else                                                                                 \
-            EL2GO_PRINTF(EL2GO_DBG_LEVEL_##level, fmt, ##__VA_ARGS__);                       \
+#define EL2GO_DBG_PRINTF(level, fmt, ...)                                                      \
+    do {                                                                                       \
+        if (EL2GO_DBG_LEVEL_##level == EL2GO_DBG_LEVEL_ERROR)                                  \
+            EL2GO_PRINTF(EL2GO_DBG_LEVEL_##level, "ERROR: %s L#%d : " fmt, __func__, __LINE__, \
+                         ##__VA_ARGS__);                                                       \
+        else                                                                                   \
+            EL2GO_PRINTF(EL2GO_DBG_LEVEL_##level, fmt, ##__VA_ARGS__);                         \
     } while (0)
 
 #define EL2GO_DBG_PRINTF_COND(level, cond, fmt, ...)     \

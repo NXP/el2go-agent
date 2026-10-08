@@ -28,7 +28,7 @@
 
 /* Flash partition that backs the log. */
 #define LOG_PARTITION log_partition
-#define LOG_PARTITION_ID FIXED_PARTITION_ID(LOG_PARTITION)
+#define LOG_PARTITION_ID PARTITION_ID(LOG_PARTITION)
 
 #define LOG_RECORD_MAGIC 0x474C4F45U
 

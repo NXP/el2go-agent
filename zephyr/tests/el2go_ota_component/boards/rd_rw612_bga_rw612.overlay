@@ -1,0 +1,51 @@
+/*
+ * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+    chosen {
+        secure_storage_its_partition = &its_partition;
+    };
+};
+
+&mx25u51245g {
+    partitions {
+        /delete-node/ partition@20000;
+        /delete-node/ partition@c0000;
+        /delete-node/ partition@3c0000;
+        /delete-node/ partition@460000;
+        /delete-node/ partition@760000;
+
+        slot0_partition: partition@40000 {
+            compatible = "zephyr,mapped-partition";
+            label = "image-0";
+            reg = <0x00040000 DT_SIZE_M(4)>;
+        };
+
+        slot1_partition: partition@440000 {
+            compatible = "zephyr,mapped-partition";
+            label = "image-1";
+            reg = <0x00440000 DT_SIZE_M(4)>;
+        };
+
+        its_partition: partition@840000 {
+            compatible = "zephyr,mapped-partition";
+            label = "its";
+            reg = <0x00840000 DT_SIZE_K(128)>;
+        };
+
+        storage_partition: partition@860000 {
+            compatible = "zephyr,mapped-partition";
+            label = "storage";
+            reg = <0x00860000 DT_SIZE_K(8)>;
+        };
+
+        ota_status_partition: partition@862000 {
+            compatible = "zephyr,mapped-partition";
+            label = "ota_status";
+            reg = <0x00862000 DT_SIZE_K(8)>;
+        };
+    };
+};

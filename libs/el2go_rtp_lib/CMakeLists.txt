@@ -42,12 +42,16 @@ if(NOT BUILD_ZEPHYR)
         ${CMAKE_SOURCE_DIR}/include/common/el2go_keystore.h
         ${CMAKE_SOURCE_DIR}/include/common/el2go_platform.h
         ${CMAKE_SOURCE_DIR}/include/common/el2go_status.h
+        ${CMAKE_SOURCE_DIR}/include/common/el2go_version.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${EL2GO_AGENT_INSTALL_NAME}/common
     )
 
     install(FILES
+        ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_certificates.h
+        ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_claimcode.h
         ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_config.h
         ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp.h
+        ${CMAKE_SOURCE_DIR}/include/rtp/el2go_rtp_timing.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${EL2GO_AGENT_INSTALL_NAME}/rtp
     )
 

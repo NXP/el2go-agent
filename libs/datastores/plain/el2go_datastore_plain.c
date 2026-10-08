@@ -255,7 +255,7 @@ static el2go_status_t el2go_datastore_plain_read(void *context, void *dest, size
 
     read_buffer = ctx->slots[ctx->idx_read].data;
     if (!read_buffer) {
-        EL2GO_DBG_PRINTF(ERROR, "Read buffer is NULL\n");
+        EL2GO_DBG_PRINTF(VERBOSE, "Read buffer is NULL\n");
         status = EL2GO_STATUS_INVALID_POINTER;
         goto exit;
     }

@@ -80,7 +80,7 @@ int test_framework_run(void)
 
     TEST_PRINT_RAW("\n");
     TEST_PRINT_RAW("========================================");
-    TEST_PRINT_RAW("Running %ld tests", test_count);
+    TEST_PRINT_RAW("Running %zu tests", test_count);
     TEST_PRINT_RAW("========================================\n");
 
     if (suite_setup) {
@@ -128,12 +128,12 @@ int test_framework_run(void)
 
     TEST_PRINT_RAW("========================================");
     TEST_PRINT_RAW("Test Results:");
-    TEST_PRINT_RAW("  Passed: %ld/%ld", passed, test_count);
-    TEST_PRINT_RAW("  Failed: %ld/%ld", failed, test_count);
+    TEST_PRINT_RAW("  Passed: %zu/%zu", passed, test_count);
+    TEST_PRINT_RAW("  Failed: %zu/%zu", failed, test_count);
     TEST_PRINT_RAW("========================================");
 
     if (failed > 0) {
-        TEST_PRINT(stdout, "FAILURE: %ld test(s) failed\n", failed);
+        TEST_PRINT(stdout, "FAILURE: %zu test(s) failed\n", failed);
         return 1;
     }
     TEST_PRINT(stdout, "SUCCESS: All tests passed\n");

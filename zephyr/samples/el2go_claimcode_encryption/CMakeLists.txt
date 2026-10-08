@@ -39,6 +39,7 @@ zephyr_include_directories(
 target_sources(app PRIVATE
     ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/iap/fsl_romapi_iap.c
     ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/flexspi/fsl_romapi_flexspi.c
+    ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/bootloader/fsl_romapi.c
 )
 
 zephyr_include_directories(
@@ -46,6 +47,7 @@ zephyr_include_directories(
     ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/flexspi
     ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/nboot
     ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/bootloader
+    ${ZEPHYR_HAL_NXP_MODULE_DIR}/mcux/mcux-sdk-ng/devices/Wireless/RW/RW612/drivers/romapi/otp
 )
 
 if(CONFIG_CLAIM_CODE_INFO_ADDRESS)
