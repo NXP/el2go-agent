@@ -37,4 +37,40 @@ config EL2GO_OTA_TRANSPORT_GRPC
 
 endchoice # EL2GO_OTA_TRANSPORT_BACKEND
 
+config EL2GO_OTA_SERVER_HOST
+    string "EL2GO OTA server hostname"
+    default ""
+    help
+      Hostname (or IP address) of the EL2GO OTA server the agent connects
+      to over mTLS.
+
+config EL2GO_OTA_SERVER_PORT
+    int "EL2GO OTA server port"
+    default 50051
+    help
+      TCP port of the EL2GO OTA server.
+
+config EL2GO_OTA_CLIENT_KEY_OBJECT_ID
+    hex "Object id of the provisioned mTLS client private key"
+    default 0x3010
+    help
+      Object id referencing the mTLS client private key that is expected to be
+      already provisioned in secure storage on the device. The sample only
+      references this id; it never imports or provisions the key.
+
+config EL2GO_OTA_CLIENT_CERT_OBJECT_ID
+    hex "Object id of the provisioned mTLS client certificate"
+    default 0x3021
+    help
+      Object id referencing the DER-encoded mTLS client certificate that is
+      expected to be already provisioned in secure storage on the device. The
+      sample only references this id; it never stores the certificate.
+
+config EL2GO_OTA_DISABLE_MTLS
+    bool "Disable mTLS client certificate authentication"
+    default n
+    help
+      When enabled, the OTA agent connects with server-authenticated TLS only.
+      Server certificate verification remains mandatory.
+
 endif # EL2GO_OTA_LIBRARY_SOURCES

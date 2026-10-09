@@ -47,47 +47,6 @@ config EL2GO_OTA_LIBRARY_SOURCES
       Requires mbedTLS PSA crypto and network sockets -- configure these
       in your application's prj.conf (see samples/el2go_ota_agent_core/prj.conf).
 
-config EL2GO_OTA_SERVER_HOST
-    string "EL2GO OTA server hostname"
-    depends on EL2GO_OTA_LIBRARY_SOURCES
-    default ""
-    help
-      Hostname (or IP address) of the EL2GO OTA server the agent connects
-      to over mTLS.
-
-config EL2GO_OTA_SERVER_PORT
-    int "EL2GO OTA server port"
-    depends on EL2GO_OTA_LIBRARY_SOURCES
-    default 50051
-    help
-      TCP port of the EL2GO OTA server.
-
-config EL2GO_OTA_CLIENT_KEY_OBJECT_ID
-    hex "Object id of the provisioned mTLS client private key"
-    depends on EL2GO_OTA_LIBRARY_SOURCES
-    default 0x3010
-    help
-      Object id referencing the mTLS client private key that is expected to be
-      already provisioned in secure storage on the device. The sample only
-      references this id; it never imports or provisions the key.
-
-config EL2GO_OTA_CLIENT_CERT_OBJECT_ID
-    hex "Object id of the provisioned mTLS client certificate"
-    depends on EL2GO_OTA_LIBRARY_SOURCES
-    default 0x3021
-    help
-      Object id referencing the DER-encoded mTLS client certificate that is
-      expected to be already provisioned in secure storage on the device. The
-      sample only references this id; it never stores the certificate.
-
-config EL2GO_OTA_DISABLE_MTLS
-    bool "Disable mTLS client certificate authentication"
-    depends on EL2GO_OTA_LIBRARY_SOURCES
-    default n
-    help
-      When enabled, the OTA agent connects with server-authenticated TLS only.
-      Server certificate verification remains mandatory.
-
 # ---------------------------------------------------------------------------
 # EL2GO OTA Platform backend
 # ---------------------------------------------------------------------------
@@ -378,255 +337,118 @@ config EL2GO_OTA_CHUNK_SIZE
       Increasing this value reduces round-trips but increases stack usage
       in the download engine (wire buffer = EL2GO_OTA_CHUNK_SIZE + 256).
 
-config EL2GO_OTA_STATUS_NVS_PARTITION
-    string "Flash partition label for OTA status NVS"
-    depends on EL2GO_OTA_LIBRARY_SOURCES
-    default "ota_status"
-    help
-      Label of the flash partition used by the OTA status reporting module
-      to persist pending status reports across reboots.
-
-config EL2GO_OTA_STATUS_NVS_SECTOR_SIZE
-    int "NVS sector size for OTA status storage (bytes)"
-    depends on EL2GO_OTA_LIBRARY_SOURCES
-    default 4096
-
-config EL2GO_OTA_STATUS_NVS_SECTOR_COUNT
-    int "Number of NVS sectors for OTA status storage"
-    depends on EL2GO_OTA_LIBRARY_SOURCES
-    default 2
-
-# ---------------------------------------------------------------------------
-# EdgeLock2GO RTP Agent
-# ---------------------------------------------------------------------------
-menu "EdgeLock2GO RTP Agent"
-
-config EL2GO_RTP_AGENT
-    bool "EdgeLock2GO RTP Agent library sources"
-    select HWINFO
-    help
-      Enables the el2go_rtp_lib and its dependencies (keystores, datastores,
-      platforms, net_crypto, protobuf, osal) for Zephyr builds.
-
-config EL2GO_RTP_CLAIMCODE_INJECT
-    bool "Enable claimcode injection from flash"
-    depends on EL2GO_RTP_AGENT
-    help
-      Reads a claimcode blob from a fixed flash address and imports it into
-      PSA ITS before provisioning.
-
-config EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
-    hex "Flash address of the claimcode blob"
-    depends on EL2GO_RTP_CLAIMCODE_INJECT
-    default 0x088A0000
-    help
-      Physical flash address where the claimcode blob is stored.
-      Layout: { uint8_t indicator[4]; uint32_t size; uint8_t data[size]; }
-
-config EL2GO_RTP_MQTT_VERIFY
-    bool "Enable MQTT connectivity verification after provisioning"
-    depends on EL2GO_RTP_AGENT
-    select MQTT_LIB
-    select MQTT_LIB_CUSTOM_TRANSPORT
-    select JSON_LIBRARY
-    help
-      After provisioning, verifies MQTT connectivity using provisioned
-      credentials. At least one MQTT backend (AWS or Azure) must be
-      enabled via CONFIG_EL2GO_RTP_MQTT_AWS / CONFIG_EL2GO_RTP_MQTT_AZURE.
-
-config EL2GO_RTP_MQTT_AWS
-    bool "Enable AWS IoT Core MQTT verification"
-    depends on EL2GO_RTP_MQTT_VERIFY
-    help
-      Verifies the AWS IoT Core device key (PSA key ID 0x4000) and
-      certificate (PSA ITS UID 0x4001) by performing a TLS handshake
-      against the configured AWS IoT Core endpoint.
-
-config EL2GO_RTP_MQTT_AWS_KEY_ID
-    hex "PSA key ID for the AWS IoT Core device private key"
-    depends on EL2GO_RTP_MQTT_AWS
-    default 0x83000101
-    help
-      PSA key store ID of the device private key provisioned by EdgeLock 2GO
-      for AWS IoT Core authentication. Must match the key object ID configured
-      in the EL2GO service template (AWS_SERVICE_KEY_PAIR_ID in the old repo).
-
-config EL2GO_RTP_MQTT_AWS_CERT_ID
-    hex "PSA ITS UID for the AWS IoT Core device certificate"
-    depends on EL2GO_RTP_MQTT_AWS
-    default 0x83000102
-    help
-      PSA ITS UID of the device certificate provisioned by EdgeLock 2GO
-      for AWS IoT Core authentication. Must match the cert object ID configured
-      in the EL2GO service template (AWS_SERVICE_DEVICE_CERT_ID in the old repo).
-
-config EL2GO_RTP_MQTT_AZURE
-    bool "Enable Azure IoT Hub MQTT verification"
-    depends on EL2GO_RTP_MQTT_VERIFY
-    help
-      Verifies the Azure IoT Hub device key and certificate by performing a
-      TLS handshake against the configured Azure IoT Hub or DPS endpoint.
-
-config EL2GO_RTP_MQTT_AZURE_KEY_ID
-    hex "PSA key ID for the Azure IoT Hub device private key"
-    depends on EL2GO_RTP_MQTT_AZURE
-    default 0x83000211
-    help
-      PSA key store ID of the device private key provisioned by EdgeLock 2GO
-      for Azure IoT Hub authentication. Must match the key object ID configured
-      in the EL2GO service template (AZURE_SERVICE_KEY_PAIR_ID in the old repo).
-
-config EL2GO_RTP_MQTT_AZURE_CERT_ID
-    hex "PSA ITS UID for the Azure IoT Hub device certificate"
-    depends on EL2GO_RTP_MQTT_AZURE
-    default 0x83000212
-    help
-      PSA ITS UID of the device certificate provisioned by EdgeLock 2GO
-      for Azure IoT Hub authentication. Must match the cert object ID configured
-      in the EL2GO service template (AZURE_SERVICE_DEVICE_CERT_ID in the old repo).
-
-config EL2GO_RTP_MQTT_AZURE_ID_SCOPE
-    string "Azure DPS ID scope"
-    depends on EL2GO_RTP_MQTT_AZURE
-    default "0ne004510C6"
-    help
-      The ID scope assigned to the Azure Device Provisioning Service (DPS)
-      account, e.g. "0ne004510C6". Corresponds to AZURE_ID_SCOPE in the
-      old iot_agent_demo_config.h. Required when connecting to Azure DPS.
-
-config EL2GO_RTP_MQTT_AWS_CLIENT_ID
-    string "AWS IoT Core MQTT client ID (optional)"
-    depends on EL2GO_RTP_MQTT_AWS
-    default ""
-    help
-      Optional MQTT client ID for the AWS IoT Core connection. If left empty
-      the client ID is derived dynamically from the Common Name of the device
-      leaf certificate. Corresponds to AWS_CLIENT_ID in the old
-      iot_agent_demo_config.h.
-
-config EL2GO_RTP_MQTT_AZURE_REGISTRATION_ID
-    string "Azure DPS device registration ID (optional)"
-    depends on EL2GO_RTP_MQTT_AZURE
-    default ""
-    help
-      Optional DPS registration ID. If left empty it is derived dynamically
-      from the Common Name of the device leaf certificate. Corresponds to
-      AZURE_REGISTRATION_ID in the old iot_agent_demo_config.h.
-
-config EL2GO_RTP_EDGELOCK2GO_HOSTNAME
-    string "EdgeLock 2GO server hostname"
-    depends on EL2GO_RTP_AGENT
-    default ""
-    help
-      The hostname of the EdgeLock 2GO cloud service to connect to during
-      provisioning. This value is company-specific and can be found in the
-      EdgeLock 2GO portal under company settings.
-      Leave empty to fall back to the compile-time default in el2go_rtp_config.h.
-
-config EL2GO_RTP_EDGELOCK2GO_PORT
-    int "EdgeLock 2GO server port"
-    depends on EL2GO_RTP_AGENT
-    default 443
-    help
-      TCP port number for the EdgeLock 2GO cloud service connection.
-      Defaults to 443 (HTTPS/TLS).
-
-config EL2GO_RTP_WHITELISTING
-    bool "Enable whitelisting mode"
-    depends on EL2GO_RTP_AGENT
-    help
-      Enables whitelisting-based provisioning flow.
-
-config EL2GO_RTP_PSA_BACKEND_TFM
-    bool "Use TF-M as PSA backend (future)"
-    depends on EL2GO_RTP_AGENT && BUILD_WITH_TFM
-    default n
-    help
-      When enabled, PSA Crypto and ITS are backed by TF-M Secure Partition.
-      Requires tfm_ns_interface_init() at startup.
-      Currently not enabled -- reserved for future TF-M re-enablement.
-
-config EL2GO_TIME_MEASUREMENT
-    bool "Enable EL2GO timing measurements"
-    default y
-    depends on EL2GO_RTP_AGENT
-    help
-      Enable performance timing measurements in the EL2GO RTP agent demo.
-      Records and prints durations for claimcode injection, provisioning,
-      MQTT verification, and the full session. Disable to reduce code size.
-
-config EL2GO_RTP_LIB_LOG_LEVEL
-    int "EL2GO RTP library log level"
-    depends on EL2GO_RTP_AGENT
-    default 3
-    range 0 5
-    help
-      Controls EL2GO_DBG_PRINTF output from the RTP library, datastores,
-      keystores and net_crypto on Zephyr. Default matches the old branch
-      where ERROR/WARN/INFO/DEBUG were all ON by default.
-      0 = off (all library logging silent)
-      1 = ERROR only
-      2 = ERROR + INFO
-      3 = ERROR + INFO + DEBUG  (default)
-      4 = + VERBOSE (API call traces)
-      5 = + EXTRA (every function entry)
-
-config EL2GO_RTP_ENABLE_INFO
-    bool "Enable EL2GO RTP agent INFO logging"
-    default y
-    depends on EL2GO_RTP_AGENT
-
-config EL2GO_RTP_ENABLE_WARN
-    bool "Enable EL2GO RTP agent WARN logging"
-    default y
-    depends on EL2GO_RTP_AGENT
-
-config EL2GO_RTP_ENABLE_ERROR
-    bool "Enable EL2GO RTP agent ERROR logging"
-    default y
-    depends on EL2GO_RTP_AGENT
-
-config EL2GO_RTP_ENABLE_DEBUG
-    bool "Enable EL2GO RTP agent DEBUG logging"
-    default n
-    depends on EL2GO_RTP_AGENT
-
-config EL2GO_RTP_ENABLE_TRACE
-    bool "Enable EL2GO RTP agent TRACE logging"
-    default n
-    depends on EL2GO_RTP_AGENT
-
-endmenu # EdgeLock2GO RTP Agent
-
-# ---------------------------------------------------------------------------
-# Network backend (shared between OTA and RTP samples)
-# ---------------------------------------------------------------------------
-config EL2GO_OTA_NETWORK_BACKEND_ZEPHYR_WIFI
-    bool "Zephyr WiFi network backend"
-    depends on WIFI
-    help
-      Enables the Zephyr WiFi network backend that connects to an AP and
-      waits for DHCP before returning from el2go_ota_net_init().
-
-config EL2GO_NET_WIFI_SSID
-    string "WiFi SSID"
-    depends on EL2GO_OTA_NETWORK_BACKEND_ZEPHYR_WIFI
-    default "your_ssid"
-    help
-      SSID of the WiFi access point to connect to.
-
-config EL2GO_NET_WIFI_PSK
-    string "WiFi pre-shared key (password)"
-    depends on EL2GO_OTA_NETWORK_BACKEND_ZEPHYR_WIFI
-    default "your_password"
-    help
-      Password (pre-shared key) for the WiFi access point.
-
 if EL2GO_OTA_FWUAL_LIBRARY_SOURCES && BOOTLOADER_MCUBOOT
 source "${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/fwual/mcuboot/Kconfig"
 endif
 
 source "${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/el2go_ota_lib/Kconfig"
+
+# ---------------------------------------------------------------------------
+# OTA Agent Core parameters
+# ---------------------------------------------------------------------------
+config EL2GO_OTA_POLL_INTERVAL_S
+    int "Update polling interval (seconds)"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 30
+    help
+      How often the core agent polls the EL2GO OTA server for updates.
+
+config EL2GO_OTA_CORE_REPORT_MAX_RETRIES
+    int "Maximum status-report retries (core agent)"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 3
+    help
+      Number of times the core OTA agent retries el2go_ota_report_pending_status()
+      before giving up.
+
+# ---------------------------------------------------------------------------
+# OTA Agent Advanced parameters
+# ---------------------------------------------------------------------------
+config EL2GO_OTA_ADV_POLL_INTERVAL_S
+    int "Base polling interval (seconds)"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 3600
+    range 1 86400
+    help
+      How often the agent checks for updates when no failures have occurred.
+      On failure the scheduler backs off exponentially up to
+      EL2GO_OTA_ADV_RETRY_MAX_BACKOFF_S.
+
+config EL2GO_OTA_ADV_RETRY_INITIAL_BACKOFF_S
+    int "Initial retry backoff (seconds)"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 60
+    range 1 3600
+    help
+      Delay before the first retry after a check or download failure.
+      Subsequent retries double this value up to the maximum.
+
+config EL2GO_OTA_ADV_RETRY_MAX_BACKOFF_S
+    int "Maximum retry backoff (seconds)"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 3600
+    range 1 3600
+    help
+      Upper bound on the exponential backoff delay.
+
+config EL2GO_OTA_ADV_DOWNLOAD_MAX_RETRIES
+    int "Maximum download retry attempts"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 3
+    help
+      Number of times to retry a failed package download before
+      reporting failure and backing off.
+
+config EL2GO_OTA_ADV_REPORT_MAX_RETRIES
+    int "Maximum status report retry attempts"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 5
+    help
+      Number of times to retry delivering the update status report
+      to the EL2GO server before giving up.
+
+config EL2GO_OTA_ADV_BLACKOUT_START_HOUR
+    int "Blackout window start hour (0-23, set equal to END to disable)"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 0
+    range 0 23
+    help
+      Hour of day (UTC) at which the blackout window begins.
+      Set equal to EL2GO_OTA_ADV_BLACKOUT_END_HOUR to disable.
+      Requires a valid time source (SNTP or RTC).
+
+config EL2GO_OTA_ADV_BLACKOUT_END_HOUR
+    int "Blackout window end hour (0-23)"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 0
+    range 0 23
+    help
+      Hour of day (UTC) at which the blackout window ends (exclusive).
+      Wraps midnight if END < START (e.g. 22-04 = 22:00 to 04:00).
+
+config EL2GO_OTA_ADV_DEFER_WINDOW_S
+    int "Minimum seconds between update attempts (0 = disabled)"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 100
+    help
+      If non-zero, the agent will not start a new download within this
+      many seconds of the previous attempt.
+
+config EL2GO_OTA_ADV_TIME_SYNC_MAX_CYCLES
+    int "Maximum time-sync retry cycles before proceeding"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 10
+    help
+      Number of times the advanced OTA agent re-runs el2go_app_time_sync()
+      while waiting for a valid time, before proceeding without one.
+
+config EL2GO_OTA_ADV_TIME_SYNC_RETRY_DELAY_MS
+    int "Delay in milliseconds between time-sync retry cycles"
+    depends on EL2GO_OTA_LIBRARY_SOURCES
+    default 5000
+    help
+      Time in milliseconds the advanced OTA agent sleeps between successive
+      calls to el2go_app_time_sync() while waiting for a valid time.
 
 config EL2GO_SIGN_USING_NXPIMAGE
     bool "Sign s/ns binaries using nxpimage"
