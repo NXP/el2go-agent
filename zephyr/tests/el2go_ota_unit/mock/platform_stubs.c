@@ -23,7 +23,7 @@
  */
 static struct device_state s_mock_flash_device_state;
 
-const struct device __device_dts_ord_30 = {
+const struct device __device_dts_ord_29 = {
     .name = "mock-flash",
     .state = &s_mock_flash_device_state,
 };
