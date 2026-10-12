@@ -7,7 +7,6 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(el2go_claimcode_encryption)
 
-set(BUILD_ZEPHYR TRUE)
 include(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/el2go_claimcode_encryption/sources.cmake)
 target_sources(app PRIVATE ${EL2GO_CLAIMCODE_ENCRYPTION_SOURCES})
 

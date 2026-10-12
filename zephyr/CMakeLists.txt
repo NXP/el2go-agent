@@ -181,18 +181,6 @@ endif()
 # ---------------------------------------------------------------------------
 # Cross-agent application common (network, system, time)
 # ---------------------------------------------------------------------------
-if(CONFIG_EL2GO_NETWORK_SOURCES)
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/network)
-endif()
-
-if(CONFIG_EL2GO_SYSTEM_SOURCES)
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/system)
-endif()
-
-if(CONFIG_EL2GO_TIME_SOURCES)
-    zephyr_include_directories(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/time)
-endif()
-
 if(CONFIG_EL2GO_NETWORK_SOURCES OR CONFIG_EL2GO_SYSTEM_SOURCES OR
    CONFIG_EL2GO_TIME_SOURCES)
     add_subdirectory(
@@ -206,11 +194,6 @@ endif()
 # ---------------------------------------------------------------------------
 if(CONFIG_EL2GO_OTA_DIAG_SOURCES OR CONFIG_EL2GO_OTA_PERSIST_SOURCES OR
    CONFIG_EL2GO_OTA_EVENT_SOURCES)
-    zephyr_include_directories(
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/diag
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/persist
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common/event
-    )
     add_subdirectory(
         ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/ota_agents/common
         ${CMAKE_CURRENT_BINARY_DIR}/ota_app_common
@@ -235,11 +218,13 @@ if(CONFIG_EL2GO_RTP_AGENT)
         ${CMAKE_CURRENT_BINARY_DIR}/common_rtp
     )
 
-    # Network backend (el2go_app_net_init weak default + WiFi/Ethernet strong symbol).
-    add_subdirectory(
-        ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/network
-        ${CMAKE_CURRENT_BINARY_DIR}/app_net
-    )
+    # Network backend -- shared with OTA if already added via app_common.
+    if(NOT TARGET el2go_app_net)
+        add_subdirectory(
+            ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/network
+            ${CMAKE_CURRENT_BINARY_DIR}/app_net
+        )
+    endif()
 
     # MQTT transport layer for the RTP agent.
     add_subdirectory(
@@ -281,8 +266,8 @@ if(CONFIG_EL2GO_RTP_AGENT)
         ${CMAKE_CURRENT_BINARY_DIR}/datastores
     )
 
-    # net_crypto (mbedTLS wrapper).
-    if(CONFIG_MBEDTLS)
+    # net_crypto -- shared with OTA if already added via CONFIG_EL2GO_NET_CRYPTO_SOURCES.
+    if(CONFIG_MBEDTLS AND NOT TARGET net_crypto)
         add_subdirectory(
             ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/net_crypto
             ${CMAKE_CURRENT_BINARY_DIR}/net_crypto_rtp
