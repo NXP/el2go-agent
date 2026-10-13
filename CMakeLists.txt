@@ -4,16 +4,28 @@
 #
 
 cmake_minimum_required(VERSION 3.15)
-project(EL2GOAgents VERSION 1.0 LANGUAGES C)
+
+# Make project-local CMake modules available (e.g. add_target_sources, el2go_version)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+# Anchor PROJECT_ROOT before including el2go_version so the module can use it
+# to locate the version header regardless of which directory calls include().
+if(NOT DEFINED PROJECT_ROOT)
+    set(PROJECT_ROOT "${CMAKE_SOURCE_DIR}")
+endif()
+
+# Parse the version from the single authoritative header.
+# Must be included before project() so PROJECT_VERSION is set correctly.
+include(el2go_version)
+
+project(EL2GOAgents VERSION "${EL2GO_VERSION}" LANGUAGES C)
+message(STATUS "EL2GO library version: ${PROJECT_VERSION}")
 
 # Include standard installation directories
 include(GNUInstallDirs)
 
 # Top-level install namespace used as the include subdirectory for all public headers
 set(EL2GO_AGENT_INSTALL_NAME "el2go-agent")
-
-# Make project-local CMake modules available (e.g. add_target_sources)
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 
 # Set default build type if not specified
@@ -36,10 +48,6 @@ message(STATUS "BUILD_OTA: ${BUILD_OTA}")
 
 # Option to build unit tests
 option(BUILD_TESTING "Build unit tests" OFF)
-
-if(NOT DEFINED PROJECT_ROOT)
-    set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
-endif()
 
 # Verbosity level for tracing.
 # Default is 2 (INFO) so that ERROR and INFO messages are visible out of the box.
