@@ -58,6 +58,14 @@ static const int cipher_suite_map[] = {
     0, /* not supported in mbedTLS 4.x */
     /* EL2GO_CIPHER_ECDH_RSA_AES256_GCM_SHA384    */
     0, /* not supported in mbedTLS 4.x */
+    /* EL2GO_CIPHER_TLS1_3_AES_128_GCM_SHA256       */
+    MBEDTLS_TLS1_3_AES_128_GCM_SHA256,
+    /* EL2GO_CIPHER_TLS1_3_AES_256_GCM_SHA384       */
+    MBEDTLS_TLS1_3_AES_256_GCM_SHA384,
+    /* EL2GO_CIPHER_TLS1_3_CHACHA20_POLY1305_SHA256 */
+    MBEDTLS_TLS1_3_CHACHA20_POLY1305_SHA256,
+    /* EL2GO_CIPHER_TLS1_3_AES_128_CCM_SHA256       */
+    MBEDTLS_TLS1_3_AES_128_CCM_SHA256,
 };
 
 int mbedtls_compat_cipher_suite_to_id(el2go_cipher_suite_t suite)
