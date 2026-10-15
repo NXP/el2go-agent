@@ -6,6 +6,7 @@
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 project(el2go_rtp_agent VERSION ${CMAKE_PROJECT_VERSION} LANGUAGES C)
 
+include(add_target_sources)
 include(sources.cmake)
 
 # EL2GO RTP Agent demo
@@ -34,3 +35,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE el2go_rtp el2go_mqtt el2go_app_net
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# Credentials: CMake -D value takes priority; fall back to OS env var.
+add_config_string(${PROJECT_NAME} EL2GO_RTP_EDGELOCK2GO_HOSTNAME EL2GO_RTP_EDGELOCK2GO_HOSTNAME)
+add_config_hex(${PROJECT_NAME} AWS_SERVICE_KEY_PAIR_ID    AWS_SERVICE_KEY_PAIR_ID    0x0)
+add_config_hex(${PROJECT_NAME} AWS_SERVICE_DEVICE_CERT_ID AWS_SERVICE_DEVICE_CERT_ID 0x0)
+add_config_hex(${PROJECT_NAME} AZURE_SERVICE_KEY_PAIR_ID  AZURE_SERVICE_KEY_PAIR_ID  0x0)
+add_config_hex(${PROJECT_NAME} AZURE_SERVICE_DEVICE_CERT_ID AZURE_SERVICE_DEVICE_CERT_ID 0x0)
+add_config_hex(${PROJECT_NAME} EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS 0x0)

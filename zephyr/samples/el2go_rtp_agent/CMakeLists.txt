@@ -17,3 +17,9 @@ zephyr_include_directories(
 
 include(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/el2go_rtp_agent/sources.cmake)
 target_sources(app PRIVATE ${EL2GO_RTP_AGENT_SOURCES})
+
+include(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/cmake/add_target_sources.cmake)
+
+# EL2GO hostname is used in el2go_rtp_agent_demo.c which is part of app target.
+# Priority: Kconfig value > OS environment variable > #ifndef fallback in C.
+add_config_string(app CONFIG_EL2GO_RTP_EDGELOCK2GO_HOSTNAME EL2GO_RTP_EDGELOCK2GO_HOSTNAME)

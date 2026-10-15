@@ -76,3 +76,56 @@ function(declare_static_library target)
         add_library(${target} STATIC)
     endif()
 endfunction()
+
+# ---------------------------------------------------------------------------
+# Helpers for injecting string/integer configs as compile definitions.
+# Priority: Kconfig value > OS environment variable > #ifndef fallback in C.
+#
+# add_config_string(target kconfig_var macro_name)
+#   For string configs on app/executable targets (sample CMakeLists.txt).
+#   Injects macro_name="value" (quoted).
+#   Kconfig wins if non-empty; otherwise falls back to OS env var.
+#
+# add_config_hex(target kconfig_var macro_name sentinel)
+#   For hex/integer configs on app/executable targets (sample CMakeLists.txt).
+#   Skips injection when Kconfig value equals sentinel (typically 0x0).
+#   Falls back to OS env var when Kconfig value equals sentinel.
+#
+# add_lib_config_string(target kconfig_var macro_name)
+#   Same as add_config_string but for library targets (library CMakeLists.txt).
+#   Uses add_private_definitions internally which dispatches correctly between
+#   Zephyr (zephyr_library_compile_definitions) and non-Zephyr
+#   (target_compile_definitions).
+#
+# add_lib_config_hex(target kconfig_var macro_name sentinel)
+#   Same as add_config_hex but for library targets. Kconfig only (no env var).
+# ---------------------------------------------------------------------------
+macro(add_config_string target kconfig_var macro_name)
+    if(${kconfig_var})
+        target_compile_definitions(${target} PRIVATE ${macro_name}="${${kconfig_var}}")
+    elseif(DEFINED ENV{${kconfig_var}})
+        target_compile_definitions(${target} PRIVATE ${macro_name}="$ENV{${kconfig_var}}")
+    endif()
+endmacro()
+
+macro(add_config_hex target kconfig_var macro_name sentinel)
+    if(NOT ${kconfig_var} EQUAL ${sentinel})
+        target_compile_definitions(${target} PRIVATE ${macro_name}=${${kconfig_var}})
+    elseif(DEFINED ENV{${kconfig_var}})
+        target_compile_definitions(${target} PRIVATE ${macro_name}=$ENV{${kconfig_var}})
+    endif()
+endmacro()
+
+macro(add_lib_config_string target kconfig_var macro_name)
+    if(${kconfig_var})
+        add_private_definitions(${target} ${macro_name}="${${kconfig_var}}")
+    elseif(DEFINED ENV{${kconfig_var}})
+        add_private_definitions(${target} ${macro_name}="$ENV{${kconfig_var}}")
+    endif()
+endmacro()
+
+macro(add_lib_config_hex target kconfig_var macro_name sentinel)
+    if(NOT ${kconfig_var} EQUAL ${sentinel})
+        add_private_definitions(${target} ${macro_name}=${${kconfig_var}})
+    endif()
+endmacro()

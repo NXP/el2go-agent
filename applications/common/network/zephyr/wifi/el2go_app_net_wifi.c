@@ -21,6 +21,15 @@
 #include "el2go_app_net.h"
 #include "el2go_app_log.h"
 
+/* WiFi credentials */
+#ifndef EL2GO_NET_WIFI_SSID
+#define EL2GO_NET_WIFI_SSID "WIFI SSID"
+#endif
+
+#ifndef EL2GO_NET_WIFI_PSK
+#define EL2GO_NET_WIFI_PSK "WIFI Password"
+#endif
+
 #define WIFI_CONNECT_TIMEOUT_S 60
 
 static K_SEM_DEFINE(s_wifi_sem, 0, 1);
@@ -162,17 +171,17 @@ int el2go_app_net_init(void)
     net_mgmt_init_event_callback(&s_ipv4_cb, event_handler, NET_EVENT_IPV4_ADDR_ADD);
     net_mgmt_add_event_callback(&s_ipv4_cb);
 
-    params.ssid = CONFIG_EL2GO_NET_WIFI_SSID;
-    params.ssid_length = strlen(CONFIG_EL2GO_NET_WIFI_SSID);
-    params.psk = CONFIG_EL2GO_NET_WIFI_PSK;
-    params.psk_length = strlen(CONFIG_EL2GO_NET_WIFI_PSK);
+    params.ssid = EL2GO_NET_WIFI_SSID;
+    params.ssid_length = strlen(EL2GO_NET_WIFI_SSID);
+    params.psk = EL2GO_NET_WIFI_PSK;
+    params.psk_length = strlen(EL2GO_NET_WIFI_PSK);
     params.band = WIFI_FREQ_BAND_UNKNOWN;
     params.channel = WIFI_CHANNEL_ANY;
     params.security = WIFI_SECURITY_TYPE_WPA_AUTO_PERSONAL;
     params.mfp = WIFI_MFP_OPTIONAL;
     params.timeout = WIFI_CONNECT_TIMEOUT_S;
 
-    EL2GO_APP_LOG_INFO("Connecting to SSID '%s' ...", CONFIG_EL2GO_NET_WIFI_SSID);
+    EL2GO_APP_LOG_INFO("Connecting to SSID '%s' ...", EL2GO_NET_WIFI_SSID);
 
     ret = net_mgmt(NET_REQUEST_WIFI_CONNECT, s_iface, &params, sizeof(params));
     if (ret) {

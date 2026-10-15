@@ -23,3 +23,8 @@ target_include_directories(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/mqtt
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/applications/common/network
 )
+
+include(${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/cmake/add_target_sources.cmake)
+
+# EL2GO hostname injection for el2go_mqtt_demo.
+add_config_string(app CONFIG_EL2GO_RTP_EDGELOCK2GO_HOSTNAME EL2GO_RTP_EDGELOCK2GO_HOSTNAME)
