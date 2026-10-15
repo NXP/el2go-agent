@@ -31,6 +31,15 @@
  */
 #define EDGELOCK2GO_CLAIMCODE_DATA_ID 0x3F0000E0U
 
+/* Flash address of the claimcode blob */
+#ifndef EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
+#ifdef CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
+#define EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
+#else
+#define EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS 0x088A0000
+#endif
+#endif
+
 /** @} */ /* end of els_pkc_psa_platform_defs */
 
 #endif /* __ELS_PKC_PLATFORM_DEFS_H__ */

@@ -17,15 +17,6 @@
 #include "keystore_priv.h"
 #include "plat_keys.h"
 
-/* Flash address of the claimcode blob */
-#ifndef EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
-#ifdef CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
-#define EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS CONFIG_EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS
-#else
-#define EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS 0x088A0000
-#endif
-#endif
-
 /*
  * Claimcode blob layout at EL2GO_RTP_CLAIMCODE_FLASH_ADDRESS:
  *   uint8_t  indicator[4] = {'E','2','G','C'}
