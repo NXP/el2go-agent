@@ -6,7 +6,7 @@
 
 / {
     chosen {
-        secure_storage_its_partition = &its_partition;
+        zephyr,secure-storage-its-partition = &its_partition;
     };
 };
 
