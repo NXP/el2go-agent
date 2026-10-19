@@ -114,8 +114,6 @@ function usage_mbedtls()
     printf "    out      = Temporary directory where to build sources\n"
     printf "    toolpath = [optional] Toolchain installation path\n"
     printf "    toolname = [optional] Toolchain name\n"
-    printf "    branch   = [optional] MbedTLS branch to get\n"
-    printf "    revision = [optional] MBeTLS revision to get\n"
     printf "\n"
 }
 
@@ -147,7 +145,7 @@ function usage_configure()
     printf "  %s configure out=[dir] " "${script_name}"
     printf "mbedtls=[dir]\n"
     printf "    out          = Build directory\n"
-    printf "    mbedtls      = MbedTLS cmake config files\n"
+    printf "    mbedtls      = MbedTLS pkg-config directory (path containing .pc files)\n"
     printf "    testing      = [optional] Enable unit test build (BUILD_TESTING=ON)\n"
     printf "    ota          = [optional] Enable OTA build (BUILD_OTA=ON)\n"
     printf "\n"
@@ -232,11 +230,6 @@ function mbedtls()
     cmd_script="${cmd_script} -DMbedTLS_BUILD_DIR=${opt_out}"
     cmd_script="${cmd_script} -DMbedTLS_ROOT=${opt_export} -P ${mbedtls_script}"
 
-    if [[ ${opt_branch} && ${opt_version} ]]; then
-        cmd_script="${cmd_script} -DMbedTLS_BRANCH=${opt_branch}"
-        cmd_script="${cmd_script} -DMBedTLS_REVISION=${opt_version}"
-    fi
-
     printf "Execute %s\n" "${cmd_script}"
     eval "${cmd_script}"
 }
@@ -288,6 +281,12 @@ function configure()
 
     if [[ -n ${opt_mbedtls} ]]; then
         export PKG_CONFIG_PATH="${opt_mbedtls}:${PKG_CONFIG_PATH}"
+        # For standalone cross-compilation the linker needs -L (to resolve bare
+        # -lmbedtls names) and -rpath-link (to resolve versioned DT_NEEDED
+        # entries such as libmbedtls.so.21 when linking executables against
+        # libel2go_rtp.so).  In Yocto the sysroot handles this automatically.
+        mbedtls_lib_dir="$(dirname "${opt_mbedtls}")"
+        opt_mbedtls_ldflags="-L${mbedtls_lib_dir} -Wl,-rpath-link,${mbedtls_lib_dir}"
     fi
 
     export PKG_CONFIG_PATH="${opt_cyaml}:${PKG_CONFIG_PATH}"
@@ -305,6 +304,13 @@ function configure()
         -DCMAKE_INSTALL_PREFIX="${el2go_agent_ROOT}/usr"
         -DCMAKE_INSTALL_LIBDIR=lib
     )
+
+    if [[ -n ${opt_mbedtls_ldflags} ]]; then
+        cmake_args+=(
+            "-DCMAKE_EXE_LINKER_FLAGS=${opt_mbedtls_ldflags}"
+            "-DCMAKE_SHARED_LINKER_FLAGS=${opt_mbedtls_ldflags}"
+        )
+    fi
 
     if [[ -n ${opt_smw} ]]; then
         cmake_args+=(-DNXP_SMW_DIR="${opt_smw}")
@@ -449,12 +455,6 @@ do
         verbose=*)
             opt_verbose="${arg#*=}"
             opt_verbose="-DVERBOSE=${opt_verbose}"
-            ;;
-        version=*)
-            opt_version="${arg#*=}"
-            ;;
-        branch=*)
-            opt_branch="${arg#*=}"
             ;;
         hash=*)
             opt_hash="${arg#*=}"

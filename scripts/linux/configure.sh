@@ -109,7 +109,7 @@ do
 done
 
 readonly smw_config="${smw_export_dir}/usr/lib/cmake"
-readonly mbedtls_config="${export_dir}/usr/local/el2go/lib/pkgconfig"
+readonly mbedtls_config="${export_dir}/usr/lib/pkgconfig"
 #
 # Build/Prepare external dependencies
 #
