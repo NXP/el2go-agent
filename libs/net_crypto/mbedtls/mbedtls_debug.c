@@ -34,10 +34,10 @@
 void el2go_dbg_mbedtls_err(int ret)
 {
 #ifdef MBEDTLS_ERROR_C
-    if (mbedtls_high_level_strerr(ret) != NULL)
-        EL2GO_DBG_PRINTF(ERROR, "High-level error: %s\n", mbedtls_high_level_strerr(ret));
-    if (mbedtls_low_level_strerr(ret) != NULL)
-        EL2GO_DBG_PRINTF(ERROR, "Low-level error: %s\n", mbedtls_low_level_strerr(ret));
+    char err_buf[256] = { 0 };
+
+    mbedtls_strerror(ret, err_buf, sizeof(err_buf));
+    EL2GO_DBG_PRINTF(ERROR, "mbedTLS error: %s\n", err_buf);
 #else
     (void)ret;
 #endif
