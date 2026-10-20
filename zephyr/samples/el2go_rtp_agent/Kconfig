@@ -128,6 +128,16 @@ config EL2GO_RTP_WHITELISTING
     help
       Enables whitelisting-based provisioning flow.
 
+config EL2GO_RTP_PLATFORM_KEY_REGISTRATION
+    bool "Register EL2GO connection authentication key at platform init"
+    depends on EL2GO_RTP_AGENT && !EL2GO_RTP_PSA_BACKEND_TFM
+    default n
+    help
+      When enabled, el2go_platform_init() registers the EL2GO connection
+      authentication key into PSA via the ELS PKC S50 driver. Enable for
+      the el2go_rtp_agent on non-TF-M targets only. On TF-M targets the
+      weak default no-op is used instead.
+
 config EL2GO_RTP_PSA_BACKEND_TFM
     bool "Use TF-M as PSA backend (future)"
     depends on EL2GO_RTP_AGENT && BUILD_WITH_TFM

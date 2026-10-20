@@ -8,6 +8,7 @@ include(add_target_sources)
 add_private_sources(el2go_platform
     els_pkc_platform.c
     els_pkc_crypto_params.c
+    els_pkc_key_registration.c
 )
 
 add_private_directories(el2go_platform
