@@ -45,13 +45,22 @@ __export el2go_ota_status_t el2go_ota_download_engine_check_for_updates(
 /**
  * @brief Internal implementation of el2go_ota_download_package().
  *
- * @param[in] transport      Initialised transport instance. Must not be NULL.
- * @param[in] update_id      Update identifier. Guaranteed non-NULL by caller.
- * @param[in] package_id     Package identifier. Guaranteed non-NULL by caller.
- * @param[in] file_id        File identifier within the package. Guaranteed non-NULL by caller.
- * @param[in] resume_offset  Byte offset to resume from (0 = start fresh).
- * @param[in] chunk_cb       Chunk delivery callback. Guaranteed non-NULL by caller.
- * @param[in] cb_ctx         Opaque context for chunk_cb. May be NULL.
+ * @param[in] transport        Initialised transport instance. Must not be NULL.
+ * @param[in] update_id        Update identifier. Guaranteed non-NULL by caller.
+ * @param[in] package_id       Package identifier. Guaranteed non-NULL by caller.
+ * @param[in] file_id          File identifier within the package. Guaranteed non-NULL by caller.
+ * @param[in] resume_offset    Byte offset to resume from (0 = start fresh).
+ * @param[in] known_file_size  Known total file size in bytes, or <= 0 if unknown.
+ *                             When > 0 the very first range request is clamped to
+ *                             [resume_offset, known_file_size - 1] immediately,
+ *                             which prevents an out-of-bounds request for files
+ *                             that fit in one chunk or when the resume offset lands
+ *                             inside the last partial chunk.  When <= 0 the total
+ *                             size is learned reactively from the first server
+ *                             response (fallback for resume paths with no prior
+ *                             check_for_updates() in the current session).
+ * @param[in] chunk_cb         Chunk delivery callback. Guaranteed non-NULL by caller.
+ * @param[in] cb_ctx           Opaque context for chunk_cb. May be NULL.
  * @retval EL2GO_OTA_SUCCESS on success.
  * @retval EL2GO_OTA_ERROR_ENCODE on encoding failure (not retried).
  * @retval EL2GO_OTA_ERROR_NETWORK on unrecoverable network failure after retries.
@@ -59,7 +68,7 @@ __export el2go_ota_status_t el2go_ota_download_engine_check_for_updates(
  */
 __export el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     el2go_ota_transport_t *transport, const char *update_id, const char *package_id,
-    const char *file_id, size_t resume_offset,
+    const char *file_id, size_t resume_offset, int64_t known_file_size,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *ctx),
     void *cb_ctx);
 

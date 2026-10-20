@@ -93,7 +93,7 @@ exit:
 
 el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     el2go_ota_transport_t *transport, const char *update_id, const char *package_id,
-    const char *file_id, size_t resume_offset,
+    const char *file_id, size_t resume_offset, int64_t known_file_size,
     el2go_ota_status_t (*chunk_cb)(const uint8_t *data, size_t len, size_t offset, void *ctx),
     void *cb_ctx)
 {
@@ -105,6 +105,7 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
     size_t byte_offset = 0U;
     uint32_t attempt = 0U;
     bool done = false;
+    int64_t total_file_size = known_file_size;
     el2go_ota_status_t status = EL2GO_OTA_ERROR_NETWORK;
     el2go_ota_status_t cb_status = EL2GO_OTA_ERROR_NETWORK;
 
@@ -136,6 +137,11 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
             EL2GO_DBG_PRINTF(ERROR, "fetch_package: range_end overflow\n");
             status = EL2GO_OTA_ERROR_INVALID_PARAM;
             goto exit;
+        }
+
+        /* Clamp range_end to the last valid byte once the file size is known. */
+        if (total_file_size > 0 && req.range_end >= total_file_size) {
+            req.range_end = total_file_size - 1;
         }
 
         /* Encoding failure is not retried. */
@@ -185,6 +191,11 @@ handle_network_error:
             goto exit;
         }
 
+        /* Learn total file size reactively from the response when not known upfront. */
+        if (total_file_size <= 0 && resp.total_file_size > 0) {
+            total_file_size = resp.total_file_size;
+        }
+
         /* Empty data payload signals end of file. */
         if (resp.data_len == 0U) {
             EL2GO_DBG_PRINTF(INFO, "fetch_package: server signalled end of file\n");
@@ -215,9 +226,10 @@ handle_network_error:
 
         byte_offset += resp.data_len;
 
-        /* Short read signals end of file. */
-        if (resp.data_len < EL2GO_OTA_CHUNK_SIZE) {
-            EL2GO_DBG_PRINTF(INFO, "fetch_package: last chunk received (short read)\n");
+        /* Short read or exhausted known size signals end of file. */
+        if (resp.data_len < EL2GO_OTA_CHUNK_SIZE ||
+            (total_file_size > 0 && (int64_t)byte_offset >= total_file_size)) {
+            EL2GO_DBG_PRINTF(INFO, "fetch_package: last chunk received\n");
             done = true;
         }
     }

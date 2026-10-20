@@ -6,6 +6,7 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 
 #include "osal.h"
 #include "compiler.h"
@@ -19,12 +20,30 @@
 #include "el2go_ota_status_reporting.h"
 #include "debug.h"
 
+/*
+ * Minimal internal cache entry: only the two fields needed for known_file_size
+ * lookup (file_id + size).  Using the full el2go_ota_file_metadata_t would pull
+ * in name/checksum fields and bloat the context by ~42 KB.
+ * 72 bytes * 128 entries = 9,216 bytes total.
+ */
+typedef struct {
+    char file_id[EL2GO_OTA_MAX_FILE_ID_LEN]; /**< Null-terminated file identifier. */
+    int64_t size;                            /**< File size in bytes. */
+} el2go_ota_file_size_cache_t;
+
+/* Maximum total file entries cached across all updates/packages from check_for_updates(). */
+#define EL2GO_OTA_MAX_CACHED_FILES \
+    (EL2GO_OTA_MAX_UPDATES * EL2GO_OTA_MAX_PACKAGES * EL2GO_OTA_MAX_FILE_METADATA)
+
 struct el2go_ota_ctx {
     bool connected;                     /**< True when mTLS connection is open. */
     el2go_ota_tls_ctx_t *tls_ctx;       /**< Underlying TLS context. */
     el2go_platform_ctx_t *platform_ctx; /**< Platform context -- owned for lifetime of ctx. */
     el2go_ota_transport_t transport;    /**< Transport vtable -- initialised at connect time. */
     const char *hostname; /**< Server hostname -- points into user config (not owned). */
+    /** File size cache populated by the most recent successful check_for_updates() call. */
+    el2go_ota_file_size_cache_t cached_files[EL2GO_OTA_MAX_CACHED_FILES];
+    size_t cached_file_count; /**< Number of valid entries in cached_files[]. */
 };
 
 /**
@@ -297,8 +316,32 @@ __export el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx,
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
 
-    return el2go_ota_download_engine_check_for_updates(&ctx->transport, attrs, attr_count,
-                                                       out_resp);
+    el2go_ota_status_t result =
+        el2go_ota_download_engine_check_for_updates(&ctx->transport, attrs, attr_count, out_resp);
+    if (result == EL2GO_OTA_SUCCESS) {
+        /* Cache file metadata so download_package() can seed known_file_size upfront. */
+        size_t cached = 0U;
+        for (size_t u = 0U; u < out_resp->update_count && cached < EL2GO_OTA_MAX_CACHED_FILES;
+             u++) {
+            for (size_t p = 0U;
+                 p < out_resp->updates[u].package_count && cached < EL2GO_OTA_MAX_CACHED_FILES;
+                 p++) {
+                for (size_t f = 0U; f < out_resp->updates[u].packages[p].file_count &&
+                                    cached < EL2GO_OTA_MAX_CACHED_FILES;
+                     f++) {
+                    const el2go_ota_file_metadata_t *fm =
+                        &out_resp->updates[u].packages[p].files[f];
+                    (void)strncpy(ctx->cached_files[cached].file_id, fm->file_id,
+                                  EL2GO_OTA_MAX_FILE_ID_LEN - 1U);
+                    ctx->cached_files[cached].file_id[EL2GO_OTA_MAX_FILE_ID_LEN - 1U] = '\0';
+                    ctx->cached_files[cached].size = fm->size;
+                    cached++;
+                }
+            }
+        }
+        ctx->cached_file_count = cached;
+    }
+    return result;
 }
 
 __export el2go_ota_status_t el2go_ota_download_package(
@@ -324,8 +367,18 @@ __export el2go_ota_status_t el2go_ota_download_package(
         return EL2GO_OTA_ERROR_INVALID_PARAM;
     }
 
+    /* Look up the cached file size from the most recent check_for_updates() response. */
+    int64_t known_file_size = 0;
+    for (size_t i = 0U; i < ctx->cached_file_count; i++) {
+        if (strcmp(ctx->cached_files[i].file_id, file_id) == 0) {
+            known_file_size = ctx->cached_files[i].size;
+            break;
+        }
+    }
+
     return el2go_ota_download_engine_fetch_package(&ctx->transport, update_id, package_id, file_id,
-                                                   resume_offset, chunk_cb, cb_ctx);
+                                                   resume_offset, known_file_size, chunk_cb,
+                                                   cb_ctx);
 }
 
 __export el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const char *update_id,
