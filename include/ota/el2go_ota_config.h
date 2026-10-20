@@ -49,18 +49,6 @@
 #endif /* EL2GO_OTA_WIRE_OVERHEAD */
 
 /**
- * @brief Client authentication mode for the OTA TLS handshake.
- *
- * Server certificate verification is always mandatory; this only controls
- * whether the device presents a client certificate. Value 0 = mTLS so that
- * zero-initialised configs keep the historical behaviour.
- */
-typedef enum {
-    EL2GO_OTA_CLIENT_AUTH_REQUIRED = 0, /**< Mutual TLS (default). */
-    EL2GO_OTA_CLIENT_AUTH_NONE,         /**< Server-authenticated TLS only. */
-} el2go_ota_client_auth_t;
-
-/**
  * @brief mTLS configuration for the EL2GO OTA server connection.
  *
  * All pointer fields must remain valid for the lifetime of the context
@@ -73,13 +61,9 @@ typedef struct {
                                      *   Root CA, or Root CA + Intermediate CA concatenated.
                                      *   Must not be NULL. */
     size_t server_ca_chain_size;    /**< Size of server_ca_chain in bytes. Must be > 0. */
-    uint32_t client_key_object_id;  /**< Object ID of the provisioned client private key.
-                                     *   Ignored when client_auth == EL2GO_OTA_CLIENT_AUTH_NONE. */
+    uint32_t client_key_object_id;  /**< Object ID of the provisioned client private key. */
     uint32_t client_cert_object_id; /**< Object ID of the provisioned client X.509 certificate
-                                     *   (DER-encoded).
-                                     *   Ignored when client_auth == EL2GO_OTA_CLIENT_AUTH_NONE. */
-    el2go_ota_client_auth_t client_auth; /**< Client authentication mode.
-                                          *   Default 0 = EL2GO_OTA_CLIENT_AUTH_REQUIRED. */
+                                     *   (DER-encoded). */
 } el2go_ota_mtls_config_t;
 
 /** @} */ /* end of el2go_ota_config */

@@ -434,7 +434,6 @@ static bool test_ota_tls_init_client_auth_success(void *params)
 {
     el2go_ota_tls_ctx_t *ctx = NULL;
     el2go_ota_mtls_config_t c = ota_fixture_make_cfg();
-    c.client_auth = EL2GO_OTA_CLIENT_AUTH_REQUIRED;
     c.client_cert_object_id = 0x01U;
     c.client_key_object_id = 0x02U;
     (void)params;
@@ -456,7 +455,6 @@ static bool test_ota_tls_init_client_auth_cli_cert_fail(void *params)
 {
     el2go_ota_tls_ctx_t *ctx = NULL;
     el2go_ota_mtls_config_t c = ota_fixture_make_cfg();
-    c.client_auth = EL2GO_OTA_CLIENT_AUTH_REQUIRED;
     (void)params;
     ota_fixture_reset_net_crypto_and_psa_wraps();
     g_wrap_net_crypto_set_cli_cert_rc = 1;
@@ -475,7 +473,6 @@ static bool test_ota_tls_init_client_auth_assoc_key_fail(void *params)
 {
     el2go_ota_tls_ctx_t *ctx = NULL;
     el2go_ota_mtls_config_t c = ota_fixture_make_cfg();
-    c.client_auth = EL2GO_OTA_CLIENT_AUTH_REQUIRED;
     (void)params;
     ota_fixture_reset_net_crypto_and_psa_wraps();
     g_wrap_net_crypto_associate_key_rc = 1;

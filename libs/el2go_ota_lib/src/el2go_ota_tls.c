@@ -56,17 +56,12 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
      *         platform_ctx is owned and initialised by the caller
      *         (el2go_ota_init()). The implementation is selected at build
      *         time via EL2GO_OTA_CRED_PROVIDER. See el2go_ota_cred.h for
-     *         available providers and how to add new ones.
-     *         Skipped when client authentication is disabled. */
-    if (config->client_auth == EL2GO_OTA_CLIENT_AUTH_REQUIRED) {
-        status = el2go_ota_prepare_client_credentials(platform_ctx, config, &client_cert,
-                                                      &client_cert_len, &key_id);
-        if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_DBG_PRINTF(ERROR, "Failed to prepare client credentials: %d\n", status);
-            goto cleanup;
-        }
-    } else {
-        EL2GO_DBG_PRINTF(INFO, "Client certificate authentication disabled\n");
+     *         available providers and how to add new ones. */
+    status = el2go_ota_prepare_client_credentials(platform_ctx, config, &client_cert,
+                                                  &client_cert_len, &key_id);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "Failed to prepare client credentials: %d\n", status);
+        goto cleanup;
     }
 
     /* Step 2: Allocate a new net_crypto context. */
@@ -96,24 +91,24 @@ el2go_status_t el2go_ota_tls_init(el2go_ota_tls_ctx_t **out_ctx, el2go_platform_
 
     EL2GO_DBG_PRINTF(INFO, "CA certificate configured (%zu bytes)\n", config->server_ca_chain_size);
 
-    /* Step 5+6: Install the client certificate and associate the private key
-     *           for mutual TLS. Skipped when client authentication is disabled;
-     *           the key never leaves the platform keystore. */
-    if (config->client_auth == EL2GO_OTA_CLIENT_AUTH_REQUIRED) {
-        status = net_crypto_set_cli_cert(ctx->net_ctx, client_cert, client_cert_len);
-        if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_DBG_PRINTF(ERROR, "net_crypto_set_cli_cert failed: %d\n", status);
-            goto cleanup;
-        }
-
-        status = net_crypto_associate_key(ctx->net_ctx, key_id);
-        if (status != EL2GO_STATUS_SUCCESS) {
-            EL2GO_DBG_PRINTF(ERROR, "net_crypto_associate_key failed: %d\n", status);
-            goto cleanup;
-        }
-
-        EL2GO_DBG_PRINTF(INFO, "Client key associated (key ID: 0x%08" PRIx32 ")\n", key_id);
+    /* Step 5: Set the client certificate for mutual TLS.
+     *         The buffer is freed after net_crypto parses it. */
+    status = net_crypto_set_cli_cert(ctx->net_ctx, client_cert, client_cert_len);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "net_crypto_set_cli_cert failed: %d\n", status);
+        goto cleanup;
     }
+
+    /* Step 6: Associate the private key.
+     *         The key never leaves the platform keystore -- net_crypto
+     *         delegates signing to the platform during the TLS handshake. */
+    status = net_crypto_associate_key(ctx->net_ctx, key_id);
+    if (status != EL2GO_STATUS_SUCCESS) {
+        EL2GO_DBG_PRINTF(ERROR, "net_crypto_associate_key failed: %d\n", status);
+        goto cleanup;
+    }
+
+    EL2GO_DBG_PRINTF(INFO, "Client key associated (key ID: 0x%08" PRIx32 ")\n", key_id);
 
     /* Step 7: Configure platform cipher suites and curves. */
     cipher_list = el2go_platform_get_cipher_suites();

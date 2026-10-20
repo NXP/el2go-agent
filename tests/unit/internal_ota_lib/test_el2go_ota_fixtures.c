@@ -20,7 +20,6 @@ el2go_ota_mtls_config_t ota_fixture_make_cfg(void)
     c.port = 443U;
     c.server_ca_chain = s_ota_fixture_ca;
     c.server_ca_chain_size = sizeof(s_ota_fixture_ca);
-    c.client_auth = EL2GO_OTA_CLIENT_AUTH_NONE;
     return c;
 }
 
@@ -42,6 +41,10 @@ void ota_fixture_reset_net_crypto_wraps(void)
     g_wrap_net_crypto_connect_rc = 0;
     g_wrap_net_crypto_write_rc = 1;
     g_wrap_net_crypto_read_rc = 1;
+    /* mTLS is mandatory: client credentials must be present in the keystore. */
+    g_wrap_psa_its_get_info_rc = PSA_SUCCESS;
+    g_wrap_psa_its_get_rc = PSA_SUCCESS;
+    g_wrap_psa_its_cert_size = 16U;
 }
 
 void ota_fixture_reset_net_crypto_and_psa_wraps(void)

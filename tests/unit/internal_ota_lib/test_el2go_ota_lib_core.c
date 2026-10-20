@@ -204,9 +204,9 @@ static bool test_ota_check_update_not_connected(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     (void)params;
+    ota_fixture_reset_net_crypto_wraps();
 
     /* Init but do NOT connect */
     TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_init(&ctx, &cfg));
@@ -239,9 +239,9 @@ static bool test_ota_cleanup_no_deinit(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     (void)params;
+    ota_fixture_reset_net_crypto_wraps();
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_init(&ctx, &cfg));
     TEST_ASSERT_NOT_NULL(ctx);
@@ -266,9 +266,9 @@ static bool test_ota_error_string_switch(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     (void)params;
+    ota_fixture_reset_net_crypto_wraps();
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_init(&ctx, &cfg));
     TEST_ASSERT_NOT_NULL(ctx);
@@ -322,9 +322,9 @@ static bool test_ota_lib_check_null_resp(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     (void)params;
+    ota_fixture_reset_net_crypto_wraps();
     TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_init(&ctx, &cfg));
     TEST_ASSERT_NOT_NULL(ctx);
 
@@ -494,7 +494,6 @@ static bool test_ota_map_status_all_arms(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     static const el2go_status_t cases[] = {
         EL2GO_STATUS_NET_CRYPTO_INVALID_CERT,
@@ -536,7 +535,6 @@ static bool test_ota_connect_already_connected(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     el2go_ota_ctx_t *ctx = NULL;
     (void)params;
@@ -563,7 +561,6 @@ static bool test_ota_disconnect_not_connected(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     el2go_ota_ctx_t *ctx = NULL;
     (void)params;
@@ -591,7 +588,6 @@ static bool test_ota_is_connected_true(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     el2go_ota_ctx_t *ctx = NULL;
     (void)params;

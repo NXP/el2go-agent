@@ -389,6 +389,10 @@ static void grpc_reset_wraps(void)
     g_wrap_net_crypto_connect_rc = 0;
     g_wrap_net_crypto_write_rc = 1;
     g_wrap_net_crypto_read_rc = 1;
+    /* mTLS is mandatory: client credentials must be present in the keystore. */
+    g_wrap_psa_its_get_info_rc = PSA_SUCCESS;
+    g_wrap_psa_its_get_rc = PSA_SUCCESS;
+    g_wrap_psa_its_cert_size = 16U;
     mock_net_rx_reset();
     mock_net_tx_reset();
 }
@@ -403,7 +407,6 @@ static el2go_ota_mtls_config_t grpc_make_cfg(void)
     cfg.port = 443U;
     cfg.server_ca_chain = k_ca_chain;
     cfg.server_ca_chain_size = sizeof(k_ca_chain);
-    cfg.client_auth = EL2GO_OTA_CLIENT_AUTH_NONE;
     return cfg;
 }
 

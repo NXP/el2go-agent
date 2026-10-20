@@ -352,46 +352,6 @@ static bool test_ota_get_error_string_after_failed_init(void *params)
     return true;
 }
 
-/* Client Auth Mode -- backward-compatibility invariants */
-
-/**
- * @brief EL2GO_OTA_CLIENT_AUTH_REQUIRED must be enum value 0.
- *
- * Legacy callers that leave client_auth out of their designated initializer
- * rely on this to keep mTLS behaviour.
- *
- * @param params Unused.
- *
- * @return @c true if all assertions pass, @c false otherwise.
- */
-static bool test_ota_client_auth_required_is_zero(void *params)
-{
-    (void)params;
-
-    TEST_ASSERT_EQUAL(0, (int)EL2GO_OTA_CLIENT_AUTH_REQUIRED);
-
-    return true;
-}
-
-/**
- * @brief A zero-initialised el2go_ota_mtls_config_t must have
- *        client_auth == EL2GO_OTA_CLIENT_AUTH_REQUIRED.
- *
- * @param params Unused.
- *
- * @return @c true if all assertions pass, @c false otherwise.
- */
-static bool test_ota_client_auth_default_is_required(void *params)
-{
-    el2go_ota_mtls_config_t cfg = { 0 };
-
-    (void)params;
-
-    TEST_ASSERT_EQUAL(EL2GO_OTA_CLIENT_AUTH_REQUIRED, cfg.client_auth);
-
-    return true;
-}
-
 /* Version Tests */
 
 /**
@@ -546,8 +506,6 @@ void register_ota_lib_tests(void)
     TEST_REGISTER_ID("OTA_UT_OL_1.11", test_ota_init_cleanup);
     TEST_REGISTER_ID("OTA_UT_OL_1.12", test_ota_is_connected_after_init);
     TEST_REGISTER_ID("OTA_UT_OL_1.13", test_ota_get_error_string_after_failed_init);
-    TEST_REGISTER_ID("OTA_UT_OL_1.14", test_ota_client_auth_required_is_zero);
-    TEST_REGISTER_ID("OTA_UT_OL_1.15", test_ota_client_auth_default_is_required);
     TEST_REGISTER_ID("OTA_UT_OL_1.16", test_ota_get_version_null_params);
     TEST_REGISTER_ID("OTA_UT_OL_1.17", test_ota_get_version_success);
     TEST_REGISTER_ID("OTA_UT_OL_1.18", test_ota_init_port_zero);

@@ -45,7 +45,6 @@ static updater_ctx_t build_test_updater(void)
         .server_ca_chain_size = sizeof(k_dummy_ca_chain),
         .client_key_object_id = 0U,
         .client_cert_object_id = 0U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
 
     (void)el2go_ota_init(&updater.ota_ctx, &config);

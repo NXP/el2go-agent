@@ -21,7 +21,6 @@ static const el2go_ota_mtls_config_t k_wrap_config = {
     .port = 443U,
     .server_ca_chain = k_dummy_ca,
     .server_ca_chain_size = sizeof(k_dummy_ca),
-    .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
 };
 
 __attribute__((weak)) const el2go_ota_mtls_config_t *ct_server_config(void)

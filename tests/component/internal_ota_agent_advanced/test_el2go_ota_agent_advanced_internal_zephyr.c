@@ -39,7 +39,6 @@ static updater_ctx_t build_test_updater(void)
         .port = 443U,
         .server_ca_chain = k_dummy_ca_chain,
         .server_ca_chain_size = sizeof(k_dummy_ca_chain),
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     (void)el2go_ota_init(&updater.ota_ctx, &config);
     (void)el2go_ota_connect(updater.ota_ctx);

@@ -66,11 +66,4 @@ config EL2GO_OTA_CLIENT_CERT_OBJECT_ID
       expected to be already provisioned in secure storage on the device. The
       sample only references this id; it never stores the certificate.
 
-config EL2GO_OTA_DISABLE_MTLS
-    bool "Disable mTLS client certificate authentication"
-    default n
-    help
-      When enabled, the OTA agent connects with server-authenticated TLS only.
-      Server certificate verification remains mandatory.
-
 endif # EL2GO_OTA_LIBRARY_SOURCES
