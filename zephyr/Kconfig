@@ -1,6 +1,16 @@
 # Copyright 2026 NXP
 # SPDX-License-Identifier: Apache-2.0
 
+# ---------------------------------------------------------------------------
+# EL2GO library logging (EL2GO_DBG_PRINTF calls across libs/)
+# ---------------------------------------------------------------------------
+config EL2GO_LIB_LOG_LEVEL
+    int "EL2GO library logging level"
+    default 1
+    range 0 5
+    help
+      Controls the verbosity of EL2GO_DBG_PRINTF() calls across libs.
+
 config EL2GO_TFM_LEGACY_CRYPTO_ENABLE
     bool "Enable EL2GO TF-M legacy crypto"
     depends on BUILD_WITH_TFM
