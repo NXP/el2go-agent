@@ -21,6 +21,7 @@
 
 #include "fwual/fwual.h"
 #include "ota/el2go_ota_lib.h"
+#include "ota/el2go_ota_certificates.h"
 
 #include "el2go_app_net.h"
 #include "el2go_app_time.h"
@@ -103,15 +104,13 @@ int main(int argc, char *argv[])
         }
     }
 
+    static const uint8_t server_ca_chain[] = { EL2GO_OTA_TRUSTED_ROOT_CA_CERT };
+
     const el2go_ota_mtls_config_t config = {
         .hostname = hostname,
         .port = (uint16_t)port,
-        /* Server CA trust anchor is out of scope for this reference sample; a
-         * real deployment supplies the DER-encoded CA chain here. */
-        .server_ca_chain = NULL,
-        .server_ca_chain_size = 0U,
-        /* Client key and certificate are expected to be already provisioned in
-         * secure storage; the sample only references them by object id. */
+        .server_ca_chain = server_ca_chain,
+        .server_ca_chain_size = sizeof(server_ca_chain),
         .client_key_object_id = CONFIG_EL2GO_OTA_CLIENT_KEY_OBJECT_ID,
         .client_cert_object_id = CONFIG_EL2GO_OTA_CLIENT_CERT_OBJECT_ID,
     };
