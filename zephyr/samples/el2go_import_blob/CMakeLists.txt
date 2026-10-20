@@ -7,6 +7,16 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(el2go_import_blob)
 
+if(CONFIG_VALIDATE_PSA_IMPORT_MASTER_KEY)
+    set(VALIDATE_PSA_IMPORT_MASTER_KEY 1)
+endif()
+if(CONFIG_VALIDATE_PSA_IMPORT_KEY_PAIR)
+    set(VALIDATE_PSA_IMPORT_KEY_PAIR 1)
+endif()
+if(CONFIG_VALIDATE_PSA_IMPORT_CERT)
+    set(VALIDATE_PSA_IMPORT_CERT 1)
+endif()
+
 if(CONFIG_BUILD_WITH_TFM)
     zephyr_include_directories(
         $<TARGET_PROPERTY:tfm,TFM_BINARY_DIR>/api_ns/interface/include
