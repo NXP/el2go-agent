@@ -708,8 +708,10 @@ __export el2go_status_t el2go_rtp_provision(el2go_rtp_ctx_t *ctx, void **status_
             goto exit;
         }
 
-        /* Allocate client certificate buffer */
-        client_cert_buf = osal_malloc(EL2GO_RTP_CLIENT_CERT_MAX_SIZE);
+        /* Allocate and zero client certificate buffer - mbedtls_x509write_crt_der
+         * uses the entire buffer as scratch space; uninitialized bytes cause
+         * Valgrind errors and a stack-smash abort during ECDSA/ECP parsing. */
+        client_cert_buf = osal_calloc(1, EL2GO_RTP_CLIENT_CERT_MAX_SIZE);
         if (!client_cert_buf) {
             EL2GO_DBG_PRINTF(ERROR, "Failed to allocate client certificate buffer\n");
             status = EL2GO_STATUS_ALLOCATION_ERROR;
