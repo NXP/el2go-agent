@@ -20,6 +20,23 @@
 /* Wire buffer size: chunk data plus gRPC/protobuf framing overhead. */
 #define WIRE_BUF_SIZE (EL2GO_OTA_CHUNK_SIZE + EL2GO_OTA_WIRE_OVERHEAD)
 
+/*
+ * el2go_ota_grpc.c (the gRPC/HTTP2 transport backend) assumes a single
+ * gRPC message always fits inside one HTTP/2 DATA frame -- it does not
+ * reassemble a message split across multiple DATA frames, nor does it
+ * split an outgoing message across multiple frames. Guard against
+ * silently exceeding the default HTTP/2 SETTINGS_MAX_FRAME_SIZE (RFC 7540
+ * S6.5.2) if EL2GO_OTA_CHUNK_SIZE and/or EL2GO_OTA_WIRE_OVERHEAD are ever
+ * increased -- see the documentation in ota/el2go_ota_config.h. This is an
+ * accepted, intentional limitation: EL2GO_OTA_CHUNK_SIZE is not expected
+ * to grow past this ceiling.
+ */
+#define EL2GO_OTA_HTTP2_DEFAULT_MAX_FRAME_SIZE 16384U
+_Static_assert(WIRE_BUF_SIZE <= EL2GO_OTA_HTTP2_DEFAULT_MAX_FRAME_SIZE,
+               "EL2GO_OTA_CHUNK_SIZE + EL2GO_OTA_WIRE_OVERHEAD exceeds the default HTTP/2 "
+               "SETTINGS_MAX_FRAME_SIZE (16384 bytes); el2go_ota_grpc.c cannot reassemble or "
+               "split a gRPC message across multiple DATA frames -- see ota/el2go_ota_config.h");
+
 /* gRPC method paths for the OTA delivery service. */
 #define GRPC_METHOD_GET_AVAILABLE_UPDATES \
     "/com.nxp.iot.ota.update.proto.OtaUpdateDeliveryService/GetAvailableUpdates"

@@ -84,13 +84,23 @@ static const uint8_t HTTP2_PREFACE[24] = {
 /* Size of the HPACK block scratch buffer (stack-allocated). */
 #define HPACK_BUF_SIZE 256U
 
+#define HPACK_HUFFMAN_NUM_SYMBOLS 257U
+#define HPACK_HUFFMAN_EOS_SYMBOL 256U
+#define HPACK_HUFFMAN_MAX_CODE_LEN 30U
+
+/* Caps for decoding header names/values we actually care about. */
+#define HPACK_NAME_BUF_CAP 32U
+#define HPACK_VALUE_BUF_CAP 16U
+
 /* Context */
 
 typedef struct {
     el2go_ota_tls_ctx_t *tls_ctx;
     const char *hostname; /* not owned; points into user config */
     uint32_t next_stream_id;
-    bool http2_ready; /* preface + SETTINGS exchanged */
+    uint32_t active_stream_id; /* stream opened by the most recent send(); the only
+                                * stream grpc_recv() expects to receive a response on. */
+    bool http2_ready;          /* preface + SETTINGS exchanged */
 } grpc_ctx_t;
 
 /* Internal helpers -- HTTP/2 frame building */
@@ -335,16 +345,445 @@ static __attribute__((unused)) const char *grpc_status_name(uint32_t code)
     }
 }
 
+/* Internal helpers -- HPACK Huffman decoding (RFC 7541 Appendix B) */
+
 /*
- * Scan an HPACK block for the "grpc-status" header and decode its value.
+ * One entry of the canonical HPACK Huffman code table (RFC 7541 Appendix B).
+ * code is the Huffman codeword, left-justified in the low `length` bits.
+ * Table has 257 entries: symbols 0-255 plus the EOS symbol (index 256).
+ * Values transcribed verbatim from the RFC and cross-checked against the
+ * grpc-core reference implementation (src/core/.../huffsyms.cc).
+ */
+typedef struct {
+    uint32_t code;
+    uint8_t length;
+} hpack_huffman_sym_t;
+
+static const hpack_huffman_sym_t HPACK_HUFFMAN_TABLE[HPACK_HUFFMAN_NUM_SYMBOLS] = {
+    { 0x1ff8U, 13U },     { 0x7fffd8U, 23U },   { 0xfffffe2U, 28U },  { 0xfffffe3U, 28U },
+    { 0xfffffe4U, 28U },  { 0xfffffe5U, 28U },  { 0xfffffe6U, 28U },  { 0xfffffe7U, 28U },
+    { 0xfffffe8U, 28U },  { 0xffffeaU, 24U },   { 0x3ffffffcU, 30U }, { 0xfffffe9U, 28U },
+    { 0xfffffeaU, 28U },  { 0x3ffffffdU, 30U }, { 0xfffffebU, 28U },  { 0xfffffecU, 28U },
+    { 0xfffffedU, 28U },  { 0xfffffeeU, 28U },  { 0xfffffefU, 28U },  { 0xffffff0U, 28U },
+    { 0xffffff1U, 28U },  { 0xffffff2U, 28U },  { 0x3ffffffeU, 30U }, { 0xffffff3U, 28U },
+    { 0xffffff4U, 28U },  { 0xffffff5U, 28U },  { 0xffffff6U, 28U },  { 0xffffff7U, 28U },
+    { 0xffffff8U, 28U },  { 0xffffff9U, 28U },  { 0xffffffaU, 28U },  { 0xffffffbU, 28U },
+    { 0x14U, 6U },        { 0x3f8U, 10U },      { 0x3f9U, 10U },      { 0xffaU, 12U },
+    { 0x1ff9U, 13U },     { 0x15U, 6U },        { 0xf8U, 8U },        { 0x7faU, 11U },
+    { 0x3faU, 10U },      { 0x3fbU, 10U },      { 0xf9U, 8U },        { 0x7fbU, 11U },
+    { 0xfaU, 8U },        { 0x16U, 6U },        { 0x17U, 6U },        { 0x18U, 6U },
+    { 0x0U, 5U },         { 0x1U, 5U },         { 0x2U, 5U },         { 0x19U, 6U },
+    { 0x1aU, 6U },        { 0x1bU, 6U },        { 0x1cU, 6U },        { 0x1dU, 6U },
+    { 0x1eU, 6U },        { 0x1fU, 6U },        { 0x5cU, 7U },        { 0xfbU, 8U },
+    { 0x7ffcU, 15U },     { 0x20U, 6U },        { 0xffbU, 12U },      { 0x3fcU, 10U },
+    { 0x1ffaU, 13U },     { 0x21U, 6U },        { 0x5dU, 7U },        { 0x5eU, 7U },
+    { 0x5fU, 7U },        { 0x60U, 7U },        { 0x61U, 7U },        { 0x62U, 7U },
+    { 0x63U, 7U },        { 0x64U, 7U },        { 0x65U, 7U },        { 0x66U, 7U },
+    { 0x67U, 7U },        { 0x68U, 7U },        { 0x69U, 7U },        { 0x6aU, 7U },
+    { 0x6bU, 7U },        { 0x6cU, 7U },        { 0x6dU, 7U },        { 0x6eU, 7U },
+    { 0x6fU, 7U },        { 0x70U, 7U },        { 0x71U, 7U },        { 0x72U, 7U },
+    { 0xfcU, 8U },        { 0x73U, 7U },        { 0xfdU, 8U },        { 0x1ffbU, 13U },
+    { 0x7fff0U, 19U },    { 0x1ffcU, 13U },     { 0x3ffcU, 14U },     { 0x22U, 6U },
+    { 0x7ffdU, 15U },     { 0x3U, 5U },         { 0x23U, 6U },        { 0x4U, 5U },
+    { 0x24U, 6U },        { 0x5U, 5U },         { 0x25U, 6U },        { 0x26U, 6U },
+    { 0x27U, 6U },        { 0x6U, 5U },         { 0x74U, 7U },        { 0x75U, 7U },
+    { 0x28U, 6U },        { 0x29U, 6U },        { 0x2aU, 6U },        { 0x7U, 5U },
+    { 0x2bU, 6U },        { 0x76U, 7U },        { 0x2cU, 6U },        { 0x8U, 5U },
+    { 0x9U, 5U },         { 0x2dU, 6U },        { 0x77U, 7U },        { 0x78U, 7U },
+    { 0x79U, 7U },        { 0x7aU, 7U },        { 0x7bU, 7U },        { 0x7ffeU, 15U },
+    { 0x7fcU, 11U },      { 0x3ffdU, 14U },     { 0x1ffdU, 13U },     { 0xffffffcU, 28U },
+    { 0xfffe6U, 20U },    { 0x3fffd2U, 22U },   { 0xfffe7U, 20U },    { 0xfffe8U, 20U },
+    { 0x3fffd3U, 22U },   { 0x3fffd4U, 22U },   { 0x3fffd5U, 22U },   { 0x7fffd9U, 23U },
+    { 0x3fffd6U, 22U },   { 0x7fffdaU, 23U },   { 0x7fffdbU, 23U },   { 0x7fffdcU, 23U },
+    { 0x7fffddU, 23U },   { 0x7fffdeU, 23U },   { 0xffffebU, 24U },   { 0x7fffdfU, 23U },
+    { 0xffffecU, 24U },   { 0xffffedU, 24U },   { 0x3fffd7U, 22U },   { 0x7fffe0U, 23U },
+    { 0xffffeeU, 24U },   { 0x7fffe1U, 23U },   { 0x7fffe2U, 23U },   { 0x7fffe3U, 23U },
+    { 0x7fffe4U, 23U },   { 0x1fffdcU, 21U },   { 0x3fffd8U, 22U },   { 0x7fffe5U, 23U },
+    { 0x3fffd9U, 22U },   { 0x7fffe6U, 23U },   { 0x7fffe7U, 23U },   { 0xffffefU, 24U },
+    { 0x3fffdaU, 22U },   { 0x1fffddU, 21U },   { 0xfffe9U, 20U },    { 0x3fffdbU, 22U },
+    { 0x3fffdcU, 22U },   { 0x7fffe8U, 23U },   { 0x7fffe9U, 23U },   { 0x1fffdeU, 21U },
+    { 0x7fffeaU, 23U },   { 0x3fffddU, 22U },   { 0x3fffdeU, 22U },   { 0xfffff0U, 24U },
+    { 0x1fffdfU, 21U },   { 0x3fffdfU, 22U },   { 0x7fffebU, 23U },   { 0x7fffecU, 23U },
+    { 0x1fffe0U, 21U },   { 0x1fffe1U, 21U },   { 0x3fffe0U, 22U },   { 0x1fffe2U, 21U },
+    { 0x7fffedU, 23U },   { 0x3fffe1U, 22U },   { 0x7fffeeU, 23U },   { 0x7fffefU, 23U },
+    { 0xfffeaU, 20U },    { 0x3fffe2U, 22U },   { 0x3fffe3U, 22U },   { 0x3fffe4U, 22U },
+    { 0x7ffff0U, 23U },   { 0x3fffe5U, 22U },   { 0x3fffe6U, 22U },   { 0x7ffff1U, 23U },
+    { 0x3ffffe0U, 26U },  { 0x3ffffe1U, 26U },  { 0xfffebU, 20U },    { 0x7fff1U, 19U },
+    { 0x3fffe7U, 22U },   { 0x7ffff2U, 23U },   { 0x3fffe8U, 22U },   { 0x1ffffecU, 25U },
+    { 0x3ffffe2U, 26U },  { 0x3ffffe3U, 26U },  { 0x3ffffe4U, 26U },  { 0x7ffffdeU, 27U },
+    { 0x7ffffdfU, 27U },  { 0x3ffffe5U, 26U },  { 0xfffff1U, 24U },   { 0x1ffffedU, 25U },
+    { 0x7fff2U, 19U },    { 0x1fffe3U, 21U },   { 0x3ffffe6U, 26U },  { 0x7ffffe0U, 27U },
+    { 0x7ffffe1U, 27U },  { 0x3ffffe7U, 26U },  { 0x7ffffe2U, 27U },  { 0xfffff2U, 24U },
+    { 0x1fffe4U, 21U },   { 0x1fffe5U, 21U },   { 0x3ffffe8U, 26U },  { 0x3ffffe9U, 26U },
+    { 0xffffffdU, 28U },  { 0x7ffffe3U, 27U },  { 0x7ffffe4U, 27U },  { 0x7ffffe5U, 27U },
+    { 0xfffecU, 20U },    { 0xfffff3U, 24U },   { 0xfffedU, 20U },    { 0x1fffe6U, 21U },
+    { 0x3fffe9U, 22U },   { 0x1fffe7U, 21U },   { 0x1fffe8U, 21U },   { 0x7ffff3U, 23U },
+    { 0x3fffeaU, 22U },   { 0x3fffebU, 22U },   { 0x1ffffeeU, 25U },  { 0x1ffffefU, 25U },
+    { 0xfffff4U, 24U },   { 0xfffff5U, 24U },   { 0x3ffffeaU, 26U },  { 0x7ffff4U, 23U },
+    { 0x3ffffebU, 26U },  { 0x7ffffe6U, 27U },  { 0x3ffffecU, 26U },  { 0x3ffffedU, 26U },
+    { 0x7ffffe7U, 27U },  { 0x7ffffe8U, 27U },  { 0x7ffffe9U, 27U },  { 0x7ffffeaU, 27U },
+    { 0x7ffffebU, 27U },  { 0xffffffeU, 28U },  { 0x7ffffecU, 27U },  { 0x7ffffedU, 27U },
+    { 0x7ffffeeU, 27U },  { 0x7ffffefU, 27U },  { 0x7fffff0U, 27U },  { 0x3ffffeeU, 26U },
+    { 0x3fffffffU, 30U },
+};
+
+/**
+ * @brief Decode a Huffman-encoded byte string into out[0..out_cap-1].
  *
- * The scan is a simple linear byte search for the literal string
- * "grpc-status" (11 bytes) preceded by its HPACK length byte (0x0B).
- * This is reliable because grpc-status is always sent as a literal header
- * (not in the static table) and its name is fixed.
+ * Walks @p data bit by bit (MSB first within each byte, matching RFC 7541
+ * S5.2), accumulating a candidate code and comparing it against every table
+ * entry of the same bit length. This is a reference-style linear-scan
+ * decoder: simple and easy to verify, at the cost of O(symbols) per bit --
+ * acceptable here because trailer blocks are tiny (<128 bytes).
  *
- * Returns EL2GO_OTA_SUCCESS   if grpc-status is 0 (OK) or not found.
- * Returns EL2GO_OTA_ERROR_SERVER if grpc-status is non-zero.
+ * @param[in]  data     Input buffer containing the Huffman-encoded bit stream.
+ * @param[in]  data_len Number of bytes in @p data.
+ * @param[out] out      Output buffer to write decoded bytes into.
+ * @param[in]  out_cap  Capacity of @p out in bytes.
+ *
+ * @return Number of decoded bytes written to @p out, or SIZE_MAX if the
+ *         input does not decode to a valid Huffman sequence, decodes to more
+ *         than @p out_cap bytes, or the trailing padding bits are not all 1s
+ *         as required by the spec.
+ */
+static size_t hpack_huffman_decode(const uint8_t *data, size_t data_len, uint8_t *out,
+                                   size_t out_cap)
+{
+    size_t total_bits = data_len * 8U;
+    size_t bit_pos = 0U;
+    uint32_t code = 0U;
+    uint8_t code_len = 0U;
+    size_t written = 0U;
+
+    while (bit_pos < total_bits) {
+        size_t byte_idx = bit_pos / 8U;
+        uint8_t bit_idx = (uint8_t)(7U - (bit_pos % 8U));
+        uint8_t bit = (uint8_t)((data[byte_idx] >> bit_idx) & 0x01U);
+        bool found = false;
+        uint32_t sym = 0U;
+
+        code = (code << 1U) | bit;
+        code_len++;
+        bit_pos++;
+
+        for (sym = 0U; sym < HPACK_HUFFMAN_NUM_SYMBOLS; sym++) {
+            if (HPACK_HUFFMAN_TABLE[sym].length == code_len &&
+                HPACK_HUFFMAN_TABLE[sym].code == code) {
+                found = true;
+                break;
+            }
+        }
+
+        if (found) {
+            if (sym == HPACK_HUFFMAN_EOS_SYMBOL) {
+                break; /* EOS -- stop; remaining bits (if any) are padding */
+            }
+            if (written >= out_cap) {
+                return SIZE_MAX; /* decoded output does not fit -- caller's buffer too small */
+            }
+            out[written] = (uint8_t)sym;
+            written++;
+            code = 0U;
+            code_len = 0U;
+        } else if (code_len > (uint8_t)HPACK_HUFFMAN_MAX_CODE_LEN) {
+            return SIZE_MAX; /* no symbol has a code this long -- malformed input */
+        } else {
+            /* keep accumulating bits */
+        }
+    }
+
+    /* Any leftover bits must be the all-1s EOS padding (RFC 7541 S5.2). */
+    if (code_len > 0U) {
+        uint32_t all_ones = (1UL << code_len) - 1UL;
+        if (code != all_ones) {
+            return SIZE_MAX;
+        }
+    }
+
+    return written;
+}
+
+/**
+ * @brief Decode an HPACK integer (RFC 7541 S5.1) starting at block[*pos].
+ *
+ * The first byte of the integer uses @p prefix_bits low bits for the initial
+ * value. Advances @p pos past the consumed bytes on success.
+ *
+ * @param[in]     block       Input HPACK header block.
+ * @param[in]     block_len   Length of @p block in bytes.
+ * @param[in,out] pos         Byte offset into @p block; advanced on success.
+ * @param[in]     prefix_bits Number of low bits in the first byte used for
+ *                            the integer prefix (1-8).
+ * @param[out]    out_value   Decoded integer value on success.
+ *
+ * @return true on success, false if the block is truncated or the value
+ *         overflows the supported range.
+ */
+static bool hpack_decode_integer(const uint8_t *block, size_t block_len, size_t *pos,
+                                 uint8_t prefix_bits, uint32_t *out_value)
+{
+    uint32_t mask = (uint32_t)((1UL << prefix_bits) - 1UL);
+    uint32_t value = 0U;
+    uint8_t shift = 0U;
+
+    if (*pos >= block_len) {
+        return false;
+    }
+    value = (uint32_t)(block[*pos] & mask);
+    (*pos)++;
+
+    if (value < mask) {
+        *out_value = value;
+        return true;
+    }
+
+    for (;;) {
+        uint8_t b = 0U;
+        uint32_t add_result = 0U;
+
+        if (*pos >= block_len || shift >= 28U) {
+            return false; /* truncated or integer too large for this use case */
+        }
+        b = block[*pos];
+        (*pos)++;
+
+        if (ADD_OVERFLOW(value, ((uint32_t)(b & 0x7FU) << shift), &add_result)) {
+            return false;
+        }
+        value = add_result;
+        shift += 7U;
+
+        if ((b & 0x80U) == 0U) {
+            break;
+        }
+    }
+
+    *out_value = value;
+    return true;
+}
+
+/**
+ * @brief Skip over one HPACK string at block[*pos] without decoding it.
+ *
+ * Used to skip header field values that are not of interest (e.g. values of
+ * headers other than grpc-status). Advances @p pos past the string on
+ * success.
+ *
+ * @param[in]     block      Input HPACK header block.
+ * @param[in]     block_len  Length of @p block in bytes.
+ * @param[in,out] pos        Byte offset into @p block; advanced on success.
+ *
+ * @return true on success, false if the block is truncated or malformed.
+ */
+static bool hpack_skip_string(const uint8_t *block, size_t block_len, size_t *pos)
+{
+    uint32_t str_len = 0U;
+
+    if (!hpack_decode_integer(block, block_len, pos, 7U, &str_len)) {
+        return false;
+    }
+    if ((size_t)str_len > block_len - *pos) {
+        return false;
+    }
+    *pos += (size_t)str_len;
+    return true;
+}
+
+/**
+ * @brief Decode one HPACK string at block[*pos] into @p out[0..out_cap-1].
+ *
+ * Applies Huffman decoding when the string's H-bit is set. Advances @p pos
+ * past the string on success.
+ *
+ * Returns false without decoding if the string does not fit in @p out_cap;
+ * the caller should treat that as "not the header we are looking for" rather
+ * than aborting the whole trailer scan.
+ *
+ * @param[in]     block      Input HPACK header block.
+ * @param[in]     block_len  Length of @p block in bytes.
+ * @param[in,out] pos        Byte offset into @p block; advanced on success.
+ * @param[out]    out        Buffer to write the decoded string into.
+ * @param[in]     out_cap    Capacity of @p out in bytes.
+ * @param[out]    out_len    Number of bytes written to @p out on success.
+ *
+ * @return true on success, false if the block is truncated, Huffman-decoding
+ *         fails, or the decoded string does not fit in @p out_cap.
+ */
+static bool hpack_decode_string_bounded(const uint8_t *block, size_t block_len, size_t *pos,
+                                        uint8_t *out, size_t out_cap, size_t *out_len)
+{
+    bool huffman = false;
+    uint32_t str_len = 0U;
+    size_t start = 0U;
+
+    if (*pos >= block_len) {
+        return false;
+    }
+    huffman = ((block[*pos] & 0x80U) != 0U);
+
+    if (!hpack_decode_integer(block, block_len, pos, 7U, &str_len)) {
+        return false;
+    }
+    if ((size_t)str_len > block_len - *pos) {
+        return false;
+    }
+    start = *pos;
+    *pos += (size_t)str_len;
+
+    if (huffman) {
+        size_t decoded_len = hpack_huffman_decode(&block[start], (size_t)str_len, out, out_cap);
+        if (decoded_len == SIZE_MAX) {
+            return false;
+        }
+        *out_len = decoded_len;
+    } else {
+        if ((size_t)str_len > out_cap) {
+            return false;
+        }
+        (void)memcpy(out, &block[start], (size_t)str_len);
+        *out_len = (size_t)str_len;
+    }
+    return true;
+}
+
+/**
+ * @brief Walk an HPACK block looking for a "grpc-status" header.
+ *
+ * Walks the HPACK header-list representations in @p block (RFC 7541 S6)
+ * looking for a literal header named "grpc-status" and decodes its value.
+ *
+ * This is a fallback used by grpc_parse_trailers() when the fast
+ * plain-literal byte scan finds nothing -- i.e. when grpc-status is present
+ * but Huffman-encoded (the common case for most production gRPC server
+ * stacks). Indexed header fields and dynamic-table-size-update entries are
+ * skipped without tracking HPACK dynamic-table state. Header values other
+ * than grpc-status's own value are skipped undecoded, so an oversized
+ * unrelated field cannot prevent grpc-status from being found.
+ *
+ * @param[in]  block      Input HPACK trailer block.
+ * @param[in]  block_len  Length of @p block in bytes.
+ * @param[out] out_code   Decoded grpc-status value on success.
+ *
+ * @return true and sets @p out_code if grpc-status was found and decoded.
+ *         false if grpc-status was not found or the block could not be walked
+ *         (malformed/truncated); both cases are treated as "not found" by the
+ *         caller.
+ */
+static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_len,
+                                            uint32_t *out_code)
+{
+    size_t pos = 0U;
+    uint32_t iterations = 0U;
+
+    while (pos < block_len && iterations < GRPC_RECV_MAX_FRAMES) {
+        uint8_t first = block[pos];
+        uint8_t prefix_bits = 0U;
+        uint32_t idx_val = 0U;
+        uint32_t name_idx = 0U;
+        uint8_t name_buf[HPACK_NAME_BUF_CAP];
+        size_t name_len = 0U;
+        bool has_literal_name = false;
+        bool is_grpc_status = false;
+
+        iterations++;
+
+        if ((first & 0x80U) != 0U) {
+            /* Indexed header field -- fully self-contained, just skip it. */
+            if (!hpack_decode_integer(block, block_len, &pos, 7U, &idx_val)) {
+                return false;
+            }
+            continue;
+        }
+
+        if ((first & 0x40U) != 0U) {
+            prefix_bits = 6U; /* literal with incremental indexing */
+        } else if ((first & 0x20U) != 0U) {
+            /* Dynamic table size update -- self-contained, skip it. */
+            if (!hpack_decode_integer(block, block_len, &pos, 5U, &idx_val)) {
+                return false;
+            }
+            continue;
+        } else {
+            prefix_bits = 4U; /* literal without indexing, or never indexed */
+        }
+
+        if (!hpack_decode_integer(block, block_len, &pos, prefix_bits, &name_idx)) {
+            return false;
+        }
+        has_literal_name = (name_idx == 0U);
+
+        if (has_literal_name) {
+            if (!hpack_decode_string_bounded(block, block_len, &pos, name_buf, sizeof(name_buf),
+                                             &name_len)) {
+                /*
+                 * Name present but too large for name_buf, or malformed.
+                 * grpc-status's name is always short ("grpc-status", 11
+                 * bytes) and well within HPACK_NAME_BUF_CAP, so a name that
+                 * does not fit cannot be grpc-status -- but we cannot skip
+                 * it either without having consumed it, so bail out and let
+                 * the caller fail open (same as "not found").
+                 */
+                return false;
+            }
+            is_grpc_status = (name_len == (sizeof("grpc-status") - 1U)) &&
+                             (memcmp(name_buf, "grpc-status", sizeof("grpc-status") - 1U) == 0);
+        }
+
+        if (is_grpc_status) {
+            uint8_t value_buf[HPACK_VALUE_BUF_CAP];
+            size_t value_len = 0U;
+            uint32_t code = 0U;
+            size_t j = 0U;
+            uint32_t mul_result = 0U;
+            uint32_t add_result = 0U;
+
+            if (!hpack_decode_string_bounded(block, block_len, &pos, value_buf, sizeof(value_buf),
+                                             &value_len)) {
+                return false;
+            }
+            for (j = 0U; j < value_len; j++) {
+                uint8_t c = value_buf[j];
+                if (c < (uint8_t)'0' || c > (uint8_t)'9') {
+                    break;
+                }
+                if (MUL_OVERFLOW(code, 10U, &mul_result) ||
+                    ADD_OVERFLOW(mul_result, (uint32_t)(c - (uint8_t)'0'), &add_result)) {
+                    return false; /* overflow -- malformed status code */
+                }
+                code = add_result;
+            }
+            *out_code = code;
+            return true;
+        }
+
+        /* Not grpc-status -- skip its value without decoding. */
+        if (!hpack_skip_string(block, block_len, &pos)) {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @brief Scan an HPACK trailer block for "grpc-status" and decode its value.
+ *
+ * Fast path: a linear byte search for the plain literal string "grpc-status"
+ * (11 bytes) preceded by its HPACK length byte (0x0B). This matches when
+ * grpc-status is sent as a non-Huffman literal, which is common for simple
+ * server implementations.
+ *
+ * Fallback: if the fast path finds nothing, the block is walked generically
+ * via hpack_find_grpc_status_fallback(), which also handles Huffman-encoded
+ * header names -- the encoding used by the EL2GO OTA server. Without this
+ * fallback a Huffman-encoded grpc-status would be silently treated as
+ * "not found -> OK", masking real server-side errors.
+ *
+ * @param[in] block      Input HPACK trailer block (may be NULL).
+ * @param[in] block_len  Length of @p block in bytes.
+ *
+ * @return EL2GO_OTA_SUCCESS      if grpc-status is 0 (OK) or not found.
+ * @return EL2GO_OTA_ERROR_SERVER if grpc-status is non-zero.
  */
 static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block_len)
 {
@@ -362,11 +801,19 @@ static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
-    if (block == NULL || block_len < sizeof(NAME_PREFIX) + 2U) {
+    if (block == NULL || block_len == 0U) {
         return EL2GO_OTA_SUCCESS; /* no trailers to parse -- treat as OK */
     }
 
-    /* Search for the 12-byte pattern anywhere in the block. */
+    /*
+     * Fast path: search for the 12-byte plain-literal pattern anywhere in
+     * the block. Note this loop's bound naturally skips the fast path
+     * (never executes) when block_len is too short to contain it -- that
+     * does NOT mean grpc-status cannot be present: a Huffman-encoded
+     * "grpc-status" name is itself shorter than its 11-byte plain-text
+     * form, so a short block must still be given to the HPACK fallback
+     * below rather than being short-circuited to "not found" here.
+     */
     for (i = 0U; i + sizeof(NAME_PREFIX) + 2U <= block_len; i++) {
         bool match = true;
         size_t k;
@@ -412,6 +859,22 @@ static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block
 
         EL2GO_DBG_PRINTF(VERBOSE, "gRPC recv: grpc-status OK (0)\n");
         return EL2GO_OTA_SUCCESS;
+    }
+
+    /* grpc-status not found via the fast path -- try the HPACK fallback,
+     * which also understands Huffman-encoded header names. */
+    {
+        uint32_t fallback_code = 0U;
+
+        if (hpack_find_grpc_status_fallback(block, block_len, &fallback_code)) {
+            if (fallback_code != 0U) {
+                EL2GO_DBG_PRINTF(ERROR, "gRPC recv: server returned grpc-status %u (%s)\n",
+                                 (unsigned int)fallback_code, grpc_status_name(fallback_code));
+                return EL2GO_OTA_ERROR_SERVER;
+            }
+            EL2GO_DBG_PRINTF(VERBOSE, "gRPC recv: grpc-status OK (0) [HPACK fallback]\n");
+            return EL2GO_OTA_SUCCESS;
+        }
     }
 
     /* grpc-status not found in trailer block -- treat as OK. */
@@ -579,9 +1042,14 @@ static el2go_ota_status_t grpc_send(el2go_ota_transport_t *t, const char *method
         ctx->http2_ready = true;
     }
 
-    /* Step 2: allocate a new odd stream ID. */
+    /* Step 2: allocate a new odd stream ID. grpc_recv() will only accept
+     * stream-specific frames (DATA/HEADERS/RST_STREAM) carrying this id as
+     * the response to this call; frames for any other stream id are stray
+     * (e.g. left over from a prior call) and are drained without being
+     * mistaken for this call's response. */
     stream_id = ctx->next_stream_id;
     ctx->next_stream_id += 2U;
+    ctx->active_stream_id = stream_id;
 
     /* Step 3: HEADERS frame (request headers, END_HEADERS). */
     hpack_len = hpack_encode_grpc_request(hpack_buf, sizeof(hpack_buf), method_path, ctx->hostname);
@@ -673,6 +1141,8 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
     el2go_status_t s = EL2GO_STATUS_FAILURE;
     uint32_t iterations = 0U;
     bool data_received = false;
+    uint32_t stream_id = 0U;
+    bool is_active_stream = false;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
@@ -701,11 +1171,42 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
         pay_len = ((uint32_t)hdr[0] << 16U) | ((uint32_t)hdr[1] << 8U) | (uint32_t)hdr[2];
         frame_type = hdr[3];
         flags = hdr[4];
-        /* hdr[5..8] = stream_id; not needed for single-stream tracking here */
+        /*
+         * Stream identifier (RFC 7540 S4.1): 31 bits, MSB (reserved) masked
+         * off. Needed to detect stray frames left over from a prior call on
+         * this connection (e.g. a late DATA/HEADERS/RST_STREAM for a stream
+         * this grpc_recv() call did not open) so they are drained instead of
+         * being mistaken for the current call's response.
+         */
+        stream_id = (((uint32_t)hdr[5] & H2_MSB_RESERVED_MASK) << 24U) | ((uint32_t)hdr[6] << 16U) |
+                    ((uint32_t)hdr[7] << 8U) | (uint32_t)hdr[8];
+        is_active_stream = (stream_id == ctx->active_stream_id);
 
         switch (frame_type) {
         /* DATA frame: contains the gRPC response message. */
         case H2_TYPE_DATA:
+            if (!is_active_stream) {
+                /*
+                 * Stray DATA frame for a stream other than the one this
+                 * call opened (e.g. late-arriving data for a previous
+                 * call). Drain and ignore -- do not treat it as this
+                 * call's response.
+                 */
+                EL2GO_DBG_PRINTF(VERBOSE, "gRPC recv: ignoring DATA for stream %u (active=%u)\n",
+                                 (unsigned int)stream_id, (unsigned int)ctx->active_stream_id);
+                {
+                    size_t remaining = pay_len;
+                    while (remaining > 0U) {
+                        size_t to_drain = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
+                        s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
+                        if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
+                            return EL2GO_OTA_ERROR_NETWORK;
+                        }
+                        remaining -= n_read;
+                    }
+                }
+                break;
+            }
             if (pay_len < GRPC_MSG_HDR_LEN) {
                 EL2GO_DBG_PRINTF(ERROR, "gRPC recv: DATA payload too short (%u bytes)\n",
                                  (unsigned int)pay_len);
@@ -734,6 +1235,34 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                                ((uint32_t)grpc_prefix[3] << 8U) | (uint32_t)grpc_prefix[4];
 
                 body_len = (size_t)grpc_msg_len;
+
+                /*
+                 * Diagnostic only (no behaviour change): per the gRPC-over-HTTP2
+                 * spec, "DATA frame boundaries have no relation to
+                 * Length-Prefixed-Message boundaries" -- a server is always
+                 * legally allowed to split a single gRPC message across
+                 * multiple DATA frames, regardless of message size. This
+                 * client does not implement reassembly across frames (an
+                 * accepted MVP limitation; see ota/el2go_ota_config.h), so if
+                 * that ever happens the subsequent reads below will desync
+                 * and this call will fail with EL2GO_OTA_ERROR_NETWORK (safe:
+                 * the download engine already retries on network errors).
+                 * This log line exists purely so that failure mode is
+                 * instantly recognizable in the field instead of looking like
+                 * a generic/unexplained network error.
+                 */
+                if ((size_t)pay_len < GRPC_MSG_HDR_LEN + body_len) {
+                    EL2GO_DBG_PRINTF(ERROR,
+                                     "gRPC recv: message (%zu bytes) split across multiple "
+                                     "DATA frames (this frame only has %u byte(s) after the "
+                                     "gRPC prefix) -- reassembly not implemented, call will "
+                                     "likely fail with a network error\n",
+                                     body_len,
+                                     (unsigned int)((size_t)pay_len > GRPC_MSG_HDR_LEN ?
+                                                        (size_t)pay_len - GRPC_MSG_HDR_LEN :
+                                                        0U));
+                }
+
                 if (body_len > buf_len) {
                     EL2GO_DBG_PRINTF(ERROR,
                                      "gRPC recv: gRPC message %zu bytes exceeds buffer %zu\n",
@@ -777,21 +1306,59 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
             break;
 
         /*
-         * HEADERS frame: response headers (no END_STREAM) or trailers
-         * (END_STREAM set, after DATA).
+         * HEADERS frame: either
+         *   - Response-Headers (no END_STREAM): precedes zero or more DATA
+         *     frames, drained here (no grpc-status; status is only ever
+         *     sent in Trailers), or
+         *   - Trailers (END_STREAM set): the final HEADERS block of the
+         *     response, carrying grpc-status/grpc-message. Per the gRPC/
+         *     HTTP2 spec, this is true regardless of whether any DATA frame
+         *     preceded it:
+         *       Response -> (Response-Headers *Length-Prefixed-Message Trailers)
+         *                 / Trailers-Only
+         *     Trailers-Only (no preceding DATA frame, data_received == false)
+         *     is explicitly permitted for calls that fail immediately, so
+         *     END_STREAM alone -- not data_received -- is what marks a
+         *     HEADERS frame as Trailers.
          */
         case H2_TYPE_HEADERS:
-            if ((flags & H2_FLAG_END_STREAM) != 0U && data_received) {
+            if (!is_active_stream) {
                 /*
-                 * Trailer HEADERS: read the block into a stack buffer so
-                 * grpc_parse_trailers() can scan it for grpc-status.
-                 * Trailer blocks are typically < 64 bytes; use 128 bytes
-                 * to be safe.  Any overflow is drained and ignored.
+                 * Stray HEADERS frame (response headers or trailers) for a
+                 * stream other than the one this call opened. Drain and
+                 * ignore -- do not treat it as this call's response or
+                 * trailers.
+                 */
+                EL2GO_DBG_PRINTF(VERBOSE, "gRPC recv: ignoring HEADERS for stream %u (active=%u)\n",
+                                 (unsigned int)stream_id, (unsigned int)ctx->active_stream_id);
+                {
+                    size_t remaining = pay_len;
+                    while (remaining > 0U) {
+                        size_t to_drain = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
+                        s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
+                        if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
+                            return EL2GO_OTA_ERROR_NETWORK;
+                        }
+                        remaining -= n_read;
+                    }
+                }
+            } else if ((flags & H2_FLAG_END_STREAM) != 0U) {
+                /*
+                 * Trailers (Trailers-Only if !data_received): read the block
+                 * into a stack buffer so grpc_parse_trailers() can scan it
+                 * for grpc-status. Trailer blocks are typically < 64 bytes;
+                 * use 128 bytes to be safe. Any overflow is drained and
+                 * ignored.
                  */
                 uint8_t trailer_buf[128U] = { 0U };
                 size_t to_read = 0U;
                 size_t overflow = 0U;
                 el2go_ota_status_t grpc_status = EL2GO_OTA_ERROR_INTERNAL;
+
+                if (!data_received) {
+                    EL2GO_DBG_PRINTF(VERBOSE,
+                                     "gRPC recv: Trailers-Only response (no DATA frame)\n");
+                }
 
                 to_read = (pay_len <= sizeof(trailer_buf)) ? pay_len : sizeof(trailer_buf);
                 if (to_read > 0U) {
@@ -813,7 +1380,7 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                 grpc_status = grpc_parse_trailers(trailer_buf, to_read);
                 return grpc_status;
             } else {
-                /* Response HEADERS (before DATA): drain, no grpc-status here. */
+                /* Response-Headers (no END_STREAM): drain, no grpc-status here. */
                 size_t remaining = pay_len;
                 while (remaining > 0U) {
                     size_t to_drain = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
@@ -871,12 +1438,43 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
             break;
 
         /*
-         * RST_STREAM / GOAWAY: server terminated the stream or connection.
+         * RST_STREAM: server terminated one stream. Stream-specific (RFC
+         * 7540 S6.4): a stray RST_STREAM for a stream other than the one
+         * this call opened (e.g. a late RST for a prior call that this
+         * client already finished processing) does not affect the current
+         * call and must not abort it -- drain and ignore. An RST_STREAM for
+         * the active stream is treated as before (reported as a network
+         * error).
          */
         case H2_TYPE_RST_STREAM:
+            if (!is_active_stream) {
+                EL2GO_DBG_PRINTF(VERBOSE,
+                                 "gRPC recv: ignoring RST_STREAM for stream %u (active=%u)\n",
+                                 (unsigned int)stream_id, (unsigned int)ctx->active_stream_id);
+                {
+                    size_t remaining = pay_len;
+                    while (remaining > 0U) {
+                        size_t to_drain = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
+                        s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
+                        if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
+                            return EL2GO_OTA_ERROR_NETWORK;
+                        }
+                        remaining -= n_read;
+                    }
+                }
+                break;
+            }
+            EL2GO_DBG_PRINTF(ERROR, "gRPC recv: server sent RST_STREAM (stream %u)\n",
+                             (unsigned int)stream_id);
+            return EL2GO_OTA_ERROR_NETWORK;
+
+        /*
+         * GOAWAY: server terminated the whole connection. Always
+         * connection-level (stream_id 0, RFC 7540 S6.8) regardless of which
+         * stream is active, so it is never ignored based on stream_id.
+         */
         case H2_TYPE_GOAWAY:
-            EL2GO_DBG_PRINTF(ERROR, "gRPC recv: server sent RST_STREAM/GOAWAY (type=0x%02X)\n",
-                             (unsigned int)frame_type);
+            EL2GO_DBG_PRINTF(ERROR, "gRPC recv: server sent GOAWAY\n");
             return EL2GO_OTA_ERROR_NETWORK;
 
         /*
@@ -929,7 +1527,9 @@ el2go_ota_status_t el2go_ota_transport_init(el2go_ota_transport_t *t, el2go_ota_
 
     ctx->tls_ctx = tls_ctx;
     ctx->hostname = hostname;
-    ctx->next_stream_id = 1U; /* HTTP/2: client streams start at 1, odd numbers */
+    ctx->next_stream_id = 1U;   /* HTTP/2: client streams start at 1, odd numbers */
+    ctx->active_stream_id = 0U; /* 0 is never a valid client stream id, so no DATA/HEADERS/
+                                 * RST_STREAM frame can match it before the first send(). */
     ctx->http2_ready = false;
 
     t->send = grpc_send;

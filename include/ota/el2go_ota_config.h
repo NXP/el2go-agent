@@ -24,6 +24,27 @@
  * On other platforms define EL2GO_OTA_CHUNK_SIZE in the build system before
  * including this header to override the default.
  *
+ * Upper bounds on this value (largest first):
+ *   - gRPC message size: the OTA server enforces the standard gRPC default
+ *     max message size of 4 MiB (see FetchFile in ota-delivery.proto). A
+ *     chunk request/response larger than this is rejected by the server.
+ *   - HTTP/2 frame size: el2go_ota_grpc.c (the gRPC/HTTP2 transport backend)
+ *     assumes one HTTP/2 DATA frame always carries one whole gRPC message
+ *     -- it does not reassemble a message split across multiple DATA
+ *     frames, nor split an outgoing message across frames. Therefore
+ *     (EL2GO_OTA_CHUNK_SIZE + EL2GO_OTA_WIRE_OVERHEAD) MUST stay at or
+ *     below the default HTTP/2 SETTINGS_MAX_FRAME_SIZE of 16384 bytes
+ *     (RFC 7540 S6.5.2). This is an accepted, intentional limitation of
+ *     the current transport implementation; EL2GO_OTA_CHUNK_SIZE is not
+ *     expected to grow past this ceiling. See the compile-time guard in
+ *     el2go_ota_download_engine.c.
+ *   - Stack budget: the wire buffer sized off this value is stack-allocated
+ *     in el2go_ota_download_engine.c (not heap). Raising this value grows
+ *     the stack usage of whatever RTOS thread calls into the download
+ *     engine -- check the target's configured thread/task stack size
+ *     (e.g. Zephyr CONFIG_MAIN_STACK_SIZE or the calling thread's stack)
+ *     before increasing the default.
+ *
  * Default: 4096 bytes.
  */
 #ifndef EL2GO_OTA_CHUNK_SIZE
@@ -41,6 +62,9 @@
  * and HTTP/2 HEADERS framing. The actual overhead for the current proto schema
  * is well under 100 bytes; 256 provides a conservative margin.
  * Override in the build system if a tighter budget is required.
+ *
+ * See the EL2GO_OTA_CHUNK_SIZE documentation above for the upper bounds that
+ * apply to (EL2GO_OTA_CHUNK_SIZE + EL2GO_OTA_WIRE_OVERHEAD) as a whole.
  *
  * Default: 256 bytes.
  */
