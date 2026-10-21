@@ -7,7 +7,7 @@
 
 #include <inttypes.h>
 
-#include <psa/internal_trusted_storage.h>
+#include <psa/crypto.h>
 
 #include "osal.h"
 #include "debug.h"
@@ -18,11 +18,12 @@ el2go_status_t el2go_ota_prepare_client_credentials(el2go_platform_ctx_t *platfo
                                                     uint8_t **cert_der, size_t *cert_der_len,
                                                     uint32_t *key_id)
 {
-    struct psa_storage_info_t info = { 0 };
+    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_status_t psa_status = PSA_ERROR_GENERIC_ERROR;
     uint8_t *cert_buf = NULL;
     size_t actual_len = 0U;
-    psa_storage_uid_t cert_uid = 0U;
+    size_t buf_size = 0U;
+    psa_key_id_t cert_key_id = 0U;
     el2go_status_t status = EL2GO_STATUS_FAILURE;
 
     EL2GO_DBG_TRACE_API_CALL;
@@ -31,63 +32,67 @@ el2go_status_t el2go_ota_prepare_client_credentials(el2go_platform_ctx_t *platfo
         return EL2GO_STATUS_INVALID_PARAMETER;
     }
 
-    /* Use client_cert_object_id as psa_storage_uid_t (lower 32 bits; upper = 0). */
-    cert_uid = (psa_storage_uid_t)config->client_cert_object_id;
+    /* Use client_cert_object_id as a PSA key ID. */
+    cert_key_id = (psa_key_id_t)config->client_cert_object_id;
 
-    /* platform_ctx is not needed by this provider — PSA ITS is accessed
-     * directly via the PSA Storage API without a platform context. */
+    /* platform_ctx is not needed by this provider — PSA crypto is accessed
+     * directly via the PSA Crypto API without a platform context. */
     (void)platform_ctx;
 
-    /* Step 1: Query the certificate size from PSA ITS.
-     *         psa_its_get_info() returns the size without reading data,
-     *         allowing an exact heap allocation. */
-    psa_status = psa_its_get_info(cert_uid, &info);
+    /* Step 1: Query the key attributes to determine the export buffer size. */
+    psa_status = psa_get_key_attributes(cert_key_id, &attributes);
     if (psa_status != PSA_SUCCESS) {
-        EL2GO_DBG_PRINTF(ERROR, "psa_its_get_info failed for UID 0x%08" PRIx32 ": %d\n",
+        EL2GO_DBG_PRINTF(ERROR, "psa_get_key_attributes failed for key ID 0x%08" PRIx32 ": %d\n",
                          config->client_cert_object_id, (int)psa_status);
         status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
         goto cleanup;
     }
 
-    if (info.size == 0U) {
-        EL2GO_DBG_PRINTF(ERROR, "Certificate at ITS UID 0x%08" PRIx32 " has zero size\n",
+    buf_size =
+        PSA_EXPORT_KEY_OUTPUT_SIZE(psa_get_key_type(&attributes), psa_get_key_bits(&attributes));
+    psa_reset_key_attributes(&attributes);
+
+    if (buf_size == 0U) {
+        EL2GO_DBG_PRINTF(ERROR, "PSA export size for key ID 0x%08" PRIx32 " is zero\n",
                          config->client_cert_object_id);
         status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
         goto cleanup;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Certificate found in PSA ITS (UID: 0x%08" PRIx32 ", size: %zu bytes)\n",
-                     config->client_cert_object_id, info.size);
+    EL2GO_DBG_PRINTF(INFO,
+                     "Certificate found in PSA keystore (key ID: 0x%08" PRIx32
+                     ", export buf size: %zu bytes)\n",
+                     config->client_cert_object_id, buf_size);
 
-    /* Step 2: Allocate a buffer and read the DER certificate from ITS. */
-    cert_buf = osal_calloc(1U, info.size);
+    /* Step 2: Allocate a buffer and export the certificate from the PSA keystore. */
+    cert_buf = osal_calloc(1U, buf_size);
     if (!cert_buf) {
         EL2GO_DBG_PRINTF(ERROR, "Failed to allocate certificate buffer\n");
         status = EL2GO_STATUS_ALLOCATION_ERROR;
         goto cleanup;
     }
 
-    psa_status = psa_its_get(cert_uid, 0U, /* offset — read from start */
-                             info.size, cert_buf, &actual_len);
+    psa_status = psa_export_key(cert_key_id, cert_buf, buf_size, &actual_len);
     if (psa_status != PSA_SUCCESS) {
-        EL2GO_DBG_PRINTF(ERROR, "psa_its_get failed for UID 0x%08" PRIx32 ": %d\n",
+        EL2GO_DBG_PRINTF(ERROR, "psa_export_key failed for key ID 0x%08" PRIx32 ": %d\n",
                          config->client_cert_object_id, (int)psa_status);
         status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
         goto cleanup;
     }
 
-    if (actual_len != info.size) {
-        EL2GO_DBG_PRINTF(ERROR, "Certificate read truncated: expected %zu, got %zu\n", info.size,
-                         actual_len);
+    if (actual_len == 0U) {
+        EL2GO_DBG_PRINTF(ERROR, "psa_export_key returned zero bytes for key ID 0x%08" PRIx32 "\n",
+                         config->client_cert_object_id);
         status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
         goto cleanup;
     }
 
-    EL2GO_DBG_PRINTF(INFO, "Client certificate read from PSA ITS (%zu bytes)\n", actual_len);
+    EL2GO_DBG_PRINTF(INFO, "Client certificate exported from PSA keystore (%zu bytes)\n",
+                     actual_len);
 
     /* Step 3: Transfer ownership of the certificate buffer to the caller.
      *         The caller (el2go_ota_tls.c) is responsible for osal_free().
-     *         Return the PSA key ID directly — no key material is exported. */
+     *         Return the PSA key ID directly -- no key material is exported. */
     *cert_der = cert_buf;
     *cert_der_len = actual_len;
     *key_id = config->client_key_object_id;
