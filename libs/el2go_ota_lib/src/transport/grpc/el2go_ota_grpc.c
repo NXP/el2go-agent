@@ -92,6 +92,15 @@ static const uint8_t HTTP2_PREFACE[24] = {
 #define HPACK_NAME_BUF_CAP 32U
 #define HPACK_VALUE_BUF_CAP 16U
 
+/* HPACK static table indices that carry a non-200 :status pseudo-header
+ * (RFC 7541 Appendix A, entries 9-14). Any one of these indexed (fully-
+ * indexed, 0x80 | index) in a Response-Headers block means the server did
+ * not return HTTP 200 at the HTTP/2 layer -- below the gRPC application
+ * layer entirely, so grpc-status in the eventual Trailers cannot be
+ * trusted (there may not even be a valid Trailers block). Index 8 is
+ * :status 200 and is the only "good" indexed value checked for below. */
+#define HPACK_STATIC_IDX_STATUS_200 8U
+
 /* Context */
 
 typedef struct {
@@ -342,6 +351,48 @@ static __attribute__((unused)) const char *grpc_status_name(uint32_t code)
         return "UNAUTHENTICATED";
     default:
         return "UNKNOWN_CODE";
+    }
+}
+
+/*
+ * HTTP/2 error codes carried by RST_STREAM/GOAWAY frames (RFC 7540 S7,
+ * "Error Codes" table). Decoded purely for diagnostics -- this client
+ * still reports EL2GO_OTA_ERROR_NETWORK for both frame types regardless of
+ * the specific code; only the log message gains detail.
+ */
+static __attribute__((unused)) const char *h2_error_code_name(uint32_t code)
+{
+    switch (code) {
+    case 0x0U:
+        return "NO_ERROR";
+    case 0x1U:
+        return "PROTOCOL_ERROR";
+    case 0x2U:
+        return "INTERNAL_ERROR";
+    case 0x3U:
+        return "FLOW_CONTROL_ERROR";
+    case 0x4U:
+        return "SETTINGS_TIMEOUT";
+    case 0x5U:
+        return "STREAM_CLOSED";
+    case 0x6U:
+        return "FRAME_SIZE_ERROR";
+    case 0x7U:
+        return "REFUSED_STREAM";
+    case 0x8U:
+        return "CANCEL";
+    case 0x9U:
+        return "COMPRESSION_ERROR";
+    case 0xAU:
+        return "CONNECT_ERROR";
+    case 0xBU:
+        return "ENHANCE_YOUR_CALM";
+    case 0xCU:
+        return "INADEQUATE_SECURITY";
+    case 0xDU:
+        return "HTTP_1_1_REQUIRED";
+    default:
+        return "UNKNOWN_ERROR_CODE";
     }
 }
 
@@ -763,6 +814,172 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
     }
 
     return false;
+}
+
+/**
+ * @brief Validate the `:status` pseudo-header (and note `content-type`) in
+ * a Response-Headers block.
+ *
+ * Walks the HPACK header-list representations in @p block (RFC 7541 S6)
+ * looking for `:status` and `content-type`. This defends against a
+ * misbehaving intermediary (e.g. a proxy/load balancer returning an HTTP-
+ * level error or a non-gRPC response) being blindly parsed downstream as if
+ * it were a valid gRPC response.
+ *
+ * `:status`: per RFC 7540 S8.1.2.4 every HTTP/2 response carries this
+ * pseudo-header, and a gRPC server normally always returns 200 at the
+ * HTTP/2 layer (errors are signalled via grpc-status in Trailers, not via
+ * `:status`). An explicit, successfully-decoded non-200 `:status` is
+ * therefore treated as a hard failure -- this function returns false.
+ *
+ * `content-type`: per the gRPC-over-HTTP2 spec this SHOULD be
+ * "application/grpc" (optionally with a "+proto"/"+json" suffix). This is
+ * only logged (VERBOSE/ERROR) if a mismatch is found, never a hard
+ * failure -- unlike `:status`, this is a SHOULD, not a MUST, and failing
+ * the call outright here would be riskier than it's worth for a mismatch
+ * that is very unlikely to ever actually occur against this specific
+ * server.
+ *
+ * Like hpack_find_grpc_status_fallback(), if `:status` cannot be
+ * determined at all (e.g. because of an index this client cannot resolve
+ * without tracking HPACK dynamic-table state, or because the headers do
+ * not fit in @p block), this fails open -- consistent with the rest of
+ * this file's generic "could not determine -> do not block" trailer/status
+ * decoding philosophy. It is still presence-of-explicit-bad-status that
+ * matters, not presence-of-good-status.
+ *
+ * @param[in] block      Input HPACK Response-Headers block.
+ * @param[in] block_len  Length of @p block in bytes.
+ *
+ * @return true if `:status` is 200 or could not be determined; false if an
+ *         explicit, successfully-decoded non-200 `:status` was found.
+ */
+static bool hpack_validate_response_headers(const uint8_t *block, size_t block_len)
+{
+    size_t pos = 0U;
+    uint32_t iterations = 0U;
+
+    while (pos < block_len && iterations < GRPC_RECV_MAX_FRAMES) {
+        uint8_t first = block[pos];
+        uint8_t prefix_bits = 0U;
+        uint32_t idx_val = 0U;
+        uint32_t name_idx = 0U;
+        uint8_t name_buf[HPACK_NAME_BUF_CAP];
+        size_t name_len = 0U;
+        bool has_literal_name = false;
+        bool is_status = false;
+        bool is_content_type = false;
+
+        iterations++;
+
+        if ((first & 0x80U) != 0U) {
+            /* Indexed header field -- fully self-contained. */
+            if (!hpack_decode_integer(block, block_len, &pos, 7U, &idx_val)) {
+                return true; /* malformed -- fail open */
+            }
+            /* Static table indices 9-14 (RFC 7541 Appendix A) are the
+             * non-200 :status values (204, 206, 304, 400, 404, 500). Index
+             * 8 is :status 200 and needs no special handling (it is the
+             * success case already assumed by returning true below). */
+            if (idx_val > HPACK_STATIC_IDX_STATUS_200 && idx_val <= 14U) {
+                EL2GO_DBG_PRINTF(ERROR,
+                                 "gRPC recv: Response-Headers :status is non-200 "
+                                 "(HPACK static index %u)\n",
+                                 (unsigned int)idx_val);
+                return false;
+            }
+            continue;
+        }
+
+        if ((first & 0x40U) != 0U) {
+            prefix_bits = 6U; /* literal with incremental indexing */
+        } else if ((first & 0x20U) != 0U) {
+            /* Dynamic table size update -- self-contained, skip it. */
+            if (!hpack_decode_integer(block, block_len, &pos, 5U, &idx_val)) {
+                return true; /* malformed -- fail open */
+            }
+            continue;
+        } else {
+            prefix_bits = 4U; /* literal without indexing, or never indexed */
+        }
+
+        if (!hpack_decode_integer(block, block_len, &pos, prefix_bits, &name_idx)) {
+            return true; /* malformed -- fail open */
+        }
+        has_literal_name = (name_idx == 0U);
+
+        if (has_literal_name) {
+            if (!hpack_decode_string_bounded(block, block_len, &pos, name_buf, sizeof(name_buf),
+                                             &name_len)) {
+                return true; /* name too large/malformed -- fail open, cannot skip safely */
+            }
+            is_status = (name_len == (sizeof(":status") - 1U)) &&
+                        (memcmp(name_buf, ":status", sizeof(":status") - 1U) == 0);
+            is_content_type = (name_len == (sizeof("content-type") - 1U)) &&
+                              (memcmp(name_buf, "content-type", sizeof("content-type") - 1U) == 0);
+        }
+
+        if (is_status) {
+            uint8_t value_buf[HPACK_VALUE_BUF_CAP];
+            size_t value_len = 0U;
+            uint32_t code = 0U;
+            size_t j = 0U;
+            uint32_t mul_result = 0U;
+            uint32_t add_result = 0U;
+            bool decoded_ok = true;
+
+            if (!hpack_decode_string_bounded(block, block_len, &pos, value_buf, sizeof(value_buf),
+                                             &value_len)) {
+                continue; /* value too large/malformed -- cannot determine, keep scanning */
+            }
+            for (j = 0U; j < value_len; j++) {
+                uint8_t c = value_buf[j];
+                if (c < (uint8_t)'0' || c > (uint8_t)'9') {
+                    decoded_ok = false;
+                    break;
+                }
+                if (MUL_OVERFLOW(code, 10U, &mul_result) ||
+                    ADD_OVERFLOW(mul_result, (uint32_t)(c - (uint8_t)'0'), &add_result)) {
+                    decoded_ok = false;
+                    break;
+                }
+                code = add_result;
+            }
+            if (decoded_ok && code != 200U) {
+                EL2GO_DBG_PRINTF(ERROR, "gRPC recv: Response-Headers :status is %u (not 200)\n",
+                                 (unsigned int)code);
+                return false;
+            }
+            continue;
+        }
+
+        if (is_content_type) {
+            uint8_t value_buf[32U];
+            size_t value_len = 0U;
+            static const char expected_prefix[] = "application/grpc";
+
+            if (!hpack_decode_string_bounded(block, block_len, &pos, value_buf, sizeof(value_buf),
+                                             &value_len)) {
+                continue; /* value too large/malformed -- just skip the diagnostic */
+            }
+            if (value_len < sizeof(expected_prefix) - 1U ||
+                memcmp(value_buf, expected_prefix, sizeof(expected_prefix) - 1U) != 0) {
+                EL2GO_DBG_PRINTF(VERBOSE,
+                                 "gRPC recv: Response-Headers content-type is \"%.*s\", "
+                                 "expected prefix \"%s\" (diagnostic only, not treated as "
+                                 "an error)\n",
+                                 (int)value_len, (const char *)value_buf, expected_prefix);
+            }
+            continue;
+        }
+
+        /* Not :status or content-type -- skip its value without decoding. */
+        if (!hpack_skip_string(block, block_len, &pos)) {
+            return true; /* malformed -- fail open */
+        }
+    }
+
+    return true; /* no explicit non-200 :status found -- treat as OK */
 }
 
 /**
@@ -1380,15 +1597,44 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                 grpc_status = grpc_parse_trailers(trailer_buf, to_read);
                 return grpc_status;
             } else {
-                /* Response-Headers (no END_STREAM): drain, no grpc-status here. */
-                size_t remaining = pay_len;
-                while (remaining > 0U) {
-                    size_t to_drain = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
+                /*
+                 * Response-Headers (no END_STREAM): validate :status (and
+                 * diagnose content-type) before continuing. Per RFC 7540
+                 * S8.1.2.4 every HTTP/2 response carries :status; a gRPC
+                 * server normally always returns 200 here (application-
+                 * level errors go through grpc-status in Trailers, not
+                 * :status). A non-200 :status means something below the
+                 * gRPC layer went wrong -- e.g. a misbehaving proxy/load
+                 * balancer -- and the eventual Trailers (if any even
+                 * follow) should not be trusted as a real gRPC response.
+                 *
+                 * Read the block into a stack buffer (same 128-byte budget
+                 * and overflow-drain pattern already used for Trailers --
+                 * Response-Headers for this client's small, fixed request
+                 * set are not expected to exceed this).
+                 */
+                uint8_t headers_buf[128U] = { 0U };
+                size_t to_read_h = 0U;
+                size_t overflow_h = 0U;
+
+                to_read_h = (pay_len <= sizeof(headers_buf)) ? pay_len : sizeof(headers_buf);
+                if (to_read_h > 0U) {
+                    s = el2go_ota_tls_read(ctx->tls_ctx, headers_buf, to_read_h, &n_read);
+                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_read_h) {
+                        return EL2GO_OTA_ERROR_NETWORK;
+                    }
+                }
+                overflow_h = (pay_len > sizeof(headers_buf)) ? (pay_len - sizeof(headers_buf)) : 0U;
+                while (overflow_h > 0U) {
+                    size_t to_drain = (overflow_h > sizeof(tmp)) ? sizeof(tmp) : overflow_h;
                     s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
                     if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
                         return EL2GO_OTA_ERROR_NETWORK;
                     }
-                    remaining -= n_read;
+                    overflow_h -= n_read;
+                }
+                if (!hpack_validate_response_headers(headers_buf, to_read_h)) {
+                    return EL2GO_OTA_ERROR_NETWORK;
                 }
             }
             break;
@@ -1464,18 +1710,107 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                 }
                 break;
             }
-            EL2GO_DBG_PRINTF(ERROR, "gRPC recv: server sent RST_STREAM (stream %u)\n",
-                             (unsigned int)stream_id);
+            /*
+             * RST_STREAM on the active stream: read its Error Code (RFC
+             * 7540 S6.4 -- a 4-byte field, the frame's entire payload in a
+             * conformant implementation) for diagnostics, then drain any
+             * remaining bytes before returning. The HTTP/2 connection
+             * (ctx->tls_ctx) is reused across send()/recv() calls on
+             * subsequent downloads, so leaving any of this frame's bytes
+             * unread would desync the next frame header read on the very
+             * next call -- unread bytes would be misinterpreted as (part
+             * of) the next frame header.
+             */
+            {
+                uint8_t err_code_buf[4] = { 0U };
+                uint32_t h2_err_code = 0U;
+                bool have_err_code = false;
+                size_t remaining = pay_len;
+
+                if (remaining >= sizeof(err_code_buf)) {
+                    s = el2go_ota_tls_read(ctx->tls_ctx, err_code_buf, sizeof(err_code_buf),
+                                           &n_read);
+                    if (s != EL2GO_STATUS_SUCCESS || n_read < sizeof(err_code_buf)) {
+                        return EL2GO_OTA_ERROR_NETWORK;
+                    }
+                    remaining -= n_read;
+                    h2_err_code = ((uint32_t)err_code_buf[0] << 24U) |
+                                  ((uint32_t)err_code_buf[1] << 16U) |
+                                  ((uint32_t)err_code_buf[2] << 8U) | (uint32_t)err_code_buf[3];
+                    have_err_code = true;
+                }
+                while (remaining > 0U) {
+                    size_t to_drain = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
+                    s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
+                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
+                        return EL2GO_OTA_ERROR_NETWORK;
+                    }
+                    remaining -= n_read;
+                }
+                if (have_err_code) {
+                    EL2GO_DBG_PRINTF(ERROR,
+                                     "gRPC recv: server sent RST_STREAM (stream %u): "
+                                     "%s (0x%x)\n",
+                                     (unsigned int)stream_id, h2_error_code_name(h2_err_code),
+                                     (unsigned int)h2_err_code);
+                } else {
+                    EL2GO_DBG_PRINTF(ERROR,
+                                     "gRPC recv: server sent RST_STREAM (stream %u), "
+                                     "payload too short to decode error code (%u byte(s))\n",
+                                     (unsigned int)stream_id, (unsigned int)pay_len);
+                }
+            }
             return EL2GO_OTA_ERROR_NETWORK;
 
         /*
          * GOAWAY: server terminated the whole connection. Always
          * connection-level (stream_id 0, RFC 7540 S6.8) regardless of which
          * stream is active, so it is never ignored based on stream_id.
+         *
+         * Payload layout (RFC 7540 S6.8): 4-byte Last-Stream-ID, 4-byte
+         * Error Code, then optional Additional Debug Data. Read the Error
+         * Code for diagnostics and drain the rest (including any debug
+         * data) before returning -- this connection is about to be torn
+         * down by the caller on a NETWORK error, but draining here is kept
+         * for consistency with every other frame type in this function
+         * and to avoid ever leaving unread bytes on the wire.
          */
-        case H2_TYPE_GOAWAY:
-            EL2GO_DBG_PRINTF(ERROR, "gRPC recv: server sent GOAWAY\n");
+        case H2_TYPE_GOAWAY: {
+            uint8_t goaway_hdr[8] = { 0U };
+            uint32_t h2_err_code = 0U;
+            bool have_err_code = false;
+            size_t remaining = pay_len;
+
+            if (remaining >= sizeof(goaway_hdr)) {
+                s = el2go_ota_tls_read(ctx->tls_ctx, goaway_hdr, sizeof(goaway_hdr), &n_read);
+                if (s != EL2GO_STATUS_SUCCESS || n_read < sizeof(goaway_hdr)) {
+                    return EL2GO_OTA_ERROR_NETWORK;
+                }
+                remaining -= n_read;
+                /* goaway_hdr[0..3] = Last-Stream-ID (not needed here). */
+                h2_err_code = ((uint32_t)goaway_hdr[4] << 24U) | ((uint32_t)goaway_hdr[5] << 16U) |
+                              ((uint32_t)goaway_hdr[6] << 8U) | (uint32_t)goaway_hdr[7];
+                have_err_code = true;
+            }
+            while (remaining > 0U) {
+                size_t to_drain = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
+                s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
+                if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
+                    return EL2GO_OTA_ERROR_NETWORK;
+                }
+                remaining -= n_read;
+            }
+            if (have_err_code) {
+                EL2GO_DBG_PRINTF(ERROR, "gRPC recv: server sent GOAWAY: %s (0x%x)\n",
+                                 h2_error_code_name(h2_err_code), (unsigned int)h2_err_code);
+            } else {
+                EL2GO_DBG_PRINTF(ERROR,
+                                 "gRPC recv: server sent GOAWAY, payload too short to "
+                                 "decode error code (%u byte(s))\n",
+                                 (unsigned int)pay_len);
+            }
             return EL2GO_OTA_ERROR_NETWORK;
+        }
 
         /*
          * All other frame types: drain payload and continue.
