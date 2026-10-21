@@ -47,7 +47,8 @@ void el2go_dbg_mbedtls_err(int ret)
  * @brief Debug callback for the mbedTLS library.
  *
  * Pass this function to mbedtls_ssl_conf_dbg() to forward mbedTLS internal
- * trace messages to EL2GO_DBG_PRINTF at VERBOSE level.
+ * trace messages unconditionally via EL2GO_PRINTF_ALWAYS, regardless of
+ * ENABLE_TRACE or TRACE_LEVEL.
  *
  * @param[in] ctx    Context pointer (unused).
  * @param[in] level  mbedTLS debug level.
@@ -64,5 +65,5 @@ __maybe_unused void mbedtls_debug_cb(void *ctx, int level, const char *file, int
     (void)line;
     (void)str;
 
-    EL2GO_DBG_PRINTF(VERBOSE, "mbedTLS [%d] %s:%d: %s", level, file, line, str);
+    EL2GO_PRINTF_ALWAYS("mbedTLS [%d] %s:%d: %s", level, file, line, str);
 }

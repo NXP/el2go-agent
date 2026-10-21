@@ -39,6 +39,14 @@ config EL2GO_NET_CRYPTO_SOURCES
       operations) in the build. Automatically selected by EL2GO_OTA_LIBRARY_SOURCES.
       Also required by the el2go_csr Zephyr sample.
 
+config EL2GO_MBEDTLS_DEBUG_ENABLE
+    bool "Enable mbedTLS internal debug output"
+    depends on MBEDTLS
+    help
+      When enabled, registers mbedtls_debug_cb() as the mbedTLS debug
+      callback and sets the trace threshold to level 4, forwarding
+      mbedTLS internal trace messages to the EL2GO logging output.
+
 config EL2GO_NET_CRYPTO_SSL_READ_TIMEOUT_MS
     int "SSL read timeout in milliseconds"
     depends on EL2GO_NET_CRYPTO_SOURCES

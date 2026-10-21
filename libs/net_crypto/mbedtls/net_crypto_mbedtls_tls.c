@@ -499,7 +499,7 @@ el2go_status_t net_crypto_configure(net_crypto_ctx_t *ctx, const net_crypto_conf
     mbedtls_ssl_init(&ctx->ssl);
     mbedtls_ssl_config_init(&ctx->conf);
 
-#ifdef MBEDTLS_DEBUG_ENABLE
+#ifdef EL2GO_MBEDTLS_DEBUG_ENABLE
     /* Enable mbedTLS debug output */
     mbedtls_ssl_conf_dbg(&ctx->conf, mbedtls_debug_cb, NULL);
     mbedtls_debug_set_threshold(4);
