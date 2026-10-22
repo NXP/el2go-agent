@@ -101,6 +101,16 @@ static const uint8_t HTTP2_PREFACE[24] = {
  * :status 200 and is the only "good" indexed value checked for below. */
 #define HPACK_STATIC_IDX_STATUS_200 8U
 
+/* First HPACK dynamic-table absolute index (RFC 7541 S2.3.3).
+ * The newest entry is always at index 62; each subsequent insertion pushes
+ * older entries to higher indices. */
+#define HPACK_DYN_TABLE_FIRST_IDX 62U
+
+/* SETTINGS parameter id for HEADER_TABLE_SIZE (RFC 7540 S6.5.2) and the
+ * byte length of one settings parameter (2-byte id + 4-byte value). */
+#define H2_SETTINGS_PARAM_HDR_TABLE_SIZE 0x0001U
+#define H2_SETTINGS_PARAM_LEN 6U
+
 /* Context */
 
 typedef struct {
@@ -110,6 +120,37 @@ typedef struct {
     uint32_t active_stream_id; /* stream opened by the most recent send(); the only
                                 * stream grpc_recv() expects to receive a response on. */
     bool http2_ready;          /* preface + SETTINGS exchanged */
+    /*
+     * Lightweight HPACK dynamic-table tracking for grpc-status (RFC 7541).
+     *
+     * When the server sends grpc-status as a literal with incremental
+     * indexing (0x40 prefix, first occurrence), it pushes the entry into
+     * its own dynamic table.  On every subsequent response on the same
+     * connection the server may reference that entry by index instead of
+     * re-transmitting the name as a literal -- this is an Indexed Header
+     * Field (0x80 prefix).  Without tracking which absolute index carries
+     * grpc-status, the trailer parser cannot resolve such back-references.
+     *
+     * grpc_status_dyn_idx: absolute HPACK index of the grpc-status entry
+     *   (0 = not yet seen as a literal; set on first literal insertion).
+     * grpc_status_dyn_value: the numeric status code decoded when the entry
+     *   was first inserted (cached so indexed references can be resolved
+     *   without re-decoding the value string).
+     * hpack_dyn_entries: running count of all dynamic-table insertions seen
+     *   on this connection.  Used to compute the absolute index of a new
+     *   entry at insertion time: new_abs_idx = HPACK_DYN_TABLE_FIRST_IDX +
+     *   (hpack_dyn_entries - insertion_serial), where insertion_serial is
+     *   the value of hpack_dyn_entries at the moment of insertion (before
+     *   incrementing).  Simplified: newest entry is always at absolute index
+     *   62 at the time of insertion; each subsequent insertion shifts older
+     *   entries by 1.  The stored absolute index is therefore NOT stable --
+     *   it must be adjusted by (current_hpack_dyn_entries - insertion_count)
+     *   when resolving.  To avoid that bookkeeping, we store the insertion
+     *   serial and recompute on each lookup instead.
+     */
+    uint32_t grpc_status_insert_serial; /* hpack_dyn_entries value at insertion time; 0 = not seen */
+    uint32_t grpc_status_dyn_value;     /* cached numeric grpc-status code */
+    uint32_t hpack_dyn_entries;         /* total dynamic-table insertions seen */
 } grpc_ctx_t;
 
 /* Internal helpers -- HTTP/2 frame building */
@@ -134,17 +175,64 @@ static void h2_build_frame_hdr(uint8_t *dst, uint32_t payload_len, uint8_t type,
 }
 
 /*
- * Send an HTTP/2 SETTINGS frame with empty payload (used for both initial
- * SETTINGS and SETTINGS ACK, differentiated by flags).
+ * Send an HTTP/2 SETTINGS ACK frame (empty payload, ACK flag set).
  */
-static el2go_ota_status_t h2_send_settings(grpc_ctx_t *ctx, uint8_t flags)
+static el2go_ota_status_t h2_send_settings_ack(grpc_ctx_t *ctx)
 {
     uint8_t frame[H2_FRAME_HDR_LEN] = { 0U };
     el2go_status_t s = EL2GO_STATUS_FAILURE;
 
-    h2_build_frame_hdr(frame, 0U, H2_TYPE_SETTINGS, flags, 0U);
+    h2_build_frame_hdr(frame, 0U, H2_TYPE_SETTINGS, H2_FLAG_ACK, 0U);
     s = el2go_ota_tls_write(ctx->tls_ctx, frame, sizeof(frame));
     return (s == EL2GO_STATUS_SUCCESS) ? EL2GO_OTA_SUCCESS : EL2GO_OTA_ERROR_NETWORK;
+}
+
+/*
+ * Send an HTTP/2 SETTINGS frame advertising HEADER_TABLE_SIZE=0 to the
+ * server (RFC 7540 S6.5.2, RFC 7541 S4.2).
+ *
+ * Setting HEADER_TABLE_SIZE=0 instructs the server to evict its HPACK
+ * dynamic table and forbids it from re-populating it.  As a result the
+ * server must encode every header field as a literal on every response,
+ * guaranteeing that "grpc-status" is always present as a decodable literal
+ * string in the Trailers block.  This avoids the need for the client to
+ * track which dynamic-table index the server has assigned to grpc-status
+ * (the alternative approach -- used as a secondary defence below -- when
+ * the server does not respect HEADER_TABLE_SIZE=0).
+ */
+static el2go_ota_status_t h2_send_settings_hdr_table_zero(grpc_ctx_t *ctx)
+{
+    /* 9-byte frame header + one 6-byte setting parameter. */
+    uint8_t frame[H2_FRAME_HDR_LEN + H2_SETTINGS_PARAM_LEN] = { 0U };
+    el2go_status_t s = EL2GO_STATUS_FAILURE;
+
+    h2_build_frame_hdr(frame, H2_SETTINGS_PARAM_LEN, H2_TYPE_SETTINGS, 0x00U, 0U);
+    /* Parameter: HEADER_TABLE_SIZE (0x0001), value 0x00000000. */
+    frame[H2_FRAME_HDR_LEN + 0U] =
+        (uint8_t)((H2_SETTINGS_PARAM_HDR_TABLE_SIZE >> 8U) & H2_BYTE_MASK);
+    frame[H2_FRAME_HDR_LEN + 1U] = (uint8_t)(H2_SETTINGS_PARAM_HDR_TABLE_SIZE & H2_BYTE_MASK);
+    frame[H2_FRAME_HDR_LEN + 2U] = 0x00U;
+    frame[H2_FRAME_HDR_LEN + 3U] = 0x00U;
+    frame[H2_FRAME_HDR_LEN + 4U] = 0x00U;
+    frame[H2_FRAME_HDR_LEN + 5U] = 0x00U;
+
+    s = el2go_ota_tls_write(ctx->tls_ctx, frame, sizeof(frame));
+    return (s == EL2GO_STATUS_SUCCESS) ? EL2GO_OTA_SUCCESS : EL2GO_OTA_ERROR_NETWORK;
+}
+
+/*
+ * Send an HTTP/2 SETTINGS frame with empty payload (used only for the
+ * SETTINGS ACK; kept for backward compatibility with callers that pass
+ * H2_FLAG_ACK).  For the initial client SETTINGS use
+ * h2_send_settings_hdr_table_zero() instead.
+ */
+static el2go_ota_status_t h2_send_settings(grpc_ctx_t *ctx, uint8_t flags)
+{
+    if ((flags & H2_FLAG_ACK) != 0U) {
+        return h2_send_settings_ack(ctx);
+    }
+    /* Non-ACK initial SETTINGS: advertise HEADER_TABLE_SIZE=0. */
+    return h2_send_settings_hdr_table_zero(ctx);
 }
 
 /*
@@ -720,11 +808,41 @@ static bool hpack_decode_string_bounded(const uint8_t *block, size_t block_len, 
  *         (malformed/truncated); both cases are treated as "not found" by the
  *         caller.
  */
-static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_len,
+/*
+ * Walk an HPACK block for grpc-status, also tracking dynamic-table insertions
+ * for the secondary HPACK indexed-reference defence.
+ *
+ * ctx may be NULL (unit-test / no-context callers), in which case the
+ * indexed-reference check is skipped.
+ */
+static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_len, grpc_ctx_t *ctx,
                                             uint32_t *out_code)
 {
     size_t pos = 0U;
     uint32_t iterations = 0U;
+    /*
+     * Local shadow of hpack_dyn_entries at the start of this block -- used
+     * to track insertions made while walking *this* block so we can compute
+     * the absolute index of each newly-inserted entry.  A newly inserted
+     * entry gets absolute index HPACK_DYN_TABLE_FIRST_IDX (62) at the
+     * moment it is inserted; each subsequent insertion in the same block
+     * pushes it one slot higher.
+     */
+    uint32_t local_entries = (ctx != NULL) ? ctx->hpack_dyn_entries : 0U;
+    /*
+     * grpc-status may be found with more of the block still left to walk --
+     * the real EL2GO OTA server inserts grpc-message with incremental
+     * indexing immediately after grpc-status in the same Trailers block.
+     * Do NOT return as soon as grpc-status is found: keep walking so every
+     * literal-with-incremental-indexing field in this block is counted in
+     * ctx->hpack_dyn_entries, keeping this client's index numbering in sync
+     * with the server's encoder for any later block on this connection.
+     * The decoded value is cached here and returned once the block has
+     * been fully walked (or walking stops for any other reason), so it is
+     * never lost even if something later in the block cannot be parsed.
+     */
+    bool found = false;
+    uint32_t found_code = 0U;
 
     while (pos < block_len && iterations < GRPC_RECV_MAX_FRAMES) {
         uint8_t first = block[pos];
@@ -735,22 +853,59 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
         size_t name_len = 0U;
         bool has_literal_name = false;
         bool is_grpc_status = false;
+        bool inserts_into_dyn_table = false;
 
         iterations++;
 
         if ((first & 0x80U) != 0U) {
-            /* Indexed header field -- fully self-contained, just skip it. */
+            /*
+             * Indexed header field (RFC 7541 S6.1): fully self-contained
+             * single-byte (or multi-byte) reference to a table entry.
+             *
+             * Secondary defence: if the server ignored our SETTINGS
+             * HEADER_TABLE_SIZE=0 and previously inserted grpc-status into
+             * its dynamic table, we can still detect such references here
+             * by comparing the index to the stored insertion serial.
+             *
+             * The absolute index of the grpc-status entry at query time is:
+             *   abs_idx = HPACK_DYN_TABLE_FIRST_IDX +
+             *             (local_entries - grpc_status_insert_serial)
+             * where local_entries is the total insertions seen so far
+             * (including any made in this block before this entry).
+             */
             if (!hpack_decode_integer(block, block_len, &pos, 7U, &idx_val)) {
+                if (found) {
+                    *out_code = found_code;
+                    return true;
+                }
                 return false;
+            }
+            if (!found && ctx != NULL && ctx->grpc_status_insert_serial != 0U) {
+                uint32_t expected_idx =
+                    HPACK_DYN_TABLE_FIRST_IDX + (local_entries - ctx->grpc_status_insert_serial);
+                if (idx_val == expected_idx) {
+                    EL2GO_DBG_PRINTF(VERBOSE,
+                                     "gRPC recv: grpc-status via HPACK indexed ref "
+                                     "(idx=%u, cached code=%u)\n",
+                                     (unsigned int)idx_val,
+                                     (unsigned int)ctx->grpc_status_dyn_value);
+                    found = true;
+                    found_code = ctx->grpc_status_dyn_value;
+                }
             }
             continue;
         }
 
         if ((first & 0x40U) != 0U) {
             prefix_bits = 6U; /* literal with incremental indexing */
+            inserts_into_dyn_table = true;
         } else if ((first & 0x20U) != 0U) {
             /* Dynamic table size update -- self-contained, skip it. */
             if (!hpack_decode_integer(block, block_len, &pos, 5U, &idx_val)) {
+                if (found) {
+                    *out_code = found_code;
+                    return true;
+                }
                 return false;
             }
             continue;
@@ -759,6 +914,10 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
         }
 
         if (!hpack_decode_integer(block, block_len, &pos, prefix_bits, &name_idx)) {
+            if (found) {
+                *out_code = found_code;
+                return true;
+            }
             return false;
         }
         has_literal_name = (name_idx == 0U);
@@ -772,8 +931,13 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
                  * bytes) and well within HPACK_NAME_BUF_CAP, so a name that
                  * does not fit cannot be grpc-status -- but we cannot skip
                  * it either without having consumed it, so bail out and let
-                 * the caller fail open (same as "not found").
+                 * the caller fail open (same as "not found"), unless
+                 * grpc-status was already found earlier in this block.
                  */
+                if (found) {
+                    *out_code = found_code;
+                    return true;
+                }
                 return false;
             }
             is_grpc_status = (name_len == (sizeof("grpc-status") - 1U)) &&
@@ -790,6 +954,10 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
 
             if (!hpack_decode_string_bounded(block, block_len, &pos, value_buf, sizeof(value_buf),
                                              &value_len)) {
+                if (found) {
+                    *out_code = found_code;
+                    return true;
+                }
                 return false;
             }
             for (j = 0U; j < value_len; j++) {
@@ -799,20 +967,68 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
                 }
                 if (MUL_OVERFLOW(code, 10U, &mul_result) ||
                     ADD_OVERFLOW(mul_result, (uint32_t)(c - (uint8_t)'0'), &add_result)) {
-                    return false; /* overflow -- malformed status code */
+                    /* overflow -- malformed status code */
+                    if (found) {
+                        *out_code = found_code;
+                        return true;
+                    }
+                    return false;
                 }
                 code = add_result;
             }
-            *out_code = code;
-            return true;
+            /*
+             * If this entry was sent with incremental indexing, the server
+             * has inserted it into its HPACK dynamic table (RFC 7541
+             * S6.2.1). Record the insertion serial and cached value so the
+             * indexed-reference defence above can resolve future
+             * references to this entry on subsequent responses within the
+             * same connection.
+             */
+            if (inserts_into_dyn_table && ctx != NULL) {
+                local_entries++;
+                ctx->hpack_dyn_entries = local_entries;
+                ctx->grpc_status_insert_serial = local_entries;
+                ctx->grpc_status_dyn_value = code;
+            }
+            /*
+             * Do NOT return yet -- keep walking the rest of the block so
+             * any further literal-with-incremental-indexing field (e.g.
+             * grpc-message, which the real EL2GO OTA server inserts
+             * immediately after grpc-status) is still counted below,
+             * keeping local_entries/ctx->hpack_dyn_entries in sync with the
+             * server's own dynamic table for any later block on this
+             * connection.
+             */
+            found = true;
+            found_code = code;
+            continue;
         }
 
-        /* Not grpc-status -- skip its value without decoding. */
+        /*
+         * Not grpc-status. If this entry was sent with incremental
+         * indexing, it still occupies a dynamic-table slot on the server
+         * and must be counted so later index arithmetic stays correct,
+         * even though we do not care about its value.
+         */
+        if (inserts_into_dyn_table && ctx != NULL) {
+            local_entries++;
+            ctx->hpack_dyn_entries = local_entries;
+        }
+
+        /* Skip its value without decoding. */
         if (!hpack_skip_string(block, block_len, &pos)) {
+            if (found) {
+                *out_code = found_code;
+                return true;
+            }
             return false;
         }
     }
 
+    if (found) {
+        *out_code = found_code;
+        return true;
+    }
     return false;
 }
 
@@ -1002,7 +1218,8 @@ static bool hpack_validate_response_headers(const uint8_t *block, size_t block_l
  * @return EL2GO_OTA_SUCCESS      if grpc-status is 0 (OK) or not found.
  * @return EL2GO_OTA_ERROR_SERVER if grpc-status is non-zero.
  */
-static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block_len)
+static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block_len,
+                                              grpc_ctx_t *ctx)
 {
     static const uint8_t NAME_PREFIX[12] = {
         0x0BU, /* HPACK string length = 11 */
@@ -1083,7 +1300,7 @@ static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block
     {
         uint32_t fallback_code = 0U;
 
-        if (hpack_find_grpc_status_fallback(block, block_len, &fallback_code)) {
+        if (hpack_find_grpc_status_fallback(block, block_len, ctx, &fallback_code)) {
             if (fallback_code != 0U) {
                 EL2GO_DBG_PRINTF(ERROR, "gRPC recv: server returned grpc-status %u (%s)\n",
                                  (unsigned int)fallback_code, grpc_status_name(fallback_code));
@@ -1594,7 +1811,7 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                     }
                     overflow -= n_read;
                 }
-                grpc_status = grpc_parse_trailers(trailer_buf, to_read);
+                grpc_status = grpc_parse_trailers(trailer_buf, to_read, ctx);
                 return grpc_status;
             } else {
                 /*
