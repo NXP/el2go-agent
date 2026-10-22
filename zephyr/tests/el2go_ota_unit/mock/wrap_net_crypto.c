@@ -15,11 +15,15 @@
 #include "net_crypto.h"
 
 #include <psa/error.h>
+#include <psa/crypto.h>
 
 #include <psa/storage_common.h>
 #include <zephyr/secure_storage/its/common.h>
 
 /* Control variables -- set these from tests to inject failures. */
+psa_status_t g_wrap_psa_get_key_attributes_rc = PSA_SUCCESS;
+psa_status_t g_wrap_psa_export_key_rc = PSA_SUCCESS;
+
 int g_wrap_net_crypto_new_rc = 0; /* 0 = success */
 int g_wrap_net_crypto_configure_rc = 0;
 int g_wrap_net_crypto_set_server_cert_rc = 0;
@@ -251,6 +255,50 @@ void __wrap_net_crypto_free(net_crypto_ctx_t **ctx)
 }
 
 /*
+ * PSA Crypto API wraps -- used by el2go_ota_cred_psa.c.
+ *
+ * psa_get_key_attributes() and psa_export_key() are the PSA Crypto API
+ * functions called by the credential provider to read the DER certificate.
+ * The mock synthesises attributes with PSA_KEY_TYPE_RAW_DATA so that
+ * PSA_EXPORT_KEY_OUTPUT_SIZE() returns g_wrap_psa_its_cert_size, then
+ * psa_export_key() zero-fills the output buffer to simulate a cert blob.
+ */
+
+psa_status_t __wrap_psa_get_key_attributes(mbedtls_svc_key_id_t key,
+                                           psa_key_attributes_t *attributes)
+{
+    (void)key;
+    if (g_wrap_psa_get_key_attributes_rc != PSA_SUCCESS) {
+        return g_wrap_psa_get_key_attributes_rc;
+    }
+    if (attributes != NULL) {
+        memset(attributes, 0, sizeof(*attributes));
+        psa_set_key_type(attributes, PSA_KEY_TYPE_RAW_DATA);
+        psa_set_key_bits(attributes, (psa_key_bits_t)(g_wrap_psa_its_cert_size * 8U));
+    }
+    return PSA_SUCCESS;
+}
+
+psa_status_t __wrap_psa_export_key(mbedtls_svc_key_id_t key, uint8_t *data, size_t data_size,
+                                   size_t *data_length)
+{
+    (void)key;
+    if (g_wrap_psa_export_key_rc != PSA_SUCCESS) {
+        if (data_length != NULL) {
+            *data_length = 0U;
+        }
+        return g_wrap_psa_export_key_rc;
+    }
+    if (data != NULL && data_size > 0U) {
+        memset(data, 0, data_size);
+    }
+    if (data_length != NULL) {
+        *data_length = data_size;
+    }
+    return PSA_SUCCESS;
+}
+
+/*
  * PSA ITS wraps -- used by el2go_ota_cred_psa.c.
  *
  * psa_its_get_info()/psa_its_get() have no out-of-line call for
@@ -316,6 +364,8 @@ void wrap_net_crypto_reset_all(void)
     g_wrap_net_crypto_disconnect_rc = 0;
     g_wrap_net_crypto_write_rc = 1;
     g_wrap_net_crypto_read_rc = 1;
+    g_wrap_psa_get_key_attributes_rc = PSA_SUCCESS;
+    g_wrap_psa_export_key_rc = PSA_SUCCESS;
     g_wrap_psa_its_get_info_rc = PSA_ERROR_DOES_NOT_EXIST;
     g_wrap_psa_its_get_rc = PSA_ERROR_DOES_NOT_EXIST;
     g_wrap_psa_its_cert_size = 16U;

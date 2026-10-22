@@ -9,6 +9,9 @@
 
 #include <string.h>
 
+psa_status_t g_wrap_psa_get_key_attributes_rc;
+psa_status_t g_wrap_psa_export_key_rc;
+
 int g_wrap_net_crypto_new_rc;
 int g_wrap_net_crypto_configure_rc;
 int g_wrap_net_crypto_set_server_cert_rc;
@@ -72,6 +75,8 @@ void wrap_net_crypto_reset_all(void)
     g_wrap_net_crypto_disconnect_rc = 0;
     g_wrap_net_crypto_write_rc = 0;
     g_wrap_net_crypto_read_rc = 0;
+    g_wrap_psa_get_key_attributes_rc = 0;
+    g_wrap_psa_export_key_rc = 0;
     g_wrap_psa_its_get_info_rc = 0;
     g_wrap_psa_its_get_rc = 0;
     g_wrap_psa_its_cert_size = 0U;

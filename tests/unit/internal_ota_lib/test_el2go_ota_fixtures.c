@@ -42,6 +42,8 @@ void ota_fixture_reset_net_crypto_wraps(void)
     g_wrap_net_crypto_write_rc = 1;
     g_wrap_net_crypto_read_rc = 1;
     /* mTLS is mandatory: client credentials must be present in the keystore. */
+    g_wrap_psa_get_key_attributes_rc = PSA_SUCCESS;
+    g_wrap_psa_export_key_rc = PSA_SUCCESS;
     g_wrap_psa_its_get_info_rc = PSA_SUCCESS;
     g_wrap_psa_its_get_rc = PSA_SUCCESS;
     g_wrap_psa_its_cert_size = 16U;

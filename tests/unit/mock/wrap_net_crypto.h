@@ -63,6 +63,8 @@ extern int g_wrap_net_crypto_disconnect_rc;
 extern int g_wrap_net_crypto_write_rc;
 extern int g_wrap_net_crypto_read_rc;
 
+extern psa_status_t g_wrap_psa_get_key_attributes_rc;
+extern psa_status_t g_wrap_psa_export_key_rc;
 extern psa_status_t g_wrap_psa_its_get_info_rc;
 extern psa_status_t g_wrap_psa_its_get_rc;
 extern size_t g_wrap_psa_its_cert_size;

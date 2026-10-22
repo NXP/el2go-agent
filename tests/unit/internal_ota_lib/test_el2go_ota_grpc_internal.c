@@ -35,7 +35,7 @@ static bool test_ota_grpc_parse_trailers_status_ok(void *params)
                                      't',   'a', 't', 'u', 's', 0x01U, '0' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block), NULL));
     return true;
 }
 
@@ -52,7 +52,7 @@ static bool test_ota_grpc_parse_trailers_status_nonzero(void *params)
                                      't',   'a', 't', 'u', 's', 0x01U, '5' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, grpc_parse_trailers(block, sizeof(block)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, grpc_parse_trailers(block, sizeof(block), NULL));
     return true;
 }
 
@@ -68,7 +68,7 @@ static bool test_ota_grpc_parse_trailers_not_found(void *params)
     static const uint8_t block[] = { 0x04U, 't', 'e', 's', 't', 0x01U, 'x' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block), NULL));
     return true;
 }
 
@@ -81,7 +81,7 @@ static bool test_ota_grpc_parse_trailers_not_found(void *params)
 static bool test_ota_grpc_parse_trailers_null_block(void *params)
 {
     (void)params;
-    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(NULL, 0U));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(NULL, 0U, NULL));
     return true;
 }
 
@@ -96,7 +96,7 @@ static bool test_ota_grpc_parse_trailers_too_short(void *params)
     static const uint8_t block[] = { 0x01U, 'x' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block), NULL));
     return true;
 }
 
@@ -209,8 +209,10 @@ static bool test_ota_grpc_parse_trailers_status_all_codes(void *params)
                                         'a',   't', 'u', 's', 0x02U, '1', '6' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, grpc_parse_trailers(block_10, sizeof(block_10)));
-    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, grpc_parse_trailers(block_16, sizeof(block_16)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER,
+                      grpc_parse_trailers(block_10, sizeof(block_10), NULL));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER,
+                      grpc_parse_trailers(block_16, sizeof(block_16), NULL));
     return true;
 }
 
@@ -227,7 +229,7 @@ static bool test_ota_grpc_parse_trailers_truncated_value(void *params)
                                      't',   'a', 't', 'u', 's', 0x05U, '0' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block), NULL));
     return true;
 }
 
@@ -245,7 +247,7 @@ static bool test_ota_grpc_parse_trailers_non_digit_value(void *params)
                                      't',   'a', 't', 'u', 's', 0x01U, 'x' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block), NULL));
     return true;
 }
 
@@ -265,7 +267,7 @@ static bool test_ota_grpc_parse_trailers_overflow_guard(void *params)
                                      0x0BU, '9', '9', '9', '9', '9', '9', '9', '9', '9', '9', '9' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, grpc_parse_trailers(block, sizeof(block)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, grpc_parse_trailers(block, sizeof(block), NULL));
     return true;
 }
 
@@ -282,7 +284,7 @@ static bool test_ota_grpc_parse_trailers_val_start_beyond_block(void *params)
     static const uint8_t block[] = { 0x0BU, 'g', 'r', 'p', 'c', '-', 's', 't', 'a', 't', 'u', 's' };
     (void)params;
 
-    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, grpc_parse_trailers(block, sizeof(block), NULL));
     return true;
 }
 
@@ -823,6 +825,164 @@ static bool test_ota_grpc_send_handshake_with_ping(void *params)
     return true;
 }
 
+/*
+ * Perform one send()/recv() round trip on an already-initialised,
+ * already-handshaken transport, queuing a Trailers-Only response (no DATA
+ * frame) whose HPACK block is exactly @p trailer_block / @p trailer_block_len.
+ * Returns the status from recv().
+ */
+static el2go_ota_status_t grpc_do_trailers_only_round(el2go_ota_transport_t *t, uint32_t stream_id,
+                                                      const uint8_t *trailer_block,
+                                                      size_t trailer_block_len)
+{
+    static const uint8_t msg[1] = { 0x01U };
+    uint8_t recv_buf[16] = { 0U };
+    size_t out_len = 0U;
+    el2go_ota_status_t status;
+
+    status = t->send(t, "/pkg.Svc/Method", msg, sizeof(msg));
+    if (status != EL2GO_OTA_SUCCESS) {
+        return status;
+    }
+    queue_frame((uint32_t)trailer_block_len, H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, stream_id, trailer_block);
+    return t->recv(t, recv_buf, sizeof(recv_buf), &out_len);
+}
+
+/**
+ * @brief Verify that a dynamic-table indexed back-reference to grpc-status
+ * is correctly resolved on a reused connection, even when grpc-message was
+ * also inserted into the dynamic table immediately after grpc-status in
+ * the same Trailers block (the exact scenario from the live device log
+ * that originally caused this to be silently misreported as SUCCESS).
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_trailer_dyn_table_reuse_detects_error(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    /*
+     * Round 1: grpc-status: 7 and grpc-message: "Invalid device!", both
+     * literal-with-incremental-indexing (0x40 prefix), name+value
+     * Huffman-encoded -- matches the real EL2GO OTA server / Envoy wire
+     * format confirmed from live device log captures. Insertion order:
+     * grpc-status first (dynamic idx 62 at insertion time), then
+     * grpc-message (pushes grpc-status to idx 63, grpc-message is idx 62).
+     * Generated and cross-checked with Python hpack==4.2.0
+     * HuffmanEncoder(REQUEST_CODES, REQUEST_CODES_LENGTH).
+     */
+    static const uint8_t trailer_round1[] = {
+        0x40U, 0x88U, 0x9AU, 0xCAU, 0xC8U, 0xB2U, 0x12U, 0x34U, 0xDAU, 0x8FU, 0x81U, 0x77U,
+        0x40U, 0x89U, 0x9AU, 0xCAU, 0xC8U, 0xB5U, 0x25U, 0x42U, 0x07U, 0x31U, 0x7FU, 0x8CU,
+        0xC9U, 0x57U, 0x71U, 0xD0U, 0x69U, 0x14U, 0x90U, 0xBDU, 0xCCU, 0x42U, 0xFFU, 0x1FU
+    };
+    /*
+     * Round 2 (same connection, new stream): pure indexed back-references,
+     * zero literal bytes -- 0xBF = 0x80|63 (grpc-status), 0xBE = 0x80|62
+     * (grpc-message). This is the exact wire pattern from the live device
+     * log ("88 c3 c2 c1 ..." style trailer) that was previously silently
+     * misreported as EL2GO_OTA_SUCCESS due to the insertion-count desync
+     * bug (grpc-message's insertion was never counted because
+     * hpack_find_grpc_status_fallback() returned immediately after
+     * resolving grpc-status, before reaching grpc-message in the same
+     * round-1 block).
+     */
+    static const uint8_t trailer_round2[] = { 0xBFU, 0xBEU };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* Round 1: literal grpc-status: 7 -- establishes the dynamic-table
+     * mirror and must itself be correctly classified as an error. */
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER,
+                      grpc_do_trailers_only_round(&t, 3U, trailer_round1, sizeof(trailer_round1)));
+
+    /* Round 2: pure indexed back-references to the same grpc-status: 7 /
+     * grpc-message. Must still resolve to ERROR_SERVER, not silently
+     * fall through to SUCCESS. */
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER,
+                      grpc_do_trailers_only_round(&t, 5U, trailer_round2, sizeof(trailer_round2)));
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief False-positive check: a dynamic-table indexed back-reference to a
+ * genuinely successful grpc-status: 0 must still resolve to SUCCESS on a
+ * reused connection -- the insertion-tracking fix must not turn a correct
+ * "OK" indexed reference into an incorrectly reported error.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_trailer_dyn_table_reuse_no_false_positive(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    /* Round 1: grpc-status: 0, literal with incremental indexing, Huffman
+     * name+value. Single insertion (dynamic idx 62). */
+    static const uint8_t trailer_round1[] = { 0x40U, 0x88U, 0x9AU, 0xCAU, 0xC8U, 0xB2U,
+                                              0x12U, 0x34U, 0xDAU, 0x8FU, 0x81U, 0x07U };
+    /* Round 2: pure indexed back-reference to grpc-status: 0 (0xBE = 0x80|62). */
+    static const uint8_t trailer_round2[] = { 0xBEU };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      grpc_do_trailers_only_round(&t, 3U, trailer_round1, sizeof(trailer_round1)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      grpc_do_trailers_only_round(&t, 5U, trailer_round2, sizeof(trailer_round2)));
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Verify the dynamic-table mirror stays correctly synchronized
+ * across more than one subsequent call on the same connection (not just a
+ * one-shot fix that only happens to work for the second call).
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_trailer_dyn_table_reuse_three_rounds(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    static const uint8_t trailer_round1[] = {
+        0x40U, 0x88U, 0x9AU, 0xCAU, 0xC8U, 0xB2U, 0x12U, 0x34U, 0xDAU, 0x8FU, 0x81U, 0x77U,
+        0x40U, 0x89U, 0x9AU, 0xCAU, 0xC8U, 0xB5U, 0x25U, 0x42U, 0x07U, 0x31U, 0x7FU, 0x8CU,
+        0xC9U, 0x57U, 0x71U, 0xD0U, 0x69U, 0x14U, 0x90U, 0xBDU, 0xCCU, 0x42U, 0xFFU, 0x1FU
+    };
+    static const uint8_t trailer_indexed[] = { 0xBFU, 0xBEU };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER,
+                      grpc_do_trailers_only_round(&t, 3U, trailer_round1, sizeof(trailer_round1)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, grpc_do_trailers_only_round(&t, 5U, trailer_indexed,
+                                                                          sizeof(trailer_indexed)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, grpc_do_trailers_only_round(&t, 7U, trailer_indexed,
+                                                                          sizeof(trailer_indexed)));
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_grpc_tests(void)
@@ -858,4 +1018,10 @@ void register_ota_lib_grpc_tests(void)
     TEST_REGISTER_ID_WITH_PARAMS("14.27", test_ota_grpc_recv_trailer_nonzero_status, NULL);
     TEST_REGISTER_ID_WITH_PARAMS("14.28", test_ota_grpc_recv_frame_limit_exceeded, NULL);
     TEST_REGISTER_ID_WITH_PARAMS("14.29", test_ota_grpc_send_handshake_with_ping, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.30", test_ota_grpc_recv_trailer_dyn_table_reuse_detects_error,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS(
+        "14.31", test_ota_grpc_recv_trailer_dyn_table_reuse_no_false_positive, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.32", test_ota_grpc_recv_trailer_dyn_table_reuse_three_rounds,
+                                 NULL);
 }

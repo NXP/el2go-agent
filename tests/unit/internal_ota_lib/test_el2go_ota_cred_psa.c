@@ -76,7 +76,7 @@ static bool test_ota_cred_psa_get_info_fail(void *params)
     uint32_t kid = 0U;
     (void)params;
     ota_fixture_reset_net_crypto_and_psa_wraps();
-    g_wrap_psa_its_get_info_rc = PSA_ERROR_DOES_NOT_EXIST;
+    g_wrap_psa_get_key_attributes_rc = PSA_ERROR_DOES_NOT_EXIST;
     TEST_ASSERT(EL2GO_STATUS_SUCCESS != el2go_ota_prepare_client_credentials(
                                             ota_fixture_get_pctx(), &c, &cert, &len, &kid));
     return true;
@@ -119,7 +119,7 @@ static bool test_ota_cred_psa_get_fail(void *params)
     (void)params;
     ota_fixture_reset_net_crypto_and_psa_wraps();
     g_wrap_psa_its_cert_size = 8U;
-    g_wrap_psa_its_get_rc = PSA_ERROR_GENERIC_ERROR;
+    g_wrap_psa_export_key_rc = PSA_ERROR_GENERIC_ERROR;
     TEST_ASSERT(EL2GO_STATUS_SUCCESS != el2go_ota_prepare_client_credentials(
                                             ota_fixture_get_pctx(), &c, &cert, &len, &kid));
     return true;

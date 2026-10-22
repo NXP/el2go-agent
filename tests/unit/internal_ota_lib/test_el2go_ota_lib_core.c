@@ -617,7 +617,6 @@ static bool test_ota_cached_size_used_by_download(void *params)
         .port = 443U,
         .server_ca_chain = (const uint8_t *)"\x30\x82",
         .server_ca_chain_size = 2U,
-        .client_auth = EL2GO_OTA_CLIENT_AUTH_NONE,
     };
     el2go_ota_ctx_t *ctx = NULL;
     el2go_ota_check_update_resp_t resp = { 0 };
