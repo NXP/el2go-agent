@@ -484,3 +484,15 @@ config EL2GO_CERT_BLOCK
     depends on EL2GO_SIGN_USING_NXPIMAGE
     help
         Certificate input for the keys.
+
+# ---------------------------------------------------------------------------
+# OSAL task thread
+# ---------------------------------------------------------------------------
+config OSAL_TASK_STACK_SIZE
+    int "OSAL task thread stack size in bytes"
+    default 32768
+    help
+      Stack size for the thread spawned by osal_start_task(). Must be large
+      enough for mTLS handshake buffers and PSA crypto working buffers used
+      during provisioning. Lowering this value below 32768 can cause a silent
+      stack overflow (USAGE FAULT) with no console output.

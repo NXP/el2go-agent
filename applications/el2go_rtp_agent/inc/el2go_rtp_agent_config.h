@@ -31,4 +31,7 @@
 #define EL2GO_RTP_MQTT_VERIFY_ENABLED 0
 #endif
 
+/* Delay between successive provisioning runs (2 s). */
+#define AGENT_LOOP_DELAY_MS (2U * 1000U)
+
 #endif /* __EL2GO_RTP_AGENT_CONFIG_H__ */

@@ -113,6 +113,31 @@ static void print_uuid_hex(const uint8_t *buf, size_t len)
 /* Agent entry point                                                           */
 /* ========================================================================== */
 
+/* Network initialization - called once before the provisioning loop.
+ * Captures the DEVICE_INIT_TIME phase (WiFi connect + DHCP) and emits
+ * the timing log here, since network init no longer runs inside agent_start().
+ */
+static int agent_net_init(int argc, const char *argv[])
+{
+    (void)argc;
+    (void)argv;
+
+    el2go_time_ctx_t network_time = { 0 };
+    int rc;
+
+    el2go_time_init(&network_time);
+    rc = el2go_app_net_init();
+    if (rc != 0) {
+        EL2GO_RTP_LOG_ERROR("Network init failed (%d)", rc);
+        return rc;
+    }
+    el2go_time_conclude(&network_time);
+    el2go_time_log_phase("DEVICE_INIT_TIME", el2go_time_get_ms(&network_time));
+    EL2GO_RTP_LOG_DEBUG("Network initialized");
+
+    return 0;
+}
+
 static int agent_start(int argc, const char *argv[])
 {
     /* Runtime overrides (OTA agent style):
@@ -147,7 +172,6 @@ static int agent_start(int argc, const char *argv[])
     unsigned int patch = 0U;
 
     el2go_time_ctx_t demo_time = { 0 };
-    el2go_time_ctx_t network_time = { 0 };
     el2go_time_ctx_t phase_time = { 0 };
     el2go_time_t timing = { 0 };
 
@@ -156,18 +180,6 @@ static int agent_start(int argc, const char *argv[])
     EL2GO_RTP_LOG_DEBUG("Port     : %u", port);
 
     el2go_time_init(&demo_time);
-    el2go_time_init(&network_time);
-
-    /* ---------------------------------------------------------------------- */
-    /* Network initialization                                                  */
-    /* ---------------------------------------------------------------------- */
-    rc = el2go_app_net_init();
-    if (rc != 0) {
-        EL2GO_RTP_LOG_ERROR("Network init failed (%d)", rc);
-        return rc;
-    }
-    el2go_time_conclude(&network_time);
-    EL2GO_RTP_LOG_DEBUG("Network initialized");
 
     /* ---------------------------------------------------------------------- */
     /* Platform initialization                                                 */
@@ -205,12 +217,8 @@ static int agent_start(int argc, const char *argv[])
     }
     EL2GO_RTP_LOG_DEBUG("Keystore initialized");
 
-    /* Capture init_time -- split into DEVICE_INIT_TIME (network) and AGENT_INIT_TIME (agent setup).*/
     el2go_time_conclude(&demo_time);
-    timing.device_init_time = el2go_time_get_ms(&network_time);
-    timing.init_time =
-        el2go_time_get_ms(&demo_time) - timing.device_init_time - timing.claimcode_inject_time;
-    el2go_time_log_phase("DEVICE_INIT_TIME", timing.device_init_time);
+    timing.init_time = el2go_time_get_ms(&demo_time) - timing.claimcode_inject_time;
 
     EL2GO_RTP_LOG_INFO("Start");
 
@@ -350,6 +358,7 @@ static int agent_start(int argc, const char *argv[])
     }
 
 cleanup_datastore:
+
     el2go_rtp_remove_datastore(agent_ctx, &datastore_ctx);
 
 cleanup_datastore_free:
@@ -374,7 +383,32 @@ cleanup_platform:
 /* Main                                                                        */
 /* ========================================================================== */
 
+/* Context passed through osal_start_task() to agent_run(). */
+typedef struct {
+    int argc;
+    const char **argv;
+} agent_ctx_t;
+
+/* Top-level application function: net init once, then provision in a loop.
+ * All sequencing and retry policy lives here, not in OSAL.
+ */
+static int agent_run(void *ctx)
+{
+    agent_ctx_t *a = (agent_ctx_t *)ctx;
+
+    if (agent_net_init(a->argc, a->argv) != 0)
+        return -1;
+
+    for (;;) {
+        (void)agent_start(a->argc, a->argv);
+        osal_sleep_ms(AGENT_LOOP_DELAY_MS);
+    }
+}
+
 int main(int argc, const char *argv[])
 {
-    return osal_start_task(agent_start, argc, argv);
+    static agent_ctx_t ctx;
+    ctx.argc = argc;
+    ctx.argv = argv;
+    return osal_start_task(agent_run, &ctx);
 }

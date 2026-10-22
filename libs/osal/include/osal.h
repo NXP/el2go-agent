@@ -256,20 +256,24 @@ char *osal_find_library(const char *name);
 void osal_lib_init(void);
 
 /**
- * @brief Run the application entry function in the correct task context.
+ * @brief Run an application function in the correct task context.
  *
- * On RTOS targets that require work to run inside a task (e.g. FreeRTOS),
- * this spawns a task, starts the scheduler, and returns the task exit code.
- * On targets where main() already runs as a thread (Zephyr, Linux, POSIX),
- * this is a direct passthrough that calls fn(argc, argv) inline.
+ * On RTOS targets (Zephyr) the function is executed inside a dedicated thread
+ * and osal_start_task() returns immediately after the thread has been started.
+ * On POSIX/Linux the function is called synchronously and osal_start_task()
+ * returns the value returned by fn().
  *
- * @param[in] fn   Pointer to the function to run
- * @param[in] argc Argument count forwarded from main()
- * @param[in] argv Argument vector forwarded from main()
+ * The caller is fully responsible for sequencing (e.g. network init before
+ * provisioning) and for any looping or retry logic.
  *
- * @return Return value of fn(), or a negative error code on task launch failure
+ * @param[in] fn   Application entry function. Receives @p ctx as its only
+ *                 argument. Must not be NULL.
+ * @param[in] ctx  Opaque pointer passed through to @p fn unchanged. May be
+ *                 NULL if the function does not require context.
+ *
+ * @return 0 on success, or a negative error code on failure
  */
-int osal_start_task(int (*fn)(int argc, const char *argv[]), int argc, const char *argv[]);
+int osal_start_task(int (*fn)(void *ctx), void *ctx);
 
 /** @} */ /* end of osal */
 
