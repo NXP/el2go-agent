@@ -61,7 +61,7 @@ static void mqtt_demo_task(void *arg1, void *arg2, void *arg3)
         goto exit;
     }
 
-    LOG_INF("EL2GO MQTT demo finished successfully.");
+    LOG_INF("EL2GO MQTT Client successfully finished");
 
 exit:
     if (rc != 0) {
