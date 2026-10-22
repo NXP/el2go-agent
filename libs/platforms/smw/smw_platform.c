@@ -27,11 +27,14 @@ struct el2go_platform_ctx {
     bool smw_initialized;
 };
 
+#define SMW_LIBRARY_NAME "libsmw.so"
+
 __export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
 {
     el2go_platform_ctx_t *ctx = NULL;
     el2go_status_t status = EL2GO_STATUS_SUCCESS;
     psa_status_t psa_status = PSA_SUCCESS;
+    char *psa_override_lib = NULL;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
@@ -45,6 +48,39 @@ __export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
     if (*platform_ctx && (*platform_ctx)->smw_initialized) {
         EL2GO_DBG_PRINTF(INFO, "Platform already initialized\n");
         return EL2GO_STATUS_SUCCESS;
+    }
+
+    /*
+     * This environment variable replaces the PSA reference implementation in MbedTLS with
+     * the one in SMW.
+     */
+    if (!osal_getenv("PSA_OVERRIDE")) {
+        /* Search for libsmw.so instead of hardcoding the library file name */
+        psa_override_lib = osal_find_library(SMW_LIBRARY_NAME);
+        if (!psa_override_lib) {
+            EL2GO_DBG_PRINTF(ERROR, "Library %s not found\n", SMW_LIBRARY_NAME);
+            status = EL2GO_STATUS_PLATFORM_INIT_FAILED;
+            goto exit;
+        }
+
+        if (strlen(psa_override_lib) > 256) {
+            EL2GO_DBG_PRINTF(ERROR, "Error finding library %s\n", SMW_LIBRARY_NAME);
+            status = EL2GO_STATUS_PLATFORM_INIT_FAILED;
+            goto exit;
+        }
+
+        /*
+         * Check that the returned value either starts with "libsmw.so" (relative
+         * path) or that is starts with '/' and contains "libsmw.so" (absolute path).
+         * */
+        if (strncmp(psa_override_lib, SMW_LIBRARY_NAME, strlen(SMW_LIBRARY_NAME)) &&
+            (psa_override_lib[0] != '/' || !strstr(psa_override_lib, SMW_LIBRARY_NAME))) {
+            status = EL2GO_STATUS_PLATFORM_INIT_FAILED;
+            goto exit;
+        }
+
+        EL2GO_DBG_PRINTF(VERBOSE, "Setting PSA_OVERRIDE=%s\n", psa_override_lib);
+        osal_setenv("PSA_OVERRIDE", psa_override_lib);
     }
 
     /* Allocate platform context */
@@ -68,6 +104,9 @@ __export el2go_status_t el2go_platform_init(el2go_platform_ctx_t **platform_ctx)
     *platform_ctx = ctx;
 
 exit:
+    if (psa_override_lib)
+        osal_free(psa_override_lib);
+
     if (status != EL2GO_STATUS_SUCCESS && ctx)
         osal_free(ctx);
 
