@@ -218,6 +218,39 @@ void osal_sleep_ms(uint32_t ms);
 int64_t osal_uptime_ms(void);
 
 /**
+ * @brief Get the value of an environment variable.
+ *
+ * @return The environment variable value, or NULL if it doesn't exist.
+ */
+const char *osal_getenv(const char *name);
+
+/**
+ * @brief Set the value of an environment variable.
+ *
+ * If the environment variable already exists, this function overwrites
+ * the existing value.
+ *
+ * @param[in] name The name of the environment variable.
+ * @param[in] value The value to set.
+ */
+void osal_setenv(const char *name, const char *value);
+
+/**
+ * @brief Search a library by name.
+ *
+ * This function searches the platform's predefined library path(s) for
+ * the library name given as parameter. The returned value could be either
+ * an absolute or relative path.
+ *
+ * If this function returns a non-NULL value, you must free the returned
+ * value with osal_free().
+ *
+ * @param[in] name The name of the library to search.
+ * @return The path to the library, or NULL if was not found.
+ */
+char *osal_find_library(const char *name);
+
+/**
  * @brief Initialize OSAL subsystem.
  */
 void osal_lib_init(void);

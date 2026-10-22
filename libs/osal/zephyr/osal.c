@@ -18,6 +18,30 @@ int64_t osal_uptime_ms(void)
     return (int64_t)k_uptime_get();
 }
 
+const char *osal_getenv(const char *name)
+{
+    (void)name;
+
+    /* Not implemented */
+    return NULL;
+}
+
+void osal_setenv(const char *name, const char *value)
+{
+    (void)name;
+    (void)value;
+
+    /* Not implemented */
+}
+
+char *osal_find_library(const char *name)
+{
+    (void)name;
+
+    /* Not implemented */
+    return NULL;
+}
+
 void osal_lib_init(void)
 {
     /* No-op on Zephyr: logging level is controlled via Kconfig
