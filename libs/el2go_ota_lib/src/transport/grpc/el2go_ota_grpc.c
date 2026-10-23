@@ -111,6 +111,11 @@ static const uint8_t HTTP2_PREFACE[24] = {
 #define H2_SETTINGS_PARAM_HDR_TABLE_SIZE 0x0001U
 #define H2_SETTINGS_PARAM_LEN 6U
 
+/* SETTINGS parameter id for MAX_FRAME_SIZE (RFC 7540 S6.5.2) and the
+ * protocol-default value a server may never advertise below. */
+#define H2_SETTINGS_PARAM_MAX_FRAME_SIZE 0x0005U
+#define H2_SETTINGS_DEFAULT_MAX_FRAME_SIZE 16384U
+
 /* Context */
 
 typedef struct {
@@ -151,6 +156,17 @@ typedef struct {
     uint32_t grpc_status_insert_serial; /* hpack_dyn_entries value at insertion time; 0 = not seen */
     uint32_t grpc_status_dyn_value;     /* cached numeric grpc-status code */
     uint32_t hpack_dyn_entries;         /* total dynamic-table insertions seen */
+    /*
+     * Server's advertised SETTINGS_MAX_FRAME_SIZE (RFC 7540 S6.5.2),
+     * diagnostic only -- this client never changes its own frame sizing
+     * based on this value (it always sends/expects frames within the
+     * protocol default of 16384 bytes, enforced at compile time by the
+     * _Static_assert in el2go_ota_download_engine.c). 0 = not yet seen
+     * (the server has not sent a SETTINGS frame containing this
+     * parameter -- per RFC 7540 S6.5.2 the effective value is then the
+     * protocol default, 16384).
+     */
+    uint32_t server_max_frame_size;
 } grpc_ctx_t;
 
 /* Internal helpers -- HTTP/2 frame building */
@@ -1317,12 +1333,91 @@ static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block
 
 /* HTTP/2 connection setup */
 
-/*
- * Read and drain frame bodies during the initial SETTINGS exchange.
- * Sends SETTINGS ACK once the server SETTINGS frame is received.
- * Also handles PING and ignores WINDOW_UPDATE on stream 0.
- * Returns EL2GO_OTA_SUCCESS once the server SETTINGS has been acknowledged.
+/**
+ * Read exactly @p pay_len bytes of a SETTINGS frame payload off the wire,
+ * parsing each 6-byte (2-byte id, 4-byte value) parameter as it goes, and
+ * updating @p ctx->server_max_frame_size if a MAX_FRAME_SIZE parameter is
+ * found. Any other parameter (including HEADER_TABLE_SIZE, which this
+ * client does not need to read back since it only cares about its own
+ * outgoing SETTINGS HEADER_TABLE_SIZE=0 request) is parsed but ignored.
+ *
+ * This replaces a blind byte-for-byte drain with a parsing drain -- the
+ * exact same number of bytes is read off the wire either way, so this
+ * cannot desync the next frame-header read even if pay_len is not a
+ * multiple of 6 (a malformed/non-compliant SETTINGS frame per RFC 7540
+ * S6.5, which requires pay_len to be a multiple of 6): any trailing
+ * partial parameter is drained as plain bytes without being parsed as a
+ * fresh (id, value) pair.
+ *
+ * Diagnostic-only: per RFC 7540 S6.5.2 a server must never advertise
+ * MAX_FRAME_SIZE below the protocol default (16384) -- if one is seen
+ * advertising a smaller value anyway (a non-compliant server), this is
+ * logged but never treated as an error; this client's own frame sizing
+ * is governed entirely by its own compile-time EL2GO_OTA_CHUNK_SIZE
+ * budget (see el2go_ota_download_engine.c), not by anything learned here.
+ *
+ * @param[in,out] ctx      Transport context; server_max_frame_size is
+ *                          updated in place if MAX_FRAME_SIZE is found.
+ * @param[in]     pay_len  Number of SETTINGS payload bytes to read and
+ *                          drain from the wire.
+ *
+ * @return EL2GO_OTA_SUCCESS on success, EL2GO_OTA_ERROR_NETWORK if the
+ *         underlying read fails.
  */
+static el2go_ota_status_t h2_parse_and_drain_settings_payload(grpc_ctx_t *ctx, uint32_t pay_len)
+{
+    uint8_t param[H2_SETTINGS_PARAM_LEN] = { 0U };
+    uint8_t trailing[H2_SETTINGS_PARAM_LEN] = { 0U };
+    uint32_t remaining = pay_len;
+    el2go_status_t s = EL2GO_STATUS_FAILURE;
+    size_t n_read = 0U;
+
+    while (remaining >= H2_SETTINGS_PARAM_LEN) {
+        uint16_t param_id = 0U;
+        uint32_t param_value = 0U;
+
+        s = el2go_ota_tls_read(ctx->tls_ctx, param, sizeof(param), &n_read);
+        if (s != EL2GO_STATUS_SUCCESS || n_read < sizeof(param)) {
+            return EL2GO_OTA_ERROR_NETWORK;
+        }
+        remaining -= (uint32_t)n_read;
+
+        param_id = (uint16_t)(((uint16_t)param[0] << 8U) | (uint16_t)param[1]);
+        param_value = ((uint32_t)param[2] << 24U) | ((uint32_t)param[3] << 16U) |
+                      ((uint32_t)param[4] << 8U) | (uint32_t)param[5];
+
+        if (param_id == H2_SETTINGS_PARAM_MAX_FRAME_SIZE) {
+            ctx->server_max_frame_size = param_value;
+            if (param_value < H2_SETTINGS_DEFAULT_MAX_FRAME_SIZE) {
+                /* Non-compliant server (RFC 7540 S6.5.2 forbids this) --
+                 * diagnostic only, this client's own frame sizing is
+                 * unaffected and already stays within the default. */
+                EL2GO_DBG_PRINTF(ERROR,
+                                 "gRPC: server advertised non-compliant "
+                                 "SETTINGS_MAX_FRAME_SIZE=%u (below the "
+                                 "RFC 7540 S6.5.2 floor of %u) -- ignored, "
+                                 "this client's frame sizing is unaffected\n",
+                                 (unsigned int)param_value,
+                                 (unsigned int)H2_SETTINGS_DEFAULT_MAX_FRAME_SIZE);
+            } else {
+                EL2GO_DBG_PRINTF(VERBOSE, "gRPC: server SETTINGS_MAX_FRAME_SIZE=%u\n",
+                                 (unsigned int)param_value);
+            }
+        }
+    }
+
+    /* Drain any trailing partial parameter (malformed, pay_len not a
+     * multiple of 6) without attempting to parse it. */
+    if (remaining > 0U) {
+        s = el2go_ota_tls_read(ctx->tls_ctx, trailing, (size_t)remaining, &n_read);
+        if (s != EL2GO_STATUS_SUCCESS || n_read < (size_t)remaining) {
+            return EL2GO_OTA_ERROR_NETWORK;
+        }
+    }
+
+    return EL2GO_OTA_SUCCESS;
+}
+
 static el2go_ota_status_t h2_do_settings_exchange(grpc_ctx_t *ctx)
 {
     uint8_t hdr[H2_FRAME_HDR_LEN] = { 0U };
@@ -1356,17 +1451,13 @@ static el2go_ota_status_t h2_do_settings_exchange(grpc_ctx_t *ctx)
                 /* Server ACK for our SETTINGS -- drain (empty payload). */
             } else {
                 /*
-                 * Server SETTINGS -- drain the payload (settings params we
-                 * do not act on for this simple client), then send ACK.
+                 * Server SETTINGS -- parse MAX_FRAME_SIZE (diagnostic
+                 * only, see h2_parse_and_drain_settings_payload()) while
+                 * draining the payload, then send ACK.
                  */
-                size_t remaining = pay_len;
-                while (remaining > 0U) {
-                    size_t to_read = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
-                    s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_read, &n_read);
-                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_read) {
-                        return EL2GO_OTA_ERROR_NETWORK;
-                    }
-                    remaining -= n_read;
+                el2go_ota_status_t parse_status = h2_parse_and_drain_settings_payload(ctx, pay_len);
+                if (parse_status != EL2GO_OTA_SUCCESS) {
+                    return parse_status;
                 }
                 /* Send SETTINGS ACK (empty SETTINGS with ACK flag). */
                 el2go_ota_status_t ack_status = h2_send_settings(ctx, H2_FLAG_ACK);
@@ -1861,15 +1952,11 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
          */
         case H2_TYPE_SETTINGS:
             if ((flags & H2_FLAG_ACK) == 0U) {
-                /* Drain settings parameters and send ACK. */
-                size_t remaining = pay_len;
-                while (remaining > 0U) {
-                    size_t to_drain = (remaining > sizeof(tmp)) ? sizeof(tmp) : remaining;
-                    s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
-                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
-                        return EL2GO_OTA_ERROR_NETWORK;
-                    }
-                    remaining -= n_read;
+                /* Parse MAX_FRAME_SIZE (diagnostic only) while draining
+                 * settings parameters, then send ACK. */
+                el2go_ota_status_t parse_status = h2_parse_and_drain_settings_payload(ctx, pay_len);
+                if (parse_status != EL2GO_OTA_SUCCESS) {
+                    return parse_status;
                 }
                 (void)h2_send_settings(ctx, H2_FLAG_ACK);
             }

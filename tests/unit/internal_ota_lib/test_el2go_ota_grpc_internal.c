@@ -983,6 +983,215 @@ static bool test_ota_grpc_recv_trailer_dyn_table_reuse_three_rounds(void *params
     return true;
 }
 
+/**
+ * @brief Verify a server SETTINGS frame carrying MAX_FRAME_SIZE above the
+ * protocol default is parsed correctly during the initial handshake, and
+ * the handshake still completes normally (diagnostic-only: no behavior
+ * change to send()).
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_handshake_settings_max_frame_size_parsed(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_mtls_config_t cfg = grpc_make_cfg();
+    el2go_ota_transport_t t;
+    static const uint8_t msg[1] = { 0x01U };
+    /* One SETTINGS parameter: MAX_FRAME_SIZE (0x0005) = 32768 (0x00008000). */
+    static const uint8_t settings_payload[6] = { 0x00U, 0x05U, 0x00U, 0x00U, 0x80U, 0x00U };
+
+    (void)params;
+    memset(&t, 0, sizeof(t));
+    grpc_reset_wraps();
+
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, el2go_ota_tls_init(&tls, grpc_get_pctx(), &cfg));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      test_shadow_el2go_ota_transport_init(&t, tls, cfg.hostname));
+
+    queue_frame((uint32_t)sizeof(settings_payload), H2_TYPE_SETTINGS, 0x00U, 0U, settings_payload);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.send(&t, "/pkg.Svc/Method", msg, sizeof(msg)));
+    TEST_ASSERT_EQUAL(32768U, ((grpc_ctx_t *)t.impl_ctx)->server_max_frame_size);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Verify a SETTINGS frame with multiple parameters (not just
+ * MAX_FRAME_SIZE) is still parsed correctly and the right parameter is
+ * picked out -- confirms the 6-byte-per-parameter walk does not desync on
+ * a multi-parameter frame.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_handshake_settings_multi_param(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_mtls_config_t cfg = grpc_make_cfg();
+    el2go_ota_transport_t t;
+    static const uint8_t msg[1] = { 0x01U };
+    /*
+     * Three parameters, 18 bytes total:
+     *   HEADER_TABLE_SIZE (0x0001) = 4096  (0x00001000) -- ignored by this helper
+     *   MAX_FRAME_SIZE    (0x0005) = 20000 (0x00004E20)
+     *   MAX_CONCURRENT_STREAMS (0x0003) = 100 (0x00000064) -- ignored by this helper
+     */
+    static const uint8_t settings_payload[18] = { 0x00U, 0x01U, 0x00U, 0x00U, 0x10U, 0x00U,
+                                                  0x00U, 0x05U, 0x00U, 0x00U, 0x4EU, 0x20U,
+                                                  0x00U, 0x03U, 0x00U, 0x00U, 0x00U, 0x64U };
+
+    (void)params;
+    memset(&t, 0, sizeof(t));
+    grpc_reset_wraps();
+
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, el2go_ota_tls_init(&tls, grpc_get_pctx(), &cfg));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      test_shadow_el2go_ota_transport_init(&t, tls, cfg.hostname));
+
+    queue_frame((uint32_t)sizeof(settings_payload), H2_TYPE_SETTINGS, 0x00U, 0U, settings_payload);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.send(&t, "/pkg.Svc/Method", msg, sizeof(msg)));
+    TEST_ASSERT_EQUAL(20000U, ((grpc_ctx_t *)t.impl_ctx)->server_max_frame_size);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Verify a malformed SETTINGS frame whose payload length is not a
+ * multiple of 6 (RFC 7540 S6.5 requires it to be) does not desync the
+ * connection -- the trailing partial bytes must still be drained, and a
+ * subsequent frame on the connection must still be read correctly.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_handshake_settings_malformed_length_no_desync(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_mtls_config_t cfg = grpc_make_cfg();
+    el2go_ota_transport_t t;
+    static const uint8_t msg[3] = { 0xAAU, 0xBBU, 0xCCU };
+    /* 8 bytes: one full 6-byte parameter (MAX_FRAME_SIZE=20000) plus 2
+     * trailing bytes that do not form a complete parameter. */
+    static const uint8_t settings_payload[8] = { 0x00U, 0x05U, 0x00U, 0x00U,
+                                                 0x4EU, 0x20U, 0xFFU, 0xFFU };
+    uint8_t recv_buf[16] = { 0U };
+    size_t out_len = 0U;
+    static const uint8_t grpc_payload[5 + 3] = { 0x00U, 0x00U, 0x00U, 0x00U,
+                                                 0x03U, 0xAAU, 0xBBU, 0xCCU };
+
+    (void)params;
+    memset(&t, 0, sizeof(t));
+    grpc_reset_wraps();
+
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, el2go_ota_tls_init(&tls, grpc_get_pctx(), &cfg));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      test_shadow_el2go_ota_transport_init(&t, tls, cfg.hostname));
+
+    queue_frame((uint32_t)sizeof(settings_payload), H2_TYPE_SETTINGS, 0x00U, 0U, settings_payload);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.send(&t, "/pkg.Svc/Method", msg, sizeof(msg)));
+    TEST_ASSERT_EQUAL(20000U, ((grpc_ctx_t *)t.impl_ctx)->server_max_frame_size);
+
+    /* Connection must still be correctly aligned -- queue and successfully
+     * receive a normal response DATA frame after the malformed SETTINGS. */
+    queue_frame((uint32_t)sizeof(grpc_payload), H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, grpc_payload);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(3U, out_len);
+    TEST_ASSERT_MEMORY_EQUAL(msg, recv_buf, sizeof(msg));
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Verify a non-compliant server advertising MAX_FRAME_SIZE below
+ * the RFC 7540 S6.5.2 floor (16384) is logged but does not cause any
+ * error or behavior change -- diagnostic only.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_handshake_settings_max_frame_size_below_floor(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_mtls_config_t cfg = grpc_make_cfg();
+    el2go_ota_transport_t t;
+    static const uint8_t msg[1] = { 0x01U };
+    /* MAX_FRAME_SIZE = 1000 (0x000003E8) -- non-compliant (below 16384). */
+    static const uint8_t settings_payload[6] = { 0x00U, 0x05U, 0x00U, 0x00U, 0x03U, 0xE8U };
+
+    (void)params;
+    memset(&t, 0, sizeof(t));
+    grpc_reset_wraps();
+
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, el2go_ota_tls_init(&tls, grpc_get_pctx(), &cfg));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      test_shadow_el2go_ota_transport_init(&t, tls, cfg.hostname));
+
+    queue_frame((uint32_t)sizeof(settings_payload), H2_TYPE_SETTINGS, 0x00U, 0U, settings_payload);
+
+    /* Must still succeed -- this is diagnostic-only, never a hard failure. */
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.send(&t, "/pkg.Svc/Method", msg, sizeof(msg)));
+    TEST_ASSERT_EQUAL(1000U, ((grpc_ctx_t *)t.impl_ctx)->server_max_frame_size);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Verify a server-initiated SETTINGS frame received during
+ * steady-state grpc_recv() (not just the initial handshake) is also
+ * parsed via the shared helper and does not disrupt an in-progress
+ * response.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_settings_max_frame_size_steady_state(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t recv_buf[16] = { 0U };
+    size_t out_len = 0U;
+    static const uint8_t settings_payload[6] = { 0x00U, 0x05U, 0x00U, 0x00U, 0x4EU, 0x20U };
+    static const uint8_t grpc_payload[5 + 2] = { 0x00U, 0x00U, 0x00U, 0x00U, 0x02U, 0xAAU, 0xBBU };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* Server re-sends SETTINGS mid-connection (RFC 7540 S6.5 permits this
+     * at any time), then the actual response DATA frame. */
+    queue_frame((uint32_t)sizeof(settings_payload), H2_TYPE_SETTINGS, 0x00U, 0U, settings_payload);
+    queue_frame((uint32_t)sizeof(grpc_payload), H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, grpc_payload);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(2U, out_len);
+    TEST_ASSERT_EQUAL(20000U, ((grpc_ctx_t *)t.impl_ctx)->server_max_frame_size);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_grpc_tests(void)
@@ -1023,5 +1232,14 @@ void register_ota_lib_grpc_tests(void)
     TEST_REGISTER_ID_WITH_PARAMS(
         "14.31", test_ota_grpc_recv_trailer_dyn_table_reuse_no_false_positive, NULL);
     TEST_REGISTER_ID_WITH_PARAMS("14.32", test_ota_grpc_recv_trailer_dyn_table_reuse_three_rounds,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.33", test_ota_grpc_handshake_settings_max_frame_size_parsed,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.34", test_ota_grpc_handshake_settings_multi_param, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.35",
+                                 test_ota_grpc_handshake_settings_malformed_length_no_desync, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.36",
+                                 test_ota_grpc_handshake_settings_max_frame_size_below_floor, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.37", test_ota_grpc_recv_settings_max_frame_size_steady_state,
                                  NULL);
 }

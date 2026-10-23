@@ -54,6 +54,8 @@ zephyr_ld_options(
     -Wl,--wrap=net_crypto_free
     -Wl,--wrap=secure_storage_its_get_info
     -Wl,--wrap=secure_storage_its_get
+    -Wl,--wrap=psa_get_key_attributes
+    -Wl,--wrap=psa_export_key
 )
 
 zephyr_compile_definitions(EL2GO_OTA_GRPC_HAVE_NET_WRAP)
