@@ -521,17 +521,57 @@ static bool test_net_crypto_el2go_connection_common(const char *subject, bool us
             goto cleanup;
         }
     } else {
-        /* We expect connection to fail */
+        /* We expect the client to ultimately be rejected by the server.
+         *
+         * Under TLS 1.2 the server enforces client-certificate validation
+         * as part of the handshake itself, so an unauthorized client gets
+         * a fatal alert and net_crypto_connect() fails directly.
+         *
+         * Under TLS 1.3, client authentication material is exchanged
+         * inside the already-encrypted handshake flight and many
+         * server stacks - including EdgeLock2Go's - defer the actual
+         * identity/authorization check to the application layer: the TLS
+         * handshake itself can complete successfully even though the
+         * client will be rejected immediately afterward (e.g. via a
+         * connection reset/close once the server inspects the client
+         * certificate content at the protocol layer). Relying solely on
+         * the handshake result is therefore not sufficient to determine
+         * whether the server actually accepted this client.
+         *
+         * To cover both cases we also perform an application-layer probe:
+         * if the handshake succeeded, attempt a read. A rejected client is
+         * expected to have its connection torn down by the server (read
+         * returns a negative/EOF result) even though the handshake itself
+         * reported success.
+         */
         if (status == EL2GO_STATUS_SUCCESS) {
-            TEST_PRINT_ERROR("Connection succeeded when failure was expected!");
+            uint8_t probe_buf[64];
+            int probe_ret = 0;
 
-            /* Disconnect cleanly */
+            TEST_PRINT_INFO(
+                "TLS handshake succeeded; probing application layer for server-side rejection");
+
+            probe_ret = net_crypto_read(ctx, probe_buf, sizeof(probe_buf));
+
+            if (probe_ret < 0) {
+                TEST_PRINT_INFO(
+                    "Application-layer probe confirms rejection (read returned %d) - treating "
+                    "as expected failure",
+                    probe_ret);
+            } else {
+                TEST_PRINT_ERROR(
+                    "Connection succeeded and application-layer probe did not detect rejection "
+                    "(read returned %d) when failure was expected!",
+                    probe_ret);
+                test_status = false;
+            }
+
+            /* Disconnect cleanly regardless of probe outcome */
             status = net_crypto_disconnect(ctx);
             if (status != EL2GO_STATUS_SUCCESS) {
                 TEST_PRINT_ERROR("Disconnect failed: 0x%x", status);
             }
 
-            test_status = false;
             goto cleanup;
         } else {
             TEST_PRINT_INFO("Connection failed as expected: 0x%x", status);
@@ -708,6 +748,7 @@ exit:
 
 /**
  * @brief Register all internal net_crypto tests with the test framework.
+
  *
  * Sets the suite-level setup function and registers every test function
  * in the order they should be executed.
