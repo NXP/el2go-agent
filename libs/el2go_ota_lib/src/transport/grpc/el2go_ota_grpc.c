@@ -59,6 +59,7 @@ static const uint8_t HTTP2_PREFACE[24] = {
 #define H2_TYPE_GOAWAY 0x07U
 #define H2_TYPE_WINDOW_UPDATE 0x08U
 #define H2_TYPE_RST_STREAM 0x03U
+#define H2_TYPE_CONTINUATION 0x09U /* RFC 7540 S6.10 */
 
 /* HTTP/2 flag bits. */
 #define H2_FLAG_END_STREAM 0x01U
@@ -1651,6 +1652,143 @@ static el2go_ota_status_t grpc_send(el2go_ota_transport_t *t, const char *method
     return EL2GO_OTA_SUCCESS;
 }
 
+/**
+ * @brief Read and reassemble a Response-Headers or Trailers block that may be
+ *        split across one HEADERS frame and zero or more CONTINUATION frames
+ *        (RFC 7540 S6.10).
+ *
+ * Raw HPACK bytes are reassembled into @p out_buf (up to @p out_cap bytes).
+ * Any overflow across however many frames the block spans is drained and
+ * discarded, matching this file's existing fixed-size stack buffer pattern
+ * for Trailers/Response-Headers.
+ *
+ * The caller has already read the frame header of the initiating HEADERS
+ * frame (its stream_id, flags, and pay_len) before calling this function;
+ * this function does not re-read it.
+ *
+ * Per RFC 7540 S6.10: once a HEADERS frame without END_HEADERS has been
+ * received, the only frame type permitted to arrive next, before END_HEADERS,
+ * is a CONTINUATION frame for the same stream_id.  Any other frame type, or a
+ * CONTINUATION for a different stream, is a connection-level PROTOCOL_ERROR;
+ * this is reported as EL2GO_OTA_ERROR_NETWORK (consistent with every other
+ * fatal transport error in this file) rather than silently drained and
+ * ignored.
+ *
+ * @note Only the active stream's header/trailer block is reassembled here
+ *       (the only case grpc_recv() ever calls this for).  A stray or
+ *       inactive-stream HEADERS frame that happens to be split across
+ *       CONTINUATION frames is not handled by this helper and is out of scope
+ *       for this client's single-in-flight-call request pattern.  Such a
+ *       stray CONTINUATION, if ever seen outside of this helper's reassembly
+ *       loop, continues to fall through to grpc_recv()'s existing default:
+ *       case, which already drains it safely by its declared length.
+ *
+ * @param[in,out] ctx                 Transport context.
+ * @param[in]     stream_id           Stream ID the HEADERS frame opened on.
+ * @param[in]     first_pay_len       Payload length of the initiating HEADERS
+ *                                    frame.
+ * @param[in]     initial_end_headers Whether END_HEADERS was already set on
+ *                                    the initiating HEADERS frame.
+ * @param[out]    out_buf             Buffer to reassemble the raw HPACK bytes
+ *                                    into.
+ * @param[in]     out_cap             Capacity of @p out_buf in bytes.
+ * @param[out]    out_len             Number of bytes written to @p out_buf
+ *                                    (capped at @p out_cap; matches this
+ *                                    file's existing overflow-drain semantics
+ *                                    for an oversized block).
+ *
+ * @retval EL2GO_OTA_SUCCESS       Full block reassembled successfully.
+ * @retval EL2GO_OTA_ERROR_NETWORK I/O failure, frame-iteration budget
+ *                                 exceeded, or an RFC 7540 S6.10
+ *                                 PROTOCOL_ERROR.
+ */
+static el2go_ota_status_t grpc_read_header_block(grpc_ctx_t *ctx, uint32_t stream_id,
+                                                 uint32_t first_pay_len, bool initial_end_headers,
+                                                 uint8_t *out_buf, size_t out_cap, size_t *out_len)
+{
+    uint8_t tmp[H2_PING_PAYLOAD_LEN] = { 0U };
+    el2go_status_t s = EL2GO_STATUS_FAILURE;
+    size_t n_read = 0U;
+    size_t written = 0U;
+    uint32_t pay_len = first_pay_len;
+    bool end_headers = initial_end_headers;
+    uint32_t iterations = 0U;
+
+    *out_len = 0U;
+
+    for (;;) {
+        size_t to_read = 0U;
+        size_t overflow = 0U;
+
+        to_read =
+            (written < out_cap) ?
+                (((size_t)pay_len <= (out_cap - written)) ? (size_t)pay_len : (out_cap - written)) :
+                0U;
+        if (to_read > 0U) {
+            s = el2go_ota_tls_read(ctx->tls_ctx, &out_buf[written], to_read, &n_read);
+            if (s != EL2GO_STATUS_SUCCESS || n_read < to_read) {
+                return EL2GO_OTA_ERROR_NETWORK;
+            }
+            written += n_read;
+        }
+        overflow = (size_t)pay_len - to_read;
+        while (overflow > 0U) {
+            size_t to_drain = (overflow > sizeof(tmp)) ? sizeof(tmp) : overflow;
+            s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
+            if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
+                return EL2GO_OTA_ERROR_NETWORK;
+            }
+            overflow -= n_read;
+        }
+
+        if (end_headers) {
+            *out_len = written;
+            return EL2GO_OTA_SUCCESS;
+        }
+
+        /* Block not yet complete -- the next frame on the wire MUST be a
+         * CONTINUATION frame for this same stream_id (RFC 7540 S6.10).
+         * Anything else is a connection-level PROTOCOL_ERROR. */
+        {
+            uint8_t hdr[H2_FRAME_HDR_LEN] = { 0U };
+            uint8_t next_type = 0U;
+            uint8_t next_flags = 0U;
+            uint32_t next_stream = 0U;
+
+            iterations++;
+            if (iterations >= GRPC_RECV_MAX_FRAMES) {
+                EL2GO_DBG_PRINTF(ERROR,
+                                 "gRPC recv: exceeded max frame iterations while "
+                                 "awaiting CONTINUATION (stream %u)\n",
+                                 (unsigned int)stream_id);
+                return EL2GO_OTA_ERROR_NETWORK;
+            }
+
+            s = el2go_ota_tls_read(ctx->tls_ctx, hdr, H2_FRAME_HDR_LEN, &n_read);
+            if (s != EL2GO_STATUS_SUCCESS || n_read < H2_FRAME_HDR_LEN) {
+                return EL2GO_OTA_ERROR_NETWORK;
+            }
+            pay_len = ((uint32_t)hdr[0] << 16U) | ((uint32_t)hdr[1] << 8U) | (uint32_t)hdr[2];
+            next_type = hdr[3];
+            next_flags = hdr[4];
+            next_stream = (((uint32_t)hdr[5] & H2_MSB_RESERVED_MASK) << 24U) |
+                          ((uint32_t)hdr[6] << 16U) | ((uint32_t)hdr[7] << 8U) | (uint32_t)hdr[8];
+
+            if (next_type != H2_TYPE_CONTINUATION || next_stream != stream_id) {
+                EL2GO_DBG_PRINTF(ERROR,
+                                 "gRPC recv: PROTOCOL_ERROR -- expected CONTINUATION "
+                                 "for stream %u (RFC 7540 S6.10), got frame type "
+                                 "0x%02x for stream %u\n",
+                                 (unsigned int)stream_id, (unsigned int)next_type,
+                                 (unsigned int)next_stream);
+                return EL2GO_OTA_ERROR_NETWORK;
+            }
+
+            end_headers = (next_flags & H2_FLAG_END_HEADERS) != 0U;
+        }
+    }
+}
+
 /* vtable -- recv */
 
 static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size_t buf_len,
@@ -1869,38 +2007,30 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                 }
             } else if ((flags & H2_FLAG_END_STREAM) != 0U) {
                 /*
-                 * Trailers (Trailers-Only if !data_received): read the block
-                 * into a stack buffer so grpc_parse_trailers() can scan it
-                 * for grpc-status. Trailer blocks are typically < 64 bytes;
-                 * use 128 bytes to be safe. Any overflow is drained and
+                 * Trailers (Trailers-Only if !data_received): read the full
+                 * block -- reassembling across CONTINUATION frames if
+                 * END_HEADERS is not set on this HEADERS frame (RFC 7540
+                 * S6.10) -- into a stack buffer so grpc_parse_trailers() can
+                 * scan it for grpc-status. Trailer blocks are typically
+                 * < 64 bytes; use 128 bytes to be safe. Any overflow (across
+                 * however many frames the block spans) is drained and
                  * ignored.
                  */
                 uint8_t trailer_buf[128U] = { 0U };
                 size_t to_read = 0U;
-                size_t overflow = 0U;
                 el2go_ota_status_t grpc_status = EL2GO_OTA_ERROR_INTERNAL;
+                el2go_ota_status_t block_status = EL2GO_OTA_ERROR_INTERNAL;
 
                 if (!data_received) {
                     EL2GO_DBG_PRINTF(VERBOSE,
                                      "gRPC recv: Trailers-Only response (no DATA frame)\n");
                 }
 
-                to_read = (pay_len <= sizeof(trailer_buf)) ? pay_len : sizeof(trailer_buf);
-                if (to_read > 0U) {
-                    s = el2go_ota_tls_read(ctx->tls_ctx, trailer_buf, to_read, &n_read);
-                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_read) {
-                        return EL2GO_OTA_ERROR_NETWORK;
-                    }
-                }
-                /* Drain any overflow bytes that did not fit in trailer_buf. */
-                overflow = (pay_len > sizeof(trailer_buf)) ? (pay_len - sizeof(trailer_buf)) : 0U;
-                while (overflow > 0U) {
-                    size_t to_drain = (overflow > sizeof(tmp)) ? sizeof(tmp) : overflow;
-                    s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
-                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
-                        return EL2GO_OTA_ERROR_NETWORK;
-                    }
-                    overflow -= n_read;
+                block_status = grpc_read_header_block(ctx, stream_id, pay_len,
+                                                      (flags & H2_FLAG_END_HEADERS) != 0U,
+                                                      trailer_buf, sizeof(trailer_buf), &to_read);
+                if (block_status != EL2GO_OTA_SUCCESS) {
+                    return block_status;
                 }
                 grpc_status = grpc_parse_trailers(trailer_buf, to_read, ctx);
                 return grpc_status;
@@ -1916,30 +2046,22 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                  * balancer -- and the eventual Trailers (if any even
                  * follow) should not be trusted as a real gRPC response.
                  *
-                 * Read the block into a stack buffer (same 128-byte budget
-                 * and overflow-drain pattern already used for Trailers --
-                 * Response-Headers for this client's small, fixed request
-                 * set are not expected to exceed this).
+                 * Read the full block -- reassembling across CONTINUATION
+                 * frames if END_HEADERS is not set on this HEADERS frame
+                 * (RFC 7540 S6.10) -- into a stack buffer (same 128-byte
+                 * budget used for Trailers; Response-Headers for this
+                 * client's small, fixed request set are not expected to
+                 * exceed this).
                  */
                 uint8_t headers_buf[128U] = { 0U };
                 size_t to_read_h = 0U;
-                size_t overflow_h = 0U;
+                el2go_ota_status_t block_status = EL2GO_OTA_ERROR_INTERNAL;
 
-                to_read_h = (pay_len <= sizeof(headers_buf)) ? pay_len : sizeof(headers_buf);
-                if (to_read_h > 0U) {
-                    s = el2go_ota_tls_read(ctx->tls_ctx, headers_buf, to_read_h, &n_read);
-                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_read_h) {
-                        return EL2GO_OTA_ERROR_NETWORK;
-                    }
-                }
-                overflow_h = (pay_len > sizeof(headers_buf)) ? (pay_len - sizeof(headers_buf)) : 0U;
-                while (overflow_h > 0U) {
-                    size_t to_drain = (overflow_h > sizeof(tmp)) ? sizeof(tmp) : overflow_h;
-                    s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
-                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
-                        return EL2GO_OTA_ERROR_NETWORK;
-                    }
-                    overflow_h -= n_read;
+                block_status = grpc_read_header_block(ctx, stream_id, pay_len,
+                                                      (flags & H2_FLAG_END_HEADERS) != 0U,
+                                                      headers_buf, sizeof(headers_buf), &to_read_h);
+                if (block_status != EL2GO_OTA_SUCCESS) {
+                    return block_status;
                 }
                 if (!hpack_validate_response_headers(headers_buf, to_read_h)) {
                     return EL2GO_OTA_ERROR_NETWORK;

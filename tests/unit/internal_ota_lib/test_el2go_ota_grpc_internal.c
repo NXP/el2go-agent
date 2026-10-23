@@ -422,6 +422,12 @@ static el2go_platform_ctx_t *grpc_get_pctx(void)
     return s_ctx;
 }
 
+/* RFC 7540 S6.10 CONTINUATION frame type. Defined locally (rather than
+ * depending on the eventual production H2_TYPE_CONTINUATION macro) so
+ * these test-only byte-stream scenarios build and fail meaningfully even
+ * before the source change that adds real CONTINUATION support lands. */
+#define TEST_H2_TYPE_CONTINUATION 0x09U
+
 /* Append one HTTP/2 frame (header + payload) to the RX queue. */
 static void queue_frame(uint32_t payload_len, uint8_t type, uint8_t flags, uint32_t stream_id,
                         const uint8_t *payload)
@@ -707,8 +713,12 @@ static bool test_ota_grpc_recv_headers_before_data(void *params)
     (void)params;
     TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
 
-    /* Response HEADERS without END_STREAM -- must be drained, not parsed as trailers. */
-    queue_frame(3U, H2_TYPE_HEADERS, 0x00U, 1U, headers_payload);
+    /* Response HEADERS without END_STREAM -- must be drained, not parsed as
+     * trailers. END_HEADERS is set because this is a single, complete,
+     * non-split header block (this test is about the Response-Headers vs.
+     * Trailers distinction, not about CONTINUATION reassembly -- that is
+     * covered separately by the dedicated split-block tests 14.38-14.42). */
+    queue_frame(3U, H2_TYPE_HEADERS, H2_FLAG_END_HEADERS, 1U, headers_payload);
     queue_frame((uint32_t)sizeof(grpc_payload), H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, grpc_payload);
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
@@ -743,8 +753,12 @@ static bool test_ota_grpc_recv_trailer_nonzero_status(void *params)
     TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
 
     queue_frame((uint32_t)sizeof(grpc_payload), H2_TYPE_DATA, 0x00U, 1U, grpc_payload);
-    queue_frame((uint32_t)sizeof(trailer_block), H2_TYPE_HEADERS, H2_FLAG_END_STREAM, 1U,
-                trailer_block);
+    /* END_HEADERS is set because this trailer block is a single, complete,
+     * non-split header block (this test is about nonzero grpc-status
+     * classification, not about CONTINUATION reassembly -- that is covered
+     * separately by the dedicated split-block tests 14.38-14.42). */
+    queue_frame((uint32_t)sizeof(trailer_block), H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 1U, trailer_block);
 
     TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
     /* The DATA payload before the trailers should still have been captured. */
@@ -1192,6 +1206,322 @@ static bool test_ota_grpc_recv_settings_max_frame_size_steady_state(void *params
     return true;
 }
 
+/**
+ * @brief Baseline CONTINUATION scenario: a Trailers-Only block containing
+ * ONLY the grpc-status field (Huffman-encoded "grpc-status": 7
+ * PERMISSION_DENIED, the same wire bytes verified elsewhere in this file
+ * for the dynamic-table reuse tests) is split into a HEADERS frame
+ * (END_STREAM set, END_HEADERS NOT set) carrying only the first 4 of its
+ * 12 bytes, and a CONTINUATION frame (END_HEADERS set) carrying the
+ * remaining 8 bytes. The split lands inside the Huffman-coded
+ * "grpc-status" NAME bytes themselves (which span bytes 2-9), well before
+ * the field is fully decodable.
+ *
+ * Hand-verified pre-fix behavior: current code ignores END_HEADERS and
+ * parses only the first HEADERS frame's 4 bytes as if that were the
+ * complete block. hpack_decode_string_bounded() fails when it discovers
+ * the Huffman name string (declared length 8) does not fit in the
+ * remaining 2 bytes of this 4-byte fragment -- returns false (truncated).
+ * Since nothing was found yet (found == false), hpack_find_grpc_status_
+ * fallback() returns false ("not found"), so grpc_parse_trailers()
+ * reports EL2GO_OTA_SUCCESS. Pre-fix result: EL2GO_OTA_SUCCESS (0) --
+ * silently wrong, the real data is grpc-status: 7, an error. This test
+ * asserts EL2GO_OTA_ERROR_SERVER, so it FAILS pre-fix with a clean
+ * "Expected 10, got 0".
+ *
+ * Expected POST-FIX (Step 2): full reassembly correctly decodes
+ * grpc-status: 7 -> EL2GO_OTA_ERROR_SERVER.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_trailers_split_continuation_basic(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t recv_buf[16] = { 0U };
+    size_t out_len = 0U;
+    el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
+    /* Standalone grpc-status: 7 (PERMISSION_DENIED) field, Huffman name +
+     * Huffman value, literal with incremental indexing -- 12 bytes total.
+     * Same byte pattern verified elsewhere in this file (first 12 bytes of
+     * the dynamic-table reuse tests' trailer_round1). Split after byte 3
+     * (4-byte first fragment), landing inside the 8-byte Huffman name
+     * (bytes 2-9) -- well before the name, let alone the value, can be
+     * decoded. */
+    static const uint8_t full_field[12] = { 0x40U, 0x88U, 0x9AU, 0xCAU, 0xC8U, 0xB2U,
+                                            0x12U, 0x34U, 0xDAU, 0x8FU, 0x81U, 0x77U };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* HEADERS: END_STREAM set (Trailers-Only, no prior DATA), END_HEADERS
+     * NOT set -- only the first 4 of 12 bytes. */
+    queue_frame(4U, H2_TYPE_HEADERS, H2_FLAG_END_STREAM, 1U, full_field);
+    /* CONTINUATION: the remaining 8 bytes, completing the block. */
+    queue_frame(8U, TEST_H2_TYPE_CONTINUATION, H2_FLAG_END_HEADERS, 1U, &full_field[4]);
+
+    result = t.recv(&t, recv_buf, sizeof(recv_buf), &out_len);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, result);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Response-Headers (no END_STREAM) split across HEADERS +
+ * CONTINUATION, where the split lands inside the VALUE bytes of a literal
+ * ":status" header carrying a non-200 code ("500", plain ASCII digits,
+ * non-Huffman). Confirms the Response-Headers path
+ * (hpack_validate_response_headers()) must also reassemble split blocks --
+ * and demonstrates a concrete, security-relevant consequence of not doing
+ * so: an HTTP-level 500 (e.g. from a misbehaving proxy) gets silently
+ * treated as a successful response instead of being rejected.
+ *
+ * Field layout (13 bytes): byte0=0x40 (literal+incr-idx, literal name),
+ * byte1=0x07 (name length=7, non-Huffman), bytes2-8=":status" (7 bytes),
+ * byte9=0x03 (value length=3, non-Huffman), bytes10-12="500".
+ *
+ * Hand-verified pre-fix behavior: first fragment = bytes 0-10 (11 bytes,
+ * through the first value digit '5'). hpack_validate_response_headers()
+ * decodes the name ":status" fully (fits in 11 bytes), then calls
+ * hpack_decode_string_bounded() for the value: it reads the length byte
+ * (3) at pos 9, advancing pos to 10, then checks "str_len(3) >
+ * block_len(11) - pos(10) = 1" -- true, so it returns false (truncated).
+ * The validator's is_status branch treats this as "continue" (cannot
+ * determine, keep scanning) WITHOUT re-advancing pos past the integer it
+ * already consumed. The next loop iteration reads block[10] = '5' (0x35)
+ * as if it were a fresh header's first byte, decodes it as an indexed
+ * name reference (prefix_bits=4, name_idx=5, non-zero so NOT literal),
+ * finds neither :status nor content-type, and calls hpack_skip_string()
+ * at pos=11 which immediately fails (pos >= block_len) -- the overall
+ * function then returns true (fail-open, "no explicit non-200 :status
+ * found"). Pre-fix, grpc_recv() therefore treats this truncated,
+ * ambiguous block as a valid 200 response, continues its frame loop,
+ * drains the CONTINUATION frame (default: case, by declared length,
+ * frame-header alignment preserved), and successfully reads the
+ * subsequent DATA+END_STREAM frame -- returning EL2GO_OTA_SUCCESS with
+ * out_len=1 and recv_buf[0]=0x42, as if the call had fully succeeded.
+ * This test asserts EL2GO_OTA_ERROR_NETWORK, so it FAILS pre-fix with
+ * "Expected 4, got 0" -- and the real pre-fix danger is not a crash or a
+ * wrong error code, but a silently fabricated success.
+ *
+ * Expected POST-FIX (Step 2): the full 13-byte block is reassembled
+ * before validation; code=500 is correctly decoded and is non-200, so
+ * hpack_validate_response_headers() returns false and grpc_recv() returns
+ * EL2GO_OTA_ERROR_NETWORK immediately, never reaching the DATA frame.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_response_headers_split_continuation(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t recv_buf[16] = { 0U };
+    size_t out_len = 0U;
+    el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
+    static const uint8_t full_field[13] = { 0x40U, 0x07U, ':',   's', 't', 'a', 't',
+                                            'u',   's',   0x03U, '5', '0', '0' };
+    static const uint8_t grpc_payload[5 + 1] = { 0x00U, 0x00U, 0x00U, 0x00U, 0x01U, 0x42U };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* Response-Headers: no END_STREAM, no END_HEADERS -- first 11 of 13 bytes. */
+    queue_frame(11U, H2_TYPE_HEADERS, 0x00U, 1U, full_field);
+    /* CONTINUATION: remaining 2 bytes. */
+    queue_frame(2U, TEST_H2_TYPE_CONTINUATION, H2_FLAG_END_HEADERS, 1U, &full_field[11]);
+    queue_frame((uint32_t)sizeof(grpc_payload), H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, grpc_payload);
+
+    result = t.recv(&t, recv_buf, sizeof(recv_buf), &out_len);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, result);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Worst-case split on the real two-field (grpc-status + grpc-
+ * message) live-device-log wire bytes: the break point lands inside the
+ * grpc-status NAME's Huffman bytes (same field span as the basic test,
+ * different offset, and this time on the full multi-field block instead
+ * of a standalone single-field one) to confirm multi-field reassembly,
+ * not just single-field.
+ *
+ * Hand-verified pre-fix behavior: first fragment = bytes 0-6 (7 bytes).
+ * Same failure mode as the basic test -- hpack_decode_string_bounded()
+ * fails decoding the 8-byte Huffman name (only 5 bytes available after
+ * the length byte), found stays false, fallback returns false, trailers
+ * report EL2GO_OTA_SUCCESS. This test asserts EL2GO_OTA_ERROR_SERVER, so
+ * it FAILS pre-fix with "Expected 10, got 0".
+ *
+ * Expected POST-FIX (Step 2): full reassembly of all 36 bytes correctly
+ * decodes grpc-status: 7 (PERMISSION_DENIED) via the HPACK fallback.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_trailers_split_mid_huffman_name(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t recv_buf[16] = { 0U };
+    size_t out_len = 0U;
+    el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
+    /* Same 36-byte wire bytes as the live-device-log grpc-status: 7 +
+     * grpc-message: "Invalid device!" Trailers block used elsewhere in
+     * this file. Split at offset 7 -- inside the grpc-status Huffman name
+     * bytes (span 2-9), before the name (let alone the value) can be
+     * decoded. */
+    static const uint8_t full_block[36] = { 0x40U, 0x88U, 0x9AU, 0xCAU, 0xC8U, 0xB2U, 0x12U, 0x34U,
+                                            0xDAU, 0x8FU, 0x81U, 0x77U, 0x40U, 0x89U, 0x9AU, 0xCAU,
+                                            0xC8U, 0xB5U, 0x25U, 0x42U, 0x07U, 0x31U, 0x7FU, 0x8CU,
+                                            0xC9U, 0x57U, 0x71U, 0xD0U, 0x69U, 0x14U, 0x90U, 0xBDU,
+                                            0xCCU, 0x42U, 0xFFU, 0x1FU };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame(7U, H2_TYPE_HEADERS, H2_FLAG_END_STREAM, 1U, full_block);
+    queue_frame(29U, TEST_H2_TYPE_CONTINUATION, H2_FLAG_END_HEADERS, 1U, &full_block[7]);
+
+    result = t.recv(&t, recv_buf, sizeof(recv_buf), &out_len);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, result);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Trailers split across THREE frames (HEADERS + CONTINUATION +
+ * CONTINUATION) on the same 36-byte real two-field block -- confirms the
+ * eventual accumulation loop is not hardcoded for exactly one
+ * CONTINUATION. The first fragment (4 bytes) is deliberately far short of
+ * the 12 bytes needed to fully decode grpc-status alone, so -- as with
+ * the other split tests -- the pre-fix result cannot depend on how many
+ * more fragments exist after the first one, since pre-fix code never
+ * looks past the first HEADERS frame for an END_STREAM-flagged block.
+ *
+ * Hand-verified pre-fix behavior: identical failure mode to the basic
+ * split test's 4-byte first fragment -- found stays false, fallback
+ * returns false, EL2GO_OTA_SUCCESS. This test asserts
+ * EL2GO_OTA_ERROR_SERVER, so it FAILS pre-fix with "Expected 10, got 0".
+ *
+ * Expected POST-FIX (Step 2): all three frames (4 + 16 + 16 = 36 bytes)
+ * are accumulated before decoding, correctly finding grpc-status: 7.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_trailers_split_three_frames(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t recv_buf[16] = { 0U };
+    size_t out_len = 0U;
+    el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
+    static const uint8_t full_block[36] = { 0x40U, 0x88U, 0x9AU, 0xCAU, 0xC8U, 0xB2U, 0x12U, 0x34U,
+                                            0xDAU, 0x8FU, 0x81U, 0x77U, 0x40U, 0x89U, 0x9AU, 0xCAU,
+                                            0xC8U, 0xB5U, 0x25U, 0x42U, 0x07U, 0x31U, 0x7FU, 0x8CU,
+                                            0xC9U, 0x57U, 0x71U, 0xD0U, 0x69U, 0x14U, 0x90U, 0xBDU,
+                                            0xCCU, 0x42U, 0xFFU, 0x1FU };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame(4U, H2_TYPE_HEADERS, H2_FLAG_END_STREAM, 1U, full_block);
+    queue_frame(16U, TEST_H2_TYPE_CONTINUATION, 0x00U, 1U, &full_block[4]);
+    queue_frame(16U, TEST_H2_TYPE_CONTINUATION, H2_FLAG_END_HEADERS, 1U, &full_block[20]);
+
+    result = t.recv(&t, recv_buf, sizeof(recv_buf), &out_len);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, result);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief NEGATIVE test: a stray PING frame arrives between a HEADERS
+ * frame (END_HEADERS NOT set) and its CONTINUATION. Per RFC 7540 S6.10,
+ * once a HEADERS frame without END_HEADERS has been received, receiving
+ * ANY other frame type before END_HEADERS is a connection-level
+ * PROTOCOL_ERROR -- it must be explicitly rejected, not drained-and-
+ * ignored (the fallback behavior used for every other out-of-order frame
+ * in this file's recv() loop) and not silently skipped over while still
+ * reassembling the header block around it.
+ *
+ * Hand-verified pre-fix behavior: current code has no concept of "waiting
+ * for END_HEADERS" at all. Upon seeing this HEADERS frame (END_STREAM
+ * set), it immediately parses only its first-4-of-12 bytes as the
+ * complete Trailers block (same truncation failure mode as the basic
+ * split test: found stays false -> EL2GO_OTA_SUCCESS) and returns
+ * immediately via "return grpc_status;" -- it never even reads the queued
+ * PING or CONTINUATION frames that follow. Pre-fix result:
+ * EL2GO_OTA_SUCCESS (0). This test asserts EL2GO_OTA_ERROR_NETWORK, so it
+ * FAILS pre-fix with "Expected 4, got 0".
+ *
+ * Expected POST-FIX (Step 2): the implementation waits for END_HEADERS,
+ * sees the PING arrive first, and explicitly rejects it as
+ * PROTOCOL_ERROR -> EL2GO_OTA_ERROR_NETWORK. This specific assertion
+ * (ERROR_NETWORK, not ERROR_SERVER and not a crash) also guards against a
+ * *naively* -correct-looking implementation that reassembles through the
+ * PING as if it were just another frame to skip -- that would be its own
+ * new bug (RFC 7540 S6.10 explicitly forbids this), and would likely
+ * still resolve to ERROR_SERVER if it happened to find grpc-status: 7
+ * anyway. Only an implementation that explicitly checks for and rejects
+ * the interleaved PING satisfies this assertion.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_continuation_interleaved_ping_rejected(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t recv_buf[16] = { 0U };
+    size_t out_len = 0U;
+    el2go_ota_status_t result = EL2GO_OTA_ERROR_INTERNAL;
+    static const uint8_t full_field[12] = { 0x40U, 0x88U, 0x9AU, 0xCAU, 0xC8U, 0xB2U,
+                                            0x12U, 0x34U, 0xDAU, 0x8FU, 0x81U, 0x77U };
+    static const uint8_t ping_payload[H2_PING_PAYLOAD_LEN] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* HEADERS without END_HEADERS -- block is not yet complete (4 of 12 bytes). */
+    queue_frame(4U, H2_TYPE_HEADERS, H2_FLAG_END_STREAM, 1U, full_field);
+    /* Stray PING arrives before the CONTINUATION that would complete the
+     * header block -- must be rejected, not drained-and-ignored and not
+     * silently skipped over. */
+    queue_frame(H2_PING_PAYLOAD_LEN, H2_TYPE_PING, 0x00U, 0U, ping_payload);
+    /* This CONTINUATION should never be consumed if the PING is correctly
+     * rejected first; queued anyway so the mock stream has well-defined
+     * contents regardless of how far the implementation gets. */
+    queue_frame(8U, TEST_H2_TYPE_CONTINUATION, H2_FLAG_END_HEADERS, 1U, &full_field[4]);
+
+    result = t.recv(&t, recv_buf, sizeof(recv_buf), &out_len);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, result);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_grpc_tests(void)
@@ -1241,5 +1571,13 @@ void register_ota_lib_grpc_tests(void)
     TEST_REGISTER_ID_WITH_PARAMS("14.36",
                                  test_ota_grpc_handshake_settings_max_frame_size_below_floor, NULL);
     TEST_REGISTER_ID_WITH_PARAMS("14.37", test_ota_grpc_recv_settings_max_frame_size_steady_state,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.38", test_ota_grpc_recv_trailers_split_continuation_basic,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.39", test_ota_grpc_recv_response_headers_split_continuation,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.40", test_ota_grpc_recv_trailers_split_mid_huffman_name, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.41", test_ota_grpc_recv_trailers_split_three_frames, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.42", test_ota_grpc_recv_continuation_interleaved_ping_rejected,
                                  NULL);
 }
