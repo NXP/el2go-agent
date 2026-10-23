@@ -73,6 +73,28 @@ typedef enum _csr_log_level
         } \
     } while (0)
 
+/* LOG_BIN_BUFFER: hex dump of binary data, 16 bytes per row with byte-offset prefix. */
+#define LOG_BIN_BUFFER(log_lvl, buf, len, fmt_s, ...) \
+    do { \
+        if ((log_lvl) <= CSR_LOG_LEVEL) { \
+            const char *_lvl_prefix = \
+                (log_lvl) == LOG_INFO    ? LOG_PREFIX_INFO    : \
+                (log_lvl) == LOG_ERROR   ? LOG_PREFIX_ERROR   : \
+                (log_lvl) == LOG_WARNING ? LOG_PREFIX_WARNING : \
+                (log_lvl) == LOG_TRACE   ? LOG_PREFIX_TRACE   : \
+                (log_lvl) == LOG_DEBUG   ? LOG_PREFIX_DEBUG   : "[UNKNOWN] "; \
+            printc("%s" fmt_s "\n", _lvl_prefix, ##__VA_ARGS__); \
+            for (size_t _bi = 0; _bi < (size_t)(len); _bi += 16U) { \
+                printc("%s  %04X: ", _lvl_prefix, (unsigned int)_bi); \
+                size_t _row = (((size_t)(len) - _bi) < 16U) ? ((size_t)(len) - _bi) : 16U; \
+                for (size_t _col = 0; _col < _row; _col++) { \
+                    printc("%02X ", ((const unsigned char *)(buf))[_bi + _col]); \
+                } \
+                printc(ANSI_COLOR_RESET "\n"); \
+            } \
+        } \
+    } while (0)
+
 
 #else
 

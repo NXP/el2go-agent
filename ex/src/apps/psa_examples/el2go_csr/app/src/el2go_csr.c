@@ -59,6 +59,17 @@ static psa_status_t verify_recv_x509_cert(cert_storage_context_t* ctx)
     }
     LOG(LOG_DEBUG, "x.509 certificate has been read successfully from memory! Verifying keypair...\r\n");
 
+    /* PEM (starts with '-') is printed as plain text at DEBUG level.
+     * DER is binary and only hex-dumped at TRACE level to avoid garbled UART output. */
+    if (cert_input_buf_imm[0] == '-')
+    {
+        LOG_CHAR_BUFFER(LOG_DEBUG, cert_input_buf_imm, cert_size, "Received x.509 certificate (%u bytes):", (unsigned int)cert_size);
+    }
+    else
+    {
+        LOG_BIN_BUFFER(LOG_TRACE, cert_input_buf_imm, cert_size, "Received x.509 certificate DER (%u bytes):", (unsigned int)cert_size);
+    }
+
     psa_status = verify_certificate(key_id, cert_input_buf_imm, cert_size);
     if (psa_status != PSA_SUCCESS)
     {
