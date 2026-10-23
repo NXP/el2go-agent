@@ -35,6 +35,7 @@ target_include_directories(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/priv
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/net_crypto
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/osal/include
 )
 
 # Enable EL2GO debug tracing so that EL2GO_DBG_PRINTF outputs are active.

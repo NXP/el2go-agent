@@ -20,6 +20,7 @@ target_include_directories(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/include
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/platforms/els_pkc
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/libs/osal/include
 )
 
 # --- Zephyr OSAL (always used in a Zephyr build) ---

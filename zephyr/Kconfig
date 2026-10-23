@@ -6,7 +6,7 @@
 # ---------------------------------------------------------------------------
 config EL2GO_LIB_LOG_LEVEL
     int "EL2GO library logging level"
-    default 1
+    default 0
     range 0 5
     help
       Controls the verbosity of EL2GO_DBG_PRINTF() calls across libs.

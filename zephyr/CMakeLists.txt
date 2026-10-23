@@ -62,9 +62,9 @@ endif()
 # ---------------------------------------------------------------------------
 # EL2GO library logging (EL2GO_DBG_PRINTF calls across libs.
 # ---------------------------------------------------------------------------
+zephyr_compile_definitions(TRACE_LEVEL=${CONFIG_EL2GO_LIB_LOG_LEVEL})
 if(CONFIG_EL2GO_LIB_LOG_LEVEL GREATER 0)
     zephyr_compile_definitions(ENABLE_TRACE)
-    zephyr_compile_definitions(TRACE_LEVEL=${CONFIG_EL2GO_LIB_LOG_LEVEL})
 endif()
 
 # ---------------------------------------------------------------------------
