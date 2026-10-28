@@ -207,3 +207,12 @@ endif()
 message(STATUS "NET_CRYPTO_SSL_READ_TIMEOUT_MS: ${NET_CRYPTO_SSL_READ_TIMEOUT_MS}")
 add_private_definitions(net_crypto
     NET_CRYPTO_SSL_READ_TIMEOUT_MS=${NET_CRYPTO_SSL_READ_TIMEOUT_MS}U)
+
+# Enable mbedTLS internal debug output. On Linux, pass
+# -DEL2GO_MBEDTLS_DEBUG_ENABLE=ON; on Zephyr, use CONFIG_EL2GO_MBEDTLS_DEBUG_ENABLE.
+option(EL2GO_MBEDTLS_DEBUG_ENABLE "Enable mbedTLS internal debug output" OFF)
+
+if(EL2GO_MBEDTLS_DEBUG_ENABLE)
+    message(STATUS "EL2GO_MBEDTLS_DEBUG_ENABLE: ON")
+    add_private_definitions(net_crypto EL2GO_MBEDTLS_DEBUG_ENABLE)
+endif()
