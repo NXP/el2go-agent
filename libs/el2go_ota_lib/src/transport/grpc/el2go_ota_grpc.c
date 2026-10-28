@@ -59,7 +59,7 @@ static const uint8_t HTTP2_PREFACE[24] = {
 #define H2_TYPE_GOAWAY 0x07U
 #define H2_TYPE_WINDOW_UPDATE 0x08U
 #define H2_TYPE_RST_STREAM 0x03U
-#define H2_TYPE_CONTINUATION 0x09U /* RFC 7540 S6.10 */
+#define H2_TYPE_CONTINUATION 0x09U
 
 /* HTTP/2 flag bits. */
 #define H2_FLAG_END_STREAM 0x01U
@@ -93,18 +93,10 @@ static const uint8_t HTTP2_PREFACE[24] = {
 #define HPACK_NAME_BUF_CAP 32U
 #define HPACK_VALUE_BUF_CAP 16U
 
-/* HPACK static table indices that carry a non-200 :status pseudo-header
- * (RFC 7541 Appendix A, entries 9-14). Any one of these indexed (fully-
- * indexed, 0x80 | index) in a Response-Headers block means the server did
- * not return HTTP 200 at the HTTP/2 layer -- below the gRPC application
- * layer entirely, so grpc-status in the eventual Trailers cannot be
- * trusted (there may not even be a valid Trailers block). Index 8 is
- * :status 200 and is the only "good" indexed value checked for below. */
+/* HPACK static table index 8 = :status 200; indices 9-14 = non-200 :status values. */
 #define HPACK_STATIC_IDX_STATUS_200 8U
 
-/* First HPACK dynamic-table absolute index (RFC 7541 S2.3.3).
- * The newest entry is always at index 62; each subsequent insertion pushes
- * older entries to higher indices. */
+/* First HPACK dynamic-table index (RFC 7541 S2.3.3): newest entry = 62. */
 #define HPACK_DYN_TABLE_FIRST_IDX 62U
 
 /* SETTINGS parameter id for HEADER_TABLE_SIZE (RFC 7540 S6.5.2) and the
@@ -123,51 +115,14 @@ typedef struct {
     el2go_ota_tls_ctx_t *tls_ctx;
     const char *hostname; /* not owned; points into user config */
     uint32_t next_stream_id;
-    uint32_t active_stream_id; /* stream opened by the most recent send(); the only
+    uint32_t active_stream_id;          /* stream opened by the most recent send(); the only
                                 * stream grpc_recv() expects to receive a response on. */
-    bool http2_ready;          /* preface + SETTINGS exchanged */
-    /*
-     * Lightweight HPACK dynamic-table tracking for grpc-status (RFC 7541).
-     *
-     * When the server sends grpc-status as a literal with incremental
-     * indexing (0x40 prefix, first occurrence), it pushes the entry into
-     * its own dynamic table.  On every subsequent response on the same
-     * connection the server may reference that entry by index instead of
-     * re-transmitting the name as a literal -- this is an Indexed Header
-     * Field (0x80 prefix).  Without tracking which absolute index carries
-     * grpc-status, the trailer parser cannot resolve such back-references.
-     *
-     * grpc_status_dyn_idx: absolute HPACK index of the grpc-status entry
-     *   (0 = not yet seen as a literal; set on first literal insertion).
-     * grpc_status_dyn_value: the numeric status code decoded when the entry
-     *   was first inserted (cached so indexed references can be resolved
-     *   without re-decoding the value string).
-     * hpack_dyn_entries: running count of all dynamic-table insertions seen
-     *   on this connection.  Used to compute the absolute index of a new
-     *   entry at insertion time: new_abs_idx = HPACK_DYN_TABLE_FIRST_IDX +
-     *   (hpack_dyn_entries - insertion_serial), where insertion_serial is
-     *   the value of hpack_dyn_entries at the moment of insertion (before
-     *   incrementing).  Simplified: newest entry is always at absolute index
-     *   62 at the time of insertion; each subsequent insertion shifts older
-     *   entries by 1.  The stored absolute index is therefore NOT stable --
-     *   it must be adjusted by (current_hpack_dyn_entries - insertion_count)
-     *   when resolving.  To avoid that bookkeeping, we store the insertion
-     *   serial and recompute on each lookup instead.
-     */
+    bool http2_ready;                   /* preface + SETTINGS exchanged */
     uint32_t grpc_status_insert_serial; /* hpack_dyn_entries value at insertion time; 0 = not seen */
     uint32_t grpc_status_dyn_value;     /* cached numeric grpc-status code */
-    uint32_t hpack_dyn_entries;         /* total dynamic-table insertions seen */
-    /*
-     * Server's advertised SETTINGS_MAX_FRAME_SIZE (RFC 7540 S6.5.2),
-     * diagnostic only -- this client never changes its own frame sizing
-     * based on this value (it always sends/expects frames within the
-     * protocol default of 16384 bytes, enforced at compile time by the
-     * _Static_assert in el2go_ota_download_engine.c). 0 = not yet seen
-     * (the server has not sent a SETTINGS frame containing this
-     * parameter -- per RFC 7540 S6.5.2 the effective value is then the
-     * protocol default, 16384).
-     */
-    uint32_t server_max_frame_size;
+    uint32_t hpack_dyn_entries;         /* best-effort count of dynamic-table insertions seen */
+    uint32_t
+        server_max_frame_size; /* server-advertised MAX_FRAME_SIZE (RFC 7540 S6.5.2); diagnostic only; 0 = not yet seen */
 } grpc_ctx_t;
 
 /* Internal helpers -- HTTP/2 frame building */
@@ -204,18 +159,19 @@ static el2go_ota_status_t h2_send_settings_ack(grpc_ctx_t *ctx)
     return (s == EL2GO_STATUS_SUCCESS) ? EL2GO_OTA_SUCCESS : EL2GO_OTA_ERROR_NETWORK;
 }
 
-/*
- * Send an HTTP/2 SETTINGS frame advertising HEADER_TABLE_SIZE=0 to the
- * server (RFC 7540 S6.5.2, RFC 7541 S4.2).
+/**
+ * @brief Send an HTTP/2 SETTINGS frame advertising HEADER_TABLE_SIZE=0
+ *        (RFC 7540 S6.5.2, RFC 7541 S4.2).
  *
- * Setting HEADER_TABLE_SIZE=0 instructs the server to evict its HPACK
- * dynamic table and forbids it from re-populating it.  As a result the
- * server must encode every header field as a literal on every response,
- * guaranteeing that "grpc-status" is always present as a decodable literal
- * string in the Trailers block.  This avoids the need for the client to
- * track which dynamic-table index the server has assigned to grpc-status
- * (the alternative approach -- used as a secondary defence below -- when
- * the server does not respect HEADER_TABLE_SIZE=0).
+ * Instructs the server to evict its HPACK dynamic table and forbids it from
+ * re-populating it, so every response header is sent as a decodable literal.
+ * This avoids the need to track which dynamic-table index the server assigns
+ * to grpc-status (the indexed-reference fallback handles the case where the
+ * server ignores this setting).
+ *
+ * @param[in,out] ctx  Transport context owning the TLS connection.
+ *
+ * @return EL2GO_OTA_SUCCESS or EL2GO_OTA_ERROR_NETWORK.
  */
 static el2go_ota_status_t h2_send_settings_hdr_table_zero(grpc_ctx_t *ctx)
 {
@@ -237,11 +193,17 @@ static el2go_ota_status_t h2_send_settings_hdr_table_zero(grpc_ctx_t *ctx)
     return (s == EL2GO_STATUS_SUCCESS) ? EL2GO_OTA_SUCCESS : EL2GO_OTA_ERROR_NETWORK;
 }
 
-/*
- * Send an HTTP/2 SETTINGS frame with empty payload (used only for the
- * SETTINGS ACK; kept for backward compatibility with callers that pass
- * H2_FLAG_ACK).  For the initial client SETTINGS use
- * h2_send_settings_hdr_table_zero() instead.
+/**
+ * @brief Send an HTTP/2 SETTINGS frame (ACK or initial empty SETTINGS).
+ *
+ * When @p flags has H2_FLAG_ACK set, sends a SETTINGS ACK with no payload.
+ * Otherwise sends the initial client SETTINGS (HEADER_TABLE_SIZE=0) via
+ * h2_send_settings_hdr_table_zero().
+ *
+ * @param[in,out] ctx    Transport context owning the TLS connection.
+ * @param[in]     flags  H2_FLAG_ACK to send an ACK; 0 for initial SETTINGS.
+ *
+ * @return EL2GO_OTA_SUCCESS or EL2GO_OTA_ERROR_NETWORK.
  */
 static el2go_ota_status_t h2_send_settings(grpc_ctx_t *ctx, uint8_t flags)
 {
@@ -252,8 +214,14 @@ static el2go_ota_status_t h2_send_settings(grpc_ctx_t *ctx, uint8_t flags)
     return h2_send_settings_hdr_table_zero(ctx);
 }
 
-/*
- * Send an HTTP/2 WINDOW_UPDATE frame on stream_id with the given increment.
+/**
+ * @brief Send an HTTP/2 WINDOW_UPDATE frame (RFC 7540 S6.9).
+ *
+ * @param[in,out] ctx        Transport context owning the TLS connection.
+ * @param[in]     stream_id  Stream to update (0 for the connection level).
+ * @param[in]     increment  Flow-control window increment in bytes.
+ *
+ * @return EL2GO_OTA_SUCCESS or EL2GO_OTA_ERROR_NETWORK.
  */
 static el2go_ota_status_t h2_send_window_update(grpc_ctx_t *ctx, uint32_t stream_id,
                                                 uint32_t increment)
@@ -270,9 +238,15 @@ static el2go_ota_status_t h2_send_window_update(grpc_ctx_t *ctx, uint32_t stream
     return (s == EL2GO_STATUS_SUCCESS) ? EL2GO_OTA_SUCCESS : EL2GO_OTA_ERROR_NETWORK;
 }
 
-/*
- * Send an HTTP/2 PING ACK carrying the same 8-byte opaque payload as the
- * incoming PING.
+/**
+ * @brief Send an HTTP/2 PING ACK (RFC 7540 S6.7).
+ *
+ * Echoes the 8-byte opaque payload received in the peer's PING frame.
+ *
+ * @param[in,out] ctx        Transport context owning the TLS connection.
+ * @param[in]     ping_data  8-byte opaque payload from the incoming PING.
+ *
+ * @return EL2GO_OTA_SUCCESS or EL2GO_OTA_ERROR_NETWORK.
  */
 static el2go_ota_status_t h2_send_ping_ack(grpc_ctx_t *ctx, const uint8_t *ping_data)
 {
@@ -287,8 +261,10 @@ static el2go_ota_status_t h2_send_ping_ack(grpc_ctx_t *ctx, const uint8_t *ping_
 
 /* Internal helpers -- HPACK encoding (static table only, no Huffman) */
 
-/*
- * Append one byte to buf[*pos], growing pos.  Returns false if buf is full.
+/**
+ * @brief Append one byte to buf[*pos], advancing @p pos.
+ *
+ * @return true on success, false if the buffer is full.
  */
 static bool hpack_put_byte(uint8_t *buf, size_t buf_size, size_t *pos, uint8_t b)
 {
@@ -299,9 +275,12 @@ static bool hpack_put_byte(uint8_t *buf, size_t buf_size, size_t *pos, uint8_t b
     return true;
 }
 
-/*
- * Encode a length-prefixed string (H=0, no Huffman) into buf at *pos.
- * len must be < 128 so it fits in a single HPACK integer byte.
+/**
+ * @brief Encode a plain (non-Huffman) HPACK length-prefixed string.
+ *
+ * @p len must be less than 128 so it fits in a single HPACK integer byte.
+ *
+ * @return true on success, false if the buffer is full or @p len >= 128.
  */
 static bool hpack_put_string(uint8_t *buf, size_t buf_size, size_t *pos, const char *str,
                              size_t len)
@@ -324,17 +303,20 @@ static bool hpack_put_string(uint8_t *buf, size_t buf_size, size_t *pos, const c
     return true;
 }
 
-/*
- * Build the HPACK header block for a gRPC request into buf[0..buf_size-1].
- * Returns the number of bytes written, or 0 on error.
+/**
+ * @brief Build the HPACK header block for a gRPC request.
  *
- * Headers emitted:
- *   :method: POST                     (indexed, static #3)
- *   :scheme: https                    (indexed, static #7)
- *   :path:   <method_path>            (literal, name from static #4)
- *   :authority: <hostname>            (literal, name from static #1)
- *   content-type: application/grpc    (literal, new name, never-indexed)
- *   te: trailers                      (literal, new name, never-indexed)
+ * Emits: :method POST (indexed #3), :scheme https (indexed #7),
+ * :path (literal, name from #4), :authority (literal, name from #1),
+ * content-type: application/grpc (never-indexed literal),
+ * te: trailers (never-indexed literal).
+ *
+ * @param[out] buf          Output buffer.
+ * @param[in]  buf_size     Capacity of @p buf in bytes.
+ * @param[in]  method_path  gRPC method path (e.g. "/pkg.Svc/Method").
+ * @param[in]  hostname     Server hostname for the :authority header.
+ *
+ * @return Number of bytes written, or 0 on encoding error.
  */
 static size_t hpack_encode_grpc_request(uint8_t *buf, size_t buf_size, const char *method_path,
                                         const char *hostname)
@@ -459,12 +441,7 @@ static __attribute__((unused)) const char *grpc_status_name(uint32_t code)
     }
 }
 
-/*
- * HTTP/2 error codes carried by RST_STREAM/GOAWAY frames (RFC 7540 S7,
- * "Error Codes" table). Decoded purely for diagnostics -- this client
- * still reports EL2GO_OTA_ERROR_NETWORK for both frame types regardless of
- * the specific code; only the log message gains detail.
- */
+/* HTTP/2 error code name for RST_STREAM/GOAWAY diagnostics (RFC 7540 S7). */
 static __attribute__((unused)) const char *h2_error_code_name(uint32_t code)
 {
     switch (code) {
@@ -816,48 +793,38 @@ static bool hpack_decode_string_bounded(const uint8_t *block, size_t block_len, 
  * than grpc-status's own value are skipped undecoded, so an oversized
  * unrelated field cannot prevent grpc-status from being found.
  *
- * @param[in]  block      Input HPACK trailer block.
- * @param[in]  block_len  Length of @p block in bytes.
- * @param[out] out_code   Decoded grpc-status value on success.
+ * Also tracks dynamic-table insertions for the secondary HPACK
+ * indexed-reference defence. @p ctx may be NULL (unit-test / no-context
+ * callers), in which case the indexed-reference check is skipped.
+ *
+ * Best-effort only. The reliable protection is the SETTINGS_HEADER_TABLE_SIZE=0
+ * advertised at connection setup, which a compliant server must honour
+ * (RFC 7540 S6.5.2): it then never inserts into the dynamic table and never sends
+ * an indexed grpc-status. This secondary defence only covers a server that
+ * ignores that setting, and only partially: insertions made by Response-Headers
+ * or by the plain-literal fast path in grpc_parse_trailers() are not counted, and
+ * a repeated error sent as a literal with a dynamic-table name index is not
+ * resolved. Failure mode is fail-open (the status is read as OK).
+ *
+ * @param[in]     block      Input HPACK trailer block.
+ * @param[in]     block_len  Length of @p block in bytes.
+ * @param[in,out] ctx        Per-connection HPACK state; may be NULL.
+ * @param[out]    out_code   Decoded grpc-status value on success.
  *
  * @return true and sets @p out_code if grpc-status was found and decoded.
  *         false if grpc-status was not found or the block could not be walked
  *         (malformed/truncated); both cases are treated as "not found" by the
  *         caller.
  */
-/*
- * Walk an HPACK block for grpc-status, also tracking dynamic-table insertions
- * for the secondary HPACK indexed-reference defence.
- *
- * ctx may be NULL (unit-test / no-context callers), in which case the
- * indexed-reference check is skipped.
- */
 static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_len, grpc_ctx_t *ctx,
                                             uint32_t *out_code)
 {
     size_t pos = 0U;
     uint32_t iterations = 0U;
-    /*
-     * Local shadow of hpack_dyn_entries at the start of this block -- used
-     * to track insertions made while walking *this* block so we can compute
-     * the absolute index of each newly-inserted entry.  A newly inserted
-     * entry gets absolute index HPACK_DYN_TABLE_FIRST_IDX (62) at the
-     * moment it is inserted; each subsequent insertion in the same block
-     * pushes it one slot higher.
-     */
+    /* Local shadow of ctx->hpack_dyn_entries; tracks insertions in this block. */
     uint32_t local_entries = (ctx != NULL) ? ctx->hpack_dyn_entries : 0U;
-    /*
-     * grpc-status may be found with more of the block still left to walk --
-     * the real EL2GO OTA server inserts grpc-message with incremental
-     * indexing immediately after grpc-status in the same Trailers block.
-     * Do NOT return as soon as grpc-status is found: keep walking so every
-     * literal-with-incremental-indexing field in this block is counted in
-     * ctx->hpack_dyn_entries, keeping this client's index numbering in sync
-     * with the server's encoder for any later block on this connection.
-     * The decoded value is cached here and returned once the block has
-     * been fully walked (or walking stops for any other reason), so it is
-     * never lost even if something later in the block cannot be parsed.
-     */
+    /* Keep walking even after finding grpc-status to count all incremental-indexing
+     * insertions (e.g. grpc-message) so ctx->hpack_dyn_entries stays in sync. */
     bool found = false;
     uint32_t found_code = 0U;
 
@@ -875,21 +842,9 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
         iterations++;
 
         if ((first & 0x80U) != 0U) {
-            /*
-             * Indexed header field (RFC 7541 S6.1): fully self-contained
-             * single-byte (or multi-byte) reference to a table entry.
-             *
-             * Secondary defence: if the server ignored our SETTINGS
-             * HEADER_TABLE_SIZE=0 and previously inserted grpc-status into
-             * its dynamic table, we can still detect such references here
-             * by comparing the index to the stored insertion serial.
-             *
-             * The absolute index of the grpc-status entry at query time is:
-             *   abs_idx = HPACK_DYN_TABLE_FIRST_IDX +
-             *             (local_entries - grpc_status_insert_serial)
-             * where local_entries is the total insertions seen so far
-             * (including any made in this block before this entry).
-             */
+            /* Indexed header field (RFC 7541 S6.1). Secondary defence: resolve
+             * grpc-status by its stored insertion serial if the server ignored
+             * HEADER_TABLE_SIZE=0. abs_idx = FIRST_IDX + (local - insert_serial). */
             if (!hpack_decode_integer(block, block_len, &pos, 7U, &idx_val)) {
                 if (found) {
                     *out_code = found_code;
@@ -942,15 +897,8 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
         if (has_literal_name) {
             if (!hpack_decode_string_bounded(block, block_len, &pos, name_buf, sizeof(name_buf),
                                              &name_len)) {
-                /*
-                 * Name present but too large for name_buf, or malformed.
-                 * grpc-status's name is always short ("grpc-status", 11
-                 * bytes) and well within HPACK_NAME_BUF_CAP, so a name that
-                 * does not fit cannot be grpc-status -- but we cannot skip
-                 * it either without having consumed it, so bail out and let
-                 * the caller fail open (same as "not found"), unless
-                 * grpc-status was already found earlier in this block.
-                 */
+                /* Name decode failed; cannot skip the field without consuming
+                 * it, so bail out. Return true if grpc-status was found earlier. */
                 if (found) {
                     *out_code = found_code;
                     return true;
@@ -993,40 +941,21 @@ static bool hpack_find_grpc_status_fallback(const uint8_t *block, size_t block_l
                 }
                 code = add_result;
             }
-            /*
-             * If this entry was sent with incremental indexing, the server
-             * has inserted it into its HPACK dynamic table (RFC 7541
-             * S6.2.1). Record the insertion serial and cached value so the
-             * indexed-reference defence above can resolve future
-             * references to this entry on subsequent responses within the
-             * same connection.
-             */
+            /* Incremental indexing: record insertion serial so indexed refs can
+             * be resolved on subsequent responses on this connection. */
             if (inserts_into_dyn_table && ctx != NULL) {
                 local_entries++;
                 ctx->hpack_dyn_entries = local_entries;
                 ctx->grpc_status_insert_serial = local_entries;
                 ctx->grpc_status_dyn_value = code;
             }
-            /*
-             * Do NOT return yet -- keep walking the rest of the block so
-             * any further literal-with-incremental-indexing field (e.g.
-             * grpc-message, which the real EL2GO OTA server inserts
-             * immediately after grpc-status) is still counted below,
-             * keeping local_entries/ctx->hpack_dyn_entries in sync with the
-             * server's own dynamic table for any later block on this
-             * connection.
-             */
+            /* Do not return yet -- keep walking to count further insertions. */
             found = true;
             found_code = code;
             continue;
         }
 
-        /*
-         * Not grpc-status. If this entry was sent with incremental
-         * indexing, it still occupies a dynamic-table slot on the server
-         * and must be counted so later index arithmetic stays correct,
-         * even though we do not care about its value.
-         */
+        /* Not grpc-status -- still count incremental-indexing insertions. */
         if (inserts_into_dyn_table && ctx != NULL) {
             local_entries++;
             ctx->hpack_dyn_entries = local_entries;
@@ -1110,10 +1039,7 @@ static bool hpack_validate_response_headers(const uint8_t *block, size_t block_l
             if (!hpack_decode_integer(block, block_len, &pos, 7U, &idx_val)) {
                 return true; /* malformed -- fail open */
             }
-            /* Static table indices 9-14 (RFC 7541 Appendix A) are the
-             * non-200 :status values (204, 206, 304, 400, 404, 500). Index
-             * 8 is :status 200 and needs no special handling (it is the
-             * success case already assumed by returning true below). */
+            /* HPACK static indices 9-14 = non-200 :status; 8 = :status 200 (OK). */
             if (idx_val > HPACK_STATIC_IDX_STATUS_200 && idx_val <= 14U) {
                 EL2GO_DBG_PRINTF(ERROR,
                                  "gRPC recv: Response-Headers :status is non-200 "
@@ -1256,15 +1182,9 @@ static el2go_ota_status_t grpc_parse_trailers(const uint8_t *block, size_t block
         return EL2GO_OTA_SUCCESS; /* no trailers to parse -- treat as OK */
     }
 
-    /*
-     * Fast path: search for the 12-byte plain-literal pattern anywhere in
-     * the block. Note this loop's bound naturally skips the fast path
-     * (never executes) when block_len is too short to contain it -- that
-     * does NOT mean grpc-status cannot be present: a Huffman-encoded
-     * "grpc-status" name is itself shorter than its 11-byte plain-text
-     * form, so a short block must still be given to the HPACK fallback
-     * below rather than being short-circuited to "not found" here.
-     */
+    /* Fast path: scan for the plain-literal "grpc-status" pattern.
+     * Short blocks are still passed to the HPACK fallback below --
+     * a Huffman-encoded name is shorter than the 11-byte plain form. */
     for (i = 0U; i + sizeof(NAME_PREFIX) + 2U <= block_len; i++) {
         bool match = true;
         size_t k;
@@ -1806,6 +1726,15 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
     bool data_received = false;
     uint32_t stream_id = 0U;
     bool is_active_stream = false;
+    /* LPM reassembly state; lives across iterations (message may span multiple DATA frames). */
+    uint8_t grpc_prefix[GRPC_MSG_HDR_LEN] = { 0U };
+    size_t prefix_have = 0U;
+    bool prefix_parsed = false;
+    size_t body_len = 0U;
+    size_t body_have = 0U;
+    bool msg_complete = false;
+    /* Messages that started after a complete one (a unary call carries just one). */
+    uint32_t extra_msgs = 0U;
 
     EL2GO_DBG_TRACE_FUNCTION_CALL;
 
@@ -1834,13 +1763,8 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
         pay_len = ((uint32_t)hdr[0] << 16U) | ((uint32_t)hdr[1] << 8U) | (uint32_t)hdr[2];
         frame_type = hdr[3];
         flags = hdr[4];
-        /*
-         * Stream identifier (RFC 7540 S4.1): 31 bits, MSB (reserved) masked
-         * off. Needed to detect stray frames left over from a prior call on
-         * this connection (e.g. a late DATA/HEADERS/RST_STREAM for a stream
-         * this grpc_recv() call did not open) so they are drained instead of
-         * being mistaken for the current call's response.
-         */
+        /* Stream id (RFC 7540 S4.1): used to detect and drain stray frames
+         * from prior calls on this connection. */
         stream_id = (((uint32_t)hdr[5] & H2_MSB_RESERVED_MASK) << 24U) | ((uint32_t)hdr[6] << 16U) |
                     ((uint32_t)hdr[7] << 8U) | (uint32_t)hdr[8];
         is_active_stream = (stream_id == ctx->active_stream_id);
@@ -1849,12 +1773,7 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
         /* DATA frame: contains the gRPC response message. */
         case H2_TYPE_DATA:
             if (!is_active_stream) {
-                /*
-                 * Stray DATA frame for a stream other than the one this
-                 * call opened (e.g. late-arriving data for a previous
-                 * call). Drain and ignore -- do not treat it as this
-                 * call's response.
-                 */
+                /* Stray DATA frame from a prior call -- drain and ignore. */
                 EL2GO_DBG_PRINTF(VERBOSE, "gRPC recv: ignoring DATA for stream %u (active=%u)\n",
                                  (unsigned int)stream_id, (unsigned int)ctx->active_stream_id);
                 {
@@ -1870,128 +1789,145 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                 }
                 break;
             }
-            if (pay_len < GRPC_MSG_HDR_LEN) {
-                EL2GO_DBG_PRINTF(ERROR, "gRPC recv: DATA payload too short (%u bytes)\n",
-                                 (unsigned int)pay_len);
-                return EL2GO_OTA_ERROR_NETWORK;
-            }
             {
-                uint8_t grpc_prefix[GRPC_MSG_HDR_LEN] = { 0U };
-                uint32_t grpc_msg_len = 0U;
-                size_t body_len = 0U;
+                /* LPM boundaries and DATA frame boundaries are independent (gRPC-over-HTTP2
+                 * spec); consume this frame's payload into the prefix, then the body. */
+                size_t frame_left = (size_t)pay_len;
+                size_t progress = 0U;
+                size_t take = 0U;
 
-                /* Read the 5-byte gRPC message prefix. */
-                s = el2go_ota_tls_read(ctx->tls_ctx, grpc_prefix, GRPC_MSG_HDR_LEN, &n_read);
-                if (s != EL2GO_STATUS_SUCCESS || n_read < GRPC_MSG_HDR_LEN) {
-                    EL2GO_DBG_PRINTF(ERROR, "gRPC recv: gRPC prefix read failed\n");
-                    return EL2GO_OTA_ERROR_NETWORK;
+                data_received = true;
+
+                /* Non-empty frame after a complete message starts a new message; empty
+                 * frames (e.g. bare END_STREAM) must not discard a completed message. */
+                if (msg_complete && pay_len > 0U) {
+                    /* Tolerated (the later message overwrites the earlier one), but bounded:
+                     * otherwise a peer sending small complete messages without END_STREAM
+                     * would keep this loop running, as progress resets the idle-frame budget. */
+                    extra_msgs++;
+                    if (extra_msgs > GRPC_RECV_MAX_FRAMES) {
+                        EL2GO_DBG_PRINTF(ERROR, "gRPC recv: too many messages on a unary call\n");
+                        return EL2GO_OTA_ERROR_NETWORK;
+                    }
+                    prefix_have = 0U;
+                    prefix_parsed = false;
+                    body_len = 0U;
+                    body_have = 0U;
+                    msg_complete = false;
                 }
 
-                if (grpc_prefix[0] != 0x00U) {
-                    EL2GO_DBG_PRINTF(ERROR, "gRPC recv: compressed flag 0x%02X not supported\n",
-                                     (unsigned int)grpc_prefix[0]);
-                    return EL2GO_OTA_ERROR_NETWORK;
+                /* Step 1: gRPC message prefix (may be split). */
+                if (prefix_have < GRPC_MSG_HDR_LEN && frame_left > 0U) {
+                    take = GRPC_MSG_HDR_LEN - prefix_have;
+                    if (take > frame_left) {
+                        take = frame_left;
+                    }
+                    s = el2go_ota_tls_read(ctx->tls_ctx, &grpc_prefix[prefix_have], take, &n_read);
+                    if (s != EL2GO_STATUS_SUCCESS || n_read < take) {
+                        EL2GO_DBG_PRINTF(ERROR, "gRPC recv: gRPC prefix read failed\n");
+                        return EL2GO_OTA_ERROR_NETWORK;
+                    }
+                    prefix_have += take;
+                    frame_left -= take;
+                    progress += take;
                 }
 
-                grpc_msg_len = ((uint32_t)grpc_prefix[1] << 24U) |
-                               ((uint32_t)grpc_prefix[2] << 16U) |
-                               ((uint32_t)grpc_prefix[3] << 8U) | (uint32_t)grpc_prefix[4];
+                if (prefix_have == GRPC_MSG_HDR_LEN && !prefix_parsed) {
+                    uint32_t grpc_msg_len = 0U;
 
-                body_len = (size_t)grpc_msg_len;
+                    if (grpc_prefix[0] != 0x00U) {
+                        EL2GO_DBG_PRINTF(ERROR, "gRPC recv: compressed flag 0x%02X not supported\n",
+                                         (unsigned int)grpc_prefix[0]);
+                        return EL2GO_OTA_ERROR_NETWORK;
+                    }
 
-                /*
-                 * Diagnostic only (no behaviour change): per the gRPC-over-HTTP2
-                 * spec, "DATA frame boundaries have no relation to
-                 * Length-Prefixed-Message boundaries" -- a server is always
-                 * legally allowed to split a single gRPC message across
-                 * multiple DATA frames, regardless of message size. This
-                 * client does not implement reassembly across frames (an
-                 * accepted MVP limitation; see ota/el2go_ota_config.h), so if
-                 * that ever happens the subsequent reads below will desync
-                 * and this call will fail with EL2GO_OTA_ERROR_NETWORK (safe:
-                 * the download engine already retries on network errors).
-                 * This log line exists purely so that failure mode is
-                 * instantly recognizable in the field instead of looking like
-                 * a generic/unexplained network error.
-                 */
-                if ((size_t)pay_len < GRPC_MSG_HDR_LEN + body_len) {
-                    EL2GO_DBG_PRINTF(ERROR,
-                                     "gRPC recv: message (%zu bytes) split across multiple "
-                                     "DATA frames (this frame only has %u byte(s) after the "
-                                     "gRPC prefix) -- reassembly not implemented, call will "
-                                     "likely fail with a network error\n",
-                                     body_len,
-                                     (unsigned int)((size_t)pay_len > GRPC_MSG_HDR_LEN ?
-                                                        (size_t)pay_len - GRPC_MSG_HDR_LEN :
-                                                        0U));
+                    grpc_msg_len = ((uint32_t)grpc_prefix[1] << 24U) |
+                                   ((uint32_t)grpc_prefix[2] << 16U) |
+                                   ((uint32_t)grpc_prefix[3] << 8U) | (uint32_t)grpc_prefix[4];
+                    body_len = (size_t)grpc_msg_len;
+
+                    if (body_len > buf_len) {
+                        EL2GO_DBG_PRINTF(ERROR,
+                                         "gRPC recv: gRPC message %zu bytes exceeds buffer %zu\n",
+                                         body_len, buf_len);
+                        return EL2GO_OTA_ERROR_INTERNAL;
+                    }
+                    prefix_parsed = true;
+                    if (body_len == 0U) {
+                        msg_complete = true;
+                    }
                 }
 
-                if (body_len > buf_len) {
-                    EL2GO_DBG_PRINTF(ERROR,
-                                     "gRPC recv: gRPC message %zu bytes exceeds buffer %zu\n",
-                                     body_len, buf_len);
-                    return EL2GO_OTA_ERROR_INTERNAL;
-                }
-
-                if (body_len > 0U) {
-                    s = el2go_ota_tls_read(ctx->tls_ctx, buf, body_len, &n_read);
-                    if (s != EL2GO_STATUS_SUCCESS || n_read < body_len) {
+                /* Step 2: message body (may be split). */
+                if (prefix_parsed && body_have < body_len && frame_left > 0U) {
+                    take = body_len - body_have;
+                    if (take > frame_left) {
+                        take = frame_left;
+                    }
+                    s = el2go_ota_tls_read(ctx->tls_ctx, &buf[body_have], take, &n_read);
+                    if (s != EL2GO_STATUS_SUCCESS || n_read < take) {
                         EL2GO_DBG_PRINTF(ERROR,
                                          "gRPC recv: data body read failed "
                                          "(got %zu/%zu)\n",
-                                         n_read, body_len);
+                                         n_read, take);
                         return EL2GO_OTA_ERROR_NETWORK;
                     }
-                    *out_len = n_read;
-                }
-
-                data_received = true;
-                EL2GO_DBG_PRINTF(VERBOSE, "gRPC recv: %zu byte(s) received\n", *out_len);
-
-                /* Drain any padding bytes (pay_len - GRPC_MSG_HDR_LEN - body_len). */
-                {
-                    size_t padding = (size_t)(pay_len - GRPC_MSG_HDR_LEN) - body_len;
-                    while (padding > 0U) {
-                        size_t to_drain = (padding > sizeof(tmp)) ? sizeof(tmp) : padding;
-                        s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
-                        if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
-                            return EL2GO_OTA_ERROR_NETWORK;
-                        }
-                        padding -= n_read;
+                    body_have += take;
+                    frame_left -= take;
+                    progress += take;
+                    if (body_have == body_len) {
+                        msg_complete = true;
+                        *out_len = body_len;
+                        EL2GO_DBG_PRINTF(VERBOSE, "gRPC recv: %zu byte(s) received\n", *out_len);
                     }
                 }
 
-                /* If END_STREAM set on DATA, the response is complete. */
+                /* Step 3: drain whatever is left of this frame (padding, or
+                 * bytes beyond the single message a unary call carries). */
+                while (frame_left > 0U) {
+                    size_t to_drain = (frame_left > sizeof(tmp)) ? sizeof(tmp) : frame_left;
+                    s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);
+                    if (s != EL2GO_STATUS_SUCCESS || n_read < to_drain) {
+                        return EL2GO_OTA_ERROR_NETWORK;
+                    }
+                    frame_left -= n_read;
+                }
+
+                if (!msg_complete && (flags & H2_FLAG_END_STREAM) == 0U) {
+                    EL2GO_DBG_PRINTF(VERBOSE,
+                                     "gRPC recv: message continues in next DATA frame "
+                                     "(prefix %zu/%u, body %zu/%zu)\n",
+                                     prefix_have, (unsigned int)GRPC_MSG_HDR_LEN, body_have,
+                                     body_len);
+                }
+
+                /* Reset idle-frame budget on progress; GRPC_RECV_MAX_FRAMES bounds
+                 * no-progress frames (PING storms etc.), not message fragments. */
+                if (progress > 0U) {
+                    iterations = 0U;
+                }
+
+                /* END_STREAM on DATA: the response is complete only if the
+                 * whole message arrived. */
                 if ((flags & H2_FLAG_END_STREAM) != 0U) {
-                    return EL2GO_OTA_SUCCESS;
+                    if (msg_complete) {
+                        return EL2GO_OTA_SUCCESS;
+                    }
+                    EL2GO_DBG_PRINTF(ERROR,
+                                     "gRPC recv: stream ended with a truncated message "
+                                     "(prefix %zu/%u, body %zu/%zu)\n",
+                                     prefix_have, (unsigned int)GRPC_MSG_HDR_LEN, body_have,
+                                     body_len);
+                    return EL2GO_OTA_ERROR_NETWORK;
                 }
             }
             break;
 
-        /*
-         * HEADERS frame: either
-         *   - Response-Headers (no END_STREAM): precedes zero or more DATA
-         *     frames, drained here (no grpc-status; status is only ever
-         *     sent in Trailers), or
-         *   - Trailers (END_STREAM set): the final HEADERS block of the
-         *     response, carrying grpc-status/grpc-message. Per the gRPC/
-         *     HTTP2 spec, this is true regardless of whether any DATA frame
-         *     preceded it:
-         *       Response -> (Response-Headers *Length-Prefixed-Message Trailers)
-         *                 / Trailers-Only
-         *     Trailers-Only (no preceding DATA frame, data_received == false)
-         *     is explicitly permitted for calls that fail immediately, so
-         *     END_STREAM alone -- not data_received -- is what marks a
-         *     HEADERS frame as Trailers.
-         */
+        /* HEADERS frame: Response-Headers (no END_STREAM) or Trailers (END_STREAM set).
+         * Trailers-Only (no prior DATA) is also valid -- END_STREAM is what matters. */
         case H2_TYPE_HEADERS:
             if (!is_active_stream) {
-                /*
-                 * Stray HEADERS frame (response headers or trailers) for a
-                 * stream other than the one this call opened. Drain and
-                 * ignore -- do not treat it as this call's response or
-                 * trailers.
-                 */
+                /* Stray HEADERS frame from a prior call -- drain and ignore. */
                 EL2GO_DBG_PRINTF(VERBOSE, "gRPC recv: ignoring HEADERS for stream %u (active=%u)\n",
                                  (unsigned int)stream_id, (unsigned int)ctx->active_stream_id);
                 {
@@ -2006,16 +1942,7 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                     }
                 }
             } else if ((flags & H2_FLAG_END_STREAM) != 0U) {
-                /*
-                 * Trailers (Trailers-Only if !data_received): read the full
-                 * block -- reassembling across CONTINUATION frames if
-                 * END_HEADERS is not set on this HEADERS frame (RFC 7540
-                 * S6.10) -- into a stack buffer so grpc_parse_trailers() can
-                 * scan it for grpc-status. Trailer blocks are typically
-                 * < 64 bytes; use 128 bytes to be safe. Any overflow (across
-                 * however many frames the block spans) is drained and
-                 * ignored.
-                 */
+                /* Trailers: reassemble the HPACK block and scan for grpc-status. */
                 uint8_t trailer_buf[128U] = { 0U };
                 size_t to_read = 0U;
                 el2go_ota_status_t grpc_status = EL2GO_OTA_ERROR_INTERNAL;
@@ -2033,26 +1960,18 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                     return block_status;
                 }
                 grpc_status = grpc_parse_trailers(trailer_buf, to_read, ctx);
+                if (grpc_status == EL2GO_OTA_SUCCESS && data_received && !msg_complete) {
+                    EL2GO_DBG_PRINTF(ERROR,
+                                     "gRPC recv: trailers arrived before the full message "
+                                     "(prefix %zu/%u, body %zu/%zu)\n",
+                                     prefix_have, (unsigned int)GRPC_MSG_HDR_LEN, body_have,
+                                     body_len);
+                    return EL2GO_OTA_ERROR_NETWORK;
+                }
                 return grpc_status;
             } else {
-                /*
-                 * Response-Headers (no END_STREAM): validate :status (and
-                 * diagnose content-type) before continuing. Per RFC 7540
-                 * S8.1.2.4 every HTTP/2 response carries :status; a gRPC
-                 * server normally always returns 200 here (application-
-                 * level errors go through grpc-status in Trailers, not
-                 * :status). A non-200 :status means something below the
-                 * gRPC layer went wrong -- e.g. a misbehaving proxy/load
-                 * balancer -- and the eventual Trailers (if any even
-                 * follow) should not be trusted as a real gRPC response.
-                 *
-                 * Read the full block -- reassembling across CONTINUATION
-                 * frames if END_HEADERS is not set on this HEADERS frame
-                 * (RFC 7540 S6.10) -- into a stack buffer (same 128-byte
-                 * budget used for Trailers; Response-Headers for this
-                 * client's small, fixed request set are not expected to
-                 * exceed this).
-                 */
+                /* Response-Headers (no END_STREAM): validate :status and
+                 * diagnose content-type before continuing. */
                 uint8_t headers_buf[128U] = { 0U };
                 size_t to_read_h = 0U;
                 el2go_ota_status_t block_status = EL2GO_OTA_ERROR_INTERNAL;
@@ -2109,15 +2028,8 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
             }
             break;
 
-        /*
-         * RST_STREAM: server terminated one stream. Stream-specific (RFC
-         * 7540 S6.4): a stray RST_STREAM for a stream other than the one
-         * this call opened (e.g. a late RST for a prior call that this
-         * client already finished processing) does not affect the current
-         * call and must not abort it -- drain and ignore. An RST_STREAM for
-         * the active stream is treated as before (reported as a network
-         * error).
-         */
+        /* RST_STREAM: stray (prior call) -- drain and ignore;
+         * active stream -- report as a network error. */
         case H2_TYPE_RST_STREAM:
             if (!is_active_stream) {
                 EL2GO_DBG_PRINTF(VERBOSE,
@@ -2136,17 +2048,10 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
                 }
                 break;
             }
-            /*
-             * RST_STREAM on the active stream: read its Error Code (RFC
-             * 7540 S6.4 -- a 4-byte field, the frame's entire payload in a
-             * conformant implementation) for diagnostics, then drain any
-             * remaining bytes before returning. The HTTP/2 connection
-             * (ctx->tls_ctx) is reused across send()/recv() calls on
-             * subsequent downloads, so leaving any of this frame's bytes
-             * unread would desync the next frame header read on the very
-             * next call -- unread bytes would be misinterpreted as (part
-             * of) the next frame header.
-             */
+            /* RST_STREAM on the active stream: read the Error Code for
+             * diagnostics and drain any remaining bytes. The connection is
+             * reused across calls -- leaving bytes unread would desync the
+             * next frame-header read. */
             {
                 uint8_t err_code_buf[4] = { 0U };
                 uint32_t h2_err_code = 0U;
@@ -2188,19 +2093,8 @@ static el2go_ota_status_t grpc_recv(el2go_ota_transport_t *t, uint8_t *buf, size
             }
             return EL2GO_OTA_ERROR_NETWORK;
 
-        /*
-         * GOAWAY: server terminated the whole connection. Always
-         * connection-level (stream_id 0, RFC 7540 S6.8) regardless of which
-         * stream is active, so it is never ignored based on stream_id.
-         *
-         * Payload layout (RFC 7540 S6.8): 4-byte Last-Stream-ID, 4-byte
-         * Error Code, then optional Additional Debug Data. Read the Error
-         * Code for diagnostics and drain the rest (including any debug
-         * data) before returning -- this connection is about to be torn
-         * down by the caller on a NETWORK error, but draining here is kept
-         * for consistency with every other frame type in this function
-         * and to avoid ever leaving unread bytes on the wire.
-         */
+        /* GOAWAY: server terminated the connection. Read the Error Code
+         * for diagnostics and drain remaining bytes before returning. */
         case H2_TYPE_GOAWAY: {
             uint8_t goaway_hdr[8] = { 0U };
             uint32_t h2_err_code = 0U;

@@ -108,6 +108,12 @@ if(CONFIG_EL2GO_RTP_PSA_BACKEND_TFM)
     set(NXP_IOT_AGENT_HAVE_PSA_IMPL_TFM 1)
 endif()
 
+# Platform key registration: the strong el2go_platform_register_el2go_key() is compiled in
+# only when requested; otherwise the weak default in libs/platforms/els_pkc is used.
+if(CONFIG_EL2GO_RTP_PLATFORM_KEY_REGISTRATION)
+    set(EL2GO_PLATFORM_KEY_REGISTRATION 1)
+endif()
+
 # ---------------------------------------------------------------------------
 # Shared public include root -- resolves <ota/...> and <fwual/...> headers.
 # ---------------------------------------------------------------------------

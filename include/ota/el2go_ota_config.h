@@ -28,16 +28,16 @@
  *   - gRPC message size: the OTA server enforces the standard gRPC default
  *     max message size of 4 MiB (see FetchFile in ota-delivery.proto). A
  *     chunk request/response larger than this is rejected by the server.
- *   - HTTP/2 frame size: el2go_ota_grpc.c (the gRPC/HTTP2 transport backend)
- *     assumes one HTTP/2 DATA frame always carries one whole gRPC message
- *     -- it does not reassemble a message split across multiple DATA
- *     frames, nor split an outgoing message across frames. Therefore
- *     (EL2GO_OTA_CHUNK_SIZE + EL2GO_OTA_WIRE_OVERHEAD) MUST stay at or
- *     below the default HTTP/2 SETTINGS_MAX_FRAME_SIZE of 16384 bytes
- *     (RFC 7540 S6.5.2). This is an accepted, intentional limitation of
- *     the current transport implementation; EL2GO_OTA_CHUNK_SIZE is not
- *     expected to grow past this ceiling. See the compile-time guard in
- *     el2go_ota_download_engine.c.
+ *   - HTTP/2 frame size: the gRPC/HTTP2 transport backend (el2go_ota_grpc.c)
+ *     reassembles a received gRPC message that the server -- or a proxy such
+ *     as Envoy -- split across several DATA frames, at any byte boundary of
+ *     the 5-byte message prefix or of the body. It does NOT split an
+ *     outgoing message: grpc_send() writes each request as a single DATA
+ *     frame, which must fit the peer's SETTINGS_MAX_FRAME_SIZE (default
+ *     16384 bytes, RFC 7540 S6.5.2). As a conservative guard,
+ *     (EL2GO_OTA_CHUNK_SIZE + EL2GO_OTA_WIRE_OVERHEAD) is kept at or below
+ *     that default so a message normally travels in one frame. See the
+ *     compile-time guard in el2go_ota_download_engine.c.
  *   - Stack budget: the wire buffer sized off this value is stack-allocated
  *     in el2go_ota_download_engine.c (not heap). Raising this value grows
  *     the stack usage of whatever RTOS thread calls into the download

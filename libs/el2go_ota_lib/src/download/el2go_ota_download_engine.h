@@ -59,9 +59,14 @@ __export el2go_ota_status_t el2go_ota_download_engine_check_for_updates(
  *                             size is learned reactively from the first server
  *                             response (fallback for resume paths with no prior
  *                             check_for_updates() in the current session).
+ *                             When > 0 and resume_offset equals it, nothing is fetched
+ *                             (SUCCESS, 0 bytes delivered); when resume_offset exceeds
+ *                             it, INVALID_PARAM is returned and nothing is sent.
  * @param[in] chunk_cb         Chunk delivery callback. Guaranteed non-NULL by caller.
  * @param[in] cb_ctx           Opaque context for chunk_cb. May be NULL.
  * @retval EL2GO_OTA_SUCCESS on success.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM on a NULL argument, or if known_file_size > 0 and
+ *         resume_offset > known_file_size.
  * @retval EL2GO_OTA_ERROR_ENCODE on encoding failure (not retried).
  * @retval EL2GO_OTA_ERROR_NETWORK on unrecoverable network failure after retries.
  * @retval EL2GO_OTA_ERROR_DECODE on decoding failure (not retried).

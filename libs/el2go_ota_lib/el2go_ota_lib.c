@@ -20,6 +20,10 @@
 #include "el2go_ota_status_reporting.h"
 #include "debug.h"
 
+/* Maximum total file entries cached across all updates/packages from check_for_updates(). */
+#define EL2GO_OTA_MAX_CACHED_FILES \
+    (EL2GO_OTA_MAX_UPDATES * EL2GO_OTA_MAX_PACKAGES * EL2GO_OTA_MAX_FILE_METADATA)
+
 /*
  * Minimal internal cache entry: only the two fields needed for known_file_size
  * lookup (file_id + size).  Using the full el2go_ota_file_metadata_t would pull
@@ -31,19 +35,15 @@ typedef struct {
     int64_t size;                            /**< File size in bytes. */
 } el2go_ota_file_size_cache_t;
 
-/* Maximum total file entries cached across all updates/packages from check_for_updates(). */
-#define EL2GO_OTA_MAX_CACHED_FILES \
-    (EL2GO_OTA_MAX_UPDATES * EL2GO_OTA_MAX_PACKAGES * EL2GO_OTA_MAX_FILE_METADATA)
-
 struct el2go_ota_ctx {
     bool connected;                     /**< True when mTLS connection is open. */
     el2go_ota_tls_ctx_t *tls_ctx;       /**< Underlying TLS context. */
     el2go_platform_ctx_t *platform_ctx; /**< Platform context -- owned for lifetime of ctx. */
     el2go_ota_transport_t transport;    /**< Transport vtable -- initialised at connect time. */
     const char *hostname; /**< Server hostname -- points into user config (not owned). */
-    /** File size cache populated by the most recent successful check_for_updates() call. */
-    el2go_ota_file_size_cache_t cached_files[EL2GO_OTA_MAX_CACHED_FILES];
-    size_t cached_file_count; /**< Number of valid entries in cached_files[]. */
+    el2go_ota_file_size_cache_t cached_files
+        [EL2GO_OTA_MAX_CACHED_FILES]; /**< File size cache; populated by check_for_updates(). */
+    size_t cached_file_count;         /**< Number of valid entries in cached_files[]. */
 };
 
 /**

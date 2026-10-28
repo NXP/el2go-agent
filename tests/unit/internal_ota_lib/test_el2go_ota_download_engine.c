@@ -384,6 +384,67 @@ static bool test_ota_fetch_resume_in_last_chunk_clamped(void *params)
     return true;
 }
 
+/**
+ * @brief 9.15 -- resume_offset equal to the known file size.
+ *
+ * Everything has already been delivered, so the engine must return SUCCESS
+ * without sending any request (a request would carry range_end < range_start).
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_fetch_resume_at_file_size_no_request(void *params)
+{
+    (void)params;
+
+    int64_t file_size = (int64_t)(2U * EL2GO_OTA_CHUNK_SIZE);
+
+    g_mock_send_call_count = 0;
+
+    el2go_ota_transport_t t = { 0 };
+    t.send = mock_send_capture_range;
+    t.recv = mock_recv_empty_eof;
+
+    el2go_ota_status_t s = el2go_ota_download_engine_fetch_package(
+        &t, "upd", "pkg", "file", (size_t)file_size, file_size, ota_fixture_noop_chunk_cb, NULL);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, s);
+    TEST_ASSERT_EQUAL(0, g_mock_send_call_count);
+
+    return true;
+}
+
+/**
+ * @brief 9.16 -- resume_offset beyond the known file size.
+ *
+ * The caller state is inconsistent, so the engine must return INVALID_PARAM
+ * without sending any request.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_fetch_resume_beyond_file_size_invalid(void *params)
+{
+    (void)params;
+
+    int64_t file_size = (int64_t)(2U * EL2GO_OTA_CHUNK_SIZE);
+
+    g_mock_send_call_count = 0;
+
+    el2go_ota_transport_t t = { 0 };
+    t.send = mock_send_capture_range;
+    t.recv = mock_recv_empty_eof;
+
+    el2go_ota_status_t s =
+        el2go_ota_download_engine_fetch_package(&t, "upd", "pkg", "file", (size_t)file_size + 1U,
+                                                file_size, ota_fixture_noop_chunk_cb, NULL);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, s);
+    TEST_ASSERT_EQUAL(0, g_mock_send_call_count);
+
+    return true;
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_download_engine_tests(void)
@@ -402,4 +463,6 @@ void register_ota_lib_download_engine_tests(void)
     TEST_REGISTER_ID("9.12", test_ota_fetch_exact_chunk_multiple_eof);
     TEST_REGISTER_ID("9.13", test_ota_fetch_small_file_range_clamped);
     TEST_REGISTER_ID("9.14", test_ota_fetch_resume_in_last_chunk_clamped);
+    TEST_REGISTER_ID("9.15", test_ota_fetch_resume_at_file_size_no_request);
+    TEST_REGISTER_ID("9.16", test_ota_fetch_resume_beyond_file_size_invalid);
 }

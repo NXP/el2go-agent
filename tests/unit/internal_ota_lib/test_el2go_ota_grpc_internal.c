@@ -1522,6 +1522,626 @@ static bool test_ota_grpc_recv_continuation_interleaved_ping_rejected(void *para
     return true;
 }
 
+/* ---- DATA-frame (Length-Prefixed-Message) reassembly tests --------------- */
+
+/*
+ * Per the gRPC-over-HTTP2 spec, DATA frame boundaries have no relation to
+ * Length-Prefixed-Message boundaries: a server, or a proxy such as Envoy that
+ * re-frames the upstream response, may split the 5-byte message prefix and/or
+ * the body across any number of DATA frames. The tests below pin the
+ * reassembly behaviour of grpc_recv().
+ */
+
+/** Largest message used by the reassembly tests (keeps the mock RX queue small). */
+#define GRPC_SPLIT_MAX_MSG 80U
+
+/**
+ * @brief Build a gRPC Length-Prefixed-Message (5-byte prefix + body) for the
+ * reassembly tests. The body is a deterministic pattern: body[i] = i*7+3.
+ *
+ * @param[out] wire     Output buffer, at least 5 + body_len bytes.
+ * @param[in]  body_len Body length (<= GRPC_SPLIT_MAX_MSG).
+ * @return Total wire length (5 + body_len).
+ */
+static size_t grpc_split_build_wire(uint8_t *wire, size_t body_len)
+{
+    size_t i = 0U;
+
+    wire[0] = 0x00U; /* uncompressed */
+    wire[1] = (uint8_t)((body_len >> 24U) & 0xFFU);
+    wire[2] = (uint8_t)((body_len >> 16U) & 0xFFU);
+    wire[3] = (uint8_t)((body_len >> 8U) & 0xFFU);
+    wire[4] = (uint8_t)(body_len & 0xFFU);
+    for (i = 0U; i < body_len; i++) {
+        wire[GRPC_MSG_HDR_LEN + i] = (uint8_t)(i * 7U + 3U);
+    }
+    return GRPC_MSG_HDR_LEN + body_len;
+}
+
+/**
+ * @brief Queue @p wire as DATA frames on @p stream_id, cut after each offset in
+ * @p cuts (strictly increasing, each < wire_len). The last frame carries
+ * @p last_flags.
+ */
+static void grpc_split_queue_data(const uint8_t *wire, size_t wire_len, const size_t *cuts,
+                                  size_t n_cuts, uint8_t last_flags, uint32_t stream_id)
+{
+    size_t start = 0U;
+    size_t i = 0U;
+
+    for (i = 0U; i <= n_cuts; i++) {
+        size_t end = (i < n_cuts) ? cuts[i] : wire_len;
+
+        queue_frame((uint32_t)(end - start), H2_TYPE_DATA, (i == n_cuts) ? last_flags : 0x00U,
+                    stream_id, &wire[start]);
+        start = end;
+    }
+}
+
+/** Standalone Trailers-Only block: grpc-status literal, value "0" (OK). */
+static const uint8_t k_split_trailer_ok[] = { 0x0BU, 'g', 'r', 'p', 'c', '-',   's',
+                                              't',   'a', 't', 'u', 's', 0x01U, '0' };
+/** Trailer block: grpc-status literal, value "5" (NOT_FOUND). */
+static const uint8_t k_split_trailer_not_found[] = { 0x0BU, 'g', 'r', 'p', 'c', '-',   's',
+                                                     't',   'a', 't', 'u', 's', 0x01U, '5' };
+
+/**
+ * @brief Run one split-message scenario that is expected to succeed.
+ *
+ * Sets up a ready transport, queues the message cut at @p cuts, then (unless
+ * the last DATA frame carries END_STREAM) the OK trailers, and checks that
+ * recv() returns the exact original body.
+ */
+static bool grpc_split_run_ok(size_t body_len, const size_t *cuts, size_t n_cuts,
+                              uint8_t last_flags)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+    size_t wire_len = grpc_split_build_wire(wire, body_len);
+
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    grpc_split_queue_data(wire, wire_len, cuts, n_cuts, last_flags, 1U);
+    if ((last_flags & H2_FLAG_END_STREAM) == 0U) {
+        queue_frame((uint32_t)sizeof(k_split_trailer_ok), H2_TYPE_HEADERS,
+                    H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 1U, k_split_trailer_ok);
+    }
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL((int)body_len, (int)out_len);
+    TEST_ASSERT_MEMORY_EQUAL(&wire[GRPC_MSG_HDR_LEN], recv_buf, body_len);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/** @brief Prefix split 1+4: the first DATA frame carries only the compressed-flag byte. */
+static bool test_ota_grpc_recv_data_prefix_split_1_4(void *params)
+{
+    static const size_t cuts[] = { 1U };
+
+    (void)params;
+    return grpc_split_run_ok(40U, cuts, 1U, 0x00U);
+}
+
+/** @brief Prefix split 3+2: the cut lands inside the 4-byte length field. */
+static bool test_ota_grpc_recv_data_prefix_split_3_2(void *params)
+{
+    static const size_t cuts[] = { 3U };
+
+    (void)params;
+    return grpc_split_run_ok(40U, cuts, 1U, 0x00U);
+}
+
+/** @brief Prefix alone in the first DATA frame, whole body in the second. */
+static bool test_ota_grpc_recv_data_prefix_and_body_separate_frames(void *params)
+{
+    static const size_t cuts[] = { GRPC_MSG_HDR_LEN };
+
+    (void)params;
+    return grpc_split_run_ok(40U, cuts, 1U, 0x00U);
+}
+
+/** @brief Body split across two DATA frames (prefix + first part, then the rest). */
+static bool test_ota_grpc_recv_data_body_split_two_frames(void *params)
+{
+    static const size_t cuts[] = { GRPC_MSG_HDR_LEN + 15U };
+
+    (void)params;
+    return grpc_split_run_ok(40U, cuts, 1U, 0x00U);
+}
+
+/** @brief Several fragments with cuts inside both the prefix and the body. */
+static bool test_ota_grpc_recv_data_split_many_fragments(void *params)
+{
+    static const size_t cuts[] = { 2U, 7U, GRPC_MSG_HDR_LEN + 20U };
+
+    (void)params;
+    return grpc_split_run_ok(40U, cuts, 3U, 0x00U);
+}
+
+/**
+ * @brief One byte per DATA frame, with more frames than GRPC_RECV_MAX_FRAMES.
+ *
+ * Guards the progress-based reset of the frame-iteration budget: a valid
+ * message must not be rejected merely because it arrives in many fragments.
+ */
+static bool test_ota_grpc_recv_data_one_byte_frames_exceed_frame_cap(void *params)
+{
+    size_t cuts[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    size_t body_len = 70U;
+    size_t total = GRPC_MSG_HDR_LEN + body_len;
+    size_t i = 0U;
+
+    (void)params;
+    TEST_ASSERT(total > GRPC_RECV_MAX_FRAMES);
+    for (i = 0U; i + 1U < total; i++) {
+        cuts[i] = i + 1U;
+    }
+    return grpc_split_run_ok(body_len, cuts, total - 1U, 0x00U);
+}
+
+/** @brief Split message whose last DATA frame carries END_STREAM (no separate trailers). */
+static bool test_ota_grpc_recv_data_split_end_stream_on_last_data(void *params)
+{
+    static const size_t cuts[] = { GRPC_MSG_HDR_LEN + 15U };
+
+    (void)params;
+    return grpc_split_run_ok(40U, cuts, 1U, H2_FLAG_END_STREAM);
+}
+
+/** @brief PING and WINDOW_UPDATE frames interleaved between the DATA fragments. */
+static bool test_ota_grpc_recv_data_split_with_interleaved_control_frames(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+    static const uint8_t ping_payload[H2_PING_PAYLOAD_LEN] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+    static const uint8_t window_payload[4] = { 0x00U, 0x00U, 0xFFU, 0xFFU };
+    size_t wire_len = grpc_split_build_wire(wire, 40U);
+    size_t cut_a = 3U;
+    size_t cut_b = GRPC_MSG_HDR_LEN + 15U;
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame((uint32_t)cut_a, H2_TYPE_DATA, 0x00U, 1U, &wire[0]);
+    queue_frame(H2_PING_PAYLOAD_LEN, H2_TYPE_PING, 0x00U, 0U, ping_payload);
+    queue_frame((uint32_t)(cut_b - cut_a), H2_TYPE_DATA, 0x00U, 1U, &wire[cut_a]);
+    queue_frame(4U, H2_TYPE_WINDOW_UPDATE, 0x00U, 0U, window_payload);
+    queue_frame((uint32_t)(wire_len - cut_b), H2_TYPE_DATA, 0x00U, 1U, &wire[cut_b]);
+    queue_frame((uint32_t)sizeof(k_split_trailer_ok), H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 1U, k_split_trailer_ok);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(40, (int)out_len);
+    TEST_ASSERT_MEMORY_EQUAL(&wire[GRPC_MSG_HDR_LEN], recv_buf, 40U);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/** @brief A legal empty DATA frame (no END_STREAM) before the message must be ignored. */
+static bool test_ota_grpc_recv_data_leading_empty_frame(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+    size_t wire_len = grpc_split_build_wire(wire, 12U);
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame(0U, H2_TYPE_DATA, 0x00U, 1U, NULL);
+    queue_frame((uint32_t)wire_len, H2_TYPE_DATA, 0x00U, 1U, wire);
+    queue_frame((uint32_t)sizeof(k_split_trailer_ok), H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 1U, k_split_trailer_ok);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(12, (int)out_len);
+    TEST_ASSERT_MEMORY_EQUAL(&wire[GRPC_MSG_HDR_LEN], recv_buf, 12U);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/** @brief Zero-length message whose 5-byte prefix is split across two frames. */
+static bool test_ota_grpc_recv_data_zero_length_message_prefix_split(void *params)
+{
+    static const size_t cuts[] = { 2U };
+
+    (void)params;
+    return grpc_split_run_ok(0U, cuts, 1U, 0x00U);
+}
+
+/**
+ * @brief The stream ends (END_STREAM on DATA) before the announced message
+ * length was delivered. Must fail with NETWORK, never report a short message
+ * as success.
+ */
+static bool test_ota_grpc_recv_data_truncated_message_end_stream(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+
+    (void)params;
+    (void)grpc_split_build_wire(wire, 40U); /* announces 40 bytes... */
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* ...but only 10 body bytes arrive before END_STREAM. */
+    queue_frame(GRPC_MSG_HDR_LEN + 10U, H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, wire);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(0, (int)out_len);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Trailers with grpc-status 0 arrive while the message is still
+ * incomplete. Must fail with NETWORK, not report success with a partial body.
+ */
+static bool test_ota_grpc_recv_data_trailers_before_message_complete(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+
+    (void)params;
+    (void)grpc_split_build_wire(wire, 40U);
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame(GRPC_MSG_HDR_LEN + 10U, H2_TYPE_DATA, 0x00U, 1U, wire);
+    queue_frame((uint32_t)sizeof(k_split_trailer_ok), H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 1U, k_split_trailer_ok);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(0, (int)out_len);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief A non-zero grpc-status in the trailers still wins over the
+ * incomplete-message check: the server's error code must be reported.
+ */
+static bool test_ota_grpc_recv_data_nonzero_status_before_message_complete(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+
+    (void)params;
+    (void)grpc_split_build_wire(wire, 40U);
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame(GRPC_MSG_HDR_LEN + 10U, H2_TYPE_DATA, 0x00U, 1U, wire);
+    queue_frame((uint32_t)sizeof(k_split_trailer_not_found), H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 1U, k_split_trailer_not_found);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief The announced length exceeds the caller's buffer, with the prefix
+ * split across frames. Must fail with INTERNAL and must not write past buf.
+ */
+static bool test_ota_grpc_recv_data_split_prefix_oversize_length_rejected(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[8] = { 0U };
+    size_t out_len = 0U;
+    size_t wire_len = grpc_split_build_wire(wire, 40U); /* 40 > sizeof(recv_buf) */
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame(3U, H2_TYPE_DATA, 0x00U, 1U, wire);
+    queue_frame((uint32_t)(wire_len - 3U), H2_TYPE_DATA, 0x00U, 1U, &wire[3]);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INTERNAL, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(0, (int)out_len);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/** @brief The compressed flag (first prefix byte) is still rejected when the prefix is split. */
+static bool test_ota_grpc_recv_data_split_compressed_flag_rejected(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+    size_t wire_len = grpc_split_build_wire(wire, 40U);
+
+    (void)params;
+    wire[0] = 0x01U; /* compressed */
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame(2U, H2_TYPE_DATA, 0x00U, 1U, wire);
+    queue_frame((uint32_t)(wire_len - 2U), H2_TYPE_DATA, 0x00U, 1U, &wire[2]);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Two consecutive calls on the SAME connection: the first response is
+ * split, the second is whole. Confirms the reassembly leaves the TLS stream
+ * frame-aligned (no leftover bytes) so the second call, on stream 3, decodes
+ * correctly.
+ */
+static bool test_ota_grpc_recv_data_split_then_whole_on_same_connection(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    static const uint8_t msg[1] = { 0x01U };
+    uint8_t wire1[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t wire2[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+    size_t len1 = grpc_split_build_wire(wire1, 40U);
+    size_t len2 = grpc_split_build_wire(wire2, 25U);
+    size_t cuts[] = { 2U, GRPC_MSG_HDR_LEN + 10U };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* Round 1 (stream 1): split message + OK trailers. */
+    grpc_split_queue_data(wire1, len1, cuts, 2U, 0x00U, 1U);
+    queue_frame((uint32_t)sizeof(k_split_trailer_ok), H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 1U, k_split_trailer_ok);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(40, (int)out_len);
+    TEST_ASSERT_MEMORY_EQUAL(&wire1[GRPC_MSG_HDR_LEN], recv_buf, 40U);
+
+    /* Round 2 (stream 3): whole message + OK trailers. */
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.send(&t, "/pkg.Svc/Method", msg, sizeof(msg)));
+    queue_frame((uint32_t)len2, H2_TYPE_DATA, 0x00U, 3U, wire2);
+    queue_frame((uint32_t)sizeof(k_split_trailer_ok), H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 3U, k_split_trailer_ok);
+    (void)memset(recv_buf, 0, sizeof(recv_buf));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(25, (int)out_len);
+    TEST_ASSERT_MEMORY_EQUAL(&wire2[GRPC_MSG_HDR_LEN], recv_buf, 25U);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Behaviour-preservation: two complete messages in two separate DATA
+ * frames (not valid for a unary call, but previously tolerated). The LAST
+ * message is returned, exactly as before the reassembly change.
+ */
+static bool test_ota_grpc_recv_data_two_messages_last_wins(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire1[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t wire2[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+    size_t len1 = grpc_split_build_wire(wire1, 10U);
+    size_t len2 = grpc_split_build_wire(wire2, 7U);
+
+    (void)params;
+    wire2[GRPC_MSG_HDR_LEN] ^= 0x5AU; /* make the second body distinguishable */
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame((uint32_t)len1, H2_TYPE_DATA, 0x00U, 1U, wire1);
+    queue_frame((uint32_t)len2, H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, wire2);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(7, (int)out_len);
+    TEST_ASSERT_MEMORY_EQUAL(&wire2[GRPC_MSG_HDR_LEN], recv_buf, 7U);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief A DATA frame shorter than the 5-byte prefix that ends the stream
+ * fails with NETWORK, and its bytes are fully drained so the reused
+ * connection stays frame-aligned: a following call on stream 3 succeeds.
+ */
+static bool test_ota_grpc_recv_data_short_frame_drained_no_desync(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    static const uint8_t msg[1] = { 0x01U };
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+    size_t wire_len = grpc_split_build_wire(wire, 12U);
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* Round 1 (stream 1): a 3-byte DATA frame with END_STREAM -> error. */
+    queue_frame(3U, H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, wire);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+
+    /* Round 2 (stream 3): must decode cleanly, proving no leftover bytes. */
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.send(&t, "/pkg.Svc/Method", msg, sizeof(msg)));
+    queue_frame((uint32_t)wire_len, H2_TYPE_DATA, 0x00U, 3U, wire);
+    queue_frame((uint32_t)sizeof(k_split_trailer_ok), H2_TYPE_HEADERS,
+                H2_FLAG_END_HEADERS | H2_FLAG_END_STREAM, 3U, k_split_trailer_ok);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(12, (int)out_len);
+    TEST_ASSERT_MEMORY_EQUAL(&wire[GRPC_MSG_HDR_LEN], recv_buf, 12U);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief A complete message followed by an empty DATA frame carrying
+ * END_STREAM (some HTTP/2 stacks end a stream this way instead of using
+ * trailers on the last data frame). The message must be kept.
+ */
+static bool test_ota_grpc_recv_data_message_then_empty_end_stream(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t wire[GRPC_MSG_HDR_LEN + GRPC_SPLIT_MAX_MSG] = { 0U };
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG + 8U] = { 0U };
+    size_t out_len = 0U;
+    size_t wire_len = grpc_split_build_wire(wire, 20U);
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    queue_frame((uint32_t)wire_len, H2_TYPE_DATA, 0x00U, 1U, wire);
+    queue_frame(0U, H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, NULL);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(20, (int)out_len);
+    TEST_ASSERT_MEMORY_EQUAL(&wire[GRPC_MSG_HDR_LEN], recv_buf, 20U);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief Queue @p count single-byte-body gRPC messages, one per DATA frame, on stream 1.
+ *
+ * Message i carries the body byte (uint8_t)i. Only the last frame carries END_STREAM, so
+ * the stream stays open for the earlier ones.
+ */
+static void grpc_queue_tiny_messages(size_t count)
+{
+    uint8_t wire[GRPC_MSG_HDR_LEN + 1U] = { 0x00U, 0x00U, 0x00U, 0x00U, 0x01U, 0x00U };
+    size_t i = 0U;
+
+    for (i = 0U; i < count; i++) {
+        wire[GRPC_MSG_HDR_LEN] = (uint8_t)i;
+        queue_frame((uint32_t)sizeof(wire), H2_TYPE_DATA,
+                    (i + 1U == count) ? H2_FLAG_END_STREAM : 0x00U, 1U, wire);
+    }
+}
+
+/**
+ * @brief More complete messages than the budget allows on one unary call are rejected.
+ *
+ * Later messages overwrite earlier ones (see the "last wins" test), but a peer must not be
+ * able to keep grpc_recv() looping by sending small complete messages: progress resets the
+ * idle-frame budget, so the number of messages is bounded separately. The stream ends
+ * cleanly with END_STREAM, so only the message bound can reject it.
+ */
+static bool test_ota_grpc_recv_data_too_many_messages_rejected(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG] = { 0U };
+    size_t out_len = 0U;
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    /* One message more than the first plus GRPC_RECV_MAX_FRAMES restarts allows. */
+    grpc_queue_tiny_messages((size_t)GRPC_RECV_MAX_FRAMES + 2U);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief The largest accepted number of messages still succeeds, and the last one wins.
+ *
+ * Pins the boundary of the message bound: the first message plus GRPC_RECV_MAX_FRAMES
+ * restarts is tolerated, exactly as before the bound existed.
+ */
+static bool test_ota_grpc_recv_data_max_messages_last_wins(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t recv_buf[GRPC_SPLIT_MAX_MSG] = { 0U };
+    size_t out_len = 0U;
+    size_t count = (size_t)GRPC_RECV_MAX_FRAMES + 1U;
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+
+    grpc_queue_tiny_messages(count);
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.recv(&t, recv_buf, sizeof(recv_buf), &out_len));
+    TEST_ASSERT_EQUAL(1, (int)out_len);
+    TEST_ASSERT_EQUAL((int)(uint8_t)(count - 1U), (int)recv_buf[0]);
+
+    if (t.deinit != NULL) {
+        t.deinit(&t);
+    }
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_grpc_tests(void)
@@ -1580,4 +2200,38 @@ void register_ota_lib_grpc_tests(void)
     TEST_REGISTER_ID_WITH_PARAMS("14.41", test_ota_grpc_recv_trailers_split_three_frames, NULL);
     TEST_REGISTER_ID_WITH_PARAMS("14.42", test_ota_grpc_recv_continuation_interleaved_ping_rejected,
                                  NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.43", test_ota_grpc_recv_data_prefix_split_1_4, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.44", test_ota_grpc_recv_data_prefix_split_3_2, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.45", test_ota_grpc_recv_data_prefix_and_body_separate_frames,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.46", test_ota_grpc_recv_data_body_split_two_frames, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.47", test_ota_grpc_recv_data_split_many_fragments, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.48", test_ota_grpc_recv_data_one_byte_frames_exceed_frame_cap,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.49", test_ota_grpc_recv_data_split_end_stream_on_last_data,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS(
+        "14.50", test_ota_grpc_recv_data_split_with_interleaved_control_frames, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.51", test_ota_grpc_recv_data_leading_empty_frame, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.52", test_ota_grpc_recv_data_zero_length_message_prefix_split,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.53", test_ota_grpc_recv_data_truncated_message_end_stream,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.54", test_ota_grpc_recv_data_trailers_before_message_complete,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS(
+        "14.55", test_ota_grpc_recv_data_nonzero_status_before_message_complete, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS(
+        "14.56", test_ota_grpc_recv_data_split_prefix_oversize_length_rejected, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.57", test_ota_grpc_recv_data_split_compressed_flag_rejected,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.58",
+                                 test_ota_grpc_recv_data_split_then_whole_on_same_connection, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.59", test_ota_grpc_recv_data_two_messages_last_wins, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.60", test_ota_grpc_recv_data_short_frame_drained_no_desync,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.61", test_ota_grpc_recv_data_message_then_empty_end_stream,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.62", test_ota_grpc_recv_data_too_many_messages_rejected, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.63", test_ota_grpc_recv_data_max_messages_last_wins, NULL);
 }

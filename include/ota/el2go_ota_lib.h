@@ -278,6 +278,9 @@ el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go
  * @param[in] package_id     Package identifier string. Must not be NULL.
  * @param[in] file_id        File identifier string. Must not be NULL.
  * @param[in] resume_offset  Byte offset to resume from (0 = start fresh).
+ *                           If it equals the file size reported by the last
+ *                           check_for_updates() call, nothing is fetched and
+ *                           EL2GO_OTA_SUCCESS is returned.
  * @param[in] chunk_cb       Callback invoked for each received data chunk.
  *                           Must not be NULL. Returning a non-zero status
  *                           aborts the download immediately.
@@ -285,7 +288,8 @@ el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go
  *
  * @retval EL2GO_OTA_SUCCESS on success.
  * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx, update_id, package_id, or
- *         chunk_cb is NULL.
+ *         chunk_cb is NULL, or if resume_offset exceeds the file size reported by
+ *         the last check_for_updates() call.
  * @retval EL2GO_OTA_ERROR_NETWORK if not connected or a network error occurs
  *         after all retries.
  * @retval EL2GO_OTA_ERROR_ENCODE if request encoding fails.
