@@ -591,7 +591,7 @@ static size_t hpack_huffman_decode(const uint8_t *data, size_t data_len, uint8_t
     while (bit_pos < total_bits) {
         size_t byte_idx = bit_pos / 8U;
         uint8_t bit_idx = (uint8_t)(7U - (bit_pos % 8U));
-        uint8_t bit = (uint8_t)((data[byte_idx] >> bit_idx) & 0x01U);
+        uint32_t bit = ((uint32_t)(uint8_t)data[byte_idx] >> (uint32_t)bit_idx) & 0x01U;
         bool found = false;
         uint32_t sym = 0U;
 
@@ -655,7 +655,7 @@ static size_t hpack_huffman_decode(const uint8_t *data, size_t data_len, uint8_t
 static bool hpack_decode_integer(const uint8_t *block, size_t block_len, size_t *pos,
                                  uint8_t prefix_bits, uint32_t *out_value)
 {
-    uint32_t mask = (uint32_t)((1UL << prefix_bits) - 1UL);
+    uint32_t mask = (1U << prefix_bits) - 1U;
     uint32_t value = 0U;
     uint8_t shift = 0U;
 
@@ -715,7 +715,7 @@ static bool hpack_skip_string(const uint8_t *block, size_t block_len, size_t *po
     if (!hpack_decode_integer(block, block_len, pos, 7U, &str_len)) {
         return false;
     }
-    if ((size_t)str_len > block_len - *pos) {
+    if (*pos > block_len || (size_t)str_len > block_len - *pos) {
         return false;
     }
     *pos += (size_t)str_len;
@@ -757,7 +757,7 @@ static bool hpack_decode_string_bounded(const uint8_t *block, size_t block_len, 
     if (!hpack_decode_integer(block, block_len, pos, 7U, &str_len)) {
         return false;
     }
-    if ((size_t)str_len > block_len - *pos) {
+    if (*pos > block_len || (size_t)str_len > block_len - *pos) {
         return false;
     }
     start = *pos;
@@ -1294,7 +1294,7 @@ static el2go_ota_status_t h2_parse_and_drain_settings_payload(grpc_ctx_t *ctx, u
     size_t n_read = 0U;
 
     while (remaining >= H2_SETTINGS_PARAM_LEN) {
-        uint16_t param_id = 0U;
+        uint32_t param_id = 0U;
         uint32_t param_value = 0U;
 
         s = el2go_ota_tls_read(ctx->tls_ctx, param, sizeof(param), &n_read);
@@ -1303,7 +1303,7 @@ static el2go_ota_status_t h2_parse_and_drain_settings_payload(grpc_ctx_t *ctx, u
         }
         remaining -= (uint32_t)n_read;
 
-        param_id = (uint16_t)(((uint16_t)param[0] << 8U) | (uint16_t)param[1]);
+        param_id = ((uint32_t)param[0] << 8U) | (uint32_t)param[1];
         param_value = ((uint32_t)param[2] << 24U) | ((uint32_t)param[3] << 16U) |
                       ((uint32_t)param[4] << 8U) | (uint32_t)param[5];
 
@@ -1652,6 +1652,11 @@ static el2go_ota_status_t grpc_read_header_block(grpc_ctx_t *ctx, uint32_t strea
             written += n_read;
         }
         overflow = (size_t)pay_len - to_read;
+        /* pay_len is a 24-bit HTTP/2 frame-length field; overflow cannot legally exceed
+         * 0xFFFFFF bytes. Reject anything larger as a protocol violation. */
+        if (overflow > 0xFFFFFFU) {
+            return EL2GO_OTA_ERROR_NETWORK;
+        }
         while (overflow > 0U) {
             size_t to_drain = (overflow > sizeof(tmp)) ? sizeof(tmp) : overflow;
             s = el2go_ota_tls_read(ctx->tls_ctx, tmp, to_drain, &n_read);

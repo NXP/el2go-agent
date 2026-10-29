@@ -140,7 +140,7 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
      * (e.g. a stale offset). Fail early instead of sending an out-of-range or
      * inverted range request.
      */
-    if (total_file_size > 0 && (int64_t)resume_offset > total_file_size) {
+    if (total_file_size > 0 && (uint64_t)resume_offset > (uint64_t)total_file_size) {
         EL2GO_DBG_PRINTF(ERROR, "fetch_package: resume_offset %zu is beyond file size %lld\n",
                          resume_offset, (long long)total_file_size);
         status = EL2GO_OTA_ERROR_INVALID_PARAM;
@@ -156,7 +156,7 @@ el2go_ota_status_t el2go_ota_download_engine_fetch_package(
          * Nothing left to fetch: the whole file has been delivered already.
          * Avoid building a range with range_end < range_start.
          */
-        if (total_file_size > 0 && (int64_t)byte_offset >= total_file_size) {
+        if (total_file_size > 0 && (uint64_t)byte_offset >= (uint64_t)total_file_size) {
             EL2GO_DBG_PRINTF(INFO, "fetch_package: no bytes left to fetch\n");
             done = true;
             break;
@@ -265,7 +265,7 @@ handle_network_error:
 
         /* Short read or exhausted known size signals end of file. */
         if (resp.data_len < EL2GO_OTA_CHUNK_SIZE ||
-            (total_file_size > 0 && (int64_t)byte_offset >= total_file_size)) {
+            (total_file_size > 0 && (uint64_t)byte_offset >= (uint64_t)total_file_size)) {
             EL2GO_DBG_PRINTF(INFO, "fetch_package: last chunk received\n");
             done = true;
         }
