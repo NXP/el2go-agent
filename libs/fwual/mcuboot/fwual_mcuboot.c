@@ -638,7 +638,10 @@ __export fwual_result_t fwual_prepare_image(fwual_session_t *session,
     result = fwual_nvs_write_state(FWUAL_UPDATE_STATE_IMAGE_PREPARED);
     if (result != FWUAL_OK) {
         EL2GO_DBG_PRINTF(ERROR, "fwual_nvs_write_state(IMAGE_PREPARED) failed: %d\n", (int)result);
-        fwual_mcuboot_cancel_slot(slot_index);
+        if (fwual_mcuboot_cancel_slot(slot_index) != FWUAL_OK) {
+            EL2GO_DBG_PRINTF(ERROR, "fwual_prepare_image: cancel_slot(%u) failed (non-fatal)\n",
+                             slot_index);
+        }
         goto exit;
     }
 
@@ -650,6 +653,10 @@ __export fwual_result_t fwual_prepare_image(fwual_session_t *session,
     }
 
     if (new_slot == NULL) {
+        if (s_fwual_state.session.image_count >= FWUAL_MAX_IMAGES) {
+            result = FWUAL_ERR_NO_SPACE;
+            goto exit;
+        }
         new_slot = &s_fwual_state.session.images[s_fwual_state.session.image_count];
         s_fwual_state.session.image_count++;
     }
