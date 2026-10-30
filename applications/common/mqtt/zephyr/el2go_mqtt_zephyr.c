@@ -169,7 +169,7 @@ int mqtt_client_custom_transport_write_msg(struct mqtt_client *client, const str
 {
     int bytes_written = 0;
 
-    for (int i = 0; i < (int)message->msg_iovlen; i++) {
+    for (size_t i = 0U; i < message->msg_iovlen; i++) {
         int rc = mqtt_client_custom_transport_write(client, message->msg_iov[i].iov_base,
                                                     (uint32_t)message->msg_iov[i].iov_len);
         if (rc < 0) {
@@ -468,6 +468,10 @@ static void azureRegistrationCallback(struct mqtt_client *client, const struct m
         const struct mqtt_publish_param *pub = &evt->param.publish;
         const size_t msg_size = pub->message.payload.len;
 
+        if (msg_size == SIZE_MAX) {
+            EL2GO_APP_LOG_ERROR("DPS publish payload too large");
+            break;
+        }
         char *message = k_malloc(msg_size + 1U);
 
         if (message == NULL) {
@@ -806,6 +810,7 @@ static int azureRegister(azure_registration_info_t *reg_info)
 cleanup:
     mqtt_disconnect(&client_ctx, NULL);
     cleanupMQTTClient(&client_ctx);
+    reg_info_p = NULL;
     return rc;
 }
 

@@ -92,7 +92,10 @@ int mbedtls_compat_pk_get_ec_pubkey_raw(const mbedtls_pk_context *pk, uint8_t *b
     if (der_len < 0)
         return der_len;
 
-    p = der_buf + sizeof(der_buf) - der_len;
+    if ((size_t)der_len > sizeof(der_buf))
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+
+    p = der_buf + sizeof(der_buf) - (size_t)der_len;
     end = der_buf + sizeof(der_buf);
 
     /* Skip outer SEQUENCE tag + length */

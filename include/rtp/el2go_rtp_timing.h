@@ -7,6 +7,7 @@
 #ifndef __EL2GO_RTP_TIMING_H__
 #define __EL2GO_RTP_TIMING_H__
 
+#include <stdint.h>
 #include "common/el2go_status.h"
 
 /**
@@ -37,11 +38,11 @@ typedef struct el2go_rtp_ctx el2go_rtp_ctx_t;
  * EL2GO_TIMING_STOP returns). Fields are 0 for phases that did not execute.
  */
 typedef struct {
-    long tls_prep_ms;        /**< Steps 1-7: cert fetch, net_crypto configure,
-                              *   set_server_cert, set_cli_cert, associate_key,
-                              *   set_cipher_suites, set_curves (ms) */
-    long network_connect_ms; /**< Step 8: TCP connect + TLS handshake (ms) */
-    long crl_ms;             /**< CRL fetch + verification; 0 if CRL disabled (ms) */
+    int64_t tls_prep_ms;        /**< Steps 1-7: cert fetch, net_crypto configure,
+                                 *   set_server_cert, set_cli_cert, associate_key,
+                                 *   set_cipher_suites, set_curves (ms) */
+    int64_t network_connect_ms; /**< Step 8: TCP connect + TLS handshake (ms) */
+    int64_t crl_ms;             /**< CRL fetch + verification; 0 if CRL disabled (ms) */
 } el2go_rtp_timing_t;
 
 /**

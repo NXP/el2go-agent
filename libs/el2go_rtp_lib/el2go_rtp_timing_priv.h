@@ -30,10 +30,10 @@
  *              field in el2go_rtp_timing_t and the same token passed to the
  *              corresponding EL2GO_TIMING_STOP call.
  */
-#define EL2GO_TIMING_START(ctx, name)                         \
-    do {                                                      \
-        if ((ctx) != NULL && (ctx)->timing_enabled)           \
-            (ctx)->timing.name##_ms = (long)osal_uptime_ms(); \
+#define EL2GO_TIMING_START(ctx, name)                            \
+    do {                                                         \
+        if ((ctx) != NULL && (ctx)->timing_enabled)              \
+            (ctx)->timing.name##_ms = (int64_t)osal_uptime_ms(); \
     } while (0)
 
 /**
@@ -46,10 +46,11 @@
  * @param ctx   Pointer to an el2go_rtp_ctx_t; NULL is silently ignored.
  * @param name  Same token used in the corresponding EL2GO_TIMING_START call.
  */
-#define EL2GO_TIMING_STOP(ctx, name)                                                               \
-    do {                                                                                           \
-        if ((ctx) != NULL && (ctx)->timing_enabled)                                                \
-            (ctx)->timing.name##_ms = (long)(osal_uptime_ms() - (int64_t)(ctx)->timing.name##_ms); \
+#define EL2GO_TIMING_STOP(ctx, name)                                            \
+    do {                                                                        \
+        if ((ctx) != NULL && (ctx)->timing_enabled)                             \
+            (ctx)->timing.name##_ms =                                           \
+                (int64_t)(osal_uptime_ms() - (int64_t)(ctx)->timing.name##_ms); \
     } while (0)
 
 #endif /* __EL2GO_RTP_TIMING_PRIV_H__ */
