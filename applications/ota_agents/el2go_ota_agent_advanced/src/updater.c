@@ -65,7 +65,7 @@ static void retry_backoff(int attempt, int max_attempts, const char *what)
     }
 
     backoff_ms =
-        (uint32_t)CONFIG_EL2GO_OTA_ADV_RETRY_INITIAL_BACKOFF_S * 1000U * (uint32_t)(1U << exponent);
+        (uint32_t)CONFIG_EL2GO_OTA_ADV_RETRY_INITIAL_BACKOFF_S * 1000U * ((uint32_t)1U << exponent);
 
     if (backoff_ms > EL2GO_OTA_ADV_RETRY_MAX_BACKOFF_MS) {
         backoff_ms = EL2GO_OTA_ADV_RETRY_MAX_BACKOFF_MS;

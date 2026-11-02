@@ -14,6 +14,7 @@
 
 #include "el2go_app_compiler.h"
 #include "el2go_ota_diag.h"
+#include "builtin_macros.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -121,7 +122,7 @@ static int ringbuf_init(void)
 
     /* next write goes to slot after it */
     for (uint32_t i = 0U; i < s_num_records; i++) {
-        rc = flash_area_read(s_fa, (off_t)(i * LOG_RECORD_SIZE), &rec, sizeof(rec));
+        rc = flash_area_read(s_fa, (off_t)i * (off_t)LOG_RECORD_SIZE, &rec, sizeof(rec));
         if (rc != 0) {
             goto flash_close;
         }
@@ -192,19 +193,21 @@ static void ringbuf_append(el2go_ota_diag_level_t level, const char *line, size_
 
     /* erase before first record, on wrap recycles oldest */
     if ((s_write_index % s_records_per_sector) == 0U) {
-        sector_off = (off_t)(s_write_index * LOG_RECORD_SIZE);
+        sector_off = (off_t)s_write_index * (off_t)LOG_RECORD_SIZE;
         if (flash_area_erase(s_fa, sector_off, s_sector_size) != 0) {
             return;
         }
     }
 
-    rec_off = (off_t)(s_write_index * LOG_RECORD_SIZE);
+    rec_off = (off_t)s_write_index * (off_t)LOG_RECORD_SIZE;
     if (flash_area_write(s_fa, rec_off, &rec, sizeof(rec)) != 0) {
         return;
     }
 
     s_write_index = (s_write_index + 1U) % s_num_records;
-    s_next_seq++;
+    if (INC_OVERFLOW(s_next_seq, 1U)) {
+        s_next_seq = 1U;
+    }
 }
 
 /**
@@ -270,9 +273,23 @@ void el2go_ota_diag_dump(void)
     printk("[INFO] ---- diag log dump begin ----\n");
 
     for (uint32_t n = 0U; n < s_num_records; n++) {
-        uint32_t idx = (s_write_index + n) % s_num_records;
+        uint32_t sum = 0U;
+        off_t idx;
 
-        if (flash_area_read(s_fa, (off_t)(idx * LOG_RECORD_SIZE), &rec, sizeof(rec)) != 0) {
+        if (ADD_OVERFLOW(s_write_index, n, &sum)) {
+            continue;
+        }
+        uint32_t rem = sum % s_num_records;
+        if (rem > (uint32_t)LONG_MAX) {
+            continue;
+        }
+        idx = (off_t)rem;
+
+        off_t flash_off;
+        if (MUL_OVERFLOW(idx, (off_t)LOG_RECORD_SIZE, &flash_off)) {
+            continue;
+        }
+        if (flash_area_read(s_fa, flash_off, &rec, sizeof(rec)) != 0) {
             continue;
         }
         if (rec.magic != LOG_RECORD_MAGIC || rec.seq == 0U) {
@@ -283,7 +300,7 @@ void el2go_ota_diag_dump(void)
         }
         rec.text[rec.len] = '\0';
         printk("%s", rec.text);
-        count++;
+        (void)INC_OVERFLOW(count, 1U);
     }
 
     printk("[INFO] ---- diag log dump end (%u records) ----\n", count);
