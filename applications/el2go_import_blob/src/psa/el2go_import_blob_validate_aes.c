@@ -17,6 +17,10 @@ void aes_enc_test(psa_key_type_t key_type, size_t key_id, const psa_algorithm_t 
     size_t ciphertext_length = 0U;
 
     ciphertext = malloc(ciphertext_size);
+    if (ciphertext == NULL) {
+        LOG("\r\n Cipher encrypt failed: out of memory! \r\n");
+        return;
+    }
 
     psa_status = psa_cipher_encrypt(key_id, key_alg, plaintext, sizeof(plaintext), ciphertext,
                                     ciphertext_size, &ciphertext_length);

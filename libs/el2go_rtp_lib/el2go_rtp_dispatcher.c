@@ -82,14 +82,14 @@ static bool response_buffer_write_callback(pb_ostream_t *stream, const pb_byte_t
  * @retval Pointer to the matching endpoint_entry_t on success.
  * @retval NULL if no matching entry exists.
  */
-static endpoint_entry_t *find_endpoint(const dispatcher_ctx_t *disp, nxp_iot_EndpointType type,
+static endpoint_entry_t *find_endpoint(dispatcher_ctx_t *disp, nxp_iot_EndpointType type,
                                        uint32_t id)
 {
     size_t i = 0U;
 
     for (i = 0U; i < disp->num_endpoints; i++) {
         if (disp->endpoints[i].type == type && disp->endpoints[i].id == id)
-            return (endpoint_entry_t *)&disp->endpoints[i];
+            return &disp->endpoints[i];
     }
     return NULL;
 }

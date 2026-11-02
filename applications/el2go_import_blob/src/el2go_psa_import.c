@@ -218,10 +218,10 @@ psa_status_t el2go_psa_import_blobs_from_flash_exp_key_id(const uint8_t *blob_ar
         goto exit;
     }
 
-    uint8_t *blob_ptr = (uint8_t *)blob_area;
+    const uint8_t *blob_ptr = blob_area;
 
     do {
-        uint8_t *blob = blob_ptr;
+        const uint8_t *blob = blob_ptr;
 
         do {
             blob_ptr++;
