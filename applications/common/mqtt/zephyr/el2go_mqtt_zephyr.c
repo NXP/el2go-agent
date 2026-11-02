@@ -26,6 +26,7 @@
 #include <zephyr/net/mqtt.h>
 #include <zephyr/data/json.h>
 #include "psa/crypto.h"
+#include "builtin_macros.h"
 
 #include "net_crypto.h"
 #include "el2go_mqtt.h"
@@ -468,11 +469,13 @@ static void azureRegistrationCallback(struct mqtt_client *client, const struct m
         const struct mqtt_publish_param *pub = &evt->param.publish;
         const size_t msg_size = pub->message.payload.len;
 
-        if (msg_size == SIZE_MAX) {
+        size_t alloc_size = 0U;
+
+        if (ADD_OVERFLOW(msg_size, 1U, &alloc_size)) {
             EL2GO_APP_LOG_ERROR("DPS publish payload too large");
             break;
         }
-        char *message = k_malloc(msg_size + 1U);
+        char *message = k_malloc(alloc_size);
 
         if (message == NULL) {
             EL2GO_APP_LOG_ERROR("OOM for DPS publish payload");
@@ -670,6 +673,10 @@ static int azureRegister(azure_registration_info_t *reg_info)
 {
     static const uint8_t azure_root_ca[] = AZURE_ROOT_SERVER_CERT;
     int rc = 0;
+
+    /* Clear the shared pointer before any early-return path so it is never
+     * left pointing at a stale registration_info from a previous call. */
+    reg_info_p = NULL;
 
     k_sem_reset(&sem_connected);
     k_sem_reset(&sem_disconnected);

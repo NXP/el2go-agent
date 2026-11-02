@@ -31,6 +31,7 @@
 #include <zephyr/drivers/flash.h>
 
 #include "el2go_csr_memory.h"
+#include "builtin_macros.h"
 
 /* Base address of the QSPI XIP window on RW612. */
 #define QSPI_XIP_BASE (0x08000000U)
@@ -68,8 +69,10 @@ static csr_mem_status_t flash_rmw(uint32_t flash_offset, const uint8_t *data, ui
     csr_mem_status_t status = kStatus_CSR_MEM_SUCCESS;
 
     /* Validate the range falls within our CSR sector. */
+    uint32_t end_offset = 0U;
     if ((flash_offset < EL2GO_CSR_FLASH_SECTOR_OFFSET) ||
-        ((flash_offset + size) > (EL2GO_CSR_FLASH_SECTOR_OFFSET + EL2GO_CSR_FLASH_SECTOR_SIZE))) {
+        ADD_OVERFLOW(flash_offset, size, &end_offset) ||
+        (end_offset > (EL2GO_CSR_FLASH_SECTOR_OFFSET + EL2GO_CSR_FLASH_SECTOR_SIZE))) {
         return kStatus_CSR_MEM_INVALID_ARG;
     }
 
