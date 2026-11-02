@@ -139,7 +139,7 @@ static test_result_t test_ota_wire_fetch_package_range(void)
     TEST_ASSERT_EQ(0, mock_transport_queue_response(c_wire, c_len));
     TEST_ASSERT_EQ(0, mock_transport_queue_response(eof_wire, eof_len));
 
-    s = el2go_ota_download_engine_fetch_package(&t, "upd-22", "pkg-22", "file-22", 4U,
+    s = el2go_ota_download_engine_fetch_package(&t, "upd-22", "pkg-22", "file-22", 4U, 0,
                                                 capture_chunk_cb, &cap);
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, s);
     TEST_ASSERT_EQ(3U, cap.total_len);
@@ -629,7 +629,7 @@ static test_result_t test_ota_fetch_package_no_response(void)
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, mock_transport_init(&t));
 
     /* No response queued -- recv will fail */
-    el2go_ota_status_t s = el2go_ota_download_engine_fetch_package(&t, "upd", "pkg", "file", 0U,
+    el2go_ota_status_t s = el2go_ota_download_engine_fetch_package(&t, "upd", "pkg", "file", 0U, 0,
                                                                    capture_chunk_cb, NULL);
     TEST_ASSERT_NE(EL2GO_OTA_SUCCESS, s);
     return TEST_PASS;
@@ -758,7 +758,7 @@ static test_result_t test_ota_fetch_package_corrupt_chunk(void)
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, mock_transport_init(&t));
     TEST_ASSERT_EQ(0, mock_transport_queue_response(corrupt, sizeof(corrupt)));
 
-    el2go_ota_status_t s = el2go_ota_download_engine_fetch_package(&t, "upd", "pkg", "file", 0U,
+    el2go_ota_status_t s = el2go_ota_download_engine_fetch_package(&t, "upd", "pkg", "file", 0U, 0,
                                                                    capture_chunk_cb, NULL);
     (void)s; /* may succeed as empty or fail with decode error */
     return TEST_PASS;
@@ -885,7 +885,7 @@ static test_result_t test_ota_fetch_package_nonzero_offset(void)
 
     /* Fetch from offset 1024 -- exercises range_start != 0 branches */
     TEST_ASSERT_EQ(EL2GO_OTA_SUCCESS, el2go_ota_download_engine_fetch_package(
-                                          &t, "u", "p", "f", 1024U, capture_chunk_cb, &cap));
+                                          &t, "u", "p", "f", 1024U, 0, capture_chunk_cb, &cap));
     TEST_ASSERT_EQ(2U, cap.total_len);
     return TEST_PASS;
 }
