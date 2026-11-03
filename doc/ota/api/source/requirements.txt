@@ -1,0 +1,5 @@
+setuptools
+packaging
+sphinx
+breathe
+sphinx_rtd_theme

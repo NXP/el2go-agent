@@ -14,6 +14,7 @@ opt_build=all
 opt_verbose=
 opt_buildtype=
 opt_format=
+opt_doc_only=
 opt_cmake_ver="3.13"
 
 #
@@ -137,6 +138,17 @@ function usage_smw()
     printf "\n"
 }
 
+function usage_configure_doc_only()
+{
+    printf "\n"
+    printf "To configure the EL2GO Agent (Documentation Only)\n"
+    printf " - Note: with this configuration option, the library is not built"
+    printf " and other configuration parameters are useless.\n"
+    printf "  %s configure out=[dir] doc_only doc_format=[name]\n " "${script_name}"
+    printf "    doc_format = [optional] Documentation format (html|xml|all, default: all)\n"
+    printf "\n"
+}
+
 function usage_configure()
 {
     printf "\n"
@@ -148,6 +160,7 @@ function usage_configure()
     printf "    mbedtls      = MbedTLS pkg-config directory (path containing .pc files)\n"
     printf "    testing      = [optional] Enable unit test build (BUILD_TESTING=ON)\n"
     printf "    ota          = [optional] Enable OTA build (BUILD_OTA=ON)\n"
+    printf "    doc_format   = [optional] Documentation format (html|xml|all)\n"
     printf "\n"
 }
 
@@ -157,10 +170,12 @@ function usage_build()
     printf "To build the EL2GO Agent\n"
     printf " - Note: Project must have been configure first\n"
     printf " (ref. %s configure)\n" "${script_name}"
-    printf "  %s build out=[dir] [testing]" "${script_name}"
+    printf "  %s build out=[dir] [testing] [docs] [docs_ota]" "${script_name}"
     printf "\n"
-    printf "    out      = Build directory\n"
-    printf "    testing  = [optional] Also build unit tests (requires BUILD_TESTING=ON)\n"
+    printf "    out       = Build directory\n"
+    printf "    testing   = [optional] Also build unit tests (requires BUILD_TESTING=ON)\n"
+    printf "    docs      = [optional] Build RTP documentation (html/xml, see 'docs' CMake target)\n"
+    printf "    docs_ota  = [optional] Build OTA documentation (html/xml, see 'ota_docs' CMake target)\n"
     printf "\n"
 }
 
@@ -195,6 +210,7 @@ function usage()
     usage_mbedtls
     usage_smw
     usage_configure
+    usage_configure_doc_only
     usage_build
     usage_install
     usage_package
@@ -291,16 +307,27 @@ function configure()
 
     export PKG_CONFIG_PATH="${opt_cyaml}:${PKG_CONFIG_PATH}"
 
-    # Build cmake command as an array
+    # Build cmake command as an array.
+    # The cross-compile toolchain file is neither needed nor available for
+    # documentation-only configuration (no C/C++ compilation happens in that
+    # mode), so it is intentionally omitted when doc_only is set.
     local cmake_args=(
         -S .
         -B "${opt_out}"
-        ${opt_toolchain}
+    )
+
+    if [[ -z ${opt_doc_only} ]]; then
+        cmake_args+=(${opt_toolchain})
+    fi
+
+    cmake_args+=(
         ${opt_buildtype}
         ${opt_verbose}
         ${opt_test}
         ${opt_testing}
         ${opt_ota}
+        ${opt_format}
+        ${opt_doc_only}
         -DCMAKE_INSTALL_PREFIX="${el2go_agent_ROOT}/usr"
         -DCMAKE_INSTALL_LIBDIR=lib
     )
@@ -339,6 +366,24 @@ function build()
         cmd_make_tests="make -C ${opt_out} build_tests"
         printf "Execute %s\n" "${cmd_make_tests}"
         eval "${cmd_make_tests}"
+    fi
+
+    # Build the RTP documentation (Sphinx + Breathe + Doxygen) when requested.
+    # Requires the project to have been configured with doc_format=<html|xml|all>
+    # (and optionally doc_only) so that the "docs" CMake target exists.
+    if [[ -n ${opt_build_docs} ]]; then
+        cmd_make_docs="make -C ${opt_out} docs"
+        printf "Execute %s\n" "${cmd_make_docs}"
+        eval "${cmd_make_docs}"
+    fi
+
+    # Build the OTA documentation (Sphinx + Breathe + Doxygen) when requested.
+    # Requires the project to have been configured with doc_format=<html|xml|all>
+    # (and optionally doc_only) so that the "ota_docs" CMake target exists.
+    if [[ -n ${opt_build_docs_ota} ]]; then
+        cmd_make_docs_ota="make -C ${opt_out} ota_docs"
+        printf "Execute %s\n" "${cmd_make_docs_ota}"
+        eval "${cmd_make_docs_ota}"
     fi
 }
 
@@ -469,7 +514,21 @@ do
         ota)
             opt_ota="-DBUILD_OTA=ON"
             ;;
+        doc_format=*)
+            opt_format="${arg#*=}"
+            opt_format="-DDOC_FORMAT=${opt_format}"
+            ;;
+        doc_only)
+            opt_doc_only="-DDOC_ONLY=ON"
+            ;;
+        docs)
+            opt_build_docs=1
+            ;;
+        docs_ota)
+            opt_build_docs_ota=1
+            ;;
         *)
+
             pr_err "Unknown argument \"${arg}\""
             usage
             ;;

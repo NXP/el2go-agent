@@ -1,0 +1,54 @@
+"""Sphinx configuration for the EdgeLock 2GO RTP library documentation."""
+
+import os
+import shutil
+
+# -- Project information -----------------------------------------------------
+project = "EdgeLock 2GO RTP Library"
+copyright = "@PROJECT_COPYRIGHT@"
+author = "NXP Semiconductors"
+
+# The full version, including alpha/beta/rc tags
+release = "@EL2GO_VERSION@"
+
+# -- General configuration ---------------------------------------------------
+extensions = [
+    "breathe",
+    "sphinx.ext.graphviz",
+]
+
+# The HTML builder renders ".. graphviz::" diagrams by running the Graphviz
+# "dot" executable. If it is not installed, set the "no_dot" tag so that the
+# documents can skip the diagram for HTML (see ".. only::" in overview.rst)
+# instead of showing the raw dot source. The xml builder embeds the dot source
+# and never needs "dot".
+if shutil.which("dot") is None:
+    tags.add("no_dot")  # noqa: F821 (tags is provided by Sphinx)
+
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+master_doc = "index"
+
+# -- Breathe configuration ----------------------------------------------------
+# Doxygen is run by scripts/build_doc.cmake before Sphinx is invoked. Its XML
+# output now lives in the build tree (not alongside this conf.py), and its
+# location is passed in via the DOXYGEN_XML_DIR environment variable, which
+# is always set by build_doc.cmake in the normal CMake-driven build.
+# The os.path.join(docs_dir, "doxygen_output", "xml") fallback below is NOT
+# populated by the normal build; it only applies if conf.py/sphinx-build is
+# invoked directly (outside build_doc.cmake) with DOXYGEN_XML_DIR unset, and
+# Doxygen was separately run by hand in this source directory beforehand.
+docs_dir = os.path.abspath(os.path.dirname(__file__))
+doxygen_xml_dir = os.environ.get(
+    "DOXYGEN_XML_DIR", os.path.join(docs_dir, "doxygen_output", "xml")
+)
+
+breathe_projects = {
+    "el2go_rtp_lib": doxygen_xml_dir,
+}
+breathe_default_project = "el2go_rtp_lib"
+
+# -- Options for HTML output --------------------------------------------------
+html_theme = "sphinx_rtd_theme"
+

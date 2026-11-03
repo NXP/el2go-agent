@@ -24,6 +24,16 @@ message(STATUS "EL2GO library version: ${PROJECT_VERSION}")
 # Include standard installation directories
 include(GNUInstallDirs)
 
+# Include documentation build (Sphinx + Breathe + Doxygen).
+# Only active when -DDOC_FORMAT=<html|xml|all> or -DDOC_ONLY=ON is passed.
+add_subdirectory(doc)
+
+# If objective is to build documentation only
+if(DOC_ONLY)
+    return()
+endif()
+
+
 # Top-level install namespace used as the include subdirectory for all public headers
 set(EL2GO_AGENT_INSTALL_NAME "el2go-agent")
 

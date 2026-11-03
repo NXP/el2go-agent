@@ -1,0 +1,35 @@
+digraph components {
+    rankdir=TB;
+    nodesep=0.6;
+    ranksep=0.5;
+    node [shape=box, style=rounded, fontname="Helvetica", fontsize=12];
+    edge [fontname="Helvetica", fontsize=10];
+
+    APP    [label="Application"];
+    RTP    [label="RTP library"];
+    TLS    [label="Transport / TLS (mbedTLS)"];
+    PROTO  [label="Protobuf decoding"];
+    KS     [label="Keystore (PSA API)"];
+    PLAT   [label="Platform (SMW / ELS PKC)"];
+    DS     [label="Datastore"];
+
+    SERVER [label="EdgeLock 2GO server", shape=cylinder];
+    HSM    [label="Secure hardware", shape=cylinder];
+    STORE  [label="Storage (file / memory / custom)", shape=cylinder];
+
+    // Keep each external endpoint beside the component that uses it,
+    // so the diagram grows downwards instead of sideways.
+    { rank=same; TLS; SERVER; }
+    { rank=same; PLAT; HSM; }
+    { rank=same; PROTO; DS; }
+
+    APP   -> RTP;
+    RTP   -> TLS;
+    TLS   -> SERVER [dir=both, label="mTLS"];
+    TLS   -> PROTO  [label="received data"];
+    PROTO -> KS     [label="PSA calls"];
+    KS    -> PLAT;
+    PLAT  -> HSM;
+    RTP   -> DS;
+    DS    -> STORE;
+}

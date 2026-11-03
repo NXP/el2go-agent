@@ -1,0 +1,17 @@
+PROJECT_NAME           = "NXP IoT Agent - RTP"
+PROJECT_BRIEF          = "EdgeLock 2GO Remote Trust Provisioning (RTP) agent documentation"
+OUTPUT_DIRECTORY       = doxygen_output
+INPUT                  = ../../../../include/rtp ../../../../include/common
+RECURSIVE              = YES
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+SKIP_FUNCTION_MACROS   = NO
