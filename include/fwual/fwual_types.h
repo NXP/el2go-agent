@@ -49,7 +49,7 @@ typedef enum {
     FWUAL_ERR_BUSY,                          /**< Another session is already active */
     FWUAL_ERR_PLATFORM,                      /**< Platform, OS, or bootloader-level error */
     FWUAL_ERR_INTERNAL,                      /**< Unexpected internal error */
-    FWUAL_RESULT_UNINITIALIZED = 0x7FFFFFFF, /**< Sentinel — for defensive local variable
+    FWUAL_RESULT_UNINITIALIZED = 0x7FFFFFFF, /**< Sentinel - for defensive local variable
                                                 *   initialization only; must never be
                                                 *   returned by any API function */
 } fwual_result_t;
@@ -102,7 +102,7 @@ typedef struct {
     uint64_t size;             /**< Final reconstructed image size in bytes */
     uint32_t version;          /**< OTA-Agent-defined version number; used for reporting only */
     fwual_update_type_t update_type; /**< FWUAL_UPDATE_FULL or FWUAL_UPDATE_DELTA */
-    const char *hash_algo;           /**< Null-terminated hash algorithm string (e.g. "sha256") */
+    const char *hash_algo;           /**< Null-terminated hash algorithm string (e.g. sha256) */
     const uint8_t
         *expected_hash; /**< Expected digest buffer; must remain valid for session lifetime */
     size_t hash_len;    /**< Digest length in bytes (e.g. 32 for SHA-256) */

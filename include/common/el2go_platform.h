@@ -68,9 +68,9 @@ el2go_status_t el2go_platform_free(el2go_platform_ctx_t **platform_ctx);
  * @param[in]  buf_len       Size of @p buf in bytes.
  * @param[out] uuid_len      Set to the actual number of UUID bytes written.
  *
- * @retval @ref EL2GO_STATUS_SUCCESS on success.
- * @retval @ref EL2GO_STATUS_BUFFER_TOO_SMALL if @p buf_len is too small.
- * @retval @ref EL2GO_STATUS_INVALID_PARAMETER if any pointer is NULL.
+ * @retval EL2GO_STATUS_SUCCESS on success.
+ * @retval EL2GO_STATUS_BUFFER_TOO_SMALL if @p buf_len is too small.
+ * @retval EL2GO_STATUS_INVALID_PARAMETER if any pointer is NULL.
  */
 el2go_status_t el2go_platform_get_uuid(el2go_platform_ctx_t *platform_ctx, uint8_t *buf,
                                        size_t buf_len, size_t *uuid_len);

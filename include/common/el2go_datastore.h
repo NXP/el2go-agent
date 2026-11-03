@@ -39,9 +39,12 @@ typedef enum {
 #define EL2GO_DATASTORE_CHUNK_SIZE 64U
 #endif
 
-/* Forward declarations */
+/**
+ * @brief Datastore used to persist non-secret data.
+ *
+ * See #el2go_datastore for the field documentation.
+ */
 typedef struct el2go_datastore el2go_datastore_t;
-typedef struct el2go_datastore_ops el2go_datastore_ops_t;
 
 /**
  * @brief Datastore validator function pointer type.
@@ -155,7 +158,7 @@ typedef el2go_status_t (*el2go_datastore_free_t)(void *context);
 /**
  * @brief Datastore operations table.
  */
-struct el2go_datastore_ops {
+typedef struct el2go_datastore_ops {
     el2go_datastore_init_t init;         /**< Initialize the custom datastore */
     el2go_datastore_allocate_t allocate; /**< Allocate memory in datastore */
     el2go_datastore_read_t read;         /**< Read data from the datastore */
@@ -163,7 +166,7 @@ struct el2go_datastore_ops {
     el2go_datastore_commit_t commit;     /**< Commit pending changes */
     el2go_datastore_get_size_t get_size; /**< Get stored data size */
     el2go_datastore_free_t free;         /**< Free datastore resources */
-};
+} el2go_datastore_ops_t;
 
 /**
  * @brief RTP Agent datastore.

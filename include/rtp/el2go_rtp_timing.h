@@ -26,6 +26,13 @@
  * phase did not execute (e.g. crl_ms is 0 when CRL verification is disabled).
  */
 
+/**
+ * @defgroup el2go_rtp_timing Timing
+ * @brief Opt-in API to measure the duration of the internal provisioning
+ *        sub-phases.
+ * @{
+ */
+
 /** Forward declaration -- defined in el2go_rtp_internal.h */
 struct el2go_rtp_ctx;
 typedef struct el2go_rtp_ctx el2go_rtp_ctx_t;
@@ -74,5 +81,7 @@ el2go_status_t el2go_rtp_disable_timing(el2go_rtp_ctx_t *ctx);
  *         EL2GO_STATUS_INVALID_STATE.
  */
 el2go_status_t el2go_rtp_get_timing(el2go_rtp_ctx_t *ctx, el2go_rtp_timing_t *timing);
+
+/** @} */
 
 #endif /* __EL2GO_RTP_TIMING_H__ */

@@ -18,6 +18,12 @@
  * @{
  */
 
+/**
+ * @brief Platform context.
+ *
+ * Opaque platform context used to access hardware and HSM resources.
+ * See @ref el2go_platform_ctx_t for the full type documentation.
+ */
 typedef struct el2go_platform_ctx el2go_platform_ctx_t;
 
 /**
