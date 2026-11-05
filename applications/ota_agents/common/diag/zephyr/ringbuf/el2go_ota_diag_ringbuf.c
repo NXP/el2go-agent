@@ -14,7 +14,6 @@
 
 #include "el2go_app_compiler.h"
 #include "el2go_ota_diag.h"
-#include "builtin_macros.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -23,6 +22,8 @@
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/drivers/flash.h>
 #include <zephyr/sys/printk.h>
+
+#include "builtin_macros.h"
 
 /* Lines longer than this are truncated. */
 #define EL2GO_OTA_DIAG_LINE_MAX 160U

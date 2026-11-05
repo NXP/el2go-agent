@@ -18,7 +18,9 @@
 #ifndef BIT
 #define BIT(n) (1UL << (n))
 #endif
+#ifndef BIT_MASK
 #define BIT_MASK(length) ((1UL << (length)) - 1)
+#endif
 #define SET_BITS(val, mask) ((val) |= (mask))
 #define CLEAR_BITS(val, mask) ((val) &= ~(mask))
 
@@ -36,7 +38,9 @@
 
 #define STR(x) #x
 
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
+#endif
 
 #ifndef MIN
 #define MIN(a, b)               \
