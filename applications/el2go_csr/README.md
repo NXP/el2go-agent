@@ -6,6 +6,8 @@ The application supports two operational modes:
 - **CSR Generation Mode**: Generates a new key pair (or uses an existing one) and creates a CSR that can be sent to a Certificate Authority (CA) for signing.
 - **Certificate Verification Mode**: Verifies an X.509 certificate received from an external source against the corresponding PSA key stored on the device.
 
+The shared application logic runs on two targets: **baremetal** (standalone CMake build, one PAL port per board under `pal/boards/`) and **Zephyr** (RW612, built as the sample in `zephyr/samples/el2go_csr/`, see [its README](../../zephyr/samples/el2go_csr/README.rst) for build, flash layout and sample output). The rest of this document describes the shared logic and the standalone build.
+
 Additional information about EdgeLock 2GO X.509 Certificate Service for MCUs can be found in AN14838 under the following link https://www.nxp.com/webapp/sps/download/license.jsp?colCode=AN14838&appType=file1&DOWNLOAD_ID=null.
 
 ## Prerequisites
@@ -32,48 +34,38 @@ The application flow consists of the following steps:
 ## Repository Structure
 
 ```
-ex/src/apps/psa_examples/el2go_csr/
-├── app/
-│   ├── inc/
-│   │   |── el2go_csr.h              # Main application header (defines, includes)
-|   |   └── el2go_csr_tlv_parser.h   # TLV configuration block definitions
-│   └── src/
-│       ├── el2go_csr.c              # Application entry point (main)
-│       └── el2go_csr_tlv_parser.c   # TLV configuration block parser
-├── common/
-│   ├── inc/
-│   │   |── csr_util.h               # CSR/certificate utility API
-|   |   └── bytes_utils.h            # Helper functions for byte manipulation operations
-│   └── src/
-│       └── csr_util.c               # CSR generation and certificate verification logic
-├── osal/
-│   ├── inc/
-│   │   └── el2go_csr_osal.h         # OS abstraction layer API
-│   ├── baremetal/                   # Baremetal OSAL implementation
-│   └── zephyr/                      # Zephyr OSAL implementation
-├── pal/
-│   ├── inc/                         # Platform abstraction layer headers (APIs to implement)
-│   │   ├── el2go_csr_platform.h
-│   │   ├── el2go_csr_memory.h
-│   │   ├── el2go_csr_psa_key.h
-│   │   ├── el2go_csr_pal_util.h
-│   │   ├── el2go_csr_challenge.h
-│   │   └── el2go_csr_console.h
-│   └── boards/
-│       ├── my_board/                # Template board port (starting point for new boards)
-│       └── frdmmcxe31b/             # Reference NXP board port (working implementation)
-├── port/
-│   └── el2go_csr_mbedtls_user_config.h  # MbedTLS configuration
-└── CMakeLists.txt                   # Standalone CMake build system
+applications/el2go_csr/
++-- app/
+|   +-- inc/                         # el2go_csr.h, el2go_csr_tlv_parser.h
+|   +-- src/                         # el2go_csr.c (main), el2go_csr_tlv_parser.c
++-- common/
+|   +-- inc/                         # csr_util.h, crc_sw_util.h
+|   +-- src/                         # csr_util.c (CSR generation, certificate verification), crc_sw_util.c
++-- osal/
+|   +-- inc/el2go_csr_osal.h         # OS abstraction API
+|   +-- baremetal/                   # Baremetal OSAL implementation
+|   +-- zephyr/                      # Zephyr OSAL implementation
++-- pal/
+|   +-- inc/                         # PAL headers (APIs to implement)
+|   +-- boards/
+|   |   +-- my_board/                # Template port (stubs, with CMakeLists.txt)
+|   |   +-- frdmkw43/, frdmmcxa266/, frdmmcxa287/, frdmmcxa366/,
+|   |       frdmmcxa577/, frdmmcxe31b/, frdmmcxl255/   # Reference baremetal ports
+|   |   +-- rw612/                   # RW612 Zephyr port (no flash memory file, see pal/zephyr/)
+|   +-- zephyr/rw612/                # Zephyr flash-driver based memory PAL for RW612
++-- port/
+|   +-- el2go_csr_mbedtls_user_config.h  # MbedTLS configuration (standalone build)
++-- sources.cmake                    # Shared source list (used by both builds)
++-- CMakeLists.txt                   # Standalone CMake build system
 ```
+
+> **Note:** Only `my_board` ships a `CMakeLists.txt` in this repository. The reference board directories contain the PAL sources; the board `CMakeLists.txt` that wraps the vendor SDK has to be provided for them (see [Board CMakeLists.txt](#board-cmakeliststxt)).
 
 ## Preparing the Application
 
-### 1. Clone the el2go-agent repository from GitHub
+### 1. Get the sources and MbedTLS
 
-```bash
-git clone https://github.com/NXP/el2go-agent.git
-```
+Clone this repository and an MbedTLS source tree.
 
 > **Note:** MbedTLS version **3.x** is required. When cloning MbedTLS, ensure you check out a 3.x release tag. Additionally, the following PSA header files must be present in the MbedTLS include path, as they are required by the application:
 > - `psa/error.h`
@@ -90,52 +82,42 @@ Copy the `my_board` template directory and rename it to match your target board 
 
 ### 3. **[OPTIONAL]** Configure the target OS
 
-Currently, only **baremetal** execution is supported. Zephyr and other OS targets are planned for future releases. The OS can be configured via CMake:
+The standalone build supports the `baremetal` (default) and `zephyr` OSAL directories, selected via CMake:
 
 ```bash
 -DEL2GO_CSR_OS=baremetal
 ```
 
+The RW612 Zephyr sample is not built with this CMake project; it is built with `west` from `zephyr/samples/el2go_csr/` (see the [sample README](../../zephyr/samples/el2go_csr/README.rst)).
+
 ### 4. **[OPTIONAL]** Configure logging level
 
-Adjust the logging verbosity by modifying the CMake cache variable `EL2GO_CSR_LOG_LEVEL` during build:
+The logging verbosity is controlled by the macro `CSR_LOG_LEVEL`, which defaults to `LOG_TRACE` in `pal/inc/el2go_csr_console.h`. Override it with a compile definition, or by defining it before the header is included:
 
 ```bash
--DEL2GO_CSR_LOG_LEVEL=LOG_DEBUG
+-DCSR_LOG_LEVEL=LOG_INFO
 ```
+
+> **Note:** `CMakeLists.txt` also defines a cache variable `EL2GO_CSR_LOG_LEVEL` (default `LOG_INFO`) and passes it as a compile definition with that name, but no source file reads it. Use `CSR_LOG_LEVEL` to change the level.
 
 Available levels are:
 - `LOG_ERROR`: Only error messages
 - `LOG_WARNING`: Warning and error messages
-- `LOG_INFO`: Informational messages, warnings, and errors (default)
+- `LOG_INFO`: Informational messages, warnings, and errors
 - `LOG_DEBUG`: Debug messages, info, warnings, and errors
-- `LOG_TRACE`: All messages including verbose trace information
-
-Alternatively, override the default directly in `pal/inc/el2go_csr_console.h`:
-
-```c
-#ifndef CSR_LOG_LEVEL
-#define CSR_LOG_LEVEL LOG_INFO
-#endif
-```
+- `LOG_TRACE`: All messages including verbose trace information (default)
 
 ### 5. **[OPTIONAL]** Configure the CSR subject name
 
 The default subject name is defined in `common/inc/csr_util.h`:
 
 ```c
-#define CSR_SUBJECT_CN  "FRDM-MCXE31B"
+#define CSR_SUBJECT_CN  "EL2GO CSR EXAMPLE"
 #define CSR_SUBJECT_O   "NXP"
 #define CSR_SUBJECT_C   "NL"
 ```
 
-Override these at build time to match your device identity:
-
-```bash
--DCSR_SUBJECT_CN="MyDevice" -DCSR_SUBJECT_O="MyCompany" -DCSR_SUBJECT_C="DE"
-```
-
-Or define `CSR_SUBJECT_NAME` directly as a compile definition to provide a fully custom subject string.
+The resulting default subject is `CN=EL2GO CSR EXAMPLE,O=NXP,C=NL`. Edit the three macros in the header to match your device identity, or define `CSR_SUBJECT_NAME` as a compile definition to provide a fully custom subject string (for example `"CN=MyDevice,O=MyCompany,C=DE"`); in that case the three macros are ignored.
 
 ### 6. Build the application
 
@@ -150,7 +132,7 @@ Configure and build using CMake. The following cache variables are required:
 Any additional variables (e.g., SDK path) are defined in your board-specific `CMakeLists.txt` and passed accordingly.
 
 ```bash
-cmake -S ex/src/apps/psa_examples/el2go_csr \
+cmake -S applications/el2go_csr \
       -G <generator> \
       -B build \
       -DCMAKE_TOOLCHAIN_FILE=<path/to/your/toolchain.cmake> \
@@ -180,7 +162,7 @@ When the configuration block specifies CSR generation, the application will:
 3. Generate a CSR using the PSA key
 4. Write the CSR to the specified destination memory address
 
-Example log output (with `EL2GO_CSR_LOG_LEVEL` set to `LOG_TRACE`):
+Example log output (with `CSR_LOG_LEVEL` set to `LOG_TRACE`, the default):
 
 ```
 [INFO] ########### EdgeLock2GO Certificate Signing Request Application ###########
@@ -195,7 +177,7 @@ MIIBIjCByQIBADBnMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ0ExEjAQBgNVBAcM
 [INFO] ########### EdgeLock2GO Certificate Signing Request App. EXIT ###########
 ```
 
-Example log output (with default `EL2GO_CSR_LOG_LEVEL` set to `LOG_INFO`):
+Example log output (with `CSR_LOG_LEVEL` set to `LOG_INFO`):
 
 ```
 [INFO] ########### EdgeLock2GO Certificate Signing Request Application ###########
@@ -212,7 +194,7 @@ When the configuration block specifies certificate storage/verification, the app
 3. Verify the certificate's public key matches the PSA key by generating a signature using the private key and verifying it using the public key embedded in the certificate (challenge-response mechanism)
 4. Return the verification status
 
-Example log output (with default `EL2GO_CSR_LOG_LEVEL` set to `LOG_INFO`):
+Example log output (with `CSR_LOG_LEVEL` set to `LOG_INFO`):
 
 ```
 [INFO] ########### EdgeLock2GO Certificate Signing Request Application ###########
@@ -228,8 +210,13 @@ The application returns status codes to the Host Tool via the `el2go_spsdk_statu
 |-------------|-------|-------------|
 | `SPSDK_STATUS_CODE_SUCCESS` | `0x3BBBA12D` | Operation completed successfully |
 | `SPSDK_STATUS_CODE_INIT` | `0xDEADBEEF` | Initial value before application runs |
+| `kStatus_CSR_INVALID_FORMAT` | `0x33D978FF` | Malformed TLV field |
+| `kStatus_CSR_NOT_SUPPORTED` | `0xA8093E10` | Unsupported integrity algorithm or encoding |
+| `kStatus_CSR_CONF_BUF_SIZE_ERR` | `0x39274EFA` | TLV field exceeds the configuration block |
+| `kStatus_CSR_TLV_FIELD_MISSING` | `0x6B1F4A82` | Required TLV field missing |
+| `kStatus_CSR_INT_VERIFY_FAILED` | `0xFDD7653A` | Integrity value mismatch |
 
-For all other status codes, refer to the relevant module in the codebase depending on where the failure occurred — e.g., the TLV parser (`el2go_csr_tlv_parser.h`), the memory PAL (`el2go_csr_memory.h`), or PSA Crypto error codes (`psa/crypto_values.h`).
+For all other status codes, refer to the relevant module in the codebase depending on where the failure occurred — e.g., the TLV parser (`el2go_csr_tlv_parser.h`), the integrity verifier PAL (`el2go_csr_integrity_verifier.h`), the memory PAL (`el2go_csr_memory.h`), or PSA Crypto error codes (`psa/crypto_values.h`).
 
 ## Integration with the Host Tool
 
@@ -253,13 +240,14 @@ Used when requesting a CSR to be generated on the device.
 
 | Field | Tag ID | Description |
 |-------|--------|-------------|
-| Magic | `0x40` | Magic value identifying CSR generation mode |
+| Magic | `0x40` | ASCII `el2gocsrgen` (no null terminator), identifies CSR generation mode |
 | Version | `0x41` | Configuration block version number |
 | Device Operation | `0x42` | Operation type (generate new key or use existing) |
 | Key ID | `0x43` | PSA key identifier |
 | CSR Destination Address | `0x44` | Memory address where the generated CSR will be written |
+| Encoding | `0x49` | Optional: PEM (`0x01`, default) or DER (`0x02`); must be placed before the integrity value |
 | Integrity Algorithm | `0x47` | Algorithm used for integrity verification |
-| Integrity Value | `0x48` | Checksum over all preceding fields |
+| Integrity Value | `0x48` | Checksum over all preceding fields, must be the last field |
 
 ### X.509 Certificate Storage Block
 
@@ -267,14 +255,14 @@ Used when requesting an X.509 certificate to be verified and stored on the devic
 
 | Field | Tag ID | Description |
 |-------|--------|-------------|
-| Magic | `0x40` | Magic value identifying certificate storage mode |
+| Magic | `0x40` | ASCII `el2gocertstr` (no null terminator), identifies certificate storage mode |
 | Version | `0x41` | Configuration block version number |
 | Device Operation | `0x42` | Operation type |
 | Key ID | `0x43` | PSA key identifier |
 | Certificate Source Address | `0x45` | Memory address where the X.509 certificate is located |
 | Certificate Source Size | `0x46` | Size of the X.509 certificate in bytes |
 | Integrity Algorithm | `0x47` | Algorithm used for integrity verification |
-| Integrity Value | `0x48` | Checksum over all preceding fields |
+| Integrity Value | `0x48` | Checksum over all preceding fields, must be the last field |
 
 ### Integrity Verification
 
@@ -319,7 +307,7 @@ For a reference implementation, see `pal/boards/frdmmcxe31b/el2go_csr_platform.c
 
 ### PAL: `el2go_csr_memory.h` — Memory Read/Write
 
-**File to implement:** `pal/boards/<your_board>/el2go_csr_flash_memory.c`
+**File to implement:** `pal/boards/<your_board>/el2go_csr_flash_memory.c` (on RW612 Zephyr this is `pal/zephyr/rw612/el2go_csr_zephyr_memory.c`)
 
 This is the most critical PAL component. It abstracts all memory access and exposes two symbols that the application uses to communicate with the Host Tool:
 
@@ -331,13 +319,15 @@ extern uint8_t* const el2go_csr_conf_data;
 extern uint32_t* const el2go_spsdk_status;
 ```
 
-These two symbols **must** be defined in your memory implementation. Their addresses must be communicated to the Host Tool so it knows where to write the configuration block and where to read the result.
+Besides these two symbols, the application reads `const uint32_t el2go_csr_conf_data_size`, which every memory implementation must also define (the configuration block size, `EL2GO_CSR_CONF_DATA_SIZE`).
+
+These symbols **must** be defined in your memory implementation. Their addresses must be communicated to the Host Tool so it knows where to write the configuration block and where to read the result.
 
 You must also implement the following functions:
 
 ```c
-csr_mem_status_t mem_read(uint32_t addr, uint8_t *buffer, size_t size);
-csr_mem_status_t mem_write(uint32_t addr, const uint8_t *data, size_t size);
+csr_mem_status_t mem_read(uint32_t addr, uint8_t *buffer, uint32_t size);
+csr_mem_status_t mem_write(uint32_t addr, const uint8_t *buffer, uint32_t size);
 ```
 
 **`mem_read`** reads `size` bytes from the memory address `addr` into `buffer`. This is used to:
@@ -391,12 +381,12 @@ For a reference implementation, see `pal/boards/my_board/el2go_csr_psa_key.c`.
 **File to implement:** `pal/boards/<your_board>/el2go_csr_pal_util.c`
 
 ```c
-mbedtls_md_type_t get_msg_digest_algo(void);
+net_crypto_md_alg_t get_msg_digest_algo(void);
 ```
 
-Returns the MbedTLS message digest algorithm used for CSR generation. This is called by `generate_csr()` in `csr_util.c` to set the signature hash algorithm on the CSR.
+Returns the message digest algorithm (`NET_CRYPTO_MD_SHA256`, `NET_CRYPTO_MD_SHA384` or `NET_CRYPTO_MD_SHA512`, defined in `libs/net_crypto/net_crypto.h`) used for CSR generation. This is called by `generate_csr()` in `csr_util.c`, which passes it to `net_crypto_generate_csr()`.
 
-For most platforms, return `MBEDTLS_MD_SHA256`. Only change this if your platform's PSA Crypto backend does not support SHA-256 or if a different digest is required by your CA.
+For most platforms, return `NET_CRYPTO_MD_SHA256`. Only change this if your platform's PSA Crypto backend does not support SHA-256 or if a different digest is required by your CA.
 
 ---
 
@@ -530,13 +520,13 @@ The file is compiled directly into the `el2go_csr` executable by the root `CMake
 
 ### OSAL: `el2go_csr_osal.h` — OS Initialization
 
-**File:** `osal/baremetal/src/el2go_csr_osal.c` (already provided, no changes needed for baremetal)
+**Files:** `osal/baremetal/src/el2go_csr_osal.c` (baremetal) and `osal/zephyr/src/el2go_csr_osal.c` (Zephyr). Both are already provided, no changes needed for these targets.
 
 ```c
 os_status_t os_init(void);
 ```
 
-For baremetal targets, the provided implementation is a no-op (`nop` instruction) that returns `kStatus_OS_INIT_SUCCESS`. No changes are needed unless your platform requires OS-level initialization before the application runs.
+For baremetal targets, the provided implementation is a no-op (`nop` instruction) that returns `kStatus_OS_INIT_SUCCESS`. The Zephyr implementation also returns `kStatus_OS_INIT_SUCCESS`, since the kernel is already running when the application starts. No changes are needed unless your platform requires OS-level initialization before the application runs.
 
 ---
 

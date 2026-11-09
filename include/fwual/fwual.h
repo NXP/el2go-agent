@@ -68,6 +68,17 @@ fwual_result_t fwual_get_caps(fwual_caps_t *out_caps);
  * @retval FWUAL_OK upon success
  * @retval FWUAL_ERR_INVALID_PARAM if out_session is NULL
  * @retval FWUAL_ERR_BUSY if a session is already active
+ *
+ * @par Example
+ * @code
+ * fwual_session_t *session = NULL;
+ * fwual_result_t rc = fwual_open_session(&session);
+ * if (rc != FWUAL_OK) {
+ *     return rc;
+ * }
+ * // ... fwual_prepare_image() / fwual_write() / fwual_commit_session() ...
+ * fwual_close_session(session);
+ * @endcode
  */
 fwual_result_t fwual_open_session(fwual_session_t **out_session);
 
@@ -106,6 +117,43 @@ fwual_result_t fwual_close_session(fwual_session_t *session);
  * @retval FWUAL_ERR_NO_SPACE if storage is insufficient
  * @retval FWUAL_ERR_UNSUPPORTED if image_id is unknown to the backend or
  *   update_type is FWUAL_UPDATE_DELTA on a backend without delta support
+ *
+ * @par Example
+ * @code
+ * // Prepare, write, finalize, and verify one image within an open session.
+ * const fwual_image_desc_t desc = {
+ *     .image_id = 0,
+ *     .size = file_size,
+ *     .version = 0,
+ *     .update_type = FWUAL_UPDATE_FULL,
+ *     .hash_algo = "sha256",
+ *     .expected_hash = expected_sha256,
+ *     .hash_len = sizeof(expected_sha256),
+ * };
+ * fwual_result_t rc = fwual_prepare_image(session, &desc);
+ * if (rc != FWUAL_OK) {
+ *     return rc;
+ * }
+ *
+ * size_t written = 0;
+ * while (written < file_size) {
+ *     size_t chunk_len = read_next_chunk(buf, sizeof(buf));
+ *     rc = fwual_write(session, desc.image_id, written, buf, chunk_len);
+ *     if (rc != FWUAL_OK) {
+ *         return rc;
+ *     }
+ *     written += chunk_len;
+ * }
+ *
+ * rc = fwual_finalize_image(session, desc.image_id);
+ * if (rc != FWUAL_OK) {
+ *     return rc;
+ * }
+ * rc = fwual_verify_image(session, desc.image_id);
+ * if (rc != FWUAL_OK) {
+ *     return rc; // image is corrupt; do not commit the session
+ * }
+ * @endcode
  */
 fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_desc_t *desc);
 
@@ -221,6 +269,25 @@ fwual_result_t fwual_verify_image(fwual_session_t *session, fwual_image_id_t ima
  * @retval FWUAL_OK upon success
  * @retval FWUAL_ERR_INVALID_STATE if one or more images are not
  *   finalized and verified
+ *
+ * @par Example
+ * @code
+ * // After every image in the session has been prepared, written, finalized,
+ * // and verified (see fwual_prepare_image()):
+ * fwual_result_t rc = fwual_commit_session(session);
+ * if (rc != FWUAL_OK) {
+ *     fwual_close_session(session);
+ *     return rc;
+ * }
+ * rc = fwual_activate();
+ * if (rc != FWUAL_OK) {
+ *     // Session is already committed; still close it before returning.
+ *     fwual_close_session(session);
+ *     return rc;
+ * }
+ * fwual_close_session(session);
+ * trigger_system_reboot(); // OTA Agent-owned; FWUAL does not reboot itself
+ * @endcode
  */
 fwual_result_t fwual_commit_session(fwual_session_t *session);
 
@@ -237,6 +304,9 @@ fwual_result_t fwual_commit_session(fwual_session_t *session);
  *
  * @retval FWUAL_OK upon success
  * @retval FWUAL_ERR_INVALID_STATE if the session was not committed
+ *
+ * @par Example
+ * See fwual_commit_session() for the full commit/activate/reboot sequence.
  */
 fwual_result_t fwual_activate(void);
 
@@ -250,6 +320,18 @@ fwual_result_t fwual_activate(void);
  *
  * @retval FWUAL_OK upon success
  * @retval FWUAL_ERR_INVALID_STATE if not in FWUAL_STATE_WAITING_CONFIRM
+ *
+ * @par Example
+ * @code
+ * // Call once early at boot, after fwual_init() reports the current state.
+ * fwual_state_t fw_state = fwual_get_state();
+ * if (fw_state == FWUAL_STATE_WAITING_CONFIRM) {
+ *     // Run any post-update sanity checks here before confirming.
+ *     if (fwual_confirm() != FWUAL_OK) {
+ *         // Confirmation failed; the image will revert on the next reset.
+ *     }
+ * }
+ * @endcode
  */
 fwual_result_t fwual_confirm(void);
 
@@ -264,6 +346,14 @@ fwual_result_t fwual_confirm(void);
  * @retval FWUAL_OK upon success
  * @retval FWUAL_ERR_PLATFORM if no previous image is available or the
  *   platform rollback mechanism failed
+ *
+ * @par Example
+ * @code
+ * // Explicit recovery path, e.g. after detecting a bad update at runtime.
+ * if (fwual_rollback() == FWUAL_OK) {
+ *     trigger_system_reboot();
+ * }
+ * @endcode
  */
 fwual_result_t fwual_rollback(void);
 
@@ -277,6 +367,21 @@ fwual_result_t fwual_rollback(void);
  *
  * @return Current fwual_state_t value; if the backend cannot be read,
  *         FWUAL_STATE_FAILED is returned
+ *
+ * @par Example
+ * @code
+ * fwual_state_t fw_state = fwual_get_state();
+ * switch (fw_state) {
+ * case FWUAL_STATE_WAITING_CONFIRM:
+ *     fwual_confirm();
+ *     break;
+ * case FWUAL_STATE_ROLLED_BACK:
+ *     // Report the rollback outcome to the backend, then clear local state.
+ *     break;
+ * default:
+ *     break; // IDLE / ACTIVE: nothing to reconcile
+ * }
+ * @endcode
  */
 fwual_state_t fwual_get_state(void);
 
@@ -295,6 +400,20 @@ fwual_state_t fwual_get_state(void);
  *
  * @retval FWUAL_OK upon success (including truncated case)
  * @retval FWUAL_ERR_INVALID_PARAM if list or in_out_count is NULL
+ *
+ * @par Example
+ * @code
+ * fwual_installed_image_t images[8];
+ * size_t count = sizeof(images) / sizeof(images[0]);
+ * fwual_result_t rc = fwual_list_installed(images, &count);
+ * if (rc != FWUAL_OK) {
+ *     return rc;
+ * }
+ * for (size_t i = 0; i < count; i++) {
+ *     printf("image %u: version %u, confirmed=%d\n", images[i].image_id,
+ *            images[i].version, (int)images[i].confirmed);
+ * }
+ * @endcode
  */
 fwual_result_t fwual_list_installed(fwual_installed_image_t *list, size_t *in_out_count);
 

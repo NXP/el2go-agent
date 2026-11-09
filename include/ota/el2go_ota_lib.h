@@ -172,6 +172,25 @@ typedef struct {
  *         loaded from the keystore.
  * @retval EL2GO_OTA_ERROR_AUTH if the client private key cannot be
  *         associated.
+ *
+ * @par Example
+ * @code
+ * el2go_ota_ctx_t *ctx = NULL;
+ * el2go_ota_mtls_config_t config = {
+ *     .hostname = "my-account.ota.edgelock2go.com",
+ *     .port = 443,
+ *     .server_ca_chain = server_ca_der,
+ *     .server_ca_chain_size = sizeof(server_ca_der),
+ *     .client_key_object_id = 0x00004000,
+ *     .client_cert_object_id = 0x00004001,
+ * };
+ *
+ * el2go_ota_status_t rc = el2go_ota_init(&ctx, &config);
+ * if (rc != EL2GO_OTA_SUCCESS) {
+ *     printf("init failed: %s\n", el2go_ota_get_error_string(rc));
+ *     return;
+ * }
+ * @endcode
  */
 el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx, const el2go_ota_mtls_config_t *config);
 
@@ -197,6 +216,16 @@ el2go_ota_status_t el2go_ota_init(el2go_ota_ctx_t **ctx, const el2go_ota_mtls_co
  * @retval EL2GO_OTA_ERROR_TLS_HANDSHAKE if TLS handshake fails.
  * @retval EL2GO_OTA_ERROR_CERT_VERIFY if server certificate verification fails.
  * @retval EL2GO_OTA_ERROR_AUTH if client authentication fails.
+ *
+ * @par Example
+ * @code
+ * el2go_ota_status_t rc = el2go_ota_connect(ctx);
+ * if (rc != EL2GO_OTA_SUCCESS) {
+ *     printf("connect failed: %s\n", el2go_ota_get_error_string(rc));
+ *     return;
+ * }
+ * // ctx is now connected; proceed with el2go_ota_check_for_updates().
+ * @endcode
  */
 el2go_ota_status_t el2go_ota_connect(el2go_ota_ctx_t *ctx);
 
@@ -261,6 +290,27 @@ const char *el2go_ota_get_error_string(el2go_ota_status_t status);
  * @retval EL2GO_OTA_ERROR_ENCODE if request encoding fails.
  * @retval EL2GO_OTA_ERROR_DECODE if response parsing fails.
  * @retval EL2GO_OTA_ERROR_SERVER if the server returns a non-zero gRPC status.
+ *
+ * @par Example
+ * @code
+ * const el2go_ota_attr_t attrs[] = {
+ *     { "target_hw", "RW612" },
+ *     { "fw_version", "1.0.0" },
+ * };
+ * el2go_ota_check_update_resp_t resp = { 0 };
+ *
+ * el2go_ota_status_t rc = el2go_ota_check_for_updates(
+ *     ctx, attrs, sizeof(attrs) / sizeof(attrs[0]), &resp);
+ * if (rc != EL2GO_OTA_SUCCESS) {
+ *     printf("check failed: %s\n", el2go_ota_get_error_string(rc));
+ *     return;
+ * }
+ * if (!resp.update_available) {
+ *     return; // nothing to do
+ * }
+ * const el2go_ota_update_info_t *update = &resp.updates[0];
+ * // ... pass update to el2go_ota_download_package() for each package/file ...
+ * @endcode
  */
 el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go_ota_attr_t *attrs,
                                                size_t attr_count,
@@ -296,6 +346,26 @@ el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go
  * @retval EL2GO_OTA_ERROR_DECODE if response parsing fails.
  * @retval EL2GO_OTA_ERROR_SERVER if the server returns a non-zero gRPC status.
  * @retval Any non-zero status returned by chunk_cb.
+ *
+ * @par Example
+ * @code
+ * static el2go_ota_status_t write_chunk(const uint8_t *data, size_t len,
+ *                                       size_t offset, void *cb_ctx)
+ * {
+ *     fwual_session_t *session = (fwual_session_t *)cb_ctx;
+ *     if (fwual_write(session, 0, offset, data, len) != FWUAL_OK) {
+ *         return EL2GO_OTA_ERROR_INTERNAL;
+ *     }
+ *     return EL2GO_OTA_SUCCESS;
+ * }
+ *
+ * el2go_ota_status_t rc = el2go_ota_download_package(
+ *     ctx, update->update_id, pkg->package_id, file->file_id,
+ *     0, write_chunk, session);
+ * if (rc != EL2GO_OTA_SUCCESS) {
+ *     printf("download failed: %s\n", el2go_ota_get_error_string(rc));
+ * }
+ * @endcode
  */
 el2go_ota_status_t el2go_ota_download_package(
     el2go_ota_ctx_t *ctx, const char *update_id, const char *package_id, const char *file_id,
@@ -327,6 +397,19 @@ el2go_ota_status_t el2go_ota_download_package(
  *         (NVS entry retained for retry).
  * @retval EL2GO_OTA_ERROR_SERVER on server error response.
  * @retval EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
+ *
+ * @par Example
+ * @code
+ * // Immediate report; use when the connection is already up and the agent
+ * // does not need to reboot before the outcome is known (e.g. download or
+ * // FWUAL failure during the same session). For a report that must survive
+ * // a reboot, use el2go_ota_schedule_status_report() instead.
+ * el2go_ota_status_t rc = el2go_ota_report_status(
+ *     ctx, update_id, package_id, EL2GO_OTA_OUTCOME_FAILURE);
+ * if (rc != EL2GO_OTA_SUCCESS) {
+ *     printf("report failed: %s\n", el2go_ota_get_error_string(rc));
+ * }
+ * @endcode
  */
 el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const char *update_id,
                                            const char *package_id,
@@ -350,6 +433,18 @@ el2go_ota_status_t el2go_ota_report_status(el2go_ota_ctx_t *ctx, const char *upd
  * @retval EL2GO_OTA_ERROR_INVALID_PARAM if update_id or package_id is NULL
  *         or outcome is not a valid el2go_ota_update_outcome_t value.
  * @retval EL2GO_OTA_ERROR_INTERNAL on KVS init or write failure.
+ *
+ * @par Example
+ * @code
+ * // Right before rebooting into the newly activated image, persist the
+ * // expected success outcome; the next boot will deliver it once connected.
+ * el2go_ota_status_t rc = el2go_ota_schedule_status_report(
+ *     update_id, package_id, EL2GO_OTA_OUTCOME_SUCCESS);
+ * if (rc != EL2GO_OTA_SUCCESS) {
+ *     printf("schedule failed: %s\n", el2go_ota_get_error_string(rc));
+ * }
+ * trigger_system_reboot();
+ * @endcode
  */
 el2go_ota_status_t el2go_ota_schedule_status_report(const char *update_id, const char *package_id,
                                                     el2go_ota_update_outcome_t outcome);
@@ -373,6 +468,20 @@ el2go_ota_status_t el2go_ota_schedule_status_report(const char *update_id, const
  *         entry was found: EL2GO_OTA_STATUS_VALID_MAGIC = live entry, 0 = none).
  * @retval EL2GO_OTA_ERROR_INVALID_PARAM if out is NULL.
  * @retval EL2GO_OTA_ERROR_INTERNAL on KVS init or read failure.
+ *
+ * @par Example
+ * @code
+ * // Boot N+1 rollback detection: the scheduled SUCCESS entry from the
+ * // previous boot is still pending, but FWUAL reports a rollback actually
+ * // happened. Override the outcome before it gets delivered.
+ * el2go_ota_pending_status_t pending = { 0 };
+ * if (el2go_ota_get_pending_status(&pending) == EL2GO_OTA_SUCCESS &&
+ *     pending.valid == EL2GO_OTA_STATUS_VALID_MAGIC &&
+ *     fwual_get_state() == FWUAL_STATE_ROLLED_BACK) {
+ *     el2go_ota_schedule_status_report(pending.update_id, pending.package_id,
+ *                                      EL2GO_OTA_OUTCOME_ROLLBACK);
+ * }
+ * @endcode
  */
 el2go_ota_status_t el2go_ota_get_pending_status(el2go_ota_pending_status_t *out);
 
@@ -398,6 +507,17 @@ el2go_ota_status_t el2go_ota_get_pending_status(el2go_ota_pending_status_t *out)
  *         (entry retained).
  * @retval EL2GO_OTA_ERROR_SERVER on server error response.
  * @retval EL2GO_OTA_ERROR_INTERNAL on NVS, encoding, or decoding failure.
+ *
+ * @par Example
+ * @code
+ * // Call once early at boot, right after el2go_ota_connect() succeeds, to
+ * // flush any report that was scheduled before the previous reboot.
+ * el2go_ota_status_t rc = el2go_ota_report_pending_status(ctx);
+ * if (rc != EL2GO_OTA_SUCCESS) {
+ *     printf("pending status delivery failed: %s\n",
+ *            el2go_ota_get_error_string(rc));
+ * }
+ * @endcode
  */
 el2go_ota_status_t el2go_ota_report_pending_status(el2go_ota_ctx_t *ctx);
 
