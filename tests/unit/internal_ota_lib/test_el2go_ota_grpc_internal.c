@@ -2142,6 +2142,813 @@ static bool test_ota_grpc_recv_data_max_messages_last_wins(void *params)
     return true;
 }
 
+/* ---- HPACK primitives ---------------------------------------------------- */
+
+/**
+ * @brief RFC 7541 C.1.2: 1337 with a 5-bit prefix is encoded as 1F 9A 0A.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_decode_integer_multibyte(void *params)
+{
+    static const uint8_t blk[] = { 0x1FU, 0x9AU, 0x0AU };
+    size_t pos = 0U;
+    uint32_t val = 0U;
+
+    (void)params;
+    TEST_ASSERT(hpack_decode_integer(blk, sizeof(blk), &pos, 5U, &val));
+    TEST_ASSERT_EQUAL(1337U, val);
+    TEST_ASSERT_EQUAL(sizeof(blk), pos);
+    return true;
+}
+
+/**
+ * @brief Empty, truncated and over-long integers are rejected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_decode_integer_rejects_bad_input(void *params)
+{
+    static const uint8_t truncated[] = { 0x1FU, 0x80U };
+    static const uint8_t too_long[] = { 0x1FU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0x01U };
+    static const uint8_t overflow[] = { 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0x0FU };
+    size_t pos = 0U;
+    uint32_t val = 0U;
+
+    (void)params;
+    TEST_ASSERT(!hpack_decode_integer(truncated, 0U, &pos, 5U, &val));
+    pos = 0U;
+    TEST_ASSERT(!hpack_decode_integer(truncated, sizeof(truncated), &pos, 5U, &val));
+    pos = 0U;
+    TEST_ASSERT(!hpack_decode_integer(too_long, sizeof(too_long), &pos, 5U, &val));
+    pos = 0U;
+    TEST_ASSERT(!hpack_decode_integer(overflow, sizeof(overflow), &pos, 8U, &val));
+    return true;
+}
+
+/**
+ * @brief Huffman: valid string, undersized output, and bad EOS padding.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_huffman_decode_cases(void *params)
+{
+    /* "grpc-status" Huffman encoded (same bytes as the trailer tests). */
+    static const uint8_t enc[] = { 0x9AU, 0xCAU, 0xC8U, 0xB2U, 0x12U, 0x34U, 0xDAU, 0x8FU };
+    static const uint8_t zero_ok[] = { 0x07U };  /* '0' + 111 padding */
+    static const uint8_t zero_bad[] = { 0x00U }; /* '0' + 000 padding */
+    uint8_t out[16] = { 0U };
+
+    (void)params;
+    TEST_ASSERT_EQUAL(11U, hpack_huffman_decode(enc, sizeof(enc), out, sizeof(out)));
+    TEST_ASSERT_MEMORY_EQUAL("grpc-status", out, 11U);
+    TEST_ASSERT_EQUAL(SIZE_MAX, hpack_huffman_decode(enc, sizeof(enc), out, 4U));
+    TEST_ASSERT_EQUAL(1U, hpack_huffman_decode(zero_ok, sizeof(zero_ok), out, sizeof(out)));
+    TEST_ASSERT_EQUAL('0', out[0]);
+    TEST_ASSERT_EQUAL(SIZE_MAX, hpack_huffman_decode(zero_bad, sizeof(zero_bad), out, sizeof(out)));
+    return true;
+}
+
+/**
+ * @brief String decoding: plain, too big for output, truncated, skip.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_string_decode_cases(void *params)
+{
+    static const uint8_t plain[] = { 0x03U, 'a', 'b', 'c' };
+    static const uint8_t trunc[] = { 0x05U, 'a', 'b' };
+    uint8_t out[8] = { 0U };
+    size_t pos = 0U;
+    size_t olen = 0U;
+
+    (void)params;
+    TEST_ASSERT(hpack_decode_string_bounded(plain, sizeof(plain), &pos, out, sizeof(out), &olen));
+    TEST_ASSERT_EQUAL(3U, olen);
+    TEST_ASSERT_MEMORY_EQUAL("abc", out, 3U);
+
+    pos = 0U;
+    TEST_ASSERT(!hpack_decode_string_bounded(plain, sizeof(plain), &pos, out, 2U, &olen));
+    pos = 0U;
+    TEST_ASSERT(!hpack_decode_string_bounded(trunc, sizeof(trunc), &pos, out, sizeof(out), &olen));
+    pos = sizeof(plain);
+    TEST_ASSERT(!hpack_decode_string_bounded(plain, sizeof(plain), &pos, out, sizeof(out), &olen));
+
+    pos = 0U;
+    TEST_ASSERT(hpack_skip_string(plain, sizeof(plain), &pos));
+    TEST_ASSERT_EQUAL(sizeof(plain), pos);
+    pos = 0U;
+    TEST_ASSERT(!hpack_skip_string(trunc, sizeof(trunc), &pos));
+    return true;
+}
+
+/* ---- Response-Headers validation ----------------------------------------- */
+
+/**
+ * @brief A static-table non-200 :status index (404 = 0x8C) is rejected, 200 (0x88) is accepted.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_static_status(void *params)
+{
+    static const uint8_t ok[] = { 0x88U };
+    static const uint8_t not_found[] = { 0x8CU };
+    static const uint8_t server_err[] = { 0x8EU };
+
+    (void)params;
+    TEST_ASSERT(hpack_validate_response_headers(ok, sizeof(ok)));
+    TEST_ASSERT(!hpack_validate_response_headers(not_found, sizeof(not_found)));
+    TEST_ASSERT(!hpack_validate_response_headers(server_err, sizeof(server_err)));
+    return true;
+}
+
+/**
+ * @brief Literal :status with a non-200 value is rejected for both indexing modes.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_literal_status(void *params)
+{
+    static const uint8_t incr_500[] = { 0x40U, 0x07U, ':',   's', 't', 'a', 't',
+                                        'u',   's',   0x03U, '5', '0', '0' };
+    static const uint8_t noidx_404[] = { 0x00U, 0x07U, ':',   's', 't', 'a', 't',
+                                         'u',   's',   0x03U, '4', '0', '4' };
+    static const uint8_t incr_200[] = { 0x40U, 0x07U, ':',   's', 't', 'a', 't',
+                                        'u',   's',   0x03U, '2', '0', '0' };
+
+    (void)params;
+    TEST_ASSERT(!hpack_validate_response_headers(incr_500, sizeof(incr_500)));
+    TEST_ASSERT(!hpack_validate_response_headers(noidx_404, sizeof(noidx_404)));
+    TEST_ASSERT(hpack_validate_response_headers(incr_200, sizeof(incr_200)));
+    return true;
+}
+
+/**
+ * @brief A :status that cannot be decoded as a number must not cause a rejection.
+ *
+ * Intended behaviour: hpack_validate_response_headers() is documented to fail
+ * open when :status cannot be determined; only an explicit, decoded non-200
+ * :status is rejected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_undecodable_status_fails_open(void *params)
+{
+    static const uint8_t non_digit[] = { 0x40U, 0x07U, ':',   's', 't', 'a', 't',
+                                         'u',   's',   0x03U, 'a', 'b', 'c' };
+    static const uint8_t overflow[] = { 0x40U, 0x07U, ':', 's', 't', 'a', 't', 'u', 's', 0x0BU, '9',
+                                        '9',   '9',   '9', '9', '9', '9', '9', '9', '9', '9' };
+
+    (void)params;
+    TEST_ASSERT(hpack_validate_response_headers(non_digit, sizeof(non_digit)));
+    TEST_ASSERT(hpack_validate_response_headers(overflow, sizeof(overflow)));
+    return true;
+}
+
+/*
+ * Header blocks that carry no non-200 :status must be accepted. Cases that are
+ * malformed (truncated) are accepted too: the validator fails open, because it
+ * cannot tell a bad status from a half-delivered header.
+ */
+static bool hpack_validate_accepts(const uint8_t *blk, size_t len)
+{
+    TEST_ASSERT(hpack_validate_response_headers(blk, len));
+    return true;
+}
+
+/**
+ * @brief A grpc content-type header does not affect validation.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_grpc_content_type(void *params)
+{
+    static const uint8_t blk[] = { 0x40U, 0x0CU, 'c', 'o',   'n', 't', 'e', 'n', 't', '-', 't',
+                                   'y',   'p',   'e', 0x10U, 'a', 'p', 'p', 'l', 'i', 'c', 'a',
+                                   't',   'i',   'o', 'n',   '/', 'g', 'r', 'p', 'c' };
+    (void)params;
+    return hpack_validate_accepts(blk, sizeof(blk));
+}
+
+/**
+ * @brief A non-grpc content-type is only diagnosed, never rejected.
+ *
+ * Intended behaviour: content-type is a SHOULD in the gRPC-over-HTTP2 spec, so
+ * the validator only logs a mismatch (see hpack_validate_response_headers()).
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_html_content_type_not_rejected(void *params)
+{
+    static const uint8_t blk[] = {
+        0x40U, 0x0CU, 'c',   'o', 'n', 't', 'e', 'n', 't', '-', 't', 'y',
+        'p',   'e',   0x09U, 't', 'e', 'x', 't', '/', 'h', 't', 'm', 'l'
+    };
+    (void)params;
+    return hpack_validate_accepts(blk, sizeof(blk));
+}
+
+/**
+ * @brief An unrelated literal header is skipped.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_unrelated_header_skipped(void *params)
+{
+    static const uint8_t blk[] = { 0x40U, 0x03U, 'f', 'o', 'o', 0x03U, 'b', 'a', 'r' };
+    (void)params;
+    return hpack_validate_accepts(blk, sizeof(blk));
+}
+
+/**
+ * @brief A header that precedes the :status must be skipped without losing sync: the non-200
+ *        :status that follows it still has to be found and rejected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_status_after_other_header(void *params)
+{
+    static const uint8_t blk[] = { 0x40U, 0x03U, 'f',   'o', 'o', 0x03U, 'b', 'a',
+                                   'r',   0x00U, 0x07U, ':', 's', 't',   'a', 't',
+                                   'u',   's',   0x03U, '5', '0', '0' };
+    (void)params;
+    TEST_ASSERT(!hpack_validate_response_headers(blk, sizeof(blk)));
+    return true;
+}
+
+/**
+ * @brief A dynamic table size update is skipped without losing sync before a bad :status.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_status_after_table_update(void *params)
+{
+    static const uint8_t blk[] = { 0x3FU, 0xE1U, 0x1FU, 0x8CU };
+    (void)params;
+    TEST_ASSERT(!hpack_validate_response_headers(blk, sizeof(blk)));
+    return true;
+}
+
+/**
+ * @brief Truncated or empty blocks are accepted (fail open).
+ *
+ * Intended behaviour: a truncated block cannot be told apart from a partially
+ * delivered header, so the validator fails open by design.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_validate_truncated_blocks_fail_open(void *params)
+{
+    static const uint8_t trunc_update[] = { 0x3FU };
+    static const uint8_t trunc_name[] = { 0x40U, 0x0AU, 'a', 'b' };
+    static const uint8_t trunc_idx[] = { 0x4FU };
+    static const uint8_t trunc_skip[] = { 0x41U, 0x05U, 'a' };
+
+    (void)params;
+    TEST_ASSERT(hpack_validate_accepts(trunc_update, sizeof(trunc_update)));
+    TEST_ASSERT(hpack_validate_accepts(trunc_name, sizeof(trunc_name)));
+    TEST_ASSERT(hpack_validate_accepts(trunc_idx, sizeof(trunc_idx)));
+    TEST_ASSERT(hpack_validate_accepts(trunc_skip, sizeof(trunc_skip)));
+    TEST_ASSERT(hpack_validate_accepts(NULL, 0U));
+    return true;
+}
+
+/* ---- grpc-status extraction ---------------------------------------------- */
+
+/**
+ * @brief Literal grpc-status without indexing is found, even after another header.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_literal(void *params)
+{
+    static const uint8_t only[] = { 0x00U, 0x0BU, 'g', 'r', 'p', 'c',   '-', 's',
+                                    't',   'a',   't', 'u', 's', 0x01U, '7' };
+    static const uint8_t after_other[] = { 0x00U, 0x03U, 'f', 'o', 'o',   0x01U, 'x', 0x00U,
+                                           0x0BU, 'g',   'r', 'p', 'c',   '-',   's', 't',
+                                           'a',   't',   'u', 's', 0x01U, '3' };
+    uint32_t code = 0xFFU;
+
+    (void)params;
+    TEST_ASSERT(hpack_find_grpc_status_fallback(only, sizeof(only), NULL, &code));
+    TEST_ASSERT_EQUAL(7U, code);
+    TEST_ASSERT(hpack_find_grpc_status_fallback(after_other, sizeof(after_other), NULL, &code));
+    TEST_ASSERT_EQUAL(3U, code);
+    return true;
+}
+
+/** @brief Check that the fallback scan reports "not found" for @p blk. */
+static bool hpack_status_not_found(const uint8_t *blk, size_t len)
+{
+    uint32_t code = 0xAAU;
+
+    TEST_ASSERT(!hpack_find_grpc_status_fallback(blk, len, NULL, &code));
+    return true;
+}
+
+/**
+ * @brief A block without grpc-status, or one made only of an indexed field, finds nothing.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_absent(void *params)
+{
+    static const uint8_t other[] = { 0x00U, 0x03U, 'f', 'o', 'o', 0x01U, 'x' };
+    static const uint8_t indexed_only[] = { 0x88U };
+
+    (void)params;
+    TEST_ASSERT(hpack_status_not_found(other, sizeof(other)));
+    TEST_ASSERT(hpack_status_not_found(indexed_only, sizeof(indexed_only)));
+    return true;
+}
+
+/**
+ * @brief A dynamic table size update alone finds nothing.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_table_update_only(void *params)
+{
+    static const uint8_t table_update[] = { 0x3FU, 0xE1U, 0x1FU };
+
+    (void)params;
+    return hpack_status_not_found(table_update, sizeof(table_update));
+}
+
+/**
+ * @brief Blocks truncated before the grpc-status value is complete find nothing.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_truncated_before_value(void *params)
+{
+    static const uint8_t trunc_update[] = { 0x3FU };
+    static const uint8_t trunc_name_idx[] = { 0x4FU };
+    static const uint8_t trunc_name[] = { 0x40U, 0x0AU, 'a' };
+    static const uint8_t trunc_value[] = { 0x00U, 0x0BU, 'g', 'r', 'p', 'c', '-',
+                                           's',   't',   'a', 't', 'u', 's', 0x05U };
+    static const uint8_t trunc_skip[] = { 0x41U, 0x05U, 'a' };
+
+    (void)params;
+    TEST_ASSERT(hpack_status_not_found(trunc_update, sizeof(trunc_update)));
+    TEST_ASSERT(hpack_status_not_found(trunc_name_idx, sizeof(trunc_name_idx)));
+    TEST_ASSERT(hpack_status_not_found(trunc_name, sizeof(trunc_name)));
+    TEST_ASSERT(hpack_status_not_found(trunc_value, sizeof(trunc_value)));
+    TEST_ASSERT(hpack_status_not_found(trunc_skip, sizeof(trunc_skip)));
+    return true;
+}
+
+/**
+ * @brief A grpc-status value too large for uint32 is not reported as a valid code.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_value_overflow(void *params)
+{
+    static const uint8_t overflow_value[] = { 0x00U, 0x0BU, 'g', 'r', 'p',   'c', '-', 's', 't',
+                                              'a',   't',   'u', 's', 0x0BU, '9', '9', '9', '9',
+                                              '9',   '9',   '9', '9', '9',   '9', '9' };
+
+    (void)params;
+    return hpack_status_not_found(overflow_value, sizeof(overflow_value));
+}
+
+/**
+ * @brief Once grpc-status is found, a later header with a truncated name must not discard it.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_keeps_result_after_truncated_name(void *params)
+{
+    static const uint8_t blk[] = { 0x00U, 0x0BU, 'g', 'r', 'p',   'c', '-',   's',   't',
+                                   'a',   't',   'u', 's', 0x01U, '4', 0x40U, 0x0AU, 'a' };
+    uint32_t code = 0U;
+
+    (void)params;
+    TEST_ASSERT(hpack_find_grpc_status_fallback(blk, sizeof(blk), NULL, &code));
+    TEST_ASSERT_EQUAL(4U, code);
+    return true;
+}
+
+/**
+ * @brief Once grpc-status is found, a later truncated table update must not discard it.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_keeps_result_after_truncated_update(void *params)
+{
+    static const uint8_t blk[] = { 0x00U, 0x0BU, 'g', 'r', 'p', 'c',   '-', 's',
+                                   't',   'a',   't', 'u', 's', 0x01U, '4', 0x3FU };
+    uint32_t code = 0U;
+
+    (void)params;
+    TEST_ASSERT(hpack_find_grpc_status_fallback(blk, sizeof(blk), NULL, &code));
+    TEST_ASSERT_EQUAL(4U, code);
+    return true;
+}
+
+/**
+ * @brief Once grpc-status is found, a later header whose value is truncated must not discard it.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_keeps_result_after_truncated_skip(void *params)
+{
+    static const uint8_t blk[] = { 0x00U, 0x0BU, 'g', 'r', 'p',   'c', '-',   's',   't',
+                                   'a',   't',   'u', 's', 0x01U, '4', 0x41U, 0x05U, 'a' };
+    uint32_t code = 0U;
+
+    (void)params;
+    TEST_ASSERT(hpack_find_grpc_status_fallback(blk, sizeof(blk), NULL, &code));
+    TEST_ASSERT_EQUAL(4U, code);
+    return true;
+}
+
+/**
+ * @brief An indexed reference that does not match the cached grpc-status entry is ignored.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_hpack_find_status_indexed_ref_mismatch(void *params)
+{
+    grpc_ctx_t ctx = { 0 };
+    /* Cached grpc-status was inserted as entry 1 of 1 => dynamic index 62. 0xBFU is index 63. */
+    static const uint8_t wrong_idx[] = { 0xBFU };
+    static const uint8_t right_idx[] = { 0xBEU };
+    uint32_t code = 0U;
+
+    (void)params;
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.hpack_dyn_entries = 1U;
+    ctx.grpc_status_insert_serial = 1U;
+    ctx.grpc_status_dyn_value = 9U;
+
+    TEST_ASSERT(!hpack_find_grpc_status_fallback(wrong_idx, sizeof(wrong_idx), &ctx, &code));
+    TEST_ASSERT(hpack_find_grpc_status_fallback(right_idx, sizeof(right_idx), &ctx, &code));
+    TEST_ASSERT_EQUAL(9U, code);
+    return true;
+}
+
+/* ---- send(): failure of each write in the request sequence ---------------- */
+
+/* Upper bound on writes in one first-request send(); only guards the loop below. */
+#define GRPC_SEND_MAX_WRITES 64U
+
+/**
+ * @brief Run one first-request send() on a fresh connection with write number
+ *        @p fail_on (1-based, 0 = never) forced to fail.
+ *
+ * @param fail_on Write call to fail, or 0 for none.
+ * @param[out] rc Status returned by send().
+ * @return @c true if setup succeeded, @c false otherwise.
+ */
+static bool grpc_send_with_write_failure(unsigned int fail_on, el2go_ota_status_t *rc)
+{
+    static const uint8_t msg[3] = { 0x01U, 0x02U, 0x03U };
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_mtls_config_t cfg = grpc_make_cfg();
+    el2go_ota_transport_t t = { 0 };
+
+    memset(&t, 0, sizeof(t));
+    grpc_reset_wraps();
+    /* Report every write as fully accepted so that one tls_write() is one net write. */
+    g_wrap_net_crypto_write_rc = 4096;
+    if (el2go_ota_tls_init(&tls, grpc_get_pctx(), &cfg) != EL2GO_STATUS_SUCCESS) {
+        return false;
+    }
+    queue_frame(0U, H2_TYPE_SETTINGS, 0x00U, 0U, NULL);
+    if (test_shadow_el2go_ota_transport_init(&t, tls, cfg.hostname) != EL2GO_OTA_SUCCESS) {
+        el2go_ota_tls_deinit(tls);
+        return false;
+    }
+
+    g_wrap_net_crypto_write_fail_on_call = fail_on;
+    *rc = t.send(&t, "/pkg.Svc/Method", msg, sizeof(msg));
+
+    t.deinit(&t);
+    el2go_ota_tls_deinit(tls);
+    grpc_reset_wraps();
+    return true;
+}
+
+/**
+ * @brief A transport failure on any single write of the first request is reported
+ *        as EL2GO_OTA_ERROR_NETWORK.
+ *
+ * The number of writes is not hard-coded: write N is failed for N = 1, 2, ...
+ * until send() no longer reaches write N and succeeds. This keeps the test valid
+ * if the frame batching changes.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_send_reports_network_error_for_each_write(void *params)
+{
+    el2go_ota_status_t rc = EL2GO_OTA_SUCCESS;
+    unsigned int n = 0U;
+
+    (void)params;
+    for (n = 1U; n <= GRPC_SEND_MAX_WRITES; n++) {
+        TEST_ASSERT(grpc_send_with_write_failure(n, &rc));
+        if (rc == EL2GO_OTA_SUCCESS) {
+            break; /* write n is never reached: every earlier write was covered */
+        }
+        TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, rc);
+    }
+    /* At least one write must have been exercised, and the loop must terminate. */
+    TEST_ASSERT(n > 1U && n <= GRPC_SEND_MAX_WRITES);
+    return true;
+}
+
+/**
+ * @brief Walk the captured TX bytes and check that the first request is sent as preface, SETTINGS,
+ *        SETTINGS ACK, HEADERS, DATA, WINDOW_UPDATE x2, with the request on stream 1 and the message
+ *        wrapped in the gRPC prefix.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_send_emits_expected_frame_sequence(void *params)
+{
+    struct expected_frame {
+        uint8_t type;
+        uint8_t flags;
+        uint32_t stream_id;
+    };
+    static const struct expected_frame seq[] = {
+        { H2_TYPE_SETTINGS, 0x00U, 0U },
+        { H2_TYPE_SETTINGS, H2_FLAG_ACK, 0U },
+        { H2_TYPE_HEADERS, H2_FLAG_END_HEADERS, 1U },
+        { H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U },
+        { H2_TYPE_WINDOW_UPDATE, 0x00U, 0U },
+        { H2_TYPE_WINDOW_UPDATE, 0x00U, 1U },
+    };
+    /* gRPC prefix (not compressed, length 1) + the one-byte message used by the setup helper. */
+    static const uint8_t k_data_payload[] = { 0x00U, 0x00U, 0x00U, 0x00U, 0x01U, 0x01U };
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t = { 0 };
+    const uint8_t *tx = NULL;
+    size_t tx_len = 0U;
+    size_t pos = sizeof(HTTP2_PREFACE);
+    size_t i = 0U;
+
+    el2go_ota_mtls_config_t cfg = grpc_make_cfg();
+    static const uint8_t msg[1] = { 0x01U };
+
+    (void)params;
+    memset(&t, 0, sizeof(t));
+    grpc_reset_wraps();
+    /* Accept every write in full so that the captured TX bytes contain no retried tails. */
+    g_wrap_net_crypto_write_rc = 4096;
+    TEST_ASSERT_EQUAL(EL2GO_STATUS_SUCCESS, el2go_ota_tls_init(&tls, grpc_get_pctx(), &cfg));
+    queue_frame(0U, H2_TYPE_SETTINGS, 0x00U, 0U, NULL);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      test_shadow_el2go_ota_transport_init(&t, tls, cfg.hostname));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, t.send(&t, "/pkg.Svc/Method", msg, sizeof(msg)));
+    TEST_ASSERT_EQUAL(0, mock_net_tx_data(&tx, &tx_len));
+    TEST_ASSERT(tx_len >= sizeof(HTTP2_PREFACE));
+    TEST_ASSERT_MEMORY_EQUAL(HTTP2_PREFACE, tx, sizeof(HTTP2_PREFACE));
+
+    for (i = 0U; i < sizeof(seq) / sizeof(seq[0]); i++) {
+        uint32_t len = 0U;
+        uint32_t sid = 0U;
+
+        TEST_ASSERT(pos + 9U <= tx_len);
+        len = ((uint32_t)tx[pos] << 16U) | ((uint32_t)tx[pos + 1U] << 8U) | tx[pos + 2U];
+        sid = (((uint32_t)tx[pos + 5U] << 24U) | ((uint32_t)tx[pos + 6U] << 16U) |
+               ((uint32_t)tx[pos + 7U] << 8U) | tx[pos + 8U]) &
+              0x7FFFFFFFU;
+        TEST_ASSERT_EQUAL(seq[i].type, tx[pos + 3U]);
+        TEST_ASSERT_EQUAL(seq[i].flags, tx[pos + 4U]);
+        TEST_ASSERT_EQUAL(seq[i].stream_id, sid);
+        TEST_ASSERT(pos + 9U + len <= tx_len);
+
+        if (seq[i].type == H2_TYPE_DATA) {
+            TEST_ASSERT_EQUAL(sizeof(k_data_payload), len);
+            TEST_ASSERT_MEMORY_EQUAL(k_data_payload, &tx[pos + 9U], sizeof(k_data_payload));
+        }
+        pos += 9U + len;
+    }
+    /* Nothing else may follow the last WINDOW_UPDATE. */
+    TEST_ASSERT_EQUAL(tx_len, pos);
+
+    t.deinit(&t);
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief A request whose HPACK block cannot fit in the scratch buffer is an internal error.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_send_rejects_oversized_method_path(void *params)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t = { 0 };
+    char path[HPACK_BUF_SIZE + 8U];
+    static const uint8_t msg[1] = { 0x01U };
+
+    (void)params;
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+    memset(path, 'a', sizeof(path));
+    path[0] = '/';
+    path[sizeof(path) - 1U] = '\0';
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INTERNAL, t.send(&t, path, msg, sizeof(msg)));
+
+    t.deinit(&t);
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/* ---- recv(): control frames that are ignored, drained or fatal ------------ */
+
+/*
+ * Queue one control frame, optionally followed by a valid 2-byte response on the
+ * active stream (1), run recv() and check the status and delivered length.
+ */
+static bool grpc_recv_after_frame(uint8_t type, uint8_t flags, uint32_t sid, const uint8_t *pl,
+                                  uint32_t len, bool good_data_follows, el2go_ota_status_t expected,
+                                  size_t expected_len)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t buf[16] = { 0U };
+    size_t out_len = 0U;
+    static const uint8_t data[5 + 2] = { 0x00U, 0x00U, 0x00U, 0x00U, 0x02U, 0xAAU, 0xBBU };
+
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+    queue_frame(len, type, flags, sid, pl);
+    if (good_data_follows) {
+        queue_frame(sizeof(data), H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, data);
+    }
+    TEST_ASSERT_EQUAL(expected, t.recv(&t, buf, sizeof(buf), &out_len));
+    TEST_ASSERT_EQUAL((int)expected_len, (int)out_len);
+    t.deinit(&t);
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+static const uint8_t k_ctl_pl[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+/**
+ * @brief RST_STREAM with a payload too short for an error code still aborts the call.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_rst_stream_short_payload(void *params)
+{
+    (void)params;
+    return grpc_recv_after_frame(H2_TYPE_RST_STREAM, 0U, 1U, k_ctl_pl, 2U, false,
+                                 EL2GO_OTA_ERROR_NETWORK, 0U);
+}
+
+/**
+ * @brief RST_STREAM for a different (stale) stream is drained and does not abort the call.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_rst_stream_other_stream_ignored(void *params)
+{
+    (void)params;
+    return grpc_recv_after_frame(H2_TYPE_RST_STREAM, 0U, 7U, k_ctl_pl, 4U, true, EL2GO_OTA_SUCCESS,
+                                 2U);
+}
+
+/**
+ * @brief GOAWAY with a payload shorter than 8 bytes still aborts the call.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_goaway_short_payload(void *params)
+{
+    (void)params;
+    return grpc_recv_after_frame(H2_TYPE_GOAWAY, 0U, 0U, k_ctl_pl, 3U, false,
+                                 EL2GO_OTA_ERROR_NETWORK, 0U);
+}
+
+/**
+ * @brief DATA and HEADERS for a stale stream are drained; the active stream's data is returned.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_other_stream_data_and_headers_ignored(void *params)
+{
+    (void)params;
+    TEST_ASSERT(
+        grpc_recv_after_frame(H2_TYPE_DATA, 0U, 9U, k_ctl_pl, 8U, true, EL2GO_OTA_SUCCESS, 2U));
+    return grpc_recv_after_frame(H2_TYPE_HEADERS, H2_FLAG_END_HEADERS, 9U, k_ctl_pl, 8U, true,
+                                 EL2GO_OTA_SUCCESS, 2U);
+}
+
+/*
+ * Response-Headers carrying a non-200 :status must fail the call even when a
+ * well-formed message follows; a 200 must not.
+ */
+static bool grpc_recv_after_response_headers(const uint8_t *hpack, uint32_t hpack_len,
+                                             el2go_ota_status_t expected, size_t expected_len)
+{
+    el2go_ota_tls_ctx_t *tls = NULL;
+    el2go_ota_transport_t t;
+    uint8_t buf[16] = { 0U };
+    size_t out_len = 0U;
+    static const uint8_t data[5 + 2] = { 0x00U, 0x00U, 0x00U, 0x00U, 0x02U, 0xAAU, 0xBBU };
+
+    TEST_ASSERT(grpc_setup_ready_transport(&tls, &t));
+    queue_frame(hpack_len, H2_TYPE_HEADERS, H2_FLAG_END_HEADERS, 1U, hpack);
+    queue_frame(sizeof(data), H2_TYPE_DATA, H2_FLAG_END_STREAM, 1U, data);
+    TEST_ASSERT_EQUAL(expected, t.recv(&t, buf, sizeof(buf), &out_len));
+    TEST_ASSERT_EQUAL((int)expected_len, (int)out_len);
+    t.deinit(&t);
+    el2go_ota_tls_deinit(tls);
+    return true;
+}
+
+/**
+ * @brief :status 200 (static index 8) followed by data is delivered.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_status_200_headers_accepted(void *params)
+{
+    static const uint8_t hdr[] = { 0x88U };
+
+    (void)params;
+    return grpc_recv_after_response_headers(hdr, sizeof(hdr), EL2GO_OTA_SUCCESS, 2U);
+}
+
+/**
+ * @brief :status 404 (static index 12) fails the call before any data is delivered.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_status_404_headers_rejected(void *params)
+{
+    static const uint8_t hdr[] = { 0x8CU };
+
+    (void)params;
+    return grpc_recv_after_response_headers(hdr, sizeof(hdr), EL2GO_OTA_ERROR_NETWORK, 0U);
+}
+
+/**
+ * @brief A literal :status 503 fails the call before any data is delivered.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_status_503_literal_headers_rejected(void *params)
+{
+    static const uint8_t hdr[] = { 0x00U, 0x07U, ':',   's', 't', 'a', 't',
+                                   'u',   's',   0x03U, '5', '0', '3' };
+
+    (void)params;
+    return grpc_recv_after_response_headers(hdr, sizeof(hdr), EL2GO_OTA_ERROR_NETWORK, 0U);
+}
+
+/**
+ * @brief A PING ACK and an unknown frame type are drained without affecting the response.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_grpc_recv_ping_ack_and_unknown_frame_drained(void *params)
+{
+    (void)params;
+    TEST_ASSERT(grpc_recv_after_frame(H2_TYPE_PING, H2_FLAG_ACK, 0U, k_ctl_pl, 8U, true,
+                                      EL2GO_OTA_SUCCESS, 2U));
+    return grpc_recv_after_frame(0x0AU, 0U, 0U, k_ctl_pl, 8U, true, EL2GO_OTA_SUCCESS, 2U);
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_grpc_tests(void)
@@ -2234,4 +3041,46 @@ void register_ota_lib_grpc_tests(void)
                                  NULL);
     TEST_REGISTER_ID_WITH_PARAMS("14.62", test_ota_grpc_recv_data_too_many_messages_rejected, NULL);
     TEST_REGISTER_ID_WITH_PARAMS("14.63", test_ota_grpc_recv_data_max_messages_last_wins, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.66", test_ota_hpack_decode_integer_multibyte, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.67", test_ota_hpack_decode_integer_rejects_bad_input, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.68", test_ota_hpack_huffman_decode_cases, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.69", test_ota_hpack_string_decode_cases, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.70", test_ota_hpack_validate_static_status, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.71", test_ota_hpack_validate_literal_status, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.72", test_ota_hpack_validate_undecodable_status_fails_open,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.73", test_ota_hpack_validate_grpc_content_type, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.74", test_ota_hpack_find_status_literal, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.75", test_ota_hpack_find_status_absent, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS(
+        "14.76", test_ota_hpack_find_status_keeps_result_after_truncated_name, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.77", test_ota_hpack_find_status_indexed_ref_mismatch, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.78", test_ota_grpc_send_reports_network_error_for_each_write,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.79", test_ota_grpc_send_emits_expected_frame_sequence, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.80", test_ota_grpc_send_rejects_oversized_method_path, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.81", test_ota_grpc_recv_rst_stream_short_payload, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.82", test_ota_grpc_recv_rst_stream_other_stream_ignored, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.83", test_ota_grpc_recv_goaway_short_payload, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.84", test_ota_grpc_recv_other_stream_data_and_headers_ignored,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.85", test_ota_grpc_recv_ping_ack_and_unknown_frame_drained,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.86", test_ota_grpc_recv_status_200_headers_accepted, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.87", test_ota_grpc_recv_status_404_headers_rejected, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.88", test_ota_grpc_recv_status_503_literal_headers_rejected,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.89", test_ota_hpack_validate_html_content_type_not_rejected,
+                                 NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.90", test_ota_hpack_validate_unrelated_header_skipped, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.91", test_ota_hpack_validate_status_after_other_header, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.92", test_ota_hpack_validate_status_after_table_update, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.93", test_ota_hpack_validate_truncated_blocks_fail_open, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.94", test_ota_hpack_find_status_table_update_only, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.95", test_ota_hpack_find_status_truncated_before_value, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS("14.96", test_ota_hpack_find_status_value_overflow, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS(
+        "14.97", test_ota_hpack_find_status_keeps_result_after_truncated_update, NULL);
+    TEST_REGISTER_ID_WITH_PARAMS(
+        "14.98", test_ota_hpack_find_status_keeps_result_after_truncated_skip, NULL);
 }

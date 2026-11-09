@@ -44,4 +44,16 @@ void ota_fixture_reset_net_crypto_and_psa_wraps(void);
 el2go_ota_status_t ota_fixture_noop_chunk_cb(const uint8_t *data, size_t len, size_t offset,
                                              void *ctx);
 
+/**
+ * @brief Reset the net_crypto wraps and bring up a library context that is
+ *        initialised and connected, using ota_fixture_make_cfg().
+ *
+ * @param[out] ctx  Receives the context; the caller owns it (el2go_ota_cleanup()).
+ *
+ * @note The config is a single static instance shared by every context created
+ *       through this helper. Do not hold two such contexts at the same time.
+ * @return true if init and connect both succeeded.
+ */
+bool ota_fixture_init_connected(el2go_ota_ctx_t **ctx);
+
 #endif /* TEST_EL2GO_OTA_FIXTURES_H */

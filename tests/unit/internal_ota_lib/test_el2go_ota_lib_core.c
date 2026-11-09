@@ -659,6 +659,347 @@ static bool test_ota_cached_size_used_by_download(void *params)
     return true;
 }
 
+/* ---- API guards on a context in each connection state --------------------- */
+
+/**
+ * @brief Every network API refuses to run on a context that is not connected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_network_apis_require_connection(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_check_update_resp_t resp = { 0 };
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    memset(&resp, 0, sizeof(resp));
+    ota_fixture_reset_net_crypto_wraps();
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_init(&ctx, &cfg));
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, el2go_ota_check_for_updates(ctx, NULL, 0U, &resp));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK,
+                      el2go_ota_download_package(ctx, "u", "p", "f", 0U, ota_fixture_noop_chunk_cb,
+                                                 NULL));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK,
+                      el2go_ota_report_status(ctx, "u", "p", EL2GO_OTA_OUTCOME_SUCCESS));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, el2go_ota_report_pending_status(ctx));
+
+    el2go_ota_cleanup(&ctx);
+    return true;
+}
+
+/**
+ * @brief A NULL context is rejected by the pending-status report.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_report_pending_status_null_ctx(void *params)
+{
+    (void)params;
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_report_pending_status(NULL));
+    return true;
+}
+
+/**
+ * @brief A NULL response buffer is rejected once the context is connected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_check_for_updates_null_resp_connected(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+
+    (void)params;
+    TEST_ASSERT(ota_fixture_init_connected(&ctx));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_check_for_updates(ctx, NULL, 0U, NULL));
+    el2go_ota_cleanup(&ctx);
+    return true;
+}
+
+/**
+ * @brief download_package validates each pointer argument on a connected context.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_download_package_null_args_connected(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+
+    (void)params;
+    TEST_ASSERT(ota_fixture_init_connected(&ctx));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_download_package(ctx, NULL, "p", "f", 0U, ota_fixture_noop_chunk_cb,
+                                                 NULL));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_download_package(ctx, "u", NULL, "f", 0U, ota_fixture_noop_chunk_cb,
+                                                 NULL));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_download_package(ctx, "u", "p", NULL, 0U, ota_fixture_noop_chunk_cb,
+                                                 NULL));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_download_package(ctx, "u", "p", "f", 0U, NULL, NULL));
+    el2go_ota_cleanup(&ctx);
+    return true;
+}
+
+/**
+ * @brief report_status validates ids and outcome on a connected context.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_report_status_invalid_args_connected(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+
+    (void)params;
+    TEST_ASSERT(ota_fixture_init_connected(&ctx));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_report_status(ctx, NULL, "p", EL2GO_OTA_OUTCOME_SUCCESS));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_report_status(ctx, "u", NULL, EL2GO_OTA_OUTCOME_SUCCESS));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM,
+                      el2go_ota_report_status(ctx, "u", "p", (el2go_ota_update_outcome_t)99));
+    el2go_ota_cleanup(&ctx);
+    return true;
+}
+
+/* ---- init and connect failure handling ------------------------------------- */
+
+/** @brief Check that init rejects @p cfg with INVALID_PARAM and creates no context. */
+static bool ota_init_must_reject(const el2go_ota_mtls_config_t *cfg)
+{
+    el2go_ota_ctx_t *ctx = (el2go_ota_ctx_t *)(uintptr_t)1U; /* must be reset to NULL */
+
+    ota_fixture_reset_net_crypto_wraps();
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INVALID_PARAM, el2go_ota_init(&ctx, cfg));
+    TEST_ASSERT_NULL(ctx);
+    return true;
+}
+
+/**
+ * @brief A NULL hostname is rejected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_init_rejects_null_hostname(void *params)
+{
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    cfg.hostname = NULL;
+    return ota_init_must_reject(&cfg);
+}
+
+/**
+ * @brief Port 0 is rejected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_init_rejects_zero_port(void *params)
+{
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    cfg.port = 0U;
+    return ota_init_must_reject(&cfg);
+}
+
+/**
+ * @brief A NULL server CA chain is rejected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_init_rejects_null_ca_chain(void *params)
+{
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    cfg.server_ca_chain = NULL;
+    return ota_init_must_reject(&cfg);
+}
+
+/**
+ * @brief A zero-length server CA chain is rejected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_init_rejects_empty_ca_chain(void *params)
+{
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    cfg.server_ca_chain_size = 0U;
+    return ota_init_must_reject(&cfg);
+}
+
+/**
+ * @brief A TLS setup failure during init leaves no context behind.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_init_tls_failure_leaves_no_context(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    ota_fixture_reset_net_crypto_wraps();
+    g_wrap_net_crypto_new_rc = 1;
+    TEST_ASSERT(el2go_ota_init(&ctx, &cfg) != EL2GO_OTA_SUCCESS);
+    TEST_ASSERT_NULL(ctx);
+    ota_fixture_reset_net_crypto_wraps();
+    return true;
+}
+
+/**
+ * @brief A TLS configure failure during init leaves no context behind.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_init_tls_configure_failure_leaves_no_context(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    ota_fixture_reset_net_crypto_wraps();
+    g_wrap_net_crypto_configure_rc = 1;
+    TEST_ASSERT(el2go_ota_init(&ctx, &cfg) != EL2GO_OTA_SUCCESS);
+    TEST_ASSERT_NULL(ctx);
+    ota_fixture_reset_net_crypto_wraps();
+    return true;
+}
+
+/**
+ * @brief A server CA rejection during init leaves no context behind.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_init_server_cert_failure_leaves_no_context(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    ota_fixture_reset_net_crypto_wraps();
+    g_wrap_net_crypto_set_server_cert_rc = 1;
+    TEST_ASSERT(el2go_ota_init(&ctx, &cfg) != EL2GO_OTA_SUCCESS);
+    TEST_ASSERT_NULL(ctx);
+    ota_fixture_reset_net_crypto_wraps();
+    return true;
+}
+
+/**
+ * @brief A failed TLS connect reports an error and leaves the context disconnected.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_connect_tls_failure_stays_disconnected(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_mtls_config_t cfg = ota_fixture_make_cfg();
+
+    (void)params;
+    ota_fixture_reset_net_crypto_wraps();
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_init(&ctx, &cfg));
+
+    /* The TLS layer status must be mapped to the public error code. */
+    g_wrap_net_crypto_connect_rc = 1;
+    g_wrap_net_crypto_connect_status = EL2GO_STATUS_NET_CRYPTO_HANDSHAKE_FAILED;
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_TLS_HANDSHAKE, el2go_ota_connect(ctx));
+    TEST_ASSERT(!el2go_ota_is_connected(ctx));
+
+    g_wrap_net_crypto_connect_status = EL2GO_STATUS_NET_CRYPTO_INVALID_CERT;
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_CERT_VERIFY, el2go_ota_connect(ctx));
+    TEST_ASSERT(!el2go_ota_is_connected(ctx));
+
+    /* The context must still be usable: a later connect succeeds. */
+    g_wrap_net_crypto_connect_rc = 0;
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_connect(ctx));
+    TEST_ASSERT(el2go_ota_is_connected(ctx));
+
+    el2go_ota_cleanup(&ctx);
+    ota_fixture_reset_net_crypto_wraps();
+    return true;
+}
+
+/**
+ * @brief Disconnecting a connected context clears the connected state; cleanup is idempotent.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_disconnect_then_cleanup_twice(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+
+    (void)params;
+    TEST_ASSERT(ota_fixture_init_connected(&ctx));
+    TEST_ASSERT(el2go_ota_is_connected(ctx));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_disconnect(ctx));
+    TEST_ASSERT(!el2go_ota_is_connected(ctx));
+
+    el2go_ota_cleanup(&ctx);
+    TEST_ASSERT_NULL(ctx);
+    el2go_ota_cleanup(&ctx); /* second call on a NULL context must be a no-op */
+    el2go_ota_cleanup(NULL);
+    return true;
+}
+
+/* ---- transport failures on a connected context ---------------------------- */
+
+/**
+ * @brief A write failure while sending a request is reported as a network error.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_requests_report_network_error_on_write_failure(void *params)
+{
+    el2go_ota_ctx_t *ctx = NULL;
+    el2go_ota_check_update_resp_t resp = { 0 };
+
+    (void)params;
+    memset(&resp, 0, sizeof(resp));
+
+    /* Each request runs on a fresh connection so its first write is the h2 preface. */
+    TEST_ASSERT(ota_fixture_init_connected(&ctx));
+    g_wrap_net_crypto_write_fail_on_call = 1U;
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK, el2go_ota_check_for_updates(ctx, NULL, 0U, &resp));
+    el2go_ota_cleanup(&ctx);
+
+    TEST_ASSERT(ota_fixture_init_connected(&ctx));
+    g_wrap_net_crypto_write_fail_on_call = 1U;
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK,
+                      el2go_ota_download_package(ctx, "u", "p", "f", 0U, ota_fixture_noop_chunk_cb,
+                                                 NULL));
+    el2go_ota_cleanup(&ctx);
+
+    TEST_ASSERT(ota_fixture_init_connected(&ctx));
+    g_wrap_net_crypto_write_fail_on_call = 1U;
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK,
+                      el2go_ota_report_status(ctx, "u", "p", EL2GO_OTA_OUTCOME_ROLLBACK));
+    el2go_ota_cleanup(&ctx);
+
+    ota_fixture_reset_net_crypto_wraps();
+    return true;
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_core_tests(void)
@@ -694,4 +1035,19 @@ void register_ota_lib_core_tests(void)
     TEST_REGISTER_ID("6.29", test_ota_disconnect_not_connected);
     TEST_REGISTER_ID("6.30", test_ota_is_connected_true);
     TEST_REGISTER_ID("6.31", test_ota_cached_size_used_by_download);
+    TEST_REGISTER_ID("6.32", test_ota_network_apis_require_connection);
+    TEST_REGISTER_ID("6.33", test_ota_report_pending_status_null_ctx);
+    TEST_REGISTER_ID("6.34", test_ota_check_for_updates_null_resp_connected);
+    TEST_REGISTER_ID("6.35", test_ota_download_package_null_args_connected);
+    TEST_REGISTER_ID("6.36", test_ota_report_status_invalid_args_connected);
+    TEST_REGISTER_ID("6.37", test_ota_init_rejects_null_hostname);
+    TEST_REGISTER_ID("6.38", test_ota_init_tls_failure_leaves_no_context);
+    TEST_REGISTER_ID("6.39", test_ota_connect_tls_failure_stays_disconnected);
+    TEST_REGISTER_ID("6.40", test_ota_disconnect_then_cleanup_twice);
+    TEST_REGISTER_ID("6.41", test_ota_requests_report_network_error_on_write_failure);
+    TEST_REGISTER_ID("6.42", test_ota_init_rejects_zero_port);
+    TEST_REGISTER_ID("6.43", test_ota_init_rejects_null_ca_chain);
+    TEST_REGISTER_ID("6.44", test_ota_init_rejects_empty_ca_chain);
+    TEST_REGISTER_ID("6.45", test_ota_init_tls_configure_failure_leaves_no_context);
+    TEST_REGISTER_ID("6.46", test_ota_init_server_cert_failure_leaves_no_context);
 }

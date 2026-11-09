@@ -71,3 +71,20 @@ el2go_ota_status_t ota_fixture_noop_chunk_cb(const uint8_t *data, size_t len, si
     (void)ctx;
     return EL2GO_OTA_SUCCESS;
 }
+
+bool ota_fixture_init_connected(el2go_ota_ctx_t **ctx)
+{
+    /* The config is static so that its hostname outlives the context. */
+    static el2go_ota_mtls_config_t s_cfg;
+
+    ota_fixture_reset_net_crypto_wraps();
+    s_cfg = ota_fixture_make_cfg();
+    if (el2go_ota_init(ctx, &s_cfg) != EL2GO_OTA_SUCCESS) {
+        return false;
+    }
+    if (el2go_ota_connect(*ctx) != EL2GO_OTA_SUCCESS) {
+        el2go_ota_cleanup(ctx);
+        return false;
+    }
+    return true;
+}

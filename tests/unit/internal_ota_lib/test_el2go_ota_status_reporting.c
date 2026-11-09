@@ -200,6 +200,133 @@ static bool test_ota_schedule_null_package(void *param)
     return true;
 }
 
+/**
+ * @defgroup ota_status_fake_transport Fake transport for status reporting
+ * @{
+ */
+
+static el2go_ota_status_t g_fake_send_result;
+static el2go_ota_status_t g_fake_recv_result;
+static unsigned int g_fake_send_calls;
+
+static el2go_ota_status_t fake_send(el2go_ota_transport_t *t, const char *method_path,
+                                    const uint8_t *msg, size_t msg_len)
+{
+    (void)t;
+    (void)method_path;
+    (void)msg;
+    (void)msg_len;
+    g_fake_send_calls++;
+    return g_fake_send_result;
+}
+
+static el2go_ota_status_t fake_recv(el2go_ota_transport_t *t, uint8_t *buf, size_t buf_len,
+                                    size_t *out_len)
+{
+    (void)t;
+    (void)buf;
+    (void)buf_len;
+    *out_len = 0U; /* google.protobuf.Empty */
+    return g_fake_recv_result;
+}
+
+static void fake_transport_init(el2go_ota_transport_t *t, el2go_ota_status_t send_result,
+                                el2go_ota_status_t recv_result)
+{
+    memset(t, 0, sizeof(*t));
+    t->send = fake_send;
+    t->recv = fake_recv;
+    g_fake_send_result = send_result;
+    g_fake_recv_result = recv_result;
+    g_fake_send_calls = 0U;
+}
+
+/** @} */
+
+/*
+ * The unit build has no flash/NVS backend, so el2go_ota_kvs_init() fails
+ * with EL2GO_OTA_ERROR_INTERNAL. Tests 12.12-12.15 cover that path: report
+ * falls back to delivery without persistence, and the KVS-only APIs return
+ * the KVS error. The persisted path is covered by the component suite.
+ */
+
+/**
+ * @brief 12.12 -- without KVS, report still delivers; a send error is returned.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_status_report_no_kvs_send_fail(void *params)
+{
+    el2go_ota_transport_t t;
+    (void)params;
+
+    fake_transport_init(&t, EL2GO_OTA_ERROR_NETWORK, EL2GO_OTA_SUCCESS);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK,
+                      el2go_ota_status_reporting_report(&t, "upd-s", "pkg-s",
+                                                        EL2GO_OTA_OUTCOME_SUCCESS));
+    TEST_ASSERT_EQUAL(1U, g_fake_send_calls);
+    return true;
+}
+
+/**
+ * @brief 12.13 -- report with a failing recv returns the recv error.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_status_report_recv_fail(void *params)
+{
+    el2go_ota_transport_t t;
+    (void)params;
+
+    fake_transport_init(&t, EL2GO_OTA_SUCCESS, EL2GO_OTA_ERROR_NETWORK);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK,
+                      el2go_ota_status_reporting_report(&t, "upd-r", "pkg-r",
+                                                        EL2GO_OTA_OUTCOME_FAILURE));
+    return true;
+}
+
+/**
+ * @brief 12.14 -- without KVS, a fully acknowledged report returns SUCCESS.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_status_report_no_kvs_success(void *params)
+{
+    el2go_ota_transport_t t;
+    (void)params;
+
+    fake_transport_init(&t, EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_status_reporting_report(
+                                             &t, "upd-ok", "pkg-ok", EL2GO_OTA_OUTCOME_ROLLBACK));
+    TEST_ASSERT_EQUAL(1U, g_fake_send_calls);
+    return true;
+}
+
+/**
+ * @brief 12.15 -- without KVS, schedule, read_pending and retry_pending fail
+ *        with the KVS error and never touch the transport.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_status_kvs_only_apis_without_kvs(void *params)
+{
+    el2go_ota_transport_t t;
+    el2go_ota_pending_status_t pending = { 0 };
+    (void)params;
+
+    fake_transport_init(&t, EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS);
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INTERNAL, el2go_ota_status_reporting_schedule(
+                                                    "upd-q", "pkg-q", EL2GO_OTA_OUTCOME_FAILURE));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INTERNAL, el2go_ota_status_reporting_read_pending(&pending));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INTERNAL, el2go_ota_status_reporting_retry_pending(&t));
+    TEST_ASSERT_EQUAL(0U, g_fake_send_calls);
+    return true;
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_status_reporting_tests(void)
@@ -215,4 +342,8 @@ void register_ota_lib_status_reporting_tests(void)
     TEST_REGISTER_ID("12.9", test_ota_status_report_all_outcomes_null_vtable);
     TEST_REGISTER_ID("12.10", test_ota_status_report_null_transport);
     TEST_REGISTER_ID("12.11", test_ota_schedule_null_package);
+    TEST_REGISTER_ID("12.12", test_ota_status_report_no_kvs_send_fail);
+    TEST_REGISTER_ID("12.13", test_ota_status_report_recv_fail);
+    TEST_REGISTER_ID("12.14", test_ota_status_report_no_kvs_success);
+    TEST_REGISTER_ID("12.15", test_ota_status_kvs_only_apis_without_kvs);
 }

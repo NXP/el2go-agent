@@ -21,6 +21,11 @@
 #include "ota/el2go_ota_config.h"
 #include "test_el2go_ota_fixtures.h"
 
+#include "types/available_updates_response.pb.h"
+#include "types/file_response.pb.h"
+#include "types/update.pb.h"
+#include <pb_encode.h>
+
 /**
  * @brief check_for_updates with transport->send == NULL must return INVALID_PARAM.
  *
@@ -445,6 +450,395 @@ static bool test_ota_fetch_resume_beyond_file_size_invalid(void *params)
     return true;
 }
 
+/** @defgroup ota_engine_script_helpers Scripted transport for retry and error-path tests
+ * @{
+ * Each step describes one round-trip: what send() returns, what recv()
+ * returns, and the payload recv() delivers. Steps are consumed in order, one
+ * per send() call, so a test can script failures followed by recovery.
+ */
+
+/** @brief Maximum number of scripted round-trips per test. */
+#define SCRIPT_MAX_STEPS 8U
+
+/** @brief One scripted round-trip: what send() and recv() return, and recv payload. */
+typedef struct {
+    el2go_ota_status_t send_rc;
+    el2go_ota_status_t recv_rc;
+    uint8_t payload[64];
+    size_t payload_len;
+} script_step_t;
+
+static script_step_t g_script[SCRIPT_MAX_STEPS];
+static size_t g_script_len;
+static size_t g_script_send_idx;
+static size_t g_script_recv_idx;
+
+/** @brief Number of times capture_chunk_cb() has been called. */
+static size_t g_cb_calls;
+
+/** @brief Total number of bytes delivered to capture_chunk_cb(). */
+static size_t g_cb_total_len;
+
+/** @brief Status returned by capture_chunk_cb(). */
+static el2go_ota_status_t g_cb_rc;
+
+/**
+ * @brief Clear the script and the chunk callback capture state.
+ */
+static void script_reset(void)
+{
+    memset(g_script, 0, sizeof(g_script));
+    g_script_len = 0U;
+    g_script_send_idx = 0U;
+    g_script_recv_idx = 0U;
+    g_cb_calls = 0U;
+    g_cb_total_len = 0U;
+    g_cb_rc = EL2GO_OTA_SUCCESS;
+}
+
+/**
+ * @brief Append a step whose recv payload is an encoded FileResponse.
+ *
+ * @param send_rc   Status returned by send() for this step.
+ * @param recv_rc   Status returned by recv() for this step.
+ * @param total     FileResponse.totalFileSize (0 to omit).
+ * @param data_len  Length of FileResponse.data (0 to omit the field).
+ * @return @c true if the step was added and encoded.
+ */
+static bool script_add_file_response(el2go_ota_status_t send_rc, el2go_ota_status_t recv_rc,
+                                     int64_t total, size_t data_len)
+{
+    static const uint8_t k_data[32] = { 0xA5U };
+    script_step_t *s = NULL;
+    pb_ostream_t os;
+
+    TEST_ASSERT(g_script_len < SCRIPT_MAX_STEPS);
+    TEST_ASSERT(data_len <= sizeof(k_data));
+    s = &g_script[g_script_len++];
+    s->send_rc = send_rc;
+    s->recv_rc = recv_rc;
+    os = pb_ostream_from_buffer(s->payload, sizeof(s->payload));
+    if (total > 0) {
+        TEST_ASSERT(pb_encode_tag(&os, PB_WT_VARINT,
+                                  com_nxp_iot_ota_update_proto_FileResponse_totalFileSize_tag));
+        TEST_ASSERT(pb_encode_varint(&os, (uint64_t)total));
+    }
+    if (data_len > 0U) {
+        TEST_ASSERT(
+            pb_encode_tag(&os, PB_WT_STRING, com_nxp_iot_ota_update_proto_FileResponse_data_tag));
+        TEST_ASSERT(pb_encode_string(&os, k_data, data_len));
+    }
+    s->payload_len = os.bytes_written;
+    return true;
+}
+
+/**
+ * @brief Append a step whose recv payload is the given raw bytes.
+ *
+ * @param send_rc  Status returned by send() for this step.
+ * @param recv_rc  Status returned by recv() for this step.
+ * @param raw      Payload delivered by recv(); may be NULL if @p raw_len is 0.
+ * @param raw_len  Length of @p raw.
+ * @return @c true if the step was added.
+ */
+static bool script_add_raw(el2go_ota_status_t send_rc, el2go_ota_status_t recv_rc,
+                           const uint8_t *raw, size_t raw_len)
+{
+    script_step_t *s = NULL;
+
+    TEST_ASSERT(g_script_len < SCRIPT_MAX_STEPS);
+    TEST_ASSERT(raw_len <= sizeof(g_script[0].payload));
+    s = &g_script[g_script_len++];
+    s->send_rc = send_rc;
+    s->recv_rc = recv_rc;
+    if (raw_len > 0U) {
+        memcpy(s->payload, raw, raw_len);
+    }
+    s->payload_len = raw_len;
+    return true;
+}
+
+/**
+ * @brief Scripted transport send: returns the send status of the next step.
+ *
+ * @param[in] transport  Unused.
+ * @param[in] method     Unused.
+ * @param[in] data       Unused.
+ * @param[in] data_len   Unused.
+ * @return The scripted send status, or EL2GO_OTA_ERROR_INTERNAL when the
+ *         script is exhausted.
+ */
+static el2go_ota_status_t script_send(el2go_ota_transport_t *transport, const char *method,
+                                      const uint8_t *data, size_t data_len)
+{
+    (void)transport;
+    (void)method;
+    (void)data;
+    (void)data_len;
+    if (g_script_send_idx >= g_script_len) {
+        return EL2GO_OTA_ERROR_INTERNAL; /* test asked for more round-trips than scripted */
+    }
+    /* send() and recv() of one step share an index; recv advances it. */
+    g_script_recv_idx = g_script_send_idx;
+    return g_script[g_script_send_idx++].send_rc;
+}
+
+/**
+ * @brief Scripted transport recv: delivers the payload of the current step.
+ *
+ * @param[in]  transport  Unused.
+ * @param[out] buf        Destination buffer.
+ * @param[in]  buf_size   Size of @p buf.
+ * @param[out] out_len    Number of bytes written to @p buf.
+ * @return The scripted recv status.
+ */
+static el2go_ota_status_t script_recv(el2go_ota_transport_t *transport, uint8_t *buf,
+                                      size_t buf_size, size_t *out_len)
+{
+    const script_step_t *s = &g_script[g_script_recv_idx];
+
+    (void)transport;
+    *out_len = 0U;
+    if (s->recv_rc != EL2GO_OTA_SUCCESS) {
+        return s->recv_rc;
+    }
+    if (s->payload_len > buf_size) {
+        return EL2GO_OTA_ERROR_INTERNAL;
+    }
+    memcpy(buf, s->payload, s->payload_len);
+    *out_len = s->payload_len;
+    return EL2GO_OTA_SUCCESS;
+}
+
+/**
+ * @brief Chunk callback that records how often it ran and how many bytes it got.
+ *
+ * @param[in] data    Unused.
+ * @param[in] len     Chunk length, added to g_cb_total_len.
+ * @param[in] offset  Unused.
+ * @param[in] ctx     Unused.
+ * @return g_cb_rc.
+ */
+static el2go_ota_status_t capture_chunk_cb(const uint8_t *data, size_t len, size_t offset,
+                                           void *ctx)
+{
+    (void)data;
+    (void)offset;
+    (void)ctx;
+    g_cb_calls++;
+    g_cb_total_len += len;
+    return g_cb_rc;
+}
+
+/**
+ * @brief Build a transport whose send/recv follow the script.
+ *
+ * @return Transport with script_send() and script_recv() installed.
+ */
+static el2go_ota_transport_t script_transport(void)
+{
+    el2go_ota_transport_t t = { 0 };
+
+    t.send = script_send;
+    t.recv = script_recv;
+    return t;
+}
+
+/** @} */ /* end of ota_engine_script_helpers */
+
+/**
+ * @brief 9.17 -- a send failure followed by a successful round-trip is retried
+ *        transparently: the download succeeds and the data reaches chunk_cb.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_fetch_retries_after_send_failure(void *params)
+{
+    el2go_ota_transport_t t = script_transport();
+
+    (void)params;
+    script_reset();
+    TEST_ASSERT(script_add_file_response(EL2GO_OTA_ERROR_NETWORK, EL2GO_OTA_SUCCESS, 0, 0U));
+    TEST_ASSERT(script_add_file_response(EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS, 10, 10U));
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_download_engine_fetch_package(
+                                             &t, "u", "p", "f", 0U, 0, capture_chunk_cb, NULL));
+    TEST_ASSERT_EQUAL(2U, g_script_send_idx);
+    TEST_ASSERT_EQUAL(1U, g_cb_calls);
+    TEST_ASSERT_EQUAL(10U, g_cb_total_len);
+    return true;
+}
+
+/**
+ * @brief 9.18 -- recv() failing on every attempt exhausts the retry budget
+ *        (1 + EL2GO_OTA_DOWNLOAD_MAX_RETRIES attempts) and reports a network
+ *        error without calling chunk_cb.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_fetch_gives_up_after_max_retries(void *params)
+{
+    el2go_ota_transport_t t = script_transport();
+    size_t i = 0U;
+
+    (void)params;
+    script_reset();
+    for (i = 0U; i <= EL2GO_OTA_DOWNLOAD_MAX_RETRIES; i++) {
+        TEST_ASSERT(script_add_file_response(EL2GO_OTA_SUCCESS, EL2GO_OTA_ERROR_NETWORK, 0, 0U));
+    }
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK,
+                      el2go_ota_download_engine_fetch_package(&t, "u", "p", "f", 0U, 0,
+                                                              capture_chunk_cb, NULL));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_DOWNLOAD_MAX_RETRIES + 1U, g_script_send_idx);
+    TEST_ASSERT_EQUAL(0U, g_cb_calls);
+    return true;
+}
+
+/**
+ * @brief 9.19 -- a response that is not a valid FileResponse is a decode
+ *        error and is not retried.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_fetch_parse_failure_not_retried(void *params)
+{
+    /* field 2 (data), length-delimited, claims 9 bytes but none follow */
+    static const uint8_t bad[] = { 0x12U, 0x09U };
+    el2go_ota_transport_t t = script_transport();
+
+    (void)params;
+    script_reset();
+    TEST_ASSERT(script_add_raw(EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS, bad, sizeof(bad)));
+    TEST_ASSERT(script_add_file_response(EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS, 4, 4U));
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_DECODE,
+                      el2go_ota_download_engine_fetch_package(&t, "u", "p", "f", 0U, 0,
+                                                              capture_chunk_cb, NULL));
+    TEST_ASSERT_EQUAL(1U, g_script_send_idx);
+    TEST_ASSERT_EQUAL(0U, g_cb_calls);
+    return true;
+}
+
+/**
+ * @brief 9.20 -- an error returned by chunk_cb aborts the download and is
+ *        returned to the caller unchanged.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_fetch_chunk_cb_error_propagated(void *params)
+{
+    el2go_ota_transport_t t = script_transport();
+
+    (void)params;
+    script_reset();
+    TEST_ASSERT(script_add_file_response(EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS, 8, 8U));
+    g_cb_rc = EL2GO_OTA_ERROR_INTERNAL;
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_INTERNAL,
+                      el2go_ota_download_engine_fetch_package(&t, "u", "p", "f", 0U, 0,
+                                                              capture_chunk_cb, NULL));
+    TEST_ASSERT_EQUAL(1U, g_cb_calls);
+    return true;
+}
+
+/**
+ * @brief 9.21 -- with no known file size, the size is taken from the first
+ *        response. A response that delivers the whole file (16 of 16 bytes) completes
+ *        the download in a single round-trip.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_fetch_learns_file_size_from_response(void *params)
+{
+    el2go_ota_transport_t t = script_transport();
+
+    (void)params;
+    script_reset();
+    TEST_ASSERT(script_add_file_response(EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS, 16, 16U));
+
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS, el2go_ota_download_engine_fetch_package(
+                                             &t, "u", "p", "f", 0U, 0, capture_chunk_cb, NULL));
+    TEST_ASSERT_EQUAL(1U, g_script_send_idx);
+    TEST_ASSERT_EQUAL(16U, g_cb_total_len);
+    return true;
+}
+
+/**
+ * @brief 9.22 -- check_for_updates maps a send failure to a network error, passes a
+ *        recv failure through, and reports a malformed response as a decode
+ *        error.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_check_for_updates_transport_and_parse_errors(void *params)
+{
+    static const uint8_t bad[] = { 0x0AU, 0x09U }; /* updates field, truncated */
+    el2go_ota_transport_t t = script_transport();
+    static el2go_ota_check_update_resp_t resp;
+
+    (void)params;
+    script_reset();
+    TEST_ASSERT(script_add_raw(EL2GO_OTA_ERROR_INTERNAL, EL2GO_OTA_SUCCESS, NULL, 0U));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_NETWORK,
+                      el2go_ota_download_engine_check_for_updates(&t, NULL, 0U, &resp));
+
+    script_reset();
+    TEST_ASSERT(script_add_raw(EL2GO_OTA_SUCCESS, EL2GO_OTA_ERROR_SERVER, NULL, 0U));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_SERVER,
+                      el2go_ota_download_engine_check_for_updates(&t, NULL, 0U, &resp));
+
+    script_reset();
+    TEST_ASSERT(script_add_raw(EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS, bad, sizeof(bad)));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_ERROR_DECODE,
+                      el2go_ota_download_engine_check_for_updates(&t, NULL, 0U, &resp));
+    return true;
+}
+
+/**
+ * @brief 9.23 -- check_for_updates reports an available update from a well-formed
+ *        response, and no update from an empty one.
+ *
+ * @param params Unused.
+ * @return @c true if all assertions pass, @c false otherwise.
+ */
+static bool test_ota_check_for_updates_available_and_none(void *params)
+{
+    uint8_t upd[16];
+    uint8_t wire[32];
+    pb_ostream_t us = pb_ostream_from_buffer(upd, sizeof(upd));
+    pb_ostream_t os = pb_ostream_from_buffer(wire, sizeof(wire));
+    el2go_ota_transport_t t = script_transport();
+    static el2go_ota_check_update_resp_t resp;
+
+    (void)params;
+    TEST_ASSERT(pb_encode_tag(&us, PB_WT_STRING, com_nxp_iot_ota_update_proto_Update_updateId_tag));
+    TEST_ASSERT(pb_encode_string(&us, (const pb_byte_t *)"u1", 2U));
+    TEST_ASSERT(pb_encode_tag(&os, PB_WT_STRING,
+                              com_nxp_iot_ota_update_proto_AvailableUpdatesResponse_updates_tag));
+    TEST_ASSERT(pb_encode_string(&os, upd, us.bytes_written));
+
+    script_reset();
+    TEST_ASSERT(script_add_raw(EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS, wire, os.bytes_written));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      el2go_ota_download_engine_check_for_updates(&t, NULL, 0U, &resp));
+    TEST_ASSERT(resp.update_available);
+    TEST_ASSERT_EQUAL(0, strcmp(resp.updates[0].update_id, "u1"));
+
+    script_reset();
+    TEST_ASSERT(script_add_raw(EL2GO_OTA_SUCCESS, EL2GO_OTA_SUCCESS, NULL, 0U));
+    TEST_ASSERT_EQUAL(EL2GO_OTA_SUCCESS,
+                      el2go_ota_download_engine_check_for_updates(&t, NULL, 0U, &resp));
+    TEST_ASSERT(!resp.update_available);
+    return true;
+}
+
 /* ---- suite registration ------------------------------------------------ */
 
 void register_ota_lib_download_engine_tests(void)
@@ -465,4 +859,11 @@ void register_ota_lib_download_engine_tests(void)
     TEST_REGISTER_ID("9.14", test_ota_fetch_resume_in_last_chunk_clamped);
     TEST_REGISTER_ID("9.15", test_ota_fetch_resume_at_file_size_no_request);
     TEST_REGISTER_ID("9.16", test_ota_fetch_resume_beyond_file_size_invalid);
+    TEST_REGISTER_ID("9.17", test_ota_fetch_retries_after_send_failure);
+    TEST_REGISTER_ID("9.18", test_ota_fetch_gives_up_after_max_retries);
+    TEST_REGISTER_ID("9.19", test_ota_fetch_parse_failure_not_retried);
+    TEST_REGISTER_ID("9.20", test_ota_fetch_chunk_cb_error_propagated);
+    TEST_REGISTER_ID("9.21", test_ota_fetch_learns_file_size_from_response);
+    TEST_REGISTER_ID("9.22", test_ota_check_for_updates_transport_and_parse_errors);
+    TEST_REGISTER_ID("9.23", test_ota_check_for_updates_available_and_none);
 }
