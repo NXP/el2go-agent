@@ -14,6 +14,8 @@ target_sources(app PRIVATE
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/framework/test_utils.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/public_fwual/test_fwual_public.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_fwual/test_fwual_internal.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_fwual/test_fwual_boot.c
+    ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/tests/unit/internal_fwual/test_fwual_errors.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ztest_fwual_unit_main.c
     ${ZEPHYR_NXP_IOT_AGENT_MODULE_DIR}/zephyr/tests/common/ztest_bridge.c
     ${CMAKE_CURRENT_SOURCE_DIR}/mocks/fwual_storage_mocks.c

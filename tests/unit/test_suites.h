@@ -39,6 +39,21 @@ void register_datastore_tests(bool include_fs_tests);
 void register_fwual_tests(void);
 
 /**
+ * @brief Register the FWUAL boot-sequence tests (init error paths and the
+ *        simulated reboot). Must run before any other FWUAL test.
+ *
+ * Zephyr only: this suite and the error suite below are not part of the
+ * Linux unit test executables.
+ */
+void register_fwual_boot_tests(void);
+
+/**
+ * @brief Register the FWUAL error-path tests (injected storage and bootloader
+ *        failures, API misuse). Runs after the boot-sequence suite.
+ */
+void register_fwual_error_tests(void);
+
+/**
  * @brief Register all EL2GO OTA Library tests.
  */
 void register_ota_lib_tests(void);

@@ -34,3 +34,16 @@ bool fwual_storage_fault_boot_upgrade_pending(void)
 {
     return false;
 }
+
+bool fwual_storage_fault_seed_nvs(uint16_t key, const void *data, size_t len)
+{
+    (void)key;
+    (void)data;
+    (void)len;
+    return false;
+}
+
+bool fwual_storage_fault_pending(void)
+{
+    return false;
+}
