@@ -21,19 +21,29 @@
  */
 
 /* String field size limits (including null terminator). */
+/** Size of an update identifier string, including the null terminator. */
 #define EL2GO_OTA_MAX_UPDATE_ID_LEN 64U
+/** Size of a package identifier string, including the null terminator. */
 #define EL2GO_OTA_MAX_PACKAGE_ID_LEN 64U
+/** Size of a file identifier string, including the null terminator. */
 #define EL2GO_OTA_MAX_FILE_ID_LEN 64U
+/** Size of an update, package or file name string, including the null terminator. */
 #define EL2GO_OTA_MAX_NAME_LEN 128U
+/** Size of a package version string, including the null terminator. */
 #define EL2GO_OTA_MAX_VERSION_LEN 32U
+/** Size of a file checksum string, including the null terminator. */
 #define EL2GO_OTA_MAX_CHECKSUM_LEN 128U
 
 /* Maximum entries per level of the update hierarchy. */
+/** Maximum number of updates returned by el2go_ota_check_for_updates(). */
 #define EL2GO_OTA_MAX_UPDATES 4U
+/** Maximum number of packages in one update. */
 #define EL2GO_OTA_MAX_PACKAGES 4U
+/** Maximum number of file metadata entries in one package. */
 #define EL2GO_OTA_MAX_FILE_METADATA 8U
 
 /* Magic byte stored in el2go_ota_pending_status_t.valid to mark a live entry. */
+/** Value of el2go_ota_pending_status_t::valid that marks a live pending status entry. */
 #define EL2GO_OTA_STATUS_VALID_MAGIC 0xA5U
 
 /**
@@ -76,7 +86,7 @@ typedef struct {
 /* Checksum algorithm identifiers stored in el2go_ota_file_metadata_t.checksum_algorithm. */
 #define EL2GO_OTA_CHECKSUM_ALG_UNSPECIFIED \
     0x00000000 /**< no algorithm specified, treat as SHA-256 for backward compatibility */
-#define EL2GO_OTA_CHECKSUM_ALG_SHA256 0x02000009 /* PSA_ALG_SHA_256 */
+#define EL2GO_OTA_CHECKSUM_ALG_SHA256 0x02000009 /**< SHA-256 (PSA_ALG_SHA_256) */
 
 /** @brief Parsed file metadata entry returned by el2go_ota_check_for_updates(). */
 typedef struct {
@@ -319,7 +329,7 @@ el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go
 /**
  * @brief Download a firmware package from the OTA server.
  *
- * Requests the package identified by update_id/package_id in
+ * Requests the file identified by update_id, package_id and file_id in
  * EL2GO_OTA_CHUNK_SIZE-byte chunks and delivers each chunk to chunk_cb.
  * Supports resumable downloads via resume_offset.
  *
@@ -337,9 +347,9 @@ el2go_ota_status_t el2go_ota_check_for_updates(el2go_ota_ctx_t *ctx, const el2go
  * @param[in] cb_ctx         Opaque user context passed to chunk_cb. May be NULL.
  *
  * @retval EL2GO_OTA_SUCCESS on success.
- * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx, update_id, package_id, or
- *         chunk_cb is NULL, or if resume_offset exceeds the file size reported by
- *         the last check_for_updates() call.
+ * @retval EL2GO_OTA_ERROR_INVALID_PARAM if ctx, update_id, package_id, file_id,
+ *         or chunk_cb is NULL, or if resume_offset exceeds the file size reported
+ *         by the last check_for_updates() call.
  * @retval EL2GO_OTA_ERROR_NETWORK if not connected or a network error occurs
  *         after all retries.
  * @retval EL2GO_OTA_ERROR_ENCODE if request encoding fails.

@@ -92,7 +92,7 @@ fwual_result_t fwual_open_session(fwual_session_t **out_session);
  *
  * @param[in] session Session handle returned by fwual_open_session()
  *
- * @return FWUAL_OK upon success
+ * @retval FWUAL_OK upon success
  */
 fwual_result_t fwual_close_session(fwual_session_t *session);
 
@@ -168,6 +168,8 @@ fwual_result_t fwual_prepare_image(fwual_session_t *session, const fwual_image_d
  * @param[in] image_id Target image identifier (must have been prepared)
  *
  * @retval FWUAL_OK if sufficient storage is available
+ * @retval FWUAL_ERR_INVALID_PARAM if session is NULL
+ * @retval FWUAL_ERR_INVALID_STATE if no session is open or image_id was not prepared
  * @retval FWUAL_ERR_NO_SPACE if capacity is insufficient
  */
 fwual_result_t fwual_check_storage(fwual_session_t *session, fwual_image_id_t image_id);

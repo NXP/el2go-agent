@@ -27,6 +27,10 @@
  * @brief Trusted Root CA Certificate (ECC) for the OTA server.
  *
  * DER-encoded ECC root certificate for verifying OTA server certificates.
+ *
+ * @warning This is a placeholder (dummy) root CA that is only suitable for
+ *          the samples. Replace it with the root CA of your OTA server before
+ *          production use.
  */
 #define EL2GO_OTA_TRUSTED_ROOT_CA_CERT                                                            \
     0x30, 0x82, 0x01, 0xf0, 0x30, 0x82, 0x01, 0x95, 0xa0, 0x03, 0x02, 0x01, 0x02, 0x02, 0x14,     \
