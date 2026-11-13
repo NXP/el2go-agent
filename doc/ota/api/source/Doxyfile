@@ -1,4 +1,4 @@
-PROJECT_NAME           = "NXP IoT Agent - OTA"
+PROJECT_NAME           = "EdgeLock 2GO OTA FW Update"
 PROJECT_BRIEF          = "EdgeLock 2GO OTA (Over-the-Air update) agent documentation"
 OUTPUT_DIRECTORY       = doxygen_output
 INPUT                  = ../../../../include/ota ../../../../include/fwual

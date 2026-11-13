@@ -1,0 +1,27 @@
+digraph components {
+    rankdir=TB;
+    nodesep=0.6;
+    size="6,2.8";
+    ranksep=0.5;
+    node [shape=box, style=rounded, fontname="Helvetica", fontsize=12];
+    edge [fontname="Helvetica", fontsize=10];
+
+    APP    [label="OTA agent application"];
+    OTA    [label="EL2GO OTA Library"];
+    FW     [label="FWUAL"];
+    BOOT   [label="Bootloader (e.g. MCUboot)"];
+
+    SERVER [label="EdgeLock 2GO OTA server", shape=cylinder];
+    SLOTS  [label="Firmware image slots", shape=cylinder];
+
+    // Keep each external endpoint beside the component that uses it,
+    // so the diagram grows downwards instead of sideways.
+    { rank=same; OTA; FW; }
+    { rank=same; SERVER; BOOT; }
+
+    APP  -> OTA  [label="check, download,\nreport"];
+    APP  -> FW   [label="write chunks,\nactivate, confirm"];
+    OTA  -> SERVER [dir=both, label="mTLS / gRPC"];
+    FW   -> BOOT [label="activate,\nconfirm, roll back"];
+    FW   -> SLOTS [label="write, verify"];
+}

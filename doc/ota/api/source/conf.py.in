@@ -1,6 +1,7 @@
-"""Sphinx configuration for NXP IoT Agent OTA API documentation."""
+"""Sphinx configuration for OTA API documentation."""
 
 import os
+import shutil
 
 # -- Project information -----------------------------------------------------
 project = "EdgeLock 2GO OTA Library"
@@ -13,7 +14,16 @@ release = "@EL2GO_VERSION@"
 # -- General configuration ---------------------------------------------------
 extensions = [
     "breathe",
+    "sphinx.ext.graphviz",
 ]
+
+# The HTML builder renders ".. graphviz::" diagrams by running the Graphviz
+# "dot" executable. If it is not installed, set the "no_dot" tag so that the
+# documents can skip the diagram for HTML (see ".. only::" in overview.rst)
+# instead of showing the raw dot source. The xml builder embeds the dot source
+# and never needs "dot".
+if shutil.which("dot") is None:
+    tags.add("no_dot")  # noqa: F821 (tags is provided by Sphinx)
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]

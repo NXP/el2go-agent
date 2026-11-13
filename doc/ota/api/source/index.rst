@@ -1,10 +1,12 @@
-EL2GO OTA API Documentation (release |release|)
-=========================================================
+EL2GO OTA Library and FWUAL API Documentation (release |release|)
+=================================================================
 
-Welcome to the Over-the-Air (OTA) update agent documentation of the
-NXP IoT Agent (EdgeLock 2GO) stack. This documentation combines narrative
-content with the C/C++ API reference extracted from the public headers
-under ``include/ota`` and ``include/fwual``.
+Welcome to the API documentation of the EdgeLock 2GO (EL2GO) OTA library and
+of the Firmware Update Abstraction Layer (FWUAL) used for the EdgeLock 2GO
+(EL2GO) OTA firmware update solution. The two libraries are independent of
+each other. This documentation combines narrative content with the C API
+reference extracted from the public headers under ``include/ota`` and
+``include/fwual``.
 
 .. toctree::
    :maxdepth: 2
@@ -14,9 +16,10 @@ under ``include/ota`` and ``include/fwual``.
    overview
    api/ota
    api/fwual
+   abbreviations
 
 Indices and tables
-===================
+==================
 
 * :ref:`genindex`
 * :ref:`search`
