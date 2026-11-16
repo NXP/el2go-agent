@@ -28,6 +28,9 @@ static const struct device *const s_flash_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_f
 /** Selects which range is currently active; only one may be armed at a time. */
 static bool s_nvs_fault_armed;
 
+/** Number of bytes in the image slot range that may still be written before faulting. */
+static uint32_t s_slot_bytes_allowed;
+
 static bool offset_in_fault_range(off_t offset)
 {
     return ((uint32_t)offset >= FAULT_RANGE_BASE) &&
@@ -45,6 +48,10 @@ static int fault_write_byte_cb(const struct device *dev, off_t offset, uint8_t d
     bool in_range = s_nvs_fault_armed ? offset_in_nvs_fault_range(offset) :
                                         offset_in_fault_range(offset);
 
+    if (in_range && !s_nvs_fault_armed && s_slot_bytes_allowed > 0U) {
+        s_slot_bytes_allowed--;
+        return (int)data;
+    }
     if (in_range) {
         return -EIO;
     }
@@ -89,7 +96,20 @@ bool ct_fw_flash_fault_arm(bool arm)
     }
 
     s_nvs_fault_armed = false;
+    s_slot_bytes_allowed = 0U;
     flash_simulator_set_callbacks(s_flash_dev, arm ? &s_fault_cbs : NULL);
+    return true;
+}
+
+bool ct_fw_flash_fault_arm_after(uint32_t bytes_allowed)
+{
+    if (!device_is_ready(s_flash_dev)) {
+        return false;
+    }
+
+    s_nvs_fault_armed = false;
+    s_slot_bytes_allowed = bytes_allowed;
+    flash_simulator_set_callbacks(s_flash_dev, &s_fault_cbs);
     return true;
 }
 

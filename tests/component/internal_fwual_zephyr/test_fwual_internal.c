@@ -8,8 +8,12 @@
 #include "test_fwual_internal.h"
 
 #include <zephyr/dfu/mcuboot.h>
+#include <zephyr/drivers/flash.h>
+#include <zephyr/kvss/nvs.h>
+#include <zephyr/storage/flash_map.h>
 
 #include "fwual/fwual.h"
+#include "fwual_state.h"
 
 /**
  * @defgroup test_fwual_internal Internal FWUAL Component Tests
@@ -54,6 +58,18 @@ static const uint8_t k_fw_image_sha256[32] = {
 __attribute__((weak)) bool ct_fw_flash_fault_arm(bool arm)
 {
     (void)arm;
+    return false;
+}
+
+/**
+ * @brief Let @p bytes_allowed bytes of the image slot be written, then fail every write.
+ *
+ * Allows a fault to hit in the middle of a multi-chunk write. The weak default
+ * returns false (unsupported on this target). Disarm with ct_fw_flash_fault_arm(false).
+ */
+__attribute__((weak)) bool ct_fw_flash_fault_arm_after(uint32_t bytes_allowed)
+{
+    (void)bytes_allowed;
     return false;
 }
 
@@ -184,6 +200,106 @@ static fwual_result_t stage_verified_image(fwual_session_t **out_session)
         return r;
     }
     *out_session = session;
+    return FWUAL_OK;
+}
+
+/* Direct Flash Helpers */
+
+/** Erase granularity of the flash simulator (erase-block-size in the board overlay). */
+#define CT_FW_SECTOR_SIZE 4096U
+
+/** Chunk size used when streaming a slot-sized image. */
+#define CT_FW_STREAM_CHUNK 4096U
+
+/**
+ * @brief Open the secondary image slot that FWUAL stages into.
+ *
+ * @return 0 on success; the caller must flash_area_close() the area.
+ */
+static int open_staging_slot(const struct flash_area **fa)
+{
+    return flash_area_open(FIXED_PARTITION_ID(slot1_partition), fa);
+}
+
+/**
+ * @brief Read @p len bytes at @p offset of the staging slot, bypassing FWUAL.
+ */
+static int staging_slot_read(uint32_t offset, uint8_t *buf, size_t len)
+{
+    const struct flash_area *fa = NULL;
+    int rc = open_staging_slot(&fa);
+
+    if (rc != 0) {
+        return rc;
+    }
+    rc = flash_area_read(fa, (off_t)offset, buf, len);
+    flash_area_close(fa);
+    return rc;
+}
+
+/**
+ * @brief Return the byte value the flash reads back after an erase.
+ */
+static uint8_t staging_slot_erased_val(void)
+{
+    const struct flash_area *fa = NULL;
+    uint8_t val = 0xFFU;
+
+    if (open_staging_slot(&fa) == 0) {
+        val = flash_area_erased_val(fa);
+        flash_area_close(fa);
+    }
+    return val;
+}
+
+/**
+ * @brief Size in bytes of the staging slot, or 0 on error.
+ */
+static size_t staging_slot_size(void)
+{
+    const struct flash_area *fa = NULL;
+    size_t size = 0U;
+
+    if (open_staging_slot(&fa) == 0) {
+        size = fa->fa_size;
+        flash_area_close(fa);
+    }
+    return size;
+}
+
+/**
+ * @brief Deterministic non-trivial byte pattern for slot-sized images.
+ */
+static uint8_t pattern_byte(uint64_t index)
+{
+    return (uint8_t)((index * 31U + 7U) & 0xFFU);
+}
+
+/**
+ * @brief Write @p size bytes of pattern_byte() through fwual_write() in chunks.
+ */
+static fwual_result_t write_pattern_image(fwual_session_t *session, uint64_t size)
+{
+    uint8_t chunk[CT_FW_STREAM_CHUNK];
+    uint64_t offset = 0U;
+
+    while (offset < size) {
+        size_t len = CT_FW_STREAM_CHUNK;
+        size_t i = 0U;
+        fwual_result_t r = FWUAL_ERR_INTERNAL;
+
+        if ((size - offset) < len) {
+            len = (size_t)(size - offset);
+        }
+        for (i = 0U; i < len; i++) {
+            chunk[i] = pattern_byte(offset + i);
+        }
+        r = fwual_write(session, CT_FW_IMAGE_ID, offset, chunk, len);
+        if (r != FWUAL_OK) {
+            return r;
+        }
+        offset += len;
+    }
     return FWUAL_OK;
 }
 
@@ -1025,6 +1141,453 @@ cleanup:
     return result;
 }
 
+/* Flash Content Tests */
+
+/**
+ * @brief Check that the staging slot holds pattern_byte() for [offset, offset + len).
+ */
+static bool slot_matches_pattern(uint32_t offset, uint32_t len)
+{
+    uint8_t buf[256];
+    uint32_t done = 0U;
+
+    while (done < len) {
+        uint32_t n = (len - done) < sizeof(buf) ? (len - done) : (uint32_t)sizeof(buf);
+        uint32_t i = 0U;
+
+        if (staging_slot_read(offset + done, buf, n) != 0) {
+            return false;
+        }
+        for (i = 0U; i < n; i++) {
+            if (buf[i] != pattern_byte((uint64_t)offset + done + i)) {
+                return false;
+            }
+        }
+        done += n;
+    }
+    return true;
+}
+
+/**
+ * @brief Check that the staging slot reads back as erased for [offset, offset + len).
+ */
+static bool slot_is_erased(uint32_t offset, uint32_t len)
+{
+    uint8_t buf[256];
+    uint8_t erased = staging_slot_erased_val();
+    uint32_t done = 0U;
+
+    while (done < len) {
+        uint32_t n = (len - done) < sizeof(buf) ? (len - done) : (uint32_t)sizeof(buf);
+        uint32_t i = 0U;
+
+        if (staging_slot_read(offset + done, buf, n) != 0) {
+            return false;
+        }
+        for (i = 0U; i < n; i++) {
+            if (buf[i] != erased) {
+                return false;
+            }
+        }
+        done += n;
+    }
+    return true;
+}
+
+/**
+ * @brief OTA_CT_FW_3.1: bytes written through fwual_write() must land unchanged
+ *        at the start of the staging slot, and the rest of the slot stays erased.
+ */
+static test_result_t test_fwual_flash_content_roundtrip(void)
+{
+    fwual_session_t *session = NULL;
+    uint8_t readback[CT_FW_IMAGE_SIZE] = { 0 };
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+
+    TEST_ASSERT_EQ(FWUAL_OK, stage_verified_image(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+
+    TEST_ASSERT_EQ_GOTO(0, staging_slot_read(0U, readback, sizeof(readback)), cleanup);
+    TEST_ASSERT_MEM_EQ(k_fw_image, readback, sizeof(readback));
+    TEST_ASSERT_TRUE_GOTO(slot_is_erased(CT_FW_IMAGE_SIZE, 512U), cleanup);
+
+cleanup:
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
+/**
+ * @brief OTA_CT_FW_3.2: flash content changed behind FWUAL's back after finalize
+ *        must be caught by verify_image() and leave the image unstaged.
+ */
+static test_result_t test_fwual_flash_content_tamper_detected(void)
+{
+    fwual_session_t *session = NULL;
+    fwual_image_desc_t desc = { 0 };
+    fwual_caps_t caps = { 0 };
+    uint8_t tampered[CT_FW_IMAGE_SIZE] = { 0 };
+    const struct flash_area *fa = NULL;
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_get_caps(&caps));
+    fill_desc(&desc);
+
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_open_session(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_prepare_image(session, &desc), cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, write_full_image(session, &caps), cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_finalize_image(session, CT_FW_IMAGE_ID), cleanup);
+
+    /* Rewrite the first sector with one flipped bit in the middle of the image. */
+    (void)memcpy(tampered, k_fw_image, sizeof(tampered));
+    tampered[CT_FW_IMAGE_SIZE / 2U] ^= 0x01U;
+    TEST_ASSERT_EQ_GOTO(0, open_staging_slot(&fa), cleanup);
+    TEST_ASSERT_EQ_GOTO(0, flash_area_erase(fa, 0, CT_FW_SECTOR_SIZE), cleanup);
+    TEST_ASSERT_EQ_GOTO(0, flash_area_write(fa, 0, tampered, sizeof(tampered)), cleanup);
+
+    TEST_ASSERT_EQ_GOTO(FWUAL_ERR_CORRUPT, fwual_verify_image(session, CT_FW_IMAGE_ID), cleanup);
+    TEST_ASSERT_FALSE_GOTO(fwual_is_image_staged(session, CT_FW_IMAGE_ID), cleanup);
+
+cleanup:
+    if (fa != NULL) {
+        flash_area_close(fa);
+    }
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
+/**
+ * @brief OTA_CT_FW_3.3: re-preparing a slot must erase everything a previous,
+ *        larger image left behind.
+ */
+static test_result_t test_fwual_flash_no_leftover_after_reprepare(void)
+{
+    fwual_session_t *session = NULL;
+    fwual_image_desc_t desc = { 0 };
+    uint8_t readback[CT_FW_IMAGE_SIZE] = { 0 };
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+    fill_desc(&desc);
+    desc.size = 2U * CT_FW_SECTOR_SIZE;
+
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_open_session(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_prepare_image(session, &desc), cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, write_pattern_image(session, desc.size), cleanup);
+    TEST_ASSERT_TRUE_GOTO(slot_matches_pattern(0U, (uint32_t)desc.size), cleanup);
+
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_cancel_image(session, CT_FW_IMAGE_ID), cleanup);
+
+    fill_desc(&desc);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_prepare_image(session, &desc), cleanup);
+    TEST_ASSERT_EQ_GOTO(
+        FWUAL_OK, fwual_write(session, CT_FW_IMAGE_ID, 0U, k_fw_image, CT_FW_IMAGE_SIZE), cleanup);
+
+    TEST_ASSERT_EQ_GOTO(0, staging_slot_read(0U, readback, sizeof(readback)), cleanup);
+    TEST_ASSERT_MEM_EQ(k_fw_image, readback, sizeof(readback));
+    TEST_ASSERT_TRUE_GOTO(
+        slot_is_erased(CT_FW_IMAGE_SIZE, 2U * CT_FW_SECTOR_SIZE - CT_FW_IMAGE_SIZE), cleanup);
+
+cleanup:
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
+/**
+ * @brief OTA_CT_FW_3.4: an image that exactly fills the staging slot must be
+ *        accepted, written end to end and read back intact.
+ */
+static test_result_t test_fwual_flash_slot_exact_fit(void)
+{
+    fwual_session_t *session = NULL;
+    fwual_image_desc_t desc = { 0 };
+    size_t slot_size = staging_slot_size();
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+    TEST_ASSERT_TRUE(slot_size >= 2U * CT_FW_SECTOR_SIZE);
+    fill_desc(&desc);
+    desc.size = slot_size;
+
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_open_session(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_prepare_image(session, &desc), cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, write_pattern_image(session, slot_size), cleanup);
+
+    /* One more byte must not fit (checked before finalize, which locks the slot). */
+    TEST_ASSERT_EQ_GOTO(FWUAL_ERR_INVALID_PARAM,
+                        fwual_write(session, CT_FW_IMAGE_ID, slot_size, k_fw_image, 1U), cleanup);
+
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_finalize_image(session, CT_FW_IMAGE_ID), cleanup);
+
+    /* First sector and last sector must be intact. */
+    TEST_ASSERT_TRUE_GOTO(slot_matches_pattern(0U, CT_FW_SECTOR_SIZE), cleanup);
+    TEST_ASSERT_TRUE_GOTO(
+        slot_matches_pattern((uint32_t)slot_size - CT_FW_SECTOR_SIZE, CT_FW_SECTOR_SIZE), cleanup);
+
+cleanup:
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
+/**
+ * @brief OTA_CT_FW_3.5: an image one byte larger than the staging slot must be
+ *        rejected with FWUAL_ERR_NO_SPACE, and a valid image must still work after.
+ */
+static test_result_t test_fwual_flash_slot_one_byte_too_large(void)
+{
+    fwual_session_t *session = NULL;
+    fwual_image_desc_t desc = { 0 };
+    size_t slot_size = staging_slot_size();
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+    TEST_ASSERT_TRUE(slot_size > 0U);
+    fill_desc(&desc);
+
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_open_session(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+
+    desc.size = slot_size + 1U;
+    TEST_ASSERT_EQ_GOTO(FWUAL_ERR_NO_SPACE, fwual_prepare_image(session, &desc), cleanup);
+
+    fill_desc(&desc);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_prepare_image(session, &desc), cleanup);
+
+cleanup:
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
+/* Mid-Write Fault Recovery Tests */
+
+/**
+ * @brief OTA_CT_FW_3.6: a flash fault in the middle of a chunk must be reported,
+ *        and cancel + re-prepare must give a slot that takes the full image intact.
+ *
+ * The fault lets 100 bytes of the second sector through, so the slot is left
+ * with partly programmed flash that a plain retry could not overwrite. The
+ * recovery path (cancel_image, prepare_image erases the slot again) must clean it.
+ */
+static test_result_t test_fwual_flash_midwrite_fault_recovery(void)
+{
+    fwual_session_t *session = NULL;
+    fwual_image_desc_t desc = { 0 };
+    fwual_result_t r = FWUAL_ERR_INTERNAL;
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT | CT_CAP_FLASH_FAULT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+    fill_desc(&desc);
+    desc.size = 2U * CT_FW_SECTOR_SIZE;
+
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_open_session(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_prepare_image(session, &desc), cleanup);
+
+    TEST_ASSERT_TRUE_GOTO(ct_fw_flash_fault_arm_after(CT_FW_SECTOR_SIZE + 100U), cleanup);
+    r = write_pattern_image(session, desc.size);
+    (void)ct_fw_flash_fault_arm(false);
+
+    TEST_ASSERT_EQ_GOTO(FWUAL_ERR_IO, r, cleanup);
+    TEST_ASSERT_FALSE_GOTO(fwual_is_image_staged(session, CT_FW_IMAGE_ID), cleanup);
+    TEST_ASSERT_NE_GOTO(FWUAL_STATE_FAILED, fwual_get_state(), cleanup);
+
+    /* The first sector made it to flash before the fault. */
+    TEST_ASSERT_TRUE_GOTO(slot_matches_pattern(0U, CT_FW_SECTOR_SIZE), cleanup);
+
+    /* Recovery: drop the image, prepare again (erases the slot) and write it all. */
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_cancel_image(session, CT_FW_IMAGE_ID), cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_prepare_image(session, &desc), cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, write_pattern_image(session, desc.size), cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_finalize_image(session, CT_FW_IMAGE_ID), cleanup);
+    TEST_ASSERT_TRUE_GOTO(slot_matches_pattern(0U, (uint32_t)desc.size), cleanup);
+
+cleanup:
+    (void)ct_fw_flash_fault_arm(false);
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
+/* Real NVS Tests */
+
+/**
+ * Number of open/close cycles used to push NVS through several garbage collections.
+ * Each cycle persists the session state twice; 1500 cycles is sized for the small
+ * native_sim NVS partition. GC is expected from the entry count but is not
+ * observed directly, so this test does not prove that a GC happened. A larger
+ * partition would need a higher count.
+ */
+#define CT_FW_NVS_CHURN_CYCLES 1500U
+
+/**
+ * @brief Mount a private NVS view on storage_partition and read one FWUAL key.
+ *
+ * Only nvs_read() is used after mounting, but nvs_mount() itself may write
+ * during recovery (closing a sector, writing a GC marker). That is most likely
+ * right after an injected NVS fault, so call this only when the FWUAL instance
+ * is idle and the fault has been disarmed.
+ *
+ * @return Number of bytes read, or a negative errno.
+ */
+static ssize_t nvs_peek(uint16_t key, void *buf, size_t len)
+{
+    struct nvs_fs fs = { 0 };
+    struct flash_pages_info info = { 0 };
+
+    fs.flash_device = FIXED_PARTITION_DEVICE(storage_partition);
+    fs.offset = FIXED_PARTITION_OFFSET(storage_partition);
+    if (flash_get_page_info_by_offs(fs.flash_device, fs.offset, &info) != 0) {
+        return -EIO;
+    }
+    fs.sector_size = (uint16_t)info.size;
+    fs.sector_count = (uint16_t)(FIXED_PARTITION_SIZE(storage_partition) / info.size);
+
+    if (nvs_mount(&fs) != 0) {
+        return -EIO;
+    }
+    return nvs_read(&fs, key, buf, len);
+}
+
+/**
+ * @brief OTA_CT_FW_3.7: the lifecycle state FWUAL reports after commit() must be
+ *        what really sits in NVS.
+ */
+static test_result_t test_fwual_nvs_lifecycle_persisted(void)
+{
+    fwual_session_t *session = NULL;
+    fwual_state_t persisted = FWUAL_STATE_IDLE;
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+
+    TEST_ASSERT_EQ(FWUAL_OK, stage_verified_image(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_commit_session(session), cleanup);
+
+    TEST_ASSERT_EQ_GOTO((ssize_t)sizeof(persisted),
+                        nvs_peek((uint16_t)FWUAL_NVS_KEY_LIFECYCLE, &persisted, sizeof(persisted)),
+                        cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_STATE_COMMITTED, persisted, cleanup);
+
+cleanup:
+    (void)fwual_rollback();
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
+/**
+ * @brief OTA_CT_FW_3.8: when the lifecycle write fails inside commit(), the value
+ *        already in NVS must be left untouched (no half-written state).
+ */
+static test_result_t test_fwual_nvs_failed_persist_keeps_old_value(void)
+{
+    fwual_session_t *session = NULL;
+    fwual_state_t before = FWUAL_STATE_IDLE;
+    fwual_state_t after = FWUAL_STATE_IDLE;
+    ssize_t rc = 0;
+    ssize_t before_rc = 0;
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT | CT_CAP_FLASH_FAULT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+
+    TEST_ASSERT_EQ(FWUAL_OK, stage_verified_image(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+
+    rc = nvs_peek((uint16_t)FWUAL_NVS_KEY_LIFECYCLE, &before, sizeof(before));
+    before_rc = rc;
+    TEST_ASSERT_TRUE_GOTO(rc == (ssize_t)sizeof(before) || rc == -ENOENT, cleanup);
+    TEST_ASSERT_TRUE_GOTO(before != FWUAL_STATE_COMMITTED, cleanup);
+
+    TEST_ASSERT_TRUE_GOTO(ct_fw_flash_fault_arm_nvs(true), cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_ERR_INTERNAL, fwual_commit_session(session), cleanup);
+    (void)ct_fw_flash_fault_arm_nvs(false);
+
+    rc = nvs_peek((uint16_t)FWUAL_NVS_KEY_LIFECYCLE, &after, sizeof(after));
+    TEST_LOG("lifecycle in NVS before=%d after=%d (rc=%d), reported=%d", (int)before, (int)after,
+             (int)rc, (int)fwual_get_state());
+    TEST_ASSERT_TRUE_GOTO(rc == (ssize_t)sizeof(after) || rc == -ENOENT, cleanup);
+    TEST_ASSERT_EQ_GOTO(before_rc, rc, cleanup);
+    if (before_rc == (ssize_t)sizeof(before)) {
+        TEST_ASSERT_EQ_GOTO(before, after, cleanup);
+    }
+    TEST_ASSERT_TRUE_GOTO(after != FWUAL_STATE_COMMITTED, cleanup);
+
+cleanup:
+    (void)ct_fw_flash_fault_arm_nvs(false);
+    (void)fwual_rollback();
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
+/**
+ * @brief OTA_CT_FW_3.9: thousands of NVS writes (several garbage collections) must
+ *        not lose the state that is written afterwards.
+ */
+static test_result_t test_fwual_nvs_survives_garbage_collection(void)
+{
+    fwual_session_t *session = NULL;
+    fwual_state_t persisted = FWUAL_STATE_IDLE;
+    uint32_t i = 0U;
+    test_result_t result = TEST_PASS;
+
+    TEST_REQUIRE_CAP(CT_CAP_REAL_FLASH | CT_CAP_MCUBOOT);
+    TEST_ASSERT_EQ(FWUAL_OK, fwual_init());
+
+    for (i = 0U; i < CT_FW_NVS_CHURN_CYCLES; i++) {
+        fwual_session_t *tmp = NULL;
+
+        TEST_ASSERT_EQ(FWUAL_OK, fwual_open_session(&tmp));
+        if (fwual_close_session(tmp) != FWUAL_OK) {
+            TEST_LOG("close_session failed in churn cycle %u", (unsigned)i);
+            return TEST_FAIL;
+        }
+    }
+
+    TEST_ASSERT_EQ(FWUAL_OK, stage_verified_image(&session));
+    TEST_ASSERT_NOT_NULL_GOTO(session, cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_OK, fwual_commit_session(session), cleanup);
+
+    TEST_ASSERT_EQ_GOTO((ssize_t)sizeof(persisted),
+                        nvs_peek((uint16_t)FWUAL_NVS_KEY_LIFECYCLE, &persisted, sizeof(persisted)),
+                        cleanup);
+    TEST_ASSERT_EQ_GOTO(FWUAL_STATE_COMMITTED, persisted, cleanup);
+
+cleanup:
+    (void)fwual_rollback();
+    if (session != NULL) {
+        (void)fwual_close_session(session);
+    }
+    return result;
+}
+
 /* Test Registration */
 
 TEST_SUITE_BEGIN(fwual_internal)
@@ -1057,6 +1620,15 @@ TEST_REGISTER("OTA_CT_FW_2.22", test_fwual_int_close_inactive)
 TEST_REGISTER("OTA_CT_FW_2.23", test_fwual_int_close_with_prepared)
 TEST_REGISTER("OTA_CT_FW_2.24", test_fwual_int_commit_marks_committed)
 TEST_REGISTER("OTA_CT_FW_2.25", test_fwual_int_activate_verified)
+TEST_REGISTER("OTA_CT_FW_3.1", test_fwual_flash_content_roundtrip)
+TEST_REGISTER("OTA_CT_FW_3.2", test_fwual_flash_content_tamper_detected)
+TEST_REGISTER("OTA_CT_FW_3.3", test_fwual_flash_no_leftover_after_reprepare)
+TEST_REGISTER("OTA_CT_FW_3.4", test_fwual_flash_slot_exact_fit)
+TEST_REGISTER("OTA_CT_FW_3.5", test_fwual_flash_slot_one_byte_too_large)
+TEST_REGISTER("OTA_CT_FW_3.6", test_fwual_flash_midwrite_fault_recovery)
+TEST_REGISTER("OTA_CT_FW_3.7", test_fwual_nvs_lifecycle_persisted)
+TEST_REGISTER("OTA_CT_FW_3.8", test_fwual_nvs_failed_persist_keeps_old_value)
+TEST_REGISTER("OTA_CT_FW_3.9", test_fwual_nvs_survives_garbage_collection)
 TEST_SUITE_END(fwual_internal)
 
 /** @} */
