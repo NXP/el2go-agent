@@ -218,7 +218,7 @@ static fwual_result_t stage_verified_image(fwual_session_t **out_session)
  */
 static int open_staging_slot(const struct flash_area **fa)
 {
-    return flash_area_open(FIXED_PARTITION_ID(slot1_partition), fa);
+    return flash_area_open(PARTITION_ID(slot1_partition), fa);
 }
 
 /**
@@ -1456,13 +1456,13 @@ static ssize_t nvs_peek(uint16_t key, void *buf, size_t len)
     struct nvs_fs fs = { 0 };
     struct flash_pages_info info = { 0 };
 
-    fs.flash_device = FIXED_PARTITION_DEVICE(storage_partition);
-    fs.offset = FIXED_PARTITION_OFFSET(storage_partition);
+    fs.flash_device = PARTITION_DEVICE(storage_partition);
+    fs.offset = PARTITION_OFFSET(storage_partition);
     if (flash_get_page_info_by_offs(fs.flash_device, fs.offset, &info) != 0) {
         return -EIO;
     }
     fs.sector_size = (uint16_t)info.size;
-    fs.sector_count = (uint16_t)(FIXED_PARTITION_SIZE(storage_partition) / info.size);
+    fs.sector_count = (uint16_t)(PARTITION_SIZE(storage_partition) / info.size);
 
     if (nvs_mount(&fs) != 0) {
         return -EIO;
