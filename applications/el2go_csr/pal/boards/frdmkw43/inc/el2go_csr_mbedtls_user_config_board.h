@@ -1,6 +1,7 @@
 /*
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0
+ *  Copyright 2026 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
  *  not use this file except in compliance with the License.
@@ -13,8 +14,6 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- */
-/* Copyright 2026 NXP
  */
 
 #ifndef __EL2GO_CSR_MBEDTLS_USER_CONFIG_BOARD_H__

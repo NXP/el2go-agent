@@ -1,7 +1,7 @@
 # Copyright 2026 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
-#
+
 # Documentation build.
 #
 # Two independent documentation sets are provided, each with its own Sphinx

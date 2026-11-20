@@ -1,7 +1,5 @@
-# Copyright 2026 NXP
-#
+# Copyright 2024, 2026 NXP
 # SPDX-License-Identifier: Apache-2.0
-#
 
 set(BUILD_ZEPHYR 1)
 set(CMAKE_MODULE_PATH

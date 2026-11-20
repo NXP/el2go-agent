@@ -1,9 +1,8 @@
 #!/bin/bash
 #
-# SPDX-License-Identifier: Apache-2.0 */
+# Copyright 2025-2026 NXP
 #
-# Copyright 2026 NXP
-#
+# SPDX-License-Identifier: Apache-2.0
 
 set -eE
 trap 'error ${LINENO}' ERR

@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: Apache-2.0 */
 /*
  * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
 #ifndef __TEST_EL2GO_SERVICE_INTERNAL_H__

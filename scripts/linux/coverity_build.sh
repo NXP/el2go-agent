@@ -1,9 +1,8 @@
 #!/bin/bash
 #
+# Copyright 2025-2026 NXP
+#
 # SPDX-License-Identifier: BSD-3-Clause
-#
-# Copyright 2026 NXP
-#
 
 set -e
 

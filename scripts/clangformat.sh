@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
 
 # ClangFormat script
 # Install ClangFormat in tmp directory

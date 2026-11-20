@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# Copyright 2026 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
 
 # Script to generate nanopb C files from protobuf definitions
 # Usage: ./generate_protos.sh --nanopb <path> [--proto-dir <dir>] [--output-dir <dir>]

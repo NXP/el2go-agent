@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+
 # Script executed via `cmake -P` by the `docs` custom target to generate the
 # RTP API documentation (Doxygen XML extraction + Sphinx/Breathe rendering).
 #

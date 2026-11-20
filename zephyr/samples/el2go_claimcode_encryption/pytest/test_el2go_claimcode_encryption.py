@@ -1,4 +1,4 @@
-# Copyright 2024 NXP
+# Copyright 2024, 2026 NXP
 #
 # SPDX-License-Identifier: Apache-2.0
 #

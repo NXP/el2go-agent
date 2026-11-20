@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# SPDX-License-Identifier: Apache-2.0 */
-#
 # Copyright 2026 NXP
 #
+# SPDX-License-Identifier: Apache-2.0
+
 # strip_build_paths.sh -- remove build-host paths from all CTestTestfile.cmake
 # files found under a given directory to avoid Yocto buildpaths QA violations.
 #
