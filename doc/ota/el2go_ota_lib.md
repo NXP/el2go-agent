@@ -55,8 +55,7 @@ The device always initiates communication (client-driven OTA); the server never 
 ├── libs/
 │   ├── el2go_ota_lib/        OTA Library: public facade (el2go_ota_lib.c) and internal modules in src/
 │   ├── fwual/                FWUAL weak defaults (fwual.c) and backends (mcuboot/)
-│   └── protobuf/ota/         Generated nanopb code for the OTA protocol
-├── doc/protobuf/ota/         OTA protocol .proto definitions
+│   └── protobuf/ota/         Generated nanopb code for the OTA protocol (the .proto source is not part of this repository)
 ├── applications/ota_agents/
 │   ├── el2go_ota_agent_core/       Minimal reference agent
 │   ├── el2go_ota_agent_advanced/   Production-style reference agent
@@ -156,7 +155,8 @@ detects this after the reboot (from the FWUAL state or from the persisted expect
 ## EL2GO OTA Library
 
 - **Protocol:** gRPC over a minimal built-in HTTP/2 client, over mTLS (ALPN `h2`). The service is
-  `OtaUpdateDeliveryService` in `doc/protobuf/ota/ota-delivery.proto`; the `.proto` file is authoritative.
+  `OtaUpdateDeliveryService`; the generated nanopb code in `libs/protobuf/ota/` reflects its messages. The `.proto`
+  source is not part of this repository.
 - **Authentication:** mTLS is always used. The server certificate is verified against the CA chain passed in
   `el2go_ota_mtls_config_t`. The client certificate is read from the secure storage and the private key is used by
   its key ID; the key never leaves the secure storage.
@@ -371,7 +371,7 @@ mostly reusable or have usable weak defaults.
 | Topic | Source |
 |-------|--------|
 | Public API (functions, types, return codes) | [API manual (PDF)](EL2GO_OTA_UserManual.pdf), headers in `include/ota/`, `include/fwual/` |
-| Protocol messages | `doc/protobuf/ota/ota-delivery.proto` |
+| Protocol messages | `libs/protobuf/ota/` (generated nanopb code) |
 | Configuration, flash layout, build and run | [OTA agent core sample](../../zephyr/samples/el2go_ota_agent_core/README.rst), [OTA agent advanced sample](../../zephyr/samples/el2go_ota_agent_advanced/README.rst) |
 | Kconfig options | `libs/el2go_ota_lib/Kconfig`, `libs/fwual/mcuboot/Kconfig`, `zephyr/Kconfig` |
 | Backend selection (Zephyr) | `zephyr/CMakeLists.txt` |
